@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+	<script src="//unpkg.com/swagger-ui-dist@3/swagger-ui-standalone-preset.js"></script>
+	<script src="//unpkg.com/swagger-ui-dist@3/swagger-ui-bundle.js"></script>
+	<link rel="stylesheet" href="//unpkg.com/swagger-ui-dist@3/swagger-ui.css"/>
+	<script>
+		window.onload = () => {
+			let ui = SwaggerUIBundle({
+				url: "{{ specUrl }}",
+				dom_id: "#swagger-ui",
+        docExpansion: 'none',
+				presets: [
+					SwaggerUIBundle.presets.apis,
+					SwaggerUIBundle.SwaggerUIStandalonePreset
+				],
+				plugins: [
+					SwaggerUIBundle.plugins.DownloadUrl
+				],
+			})
+
+			window.ui = ui
+		}
+	</script>
+
+  <title>API Docs</title>
+  <link rel="shortcut icon" href="https://sae.com.mx/wp-content/uploads/2023/03/cropped-Favicon-Servicios-Aereos-Estrella-SAE-Renta-Avion-Privado-FBO-Handling-192x192.webp" type="image/x-icon">
+
+  <style>
+    html {
+      padding: 0;
+      margin: 0;
+    }
+    body * {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    #swagger-ui .wrapper {
+      max-width: 100%;
+    }
+
+    #swagger-ui .property-row td {
+      padding-right: 1.5rem;
+    }
+
+    #swagger-ui .property-row td {
+      padding-bottom: 0.5rem;
+    }
+
+    .swagger-ui .model {
+      margin-top: 1rem;
+    }
+
+    .swagger-ui .model .prop {
+      display: grid;
+      grid-template-columns: 4rem auto;
+      align-items: flex-start;
+      gap: 2rem;
+    }
+
+    .swagger-ui .model .prop:has(.prop-enum) {
+      grid-template-columns: 4rem auto auto;
+    }
+
+    .swagger-ui .model .property-row.deprecated .prop {
+      display: grid;
+      grid-template-columns: 4rem auto auto;
+      align-items: flex-start;
+      gap: 2rem;
+    }
+
+    .swagger-ui .model .property-row.deprecated .prop .property {
+      align-items: flex-start;
+      margin-top: -1rem;
+    }
+
+    .swagger-ui .model .property-row.deprecated .prop .renderedMarkdown {
+      align-items: flex-start;
+    }
+
+    .swagger-ui .model .property-row.deprecated .prop .renderedMarkdown p {
+      align-items: flex-start;
+      padding: 0;
+      margin: 0rem;
+    }
+
+    .swagger-ui .model .property-row .prop .renderedMarkdown p {
+      align-items: flex-start;
+      padding: 0;
+      margin: 0rem;
+    }
+
+    .swagger-ui .markdown p, .swagger-ui .markdown pre, .swagger-ui .renderedMarkdown p, .swagger-ui .renderedMarkdown pre {
+      color: #4890a6;
+    }
+    
+    .swagger-ui .model .renderedMarkdown p::before {
+      content: '// ';
+    }
+
+    .swagger-ui .opblock-body pre.microlight {
+      font-weight: normal;
+    }
+
+    .header {
+      padding-top: 3rem;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+
+    .logo {
+      width: 100%;
+      max-width: 20rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="https://sae.com.mx/wp-content/uploads/2024/03/logo_sae.svg" alt="" class="logo">
+  </div>
+	<div id="swagger-ui"></div>
+</body>
+</html>
