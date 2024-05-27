@@ -11,7 +11,8 @@
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",
@@ -36,6 +37,8 @@
     "@adonisjs/eslint-config": "^1.3.0",
     "@adonisjs/prettier-config": "^1.3.0",
     "@adonisjs/tsconfig": "^1.3.0",
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
     "@japa/api-client": "^2.0.3",
     "@japa/assert": "^3.0.0",
     "@japa/plugin-adonisjs": "^3.0.1",
@@ -45,6 +48,8 @@
     "@types/node": "^20.12.10",
     "eslint": "^8.57.0",
     "hot-hook": "^0.2.5",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.5",
     "pino-pretty": "^11.0.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
@@ -70,6 +75,20 @@
   },
   "eslintConfig": {
     "extends": "@adonisjs/eslint-config/app"
+  },
+  "eslintIgnore": [
+    "build"
+  ],
+  "eslintRules": {
+    "no-console": [
+      "error",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ]
   },
   "prettier": "@adonisjs/prettier-config"
 }
