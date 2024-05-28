@@ -34,6 +34,7 @@ export default defineConfig({
     () => import('@adonisjs/auth/auth_provider'),
     () => import('adonisjs-6-swagger/swagger_provider'),
     () => import('@adonisjs/core/providers/edge_provider'),
+    () => import('adonis-lucid-soft-deletes/provider'),
   ],
 
   /*
