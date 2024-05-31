@@ -3,6 +3,44 @@ import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
+import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *      User:
+ *        type: object
+ *        properties:
+ *          user_id:
+ *            type: number
+ *            description: Id del usuario
+ *          user_email:
+ *            type: string
+ *            description: Correo electrónico del usuario
+ *          user_password:
+ *            type: string
+ *            description: Contraseña del usuario
+ *          user_token:
+ *            type: string
+ *            description: Token del usuario
+ *          user_active:
+ *            type: number
+ *            description: Activo o Inactivo
+ *          role_id:
+ *            type: number
+ *            description: Id del Rol
+ *          person_id:
+ *            type: number
+ *            description: Id de la Persona
+ *          user_created_at:
+ *            type: string
+ *          user_updated_at:
+ *            type: string
+ *          user_deleted_at:
+ *            type: string
+ *
+ */
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['user_email'],
@@ -10,6 +48,14 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
 })
 
 export default class User extends compose(BaseModel, AuthFinder) {
+  static accessTokens = DbAccessTokensProvider.forModel(User, {
+    expiresIn: '30 days',
+    prefix: 'oat_',
+    table: 'api_tokens',
+    type: 'auth_token',
+    tokenSecretLength: 40,
+  })
+
   @column({ isPrimary: true })
   declare user_id: number
 

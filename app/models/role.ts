@@ -1,6 +1,35 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
-
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *      Role:
+ *        type: object
+ *        properties:
+ *          role_id:
+ *            type: number
+ *            description: Id del rol
+ *          role_name:
+ *            type: string
+ *            description: Nombre del rol
+ *          role_slug:
+ *            type: string
+ *            description: SLUG del rol
+ *          role_description:
+ *            type: string
+ *            description: Descripción del rol
+ *          role_active:
+ *            type: number
+ *            description: Activo o Inactivo
+ *          role_created_at:
+ *            type: string
+ *          role_updated_at:
+ *            type: string
+ *          role_deleted_at:
+ *            type: string
+ *
+ */
 export default class Role extends BaseModel {
   // public static table = 'roles'
 

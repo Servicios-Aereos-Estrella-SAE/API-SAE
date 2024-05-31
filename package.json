@@ -60,6 +60,7 @@
     "@adonisjs/core": "^6.9.0",
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^20.6.0",
+    "@adonisjs/session": "^7.4.0",
     "@vinejs/vine": "^2.0.0",
     "adonis-lucid-soft-deletes": "^2.0.0",
     "adonisjs-6-swagger": "^1.0.1",
@@ -75,21 +76,31 @@
     ]
   },
   "eslintConfig": {
-    "extends": "@adonisjs/eslint-config/app"
+    "extends": "@adonisjs/eslint-config/app",
+    "rules": {
+      "unicorn/filename-case": [
+        "error",
+        {
+          "cases": {
+            "snakeCase": true,
+            "pascalCase": true
+          }
+        }
+      ],
+      "no-console": [
+        "error",
+        {
+          "allow": [
+            "warn",
+            "error"
+          ]
+        }
+      ]
+    }
   },
   "eslintIgnore": [
     "build"
   ],
-  "eslintRules": {
-    "no-console": [
-      "error",
-      {
-        "allow": [
-          "warn",
-          "error"
-        ]
-      }
-    ]
-  },
+  "eslintRules": {},
   "prettier": "@adonisjs/prettier-config"
 }
