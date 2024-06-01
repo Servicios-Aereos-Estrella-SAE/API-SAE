@@ -60,6 +60,7 @@
     "@adonisjs/core": "^6.9.0",
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^20.6.0",
+    "@adonisjs/mail": "^9.2.1",
     "@adonisjs/session": "^7.4.0",
     "@vinejs/vine": "^2.0.0",
     "adonis-lucid-soft-deletes": "^2.0.0",
@@ -67,7 +68,8 @@
     "edge.js": "^6.0.2",
     "luxon": "^3.4.4",
     "mysql2": "^3.9.7",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "uuidv4": "^6.2.13"
   },
   "hotHook": {
     "boundaries": [

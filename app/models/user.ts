@@ -1,9 +1,11 @@
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
+import Person from './person.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 /**
  * @swagger
@@ -85,4 +87,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column()
   declare user_deleted_at: DateTime | null
+
+  @belongsTo(() => Person, {
+    foreignKey: 'person_id',
+  })
+  declare person: BelongsTo<typeof Person>
 }

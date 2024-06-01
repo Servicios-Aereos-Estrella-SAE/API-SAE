@@ -10,7 +10,11 @@ export default defineConfig({
   | will be scanned automatically from the "./commands" directory.
   |
   */
-  commands: [() => import('@adonisjs/core/commands'), () => import('@adonisjs/lucid/commands')],
+  commands: [
+    () => import('@adonisjs/core/commands'),
+    () => import('@adonisjs/lucid/commands'),
+    () => import('@adonisjs/mail/commands'),
+  ],
 
   /*
   |--------------------------------------------------------------------------
@@ -36,6 +40,7 @@ export default defineConfig({
     () => import('@adonisjs/core/providers/edge_provider'),
     () => import('adonis-lucid-soft-deletes/provider'),
     () => import('@adonisjs/session/session_provider'),
+    () => import('@adonisjs/mail/mail_provider'),
   ],
 
   /*
