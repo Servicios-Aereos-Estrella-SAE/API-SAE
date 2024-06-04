@@ -120,8 +120,6 @@ export default class UserController {
     try {
       const userEmail = request.input('user_email')
       const userPassword = request.input('user_password')
-      // console.log(userEmail)
-      // console.log(userPassword)
       /**
        * Find a user by email. Return error if a user does
        * not exists
@@ -142,14 +140,11 @@ export default class UserController {
       const logged = await hash.verify(user.user_password, userPassword)
       // const userVerify = await User.verifyCredentials(userEmail, userPassword)
       // const authUser = await auth.use('web').login(user)
-      // console.log(authUser)
       const token = await User.accessTokens.create(user)
-      // console.log(token.value!.release())
       /**
        * Now login the user or create a token for them
        */
       if (logged) {
-        // console.log('ok')
         response.status(200)
         return {
           type: 'success',
@@ -161,7 +156,6 @@ export default class UserController {
           },
         }
       } else {
-        // console.log('credenciales no validas')
         response.status(404)
         return {
           type: 'warning',
@@ -709,8 +703,7 @@ export default class UserController {
           data: {},
         }
       }
-      const newPassword = await hash.make(request.input('user_password'))
-      user.user_password = newPassword
+      user.user_password = request.input('user_password')
       user.user_token = ''
       user.save()
       response.status(200)

@@ -65,9 +65,12 @@
     "@vinejs/vine": "^2.0.0",
     "adonis-lucid-soft-deletes": "^2.0.0",
     "adonisjs-6-swagger": "^1.0.1",
+    "argon2": "^0.40.3",
     "edge.js": "^6.0.2",
     "luxon": "^3.4.4",
     "mysql2": "^3.9.7",
+    "phc-argon2": "^1.1.4",
+    "phc-bcrypt": "^1.0.8",
     "reflect-metadata": "^0.2.2",
     "uuidv4": "^6.2.13"
   },
