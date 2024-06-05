@@ -1,4 +1,4 @@
-import User from '../models/User.js'
+import User from '../models/user.js'
 import { HttpContext } from '@adonisjs/core/http'
 import ApiToken from '../models/ApiToken.js'
 import { uuid } from 'uuidv4'
