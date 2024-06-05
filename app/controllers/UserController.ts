@@ -1,6 +1,6 @@
 import User from '../models/user.js'
 import { HttpContext } from '@adonisjs/core/http'
-import ApiToken from '../models/ApiToken.js'
+import ApiToken from '../models/api_token.js'
 import { uuid } from 'uuidv4'
 import mail from '@adonisjs/mail/services/main'
 import env from '../../start/env.js'
