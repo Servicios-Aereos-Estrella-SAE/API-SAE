@@ -68,6 +68,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare user_token: string
 
   @column()
+  declare pin_code: string
+
+  @column()
   declare user_active: number
 
   @column()
@@ -78,6 +81,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column({ serializeAs: null })
   declare user_password: string
+
+  @column()
+  declare pin_code_expires_at: DateTime | null
 
   @column.dateTime({ autoCreate: true })
   declare user_created_at: DateTime
