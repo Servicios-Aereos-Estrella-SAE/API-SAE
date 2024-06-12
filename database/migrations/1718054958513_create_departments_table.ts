@@ -13,6 +13,7 @@ export default class extends BaseSchema {
       table.boolean('department_is_default').nullable()
       table.tinyint('department_active').nullable()
       table.integer('parent_department_id').unsigned().nullable()
+      table.integer('parent_department_sync_id').nullable()
       table.integer('company_id').nullable()
       table.timestamp('department_last_synchronization_at').nullable()
       table.foreign('parent_department_id').references('departments.department_id')

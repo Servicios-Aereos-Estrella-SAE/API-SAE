@@ -30,9 +30,15 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
  *          parent_position_id:
  *            type: number
  *            description: Id de la posición relacionado
+ *          parent_position_sync_id:
+ *            type: number
+ *            description: Id de la posicion relacionada importada
  *          company_id:
  *            type: number
  *            description: Id de la compañia
+ *          position_last_synchronization_at:
+ *            type: string
+ *            description: Fecha de última sincronización
  *          position_created_at:
  *            type: string
  *          position_updated_at:

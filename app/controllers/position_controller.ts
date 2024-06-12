@@ -32,7 +32,7 @@ export default class UserController {
    *                 type: integer
    *                 description: Número de renglones por página
    *                 required: false
-   *                 default: 100
+   *                 default: 200
    *               positionCode:
    *                 type: string
    *                 description: Código de posición para filtrar
@@ -141,7 +141,7 @@ export default class UserController {
       const data = apiResponse.data.data
       if (data) {
         const positionService = new PositionService()
-        data.sort((a: { id: number }, b: { id: number }) => a.id - b.id)
+        data.sort((a: BiometricPositionInterface, b: BiometricPositionInterface) => a.id - b.id)
         for await (const position of data) {
           await this.verify(position, positionService)
         }

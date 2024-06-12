@@ -3,6 +3,7 @@ import DepartmentService from '#services/department_service'
 import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
+import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
 
 export default class UserController {
   /**
@@ -31,7 +32,7 @@ export default class UserController {
    *                 type: integer
    *                 description: Número de renglones por página
    *                 required: false
-   *                 default: 100
+   *                 default: 200
    *               deptCode:
    *                 type: string
    *                 description: Código de departamento para filtrar
@@ -127,7 +128,7 @@ export default class UserController {
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
-      const limit = request.input('limit', 10)
+      const limit = request.input('limit', 200)
       const deptCode = request.input('deptCode')
       const deptName = request.input('deptName')
 
@@ -140,6 +141,7 @@ export default class UserController {
       const data = apiResponse.data.data
       if (data) {
         const departmentService = new DepartmentService()
+        data.sort((a: BiometricDepartmentInterface, b: BiometricDepartmentInterface) => a.id - b.id)
         for await (const department of data) {
           await this.verify(department, departmentService)
         }
@@ -172,7 +174,10 @@ export default class UserController {
     }
   }
 
-  private async verify(department: any, departmentService: DepartmentService) {
+  private async verify(
+    department: BiometricDepartmentInterface,
+    departmentService: DepartmentService
+  ) {
     const existDepartment = await Department.query()
       .where('department_sync_id', department.id)
       .first()
