@@ -1,9 +1,6 @@
-// import type { HttpContext } from '@adonisjs/core/http'
-
-import hash from '@adonisjs/core/services/hash'
-import User from '../models/User.js'
+import User from '../models/user.js'
 import { HttpContext } from '@adonisjs/core/http'
-import ApiToken from '../models/ApiToken.js'
+import ApiToken from '../models/api_token.js'
 import { uuid } from 'uuidv4'
 import mail from '@adonisjs/mail/services/main'
 import env from '../../start/env.js'
@@ -120,13 +117,11 @@ export default class UserController {
     try {
       const userEmail = request.input('user_email')
       const userPassword = request.input('user_password')
-      // console.log(userEmail)
-      // console.log(userPassword)
       /**
        * Find a user by email. Return error if a user does
        * not exists
        */
-      const user = await User.findBy('user_email', userEmail)
+      const user = await User.query().where('user_email', userEmail).where('user_active', 1).first()
       if (!user) {
         response.status(404)
         return {
@@ -136,20 +131,16 @@ export default class UserController {
           data: { user: {} },
         }
       }
+      await ApiToken.query().where('tokenable_id', user.user_id).delete()
       /**
        * Verify the password using the hash service
        */
-      const logged = await hash.verify(user.user_password, userPassword)
-      // const userVerify = await User.verifyCredentials(userEmail, userPassword)
-      // const authUser = await auth.use('web').login(user)
-      // console.log(authUser)
+      const userVerify = await User.verifyCredentials(userEmail, userPassword)
       const token = await User.accessTokens.create(user)
-      // console.log(token.value!.release())
       /**
        * Now login the user or create a token for them
        */
-      if (logged) {
-        // console.log('ok')
+      if (userVerify && token) {
         response.status(200)
         return {
           type: 'success',
@@ -161,7 +152,6 @@ export default class UserController {
           },
         }
       } else {
-        // console.log('credenciales no validas')
         response.status(404)
         return {
           type: 'warning',
@@ -185,6 +175,8 @@ export default class UserController {
    * @swagger
    * /api/login/logout:
    *   post:
+   *     security:
+   *       - bearerAuth: []
    *     tags:
    *       - Usuarios
    *     summary: Cerrar Sesión
@@ -709,8 +701,7 @@ export default class UserController {
           data: {},
         }
       }
-      const newPassword = await hash.make(request.input('user_password'))
-      user.user_password = newPassword
+      user.user_password = request.input('user_password')
       user.user_token = ''
       user.save()
       response.status(200)

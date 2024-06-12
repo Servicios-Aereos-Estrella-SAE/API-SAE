@@ -16,4 +16,5 @@ router.get('/', async ({ view }) => {
 /**
  * Sistema General
  */
-import '../start/routes/LoginRoutes.js'
+import './routes/login_routes.js'
+import './routes/synchronization_routes.js'

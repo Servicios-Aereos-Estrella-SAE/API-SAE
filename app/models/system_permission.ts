@@ -1,5 +1,5 @@
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
-import SystemModule from './SystemModule.js'
+import SystemModule from './system_module.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
