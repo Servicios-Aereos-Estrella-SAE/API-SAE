@@ -20,10 +20,13 @@ export default class PositionService {
   }
 
   async update(position: BiometricPositionInterface, currentPosition: Position) {
+    currentPosition.parent_position_sync_id = position.parentPositionId
     currentPosition.position_code = position.positionCode
     currentPosition.position_name = position.positionName
     currentPosition.position_is_default = position.isDefault
     currentPosition.parent_position_id = position.parentPositionId
+      ? await this.getIdBySyncId(position.parentPositionId)
+      : null
     currentPosition.company_id = position.companyId
     currentPosition.position_last_synchronization_at = new Date()
     await currentPosition.save()

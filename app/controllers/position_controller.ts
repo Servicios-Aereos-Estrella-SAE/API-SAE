@@ -128,7 +128,7 @@ export default class UserController {
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
-      const limit = request.input('limit', 100)
+      const limit = request.input('limit', 200)
       const positionCode = request.input('positionCode')
       const positionName = request.input('positionName')
 
@@ -164,7 +164,6 @@ export default class UserController {
         }
       }
     } catch (error) {
-      // console.log(error.message)
       response.status(500)
       return {
         type: 'error',
@@ -176,15 +175,11 @@ export default class UserController {
   }
 
   private async verify(position: BiometricPositionInterface, positionService: PositionService) {
-    try {
-      const existPosition = await Position.query().where('position_sync_id', position.id).first()
-      if (!existPosition) {
-        await positionService.create(position)
-      } else {
-        positionService.update(position, existPosition)
-      }
-    } catch (error) {
-      // console.log(error.message)
+    const existPosition = await Position.query().where('position_sync_id', position.id).first()
+    if (!existPosition) {
+      await positionService.create(position)
+    } else {
+      positionService.update(position, existPosition)
     }
   }
 }
