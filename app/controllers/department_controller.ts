@@ -8,7 +8,7 @@ export default class UserController {
   /**
    * @swagger
    * /api/synchronization/departments:
-   *   get:
+   *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
@@ -16,31 +16,32 @@ export default class UserController {
    *     summary: Sincronización de Información
    *     produces:
    *       - application/json
-   *     parameters:
-   *       - name: page
-   *         in: query
-   *         required: false
-   *         description: Número de pagina para paginación
-   *         schema:
-   *           type: integer
-   *       - name: limit
-   *         in: query
-   *         required: false
-   *         description: Número de renglones por página
-   *         schema:
-   *           type: integer
-   *       - name: deptCode
-   *         in: query
-   *         required: false
-   *         description: Código de departamento para filtrar
-   *         schema:
-   *           type: string
-   *       - name: deptName
-   *         in: query
-   *         required: false
-   *         description: Nombre de departamento para filtrar
-   *         schema:
-   *           type: string
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               page:
+   *                 type: integer
+   *                 description: Número de pagina para paginación
+   *                 required: false
+   *                 default: 1
+   *               limit:
+   *                 type: integer
+   *                 description: Número de renglones por página
+   *                 required: false
+   *                 default: 100
+   *               deptCode:
+   *                 type: string
+   *                 description: Código de departamento para filtrar
+   *                 required: false
+   *                 default: ''
+   *               deptName:
+   *                 required: false
+   *                 description: Nombre de departamento para filtrar
+   *                 type: string
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Recurso procesado de manera exitosa
