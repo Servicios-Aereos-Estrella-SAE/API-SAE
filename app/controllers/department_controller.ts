@@ -1,11 +1,14 @@
+import Department from '#models/department'
+import DepartmentService from '#services/department_service'
+import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 
 export default class UserController {
   /**
    * @swagger
-   * /api/login:
-   *   post:
+   * /api/synchronization/departments:
+   *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
@@ -17,13 +20,13 @@ export default class UserController {
    *       - name: page
    *         in: query
    *         required: false
-   *         description: Número de pagina para paginacion
+   *         description: Número de pagina para paginación
    *         schema:
    *           type: integer
    *       - name: limit
    *         in: query
    *         required: false
-   *         description: Número de renglones por pagina
+   *         description: Número de renglones por página
    *         schema:
    *           type: integer
    *       - name: deptCode
@@ -120,23 +123,30 @@ export default class UserController {
    *                       type: string
    */
 
-  async synchronization({ response }: HttpContext) {
+  async synchronization({ request, response }: HttpContext) {
     try {
-      /*  const page = request.input('page', 1)
+      const page = request.input('page', 1)
       const limit = request.input('limit', 10)
       const deptCode = request.input('deptCode')
-      const deptName = request.input('deptName') */
-      const apiUrl = 'https://api.example.com/data'
-      // Realizar la solicitud GET a la API externa
+      const deptName = request.input('deptName')
+
+      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/departments`
+      apiUrl = `${apiUrl}?page=${page || ''}`
+      apiUrl = `${apiUrl}&limit=${limit || ''}`
+      apiUrl = `${apiUrl}&deptCode=${deptCode || ''}`
+      apiUrl = `${apiUrl}&deptName=${deptName || ''}`
       const apiResponse = await axios.get(apiUrl)
-      // Extraer la información de la respuesta
-      const data = apiResponse.data
+      const data = apiResponse.data.data
       if (data) {
+        const departmentService = new DepartmentService()
+        for await (const department of data) {
+          await this.verify(department, departmentService)
+        }
         response.status(200)
         return {
           type: 'success',
           title: 'Sincronización de departamentos',
-          message: 'Has sincronizado los departamentos',
+          message: 'Se han sincronizado los departamentos correctamente',
           data: {
             data,
           },
@@ -146,7 +156,7 @@ export default class UserController {
         return {
           type: 'warning',
           title: 'Sincronización de departamentos',
-          message: 'Algo salió mal',
+          message: 'No se encontraron datos para sincronizar',
           data: { data },
         }
       }
@@ -158,6 +168,17 @@ export default class UserController {
         message: 'Se ha presentado un error inesperado en el servidor',
         error: error.message,
       }
+    }
+  }
+
+  private async verify(department: any, departmentService: DepartmentService) {
+    const existDepartment = await Department.query()
+      .where('department_sync_id', department.id)
+      .first()
+    if (!existDepartment) {
+      await departmentService.create(department)
+    } else {
+      departmentService.update(department, existDepartment)
     }
   }
 }

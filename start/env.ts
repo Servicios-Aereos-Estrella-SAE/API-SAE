@@ -46,4 +46,10 @@ export default await Env.create(new URL('../', import.meta.url), {
   SMTP_PORT: Env.schema.string.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
   SMTP_PASSWORD: Env.schema.string.optional(),
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring api host synchronization 
+  |----------------------------------------------------------
+  */
+  API_BIOMETRICS_HOST: Env.schema.string.optional(),
 })

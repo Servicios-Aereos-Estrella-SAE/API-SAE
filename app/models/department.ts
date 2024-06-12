@@ -12,6 +12,9 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
  *          department_id:
  *            type: number
  *            description: Id del departamento
+ *          department_sync_id:
+ *            type: number
+ *            description: Id del departamento importado
  *          department_code:
  *            type: string
  *            description: Código del departamento
@@ -43,10 +46,16 @@ export default class Department extends BaseModel {
   declare department_id: number
 
   @column()
+  declare department_sync_id: number
+
+  @column()
   declare department_code: string
 
   @column()
   declare department_name: string
+
+  @column()
+  declare department_alias: string
 
   @column()
   declare department_is_default: boolean
@@ -59,6 +68,9 @@ export default class Department extends BaseModel {
 
   @column()
   declare company_id: number
+
+  @column()
+  declare department_last_synchronization_at: Date
 
   @belongsTo(() => Department, {
     foreignKey: 'parent_department_id',
