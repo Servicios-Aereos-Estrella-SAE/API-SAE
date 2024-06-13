@@ -5,7 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
 
-export default class UserController {
+export default class DepartmentController {
   /**
    * @swagger
    * /api/synchronization/departments:
