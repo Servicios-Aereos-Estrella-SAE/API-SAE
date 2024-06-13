@@ -5,7 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 
-export default class UserController {
+export default class PositionController {
   /**
    * @swagger
    * /api/synchronization/positions:
