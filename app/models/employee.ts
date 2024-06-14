@@ -297,7 +297,7 @@ export default class Employee extends BaseModel {
   declare employeeIsAdmin: boolean
 
   @column()
-  declare employeeEmpType: number
+  declare employeeType: number
 
   @column()
   declare employeeEnableAtt: boolean
@@ -351,7 +351,13 @@ export default class Employee extends BaseModel {
   declare departmentId: number
 
   @column()
+  declare departmentSyncId: number
+
+  @column()
   declare positionId: number
+
+  @column()
+  declare positionSyncId: number
 
   @column()
   declare employeeLastSynchronizationAt: Date

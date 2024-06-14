@@ -1,8 +1,15 @@
 import Employee from '#models/employee'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
+import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
+import DepartmentService from './department_service.js'
+import PositionService from './position_service.js'
 
 export default class EmployeeService {
-  async create(employee: BiometricEmployeeInterface) {
+  async syncCreate(
+    employee: BiometricEmployeeInterface,
+    departmentService: DepartmentService,
+    positionService: PositionService
+  ) {
     const newEmployee = new Employee()
     newEmployee.employeeSyncId = employee.id
     newEmployee.employeeStatus = employee.status
@@ -39,7 +46,7 @@ export default class EmployeeService {
     newEmployee.employeeVerifyMode = employee.verifyMode
     newEmployee.employeeCity = employee.city
     newEmployee.employeeIsAdmin = employee.isAdmin
-    newEmployee.employeeEmpType = employee.empType
+    newEmployee.employeeType = employee.empType
     newEmployee.employeeEnableAtt = employee.enableAtt
     newEmployee.employeeEnablePayroll = employee.enablePayroll
     newEmployee.employeeEnableOvertime = employee.enableOvertime
@@ -54,8 +61,19 @@ export default class EmployeeService {
     newEmployee.employeeActive = employee.isActive
     newEmployee.employeeVacationRule = employee.vacationRule
     newEmployee.companyId = employee.companyId
-    newEmployee.departmentId = employee.departmentId
-    newEmployee.positionId = employee.positionId
+    newEmployee.departmentId = await departmentService.getIdBySyncId(employee.departmentId)
+    newEmployee.positionId = await positionService.getIdBySyncId(employee.positionId)
+    newEmployee.departmentSyncId = employee.departmentId
+    const positionRealId = await positionService.getIdBySyncId(employee.positionId)
+    if (positionRealId) {
+      newEmployee.positionId = positionRealId
+    } else {
+      newEmployee.positionId = await this.getNewPosition(
+        employee,
+        positionService,
+        departmentService
+      )
+    }
     newEmployee.employeeCreateUser = employee.createUser
     newEmployee.employeeChangeUser = employee.changeUser
     newEmployee.employeeLastSynchronizationAt = new Date()
@@ -63,7 +81,12 @@ export default class EmployeeService {
     return newEmployee
   }
 
-  async update(employee: BiometricEmployeeInterface, currentEmployee: Employee) {
+  async syncUpdate(
+    employee: BiometricEmployeeInterface,
+    currentEmployee: Employee,
+    departmentService: DepartmentService,
+    positionService: PositionService
+  ) {
     currentEmployee.employeeSyncId = employee.id
     currentEmployee.employeeStatus = employee.status
     currentEmployee.employeeCode = employee.empCode
@@ -99,7 +122,7 @@ export default class EmployeeService {
     currentEmployee.employeeVerifyMode = employee.verifyMode
     currentEmployee.employeeCity = employee.city
     currentEmployee.employeeIsAdmin = employee.isAdmin
-    currentEmployee.employeeEmpType = employee.empType
+    currentEmployee.employeeType = employee.empType
     currentEmployee.employeeEnableAtt = employee.enableAtt
     currentEmployee.employeeEnablePayroll = employee.enablePayroll
     currentEmployee.employeeEnableOvertime = employee.enableOvertime
@@ -114,12 +137,52 @@ export default class EmployeeService {
     currentEmployee.employeeActive = employee.isActive
     currentEmployee.employeeVacationRule = employee.vacationRule
     currentEmployee.companyId = employee.companyId
-    currentEmployee.departmentId = employee.departmentId
-    currentEmployee.positionId = employee.positionId
+    currentEmployee.departmentId = await departmentService.getIdBySyncId(employee.departmentId)
+    const positionRealId = await positionService.getIdBySyncId(employee.positionId)
+    if (positionRealId) {
+      currentEmployee.positionId = positionRealId
+    } else {
+      currentEmployee.positionId = await this.getNewPosition(
+        employee,
+        positionService,
+        departmentService
+      )
+    }
+    currentEmployee.departmentSyncId = employee.departmentId
+    currentEmployee.positionSyncId = employee.positionId
     currentEmployee.employeeCreateUser = employee.createUser
     currentEmployee.employeeChangeUser = employee.changeUser
     currentEmployee.employeeLastSynchronizationAt = new Date()
     await currentEmployee.save()
     return currentEmployee
+  }
+
+  async getNewPosition(
+    employee: BiometricEmployeeInterface,
+    positionService: PositionService,
+    departmentService: DepartmentService
+  ) {
+    let positionId = 0
+    const department = await departmentService.show(employee.departmentId)
+    if (department) {
+      const existPosition = await positionService.verifyExistPositionByName(
+        department.department_name
+      )
+      if (existPosition) {
+        positionId = existPosition
+      } else {
+        const newPosition: BiometricPositionInterface = {
+          id: 0,
+          positionName: department.department_name,
+          positionCode: '0',
+          isDefault: false,
+          companyId: department.company_id,
+          parentPositionId: 0,
+        }
+        const position = await positionService.create(newPosition)
+        positionId = position ? position.position_id : 0
+      }
+    }
+    return positionId
   }
 }

@@ -38,6 +38,15 @@ export default class PositionService {
     if (position) {
       return position.position_id
     } else {
+      return 0
+    }
+  }
+
+  async verifyExistPositionByName(positionName: string) {
+    const position = await Position.query().where('position_name', positionName).first()
+    if (position) {
+      return position.position_id
+    } else {
       return null
     }
   }

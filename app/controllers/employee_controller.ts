@@ -4,6 +4,8 @@ import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
+import DepartmentService from '#services/department_service'
+import PositionService from '#services/position_service'
 
 export default class EmployeeController {
   /**
@@ -32,7 +34,7 @@ export default class EmployeeController {
    *                 type: integer
    *                 description: The number of records per page
    *                 required: false
-   *                 default: 200
+   *                 default: 300
    *               empCode:
    *                 type: string
    *                 description: The employee code to filter by
@@ -169,7 +171,7 @@ export default class EmployeeController {
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
-      const limit = request.input('limit', 200)
+      const limit = request.input('limit', 300)
       const empCode = request.input('empCode')
       const firstName = request.input('firstName')
       const lastName = request.input('lastName')
@@ -181,7 +183,7 @@ export default class EmployeeController {
       const positionId = request.input('positionId')
       const hireDate = request.input('hireDate')
 
-      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employee`
+      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees`
       apiUrl = `${apiUrl}?page=${page || ''}`
       apiUrl = `${apiUrl}&limit=${limit || ''}`
       apiUrl = `${apiUrl}&empCode=${empCode || ''}`
@@ -198,15 +200,17 @@ export default class EmployeeController {
       const data = apiResponse.data.data
       if (data) {
         const employeeService = new EmployeeService()
+        const departmentService = new DepartmentService()
+        const positionService = new PositionService()
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
         for await (const employee of data) {
-          await this.verify(employee, employeeService)
+          await this.verify(employee, employeeService, departmentService, positionService)
         }
         response.status(200)
         return {
           type: 'success',
-          title: 'Sincronización de empleados',
-          message: 'Se han sincronizado los emplados correctamente',
+          title: 'Employee synchronization',
+          message: 'Employees have been synchronized successfully',
           data: {
             data,
           },
@@ -215,8 +219,8 @@ export default class EmployeeController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sincronización de empleados',
-          message: 'No se encontraron datos para sincronizar',
+          title: 'Employee synchronization',
+          message: 'No data found to synchronize',
           data: { data },
         }
       }
@@ -224,19 +228,24 @@ export default class EmployeeController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error occurred on the server',
         error: error.message,
       }
     }
   }
 
-  private async verify(employee: BiometricEmployeeInterface, employeeService: EmployeeService) {
+  private async verify(
+    employee: BiometricEmployeeInterface,
+    employeeService: EmployeeService,
+    departmentService: DepartmentService,
+    positionService: PositionService
+  ) {
     const existEmployee = await Employee.query().where('employee_sync_id', employee.id).first()
     if (!existEmployee) {
-      await employeeService.create(employee)
+      await employeeService.syncCreate(employee, departmentService, positionService)
     } else {
-      employeeService.update(employee, existEmployee)
+      employeeService.syncUpdate(employee, existEmployee, departmentService, positionService)
     }
   }
 }

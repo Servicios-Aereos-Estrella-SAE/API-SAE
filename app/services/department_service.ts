@@ -40,6 +40,17 @@ export default class DepartmentService {
     if (department) {
       return department.department_id
     } else {
+      return 0
+    }
+  }
+
+  async show(departmentSyncId: number) {
+    const department = await Department.query()
+      .where('department_sync_id', departmentSyncId)
+      .first()
+    if (department) {
+      return department
+    } else {
       return null
     }
   }
