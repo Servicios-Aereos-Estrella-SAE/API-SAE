@@ -1,20 +1,20 @@
-import Department from '#models/department'
-import DepartmentService from '#services/department_service'
+import Employee from '#models/employee'
+import EmployeeService from '#services/employee_service'
 import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
-import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
+import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 
 export default class EmployeeController {
   /**
    * @swagger
-   * /api/synchronization/departments:
+   * /api/synchronization/employees:
    *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Departamentos
-   *     summary: Sincronización de Información
+   *       - Employees
+   *     summary: Information synchronization
    *     produces:
    *       - application/json
    *     requestBody:
@@ -25,27 +25,68 @@ export default class EmployeeController {
    *             properties:
    *               page:
    *                 type: integer
-   *                 description: Número de pagina para paginación
+   *                 description: The page number for pagination
    *                 required: false
    *                 default: 1
    *               limit:
    *                 type: integer
-   *                 description: Número de renglones por página
+   *                 description: The number of records per page
    *                 required: false
    *                 default: 200
-   *               deptCode:
+   *               empCode:
    *                 type: string
-   *                 description: Código de departamento para filtrar
+   *                 description: The employee code to filter by
    *                 required: false
    *                 default: ''
-   *               deptName:
-   *                 required: false
-   *                 description: Nombre de departamento para filtrar
+   *               firstName:
    *                 type: string
+   *                 description: The first name to filter by
+   *                 required: false
+   *                 default: ''
+   *               lastName:
+   *                 type: string
+   *                 description: The last name to filter by
+   *                 required: false
+   *                 default: ''
+   *               depName:
+   *                 type: string
+   *                 description: The employee name to filter by
+   *                 required: false
+   *                 default: ''
+   *               positionName:
+   *                 type: string
+   *                 description: The position name to filter by
+   *                 required: false
+   *                 default: ''
+   *               depCode:
+   *                 type: string
+   *                 description: The employee code to filter by
+   *                 required: false
+   *                 default: ''
+   *               positionCode:
+   *                 type: string
+   *                 description: The position code to filter by
+   *                 required: false
+   *                 default: ''
+   *               employeeId:
+   *                 type: integer
+   *                 description: The employee id to filter by
+   *                 required: false
+   *                 default: 0
+   *               positionId:
+   *                 type: integer
+   *                 description: The position id to filter by
+   *                 required: false
+   *                 default: 0
+   *               hireDate:
+   *                 type: string
+   *                 format: date
+   *                 description: The hire date to filter by format year month day
+   *                 required: false
    *                 default: ''
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -53,18 +94,18 @@ export default class EmployeeController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -72,18 +113,18 @@ export default class EmployeeController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -91,18 +132,18 @@ export default class EmployeeController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -110,16 +151,16 @@ export default class EmployeeController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -129,27 +170,43 @@ export default class EmployeeController {
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 200)
-      const deptCode = request.input('deptCode')
-      const deptName = request.input('deptName')
+      const empCode = request.input('empCode')
+      const firstName = request.input('firstName')
+      const lastName = request.input('lastName')
+      const depName = request.input('depName')
+      const positionName = request.input('positionName')
+      const depCode = request.input('depCode')
+      const positionCode = request.input('positionCode')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const hireDate = request.input('hireDate')
 
-      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/departments`
+      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employee`
       apiUrl = `${apiUrl}?page=${page || ''}`
       apiUrl = `${apiUrl}&limit=${limit || ''}`
-      apiUrl = `${apiUrl}&deptCode=${deptCode || ''}`
-      apiUrl = `${apiUrl}&deptName=${deptName || ''}`
+      apiUrl = `${apiUrl}&empCode=${empCode || ''}`
+      apiUrl = `${apiUrl}&firstName=${firstName || ''}`
+      apiUrl = `${apiUrl}&lastName=${lastName || ''}`
+      apiUrl = `${apiUrl}&depName=${depName || ''}`
+      apiUrl = `${apiUrl}&positionName=${positionName || ''}`
+      apiUrl = `${apiUrl}&depCode=${depCode || ''}`
+      apiUrl = `${apiUrl}&positionCode=${positionCode || ''}`
+      apiUrl = `${apiUrl}&departmentId=${departmentId || ''}`
+      apiUrl = `${apiUrl}&positionId=${positionId || ''}`
+      apiUrl = `${apiUrl}&hireDate=${hireDate || ''}`
       const apiResponse = await axios.get(apiUrl)
       const data = apiResponse.data.data
       if (data) {
-        const departmentService = new DepartmentService()
-        data.sort((a: BiometricDepartmentInterface, b: BiometricDepartmentInterface) => a.id - b.id)
-        for await (const department of data) {
-          await this.verify(department, departmentService)
+        const employeeService = new EmployeeService()
+        data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+        for await (const employee of data) {
+          await this.verify(employee, employeeService)
         }
         response.status(200)
         return {
           type: 'success',
-          title: 'Sincronización de departamentos',
-          message: 'Se han sincronizado los departamentos correctamente',
+          title: 'Sincronización de empleados',
+          message: 'Se han sincronizado los emplados correctamente',
           data: {
             data,
           },
@@ -158,7 +215,7 @@ export default class EmployeeController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sincronización de departamentos',
+          title: 'Sincronización de empleados',
           message: 'No se encontraron datos para sincronizar',
           data: { data },
         }
@@ -174,17 +231,12 @@ export default class EmployeeController {
     }
   }
 
-  private async verify(
-    department: BiometricDepartmentInterface,
-    departmentService: DepartmentService
-  ) {
-    const existDepartment = await Department.query()
-      .where('department_sync_id', department.id)
-      .first()
-    if (!existDepartment) {
-      await departmentService.create(department)
+  private async verify(employee: BiometricEmployeeInterface, employeeService: EmployeeService) {
+    const existEmployee = await Employee.query().where('employee_sync_id', employee.id).first()
+    if (!existEmployee) {
+      await employeeService.create(employee)
     } else {
-      departmentService.update(department, existDepartment)
+      employeeService.update(employee, existEmployee)
     }
   }
 }
