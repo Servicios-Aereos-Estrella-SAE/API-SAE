@@ -5,7 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 
-export default class UserController {
+export default class PositionController {
   /**
    * @swagger
    * /api/synchronization/positions:
@@ -32,7 +32,7 @@ export default class UserController {
    *                 type: integer
    *                 description: Número de renglones por página
    *                 required: false
-   *                 default: 100
+   *                 default: 200
    *               positionCode:
    *                 type: string
    *                 description: Código de posición para filtrar
@@ -128,7 +128,7 @@ export default class UserController {
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
-      const limit = request.input('limit', 100)
+      const limit = request.input('limit', 200)
       const positionCode = request.input('positionCode')
       const positionName = request.input('positionName')
 
@@ -141,7 +141,7 @@ export default class UserController {
       const data = apiResponse.data.data
       if (data) {
         const positionService = new PositionService()
-        data.sort((a: { id: number }, b: { id: number }) => a.id - b.id)
+        data.sort((a: BiometricPositionInterface, b: BiometricPositionInterface) => a.id - b.id)
         for await (const position of data) {
           await this.verify(position, positionService)
         }
@@ -164,7 +164,6 @@ export default class UserController {
         }
       }
     } catch (error) {
-      // console.log(error.message)
       response.status(500)
       return {
         type: 'error',
@@ -176,15 +175,11 @@ export default class UserController {
   }
 
   private async verify(position: BiometricPositionInterface, positionService: PositionService) {
-    try {
-      const existPosition = await Position.query().where('position_sync_id', position.id).first()
-      if (!existPosition) {
-        await positionService.create(position)
-      } else {
-        positionService.update(position, existPosition)
-      }
-    } catch (error) {
-      // console.log(error.message)
+    const existPosition = await Position.query().where('position_sync_id', position.id).first()
+    if (!existPosition) {
+      await positionService.create(position)
+    } else {
+      positionService.update(position, existPosition)
     }
   }
 }
