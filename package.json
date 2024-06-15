@@ -88,8 +88,7 @@
         "error",
         {
           "cases": {
-            "snakeCase": true,
-            "pascalCase": true
+            "snakeCase": true
           }
         }
       ],
