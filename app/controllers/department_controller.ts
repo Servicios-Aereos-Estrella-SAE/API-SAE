@@ -182,9 +182,9 @@ export default class DepartmentController {
       .where('department_sync_id', department.id)
       .first()
     if (!existDepartment) {
-      await departmentService.create(department)
+      await departmentService.syncCreate(department)
     } else {
-      departmentService.update(department, existDepartment)
+      departmentService.syncUpdate(department, existDepartment)
     }
   }
 }

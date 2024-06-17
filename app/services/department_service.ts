@@ -1,8 +1,11 @@
 import Department from '#models/department'
+import { cuid } from '@adonisjs/core/helpers'
 import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
+import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
+import PositionService from './position_service.js'
 
 export default class DepartmentService {
-  async create(department: BiometricDepartmentInterface) {
+  async syncCreate(department: BiometricDepartmentInterface) {
     const newDepartment = new Department()
     newDepartment.department_sync_id = department.id
     newDepartment.parent_department_sync_id = department.parentDeptId
@@ -19,7 +22,7 @@ export default class DepartmentService {
     return newDepartment
   }
 
-  async update(department: BiometricDepartmentInterface, currentDepartment: Department) {
+  async syncUpdate(department: BiometricDepartmentInterface, currentDepartment: Department) {
     currentDepartment.parent_department_sync_id = department.parentDeptId
     currentDepartment.department_code = department.deptCode
     currentDepartment.department_name = department.deptName
@@ -53,5 +56,19 @@ export default class DepartmentService {
     } else {
       return null
     }
+  }
+
+  async addPosition(department: Department) {
+    const positionService = new PositionService()
+    const newPosition: BiometricPositionInterface = {
+      id: 0,
+      positionName: department.department_name,
+      positionCode: cuid(),
+      isDefault: false,
+      companyId: department.company_id,
+      parentPositionId: 0,
+    }
+    const position = await positionService.syncCreate(newPosition)
+    return position ? position.position_id : 0
   }
 }

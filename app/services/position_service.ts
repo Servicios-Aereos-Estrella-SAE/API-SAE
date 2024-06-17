@@ -2,7 +2,7 @@ import Position from '#models/position'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 
 export default class PositionService {
-  async create(position: BiometricPositionInterface) {
+  async syncCreate(position: BiometricPositionInterface) {
     const newPosition = new Position()
     newPosition.position_sync_id = position.id
     newPosition.parent_position_sync_id = position.parentPositionId
@@ -19,7 +19,7 @@ export default class PositionService {
     return newPosition
   }
 
-  async update(position: BiometricPositionInterface, currentPosition: Position) {
+  async syncUpdate(position: BiometricPositionInterface, currentPosition: Position) {
     currentPosition.parent_position_sync_id = position.parentPositionId
     currentPosition.position_code = position.positionCode
     currentPosition.position_name = position.positionName
