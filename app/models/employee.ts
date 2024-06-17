@@ -365,12 +365,12 @@ export default class Employee extends BaseModel {
   @belongsTo(() => Department, {
     foreignKey: 'departmentId',
   })
-  declare personnelDepartment: BelongsTo<typeof Department>
+  declare department: BelongsTo<typeof Department>
 
   @belongsTo(() => Position, {
     foreignKey: 'positionId',
   })
-  declare personnelPosition: BelongsTo<typeof Position>
+  declare position: BelongsTo<typeof Position>
 
   @column.dateTime({ autoCreate: true })
   declare employeeCreatedAt: DateTime

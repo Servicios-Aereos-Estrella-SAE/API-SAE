@@ -4,6 +4,9 @@ import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
+import Employee from '#models/employee'
+import DepartmentPosition from '#models/department_position'
+import DepartmentPositionService from '#services/department_position_service'
 
 export default class DepartmentController {
   /**
@@ -174,6 +177,308 @@ export default class DepartmentController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/departments/sync-positions:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: sync positions
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentId:
+   *                 type: integer
+   *                 description: Department id
+   *                 required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Error inesperado
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+
+  async syncPositions({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.input('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Sync positions by department',
+          message: 'Missing data to process',
+          data: {},
+        }
+      }
+      const department = await Department.query().where('department_id', departmentId).first()
+      if (!department) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Sync positions by department',
+          message: 'Department not found',
+          data: { department_id: departmentId },
+        }
+      }
+      const employees = await Employee.query()
+        .distinct('position_id')
+        .where('department_id', departmentId)
+        .preload('position')
+        .orderBy('position_id')
+      const departmentPositionService = new DepartmentPositionService()
+      for await (const employee of employees) {
+        await this.verifyRelatedPosition(
+          departmentId,
+          employee.positionId,
+          departmentPositionService
+        )
+      }
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Sync positions by department',
+        message: 'The positions by department have been sync successfully',
+        data: {
+          department,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments/{departmentId}/get-positions:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get positions
+   *     parameters:
+   *       - name: departmentId
+   *         in: query
+   *         required: true
+   *         description: Departmemnt id
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Error inesperado
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+
+  async getPositions({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.input('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Positions by department',
+          message: 'Missing data to process',
+          data: {},
+        }
+      }
+      const department = await Department.query().where('department_id', departmentId).first()
+      if (!department) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Positions by department',
+          message: 'Department not found',
+          data: { department_id: departmentId },
+        }
+      }
+      const positions = await DepartmentPosition.query()
+        .where('department_id', departmentId)
+        .preload('position')
+        .orderBy('position_id')
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Positions by department',
+        message: 'The positions by department have been found successfully',
+        data: {
+          positions,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private async verify(
     department: BiometricDepartmentInterface,
     departmentService: DepartmentService
@@ -185,6 +490,20 @@ export default class DepartmentController {
       await departmentService.syncCreate(department)
     } else {
       departmentService.syncUpdate(department, existDepartment)
+    }
+  }
+
+  private async verifyRelatedPosition(
+    departmentId: number,
+    positionId: number,
+    departmentPositionService: DepartmentPositionService
+  ) {
+    const existDepartmentPosition = await DepartmentPosition.query()
+      .where('department_id', departmentId)
+      .where('position_id', positionId)
+      .first()
+    if (!existDepartmentPosition) {
+      await departmentPositionService.syncCreate(departmentId, positionId)
     }
   }
 }
