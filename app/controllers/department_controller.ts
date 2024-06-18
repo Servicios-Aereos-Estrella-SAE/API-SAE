@@ -17,7 +17,7 @@ export default class DepartmentController {
    *       - bearerAuth: []
    *     tags:
    *       - Departments
-   *     summary: Sync information
+   *     summary: sync information
    *     produces:
    *       - application/json
    *     requestBody:
