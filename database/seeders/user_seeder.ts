@@ -6,6 +6,7 @@ export default class extends BaseSeeder {
     // Write your database queries inside the run method
     await User.createMany([
       {
+        user_id: 1,
         user_email: 'betosimon@sae.com.mx',
         user_password: 'o3"kJ>=L22^[',
         user_active: 1,
@@ -13,6 +14,7 @@ export default class extends BaseSeeder {
         role_id: 1,
       },
       {
+        user_id: 2,
         user_email: 'raul.munoz@transformadigital.mx',
         user_password: 'admin',
         user_active: 1,
@@ -20,6 +22,7 @@ export default class extends BaseSeeder {
         role_id: 1,
       },
       {
+        user_id: 3,
         user_email: 'wramirez@siler-mx.com',
         user_password: 'adminSystemSAE123.',
         user_active: 1,
@@ -27,6 +30,7 @@ export default class extends BaseSeeder {
         role_id: 1,
       },
       {
+        user_id: 4,
         user_email: 'developer@sae.com.mx',
         user_password: 'adminSystemSAE123.',
         user_active: 1,
@@ -34,6 +38,7 @@ export default class extends BaseSeeder {
         role_id: 1,
       },
       {
+        user_id: 5,
         user_email: 'joseguadalupesotobecerra9605@gmail.com',
         user_password: '1234567890',
         user_active: 1,

@@ -6,6 +6,7 @@ export default class extends BaseSeeder {
     // Write your database queries inside the run method
     await Person.createMany([
       {
+        person_id: 1,
         person_firstname: 'Beto Simon',
         person_lastname: '',
         person_second_lastname: '',
@@ -17,6 +18,7 @@ export default class extends BaseSeeder {
         person_imss_nss: '123456789',
       },
       {
+        person_id: 2,
         person_firstname: 'Raúl',
         person_lastname: 'Muñoz',
         person_second_lastname: '',
@@ -28,6 +30,7 @@ export default class extends BaseSeeder {
         person_imss_nss: '123456789',
       },
       {
+        person_id: 3,
         person_firstname: 'Wilvardo',
         person_lastname: 'Ramirez',
         person_second_lastname: 'Colunga',
@@ -39,6 +42,7 @@ export default class extends BaseSeeder {
         person_imss_nss: '123456789',
       },
       {
+        person_id: 4,
         person_firstname: 'SAE Developer Admin',
         person_lastname: '',
         person_second_lastname: '',
@@ -50,6 +54,7 @@ export default class extends BaseSeeder {
         person_imss_nss: '123456789',
       },
       {
+        person_id: 5,
         person_firstname: 'Jose Guadalupe',
         person_lastname: 'Soto',
         person_second_lastname: 'Becerra',
