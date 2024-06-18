@@ -165,7 +165,7 @@ export default class EmployeeService {
     const department = await departmentService.show(employee.departmentId)
     if (department) {
       const existPosition = await positionService.verifyExistPositionByName(
-        department.department_name
+        department.departmentName
       )
       if (existPosition) {
         positionId = existPosition
