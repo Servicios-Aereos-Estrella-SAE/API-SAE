@@ -16,8 +16,8 @@ export default class DepartmentController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Departamentos
-   *     summary: Sincronización de Información
+   *       - Departments
+   *     summary: Sync information
    *     produces:
    *       - application/json
    *     requestBody:
@@ -28,27 +28,27 @@ export default class DepartmentController {
    *             properties:
    *               page:
    *                 type: integer
-   *                 description: Número de pagina para paginación
+   *                 description: The page number for pagination
    *                 required: false
    *                 default: 1
    *               limit:
    *                 type: integer
-   *                 description: Número de renglones por página
+   *                 description: The number of records per page
    *                 required: false
    *                 default: 200
    *               deptCode:
    *                 type: string
-   *                 description: Código de departamento para filtrar
+   *                 description: The department code to filter by
    *                 required: false
    *                 default: ''
    *               deptName:
    *                 required: false
-   *                 description: Nombre de departamento para filtrar
+   *                 description: The department name to filter by
    *                 type: string
    *                 default: ''
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -56,18 +56,18 @@ export default class DepartmentController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Response message
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Object processed
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: The resource could not be found
    *         content:
    *           application/json:
    *             schema:
@@ -75,18 +75,18 @@ export default class DepartmentController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Response message
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
    *         content:
    *           application/json:
    *             schema:
@@ -94,18 +94,18 @@ export default class DepartmentController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Response message
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -113,16 +113,16 @@ export default class DepartmentController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Response message
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -171,7 +171,7 @@ export default class DepartmentController {
       return {
         type: 'error',
         title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        message: 'Se ha presentado un Unexpected error en el servidor',
         error: error.message,
       }
     }
@@ -238,7 +238,7 @@ export default class DepartmentController {
    *                   type: object
    *                   description: List of parameters set by the client
    *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -257,7 +257,7 @@ export default class DepartmentController {
    *                   type: object
    *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -410,7 +410,7 @@ export default class DepartmentController {
    *                   type: object
    *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
