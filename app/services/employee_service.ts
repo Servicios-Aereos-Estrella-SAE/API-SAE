@@ -1,6 +1,5 @@
 import Employee from '#models/employee'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
-import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import DepartmentService from './department_service.js'
 import PositionService from './position_service.js'
 
@@ -171,16 +170,7 @@ export default class EmployeeService {
       if (existPosition) {
         positionId = existPosition
       } else {
-        const newPosition: BiometricPositionInterface = {
-          id: 0,
-          positionName: department.department_name,
-          positionCode: '0',
-          isDefault: false,
-          companyId: department.company_id,
-          parentPositionId: 0,
-        }
-        const position = await positionService.create(newPosition)
-        positionId = position ? position.position_id : 0
+        positionId = await departmentService.addPosition(department)
       }
     }
     return positionId

@@ -177,9 +177,9 @@ export default class PositionController {
   private async verify(position: BiometricPositionInterface, positionService: PositionService) {
     const existPosition = await Position.query().where('position_sync_id', position.id).first()
     if (!existPosition) {
-      await positionService.create(position)
+      await positionService.syncCreate(position)
     } else {
-      positionService.update(position, existPosition)
+      positionService.syncUpdate(position, existPosition)
     }
   }
 }
