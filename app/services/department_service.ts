@@ -69,6 +69,6 @@ export default class DepartmentService {
       parentPositionId: 0,
     }
     const position = await positionService.syncCreate(newPosition)
-    return position ? position.position_id : 0
+    return position ? position.positionId : 0
   }
 }

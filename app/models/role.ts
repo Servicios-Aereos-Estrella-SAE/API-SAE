@@ -7,53 +7,51 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *      Role:
  *        type: object
  *        properties:
- *          role_id:
+ *          roleId:
  *            type: number
- *            description: Id del rol
- *          role_name:
+ *            description: Role id
+ *          roleName:
  *            type: string
- *            description: Nombre del rol
- *          role_slug:
+ *            description: Role name
+ *          roleSlug:
  *            type: string
- *            description: SLUG del rol
- *          role_description:
+ *            description: Role slug
+ *          roleDescription:
  *            type: string
- *            description: Descripción del rol
- *          role_active:
+ *            description: Role description
+ *          roleActive:
  *            type: number
- *            description: Activo o Inactivo
- *          role_created_at:
+ *            description: Role status
+ *          roleCreatedAt:
  *            type: string
- *          role_updated_at:
+ *          roleUpdatedAt:
  *            type: string
- *          role_deleted_at:
+ *          roleDeletedAt:
  *            type: string
  *
  */
 export default class Role extends BaseModel {
-  // public static table = 'roles'
-
   @column({ isPrimary: true })
-  declare role_id: number
+  declare roleId: number
 
   @column()
-  declare role_name: string
+  declare roleName: string
 
   @column()
-  declare role_slug: string
+  declare roleSlug: string
 
   @column()
-  declare role_description: string
+  declare roleDescription: string
 
   @column()
-  declare role_active: number
+  declare roleActive: number
 
   @column.dateTime({ autoCreate: true })
-  declare role_created_at: DateTime
+  declare roleCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare role_updated_at: DateTime
+  declare roleUpdatedAt: DateTime
 
   @column()
-  declare role_deleted_at: DateTime | null
+  declare roleDeletedAt: DateTime | null
 }

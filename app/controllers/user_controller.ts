@@ -13,8 +13,8 @@ export default class UserController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Usuarios
-   *     summary: Iniciar Sesión
+   *       - Users
+   *     summary: login
    *     produces:
    *       - application/json
    *     requestBody:
@@ -23,17 +23,17 @@ export default class UserController {
    *           schema:
    *             type: object
    *             properties:
-   *               user_email:
+   *               userEmail:
    *                 type: string
-   *                 description: Correo electrónico del usuario
+   *                 description: User email
    *                 default: ''
-   *               user_password:
+   *               userPassword:
    *                 type: string
-   *                 description: Contraseña del usuario
+   *                 description: User password
    *                 default: ''
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -41,18 +41,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -60,18 +60,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -79,18 +79,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -98,16 +98,16 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -115,37 +115,27 @@ export default class UserController {
 
   async login({ request, response }: HttpContext) {
     try {
-      const userEmail = request.input('user_email')
-      const userPassword = request.input('user_password')
-      /**
-       * Find a user by email. Return error if a user does
-       * not exists
-       */
+      const userEmail = request.input('userEmail')
+      const userPassword = request.input('userPassword')
       const user = await User.query().where('user_email', userEmail).where('user_active', 1).first()
       if (!user) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Inicio de sesión',
-          message: 'Correo o contraseña incorrectos',
+          title: 'Login',
+          message: 'Incorrect email or password',
           data: { user: {} },
         }
       }
-      await ApiToken.query().where('tokenable_id', user.user_id).delete()
-      /**
-       * Verify the password using the hash service
-       */
+      await ApiToken.query().where('tokenable_id', user.userId).delete()
       const userVerify = await User.verifyCredentials(userEmail, userPassword)
       const token = await User.accessTokens.create(user)
-      /**
-       * Now login the user or create a token for them
-       */
       if (userVerify && token) {
         response.status(200)
         return {
           type: 'success',
-          title: 'Inicio de sesión',
-          message: 'Has iniciado sesión correctamente',
+          title: 'Login',
+          message: 'You have successfully logged in',
           data: {
             user: user,
             token: token.value!.release(),
@@ -155,8 +145,8 @@ export default class UserController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Inicio de sesión',
-          message: 'Correo o contraseña incorrectos',
+          title: 'Login',
+          message: 'Incorrect email or password',
           data: { user: {} },
         }
       }
@@ -164,8 +154,8 @@ export default class UserController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }
@@ -178,13 +168,13 @@ export default class UserController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Usuarios
-   *     summary: Cerrar Sesión
+   *       - Users
+   *     summary: logout
    *     produces:
    *       - application/json
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -192,18 +182,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -211,18 +201,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -230,18 +220,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -249,16 +239,16 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -268,20 +258,20 @@ export default class UserController {
     try {
       const user = await auth.authenticateUsing(['api'])
       await auth.use('api').authenticate()
-      await ApiToken.query().where('tokenable_id', auth.user!.user_id).delete()
+      await ApiToken.query().where('tokenable_id', auth.user!.userId).delete()
       response.status(200)
       return {
         type: 'success',
-        title: 'Cierre de sesión',
-        message: 'Has cerrado sesión correctamente',
+        title: 'Logout',
+        message: 'You have successfully logged out',
         data: { user: user },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }
@@ -294,8 +284,8 @@ export default class UserController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Usuarios
-   *     summary: Recuperación de contraseña
+   *       - Users
+   *     summary: password recovery
    *     produces:
    *       - application/json
    *     requestBody:
@@ -304,13 +294,13 @@ export default class UserController {
    *           schema:
    *             type: object
    *             properties:
-   *               user_email:
+   *               userEmail:
    *                 type: string
-   *                 description: Correo electrónico del usuario
+   *                 description: User email
    *                 default: ''
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -318,18 +308,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -337,18 +327,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -356,18 +346,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -375,16 +365,16 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -396,7 +386,7 @@ export default class UserController {
       if (url) {
         const hostData = this.getUrlInfo(url)
         const user = await User.query()
-          .where('user_email', request.all().user_email)
+          .where('user_email', request.all().userEmail)
           .whereNull('user_deleted_at')
           .preload('person')
           .first()
@@ -405,23 +395,23 @@ export default class UserController {
           response.status(404)
           return {
             type: 'warning',
-            title: 'Recuperación de contraseña',
-            message: 'Correo no encontrado',
+            title: 'Password recovery',
+            message: 'Email not found',
             data: {},
           }
         }
-        user.user_token = encrypted
+        user.userToken = encrypted
         user.save()
         const emailData = {
           user,
-          token: user.user_token,
+          token: user.userToken,
           host_data: hostData,
         }
         const userEmail = env.get('SMTP_USERNAME')
         if (userEmail) {
           await mail.send((message) => {
             message
-              .to(request.all().user_email)
+              .to(request.all().userEmail)
               .from(userEmail, 'SAE')
               .subject('Recuperar Contraseña')
               .htmlView('emails/request_password', emailData)
@@ -430,8 +420,8 @@ export default class UserController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Recuperación de contraseña',
-          message: 'Se te ha enviado una liga al correo correctamente',
+          title: 'Password recovery',
+          message: 'A link has been sent to your email successfully',
           data: { user: user },
         }
       }
@@ -439,8 +429,8 @@ export default class UserController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }
@@ -453,8 +443,8 @@ export default class UserController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Usuarios
-   *     summary: Verificar token de recuperación de contraseña
+   *       - Users
+   *     summary: verify password recovery token
    *     produces:
    *       - application/json
    *     parameters:
@@ -465,7 +455,7 @@ export default class UserController {
    *         required: true
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -473,18 +463,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -492,18 +482,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -511,18 +501,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -530,16 +520,16 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -555,24 +545,24 @@ export default class UserController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Verificación de token',
-          message: 'Token no valido',
+          title: 'Token verification',
+          message: 'Invalid token',
           data: {},
         }
       }
       response.status(200)
       return {
         type: 'success',
-        title: 'Verificación de token',
-        message: 'El token es valido',
+        title: 'Token verification',
+        message: 'The token is valid',
         data: { user: user },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }
@@ -585,8 +575,8 @@ export default class UserController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Usuarios
-   *     summary: Cambio de contraseña
+   *       - Users
+   *     summary: password change
    *     produces:
    *       - application/json
    *     requestBody:
@@ -599,13 +589,13 @@ export default class UserController {
    *                 type: string
    *                 description: Token
    *                 default: ''
-   *               user_password:
+   *               userPassword:
    *                 type: string
-   *                 description: Nueva contraseña del usuario
+   *                 description: User new password
    *                 default: ''
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -613,18 +603,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -632,18 +622,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -651,18 +641,18 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -670,16 +660,16 @@ export default class UserController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -696,27 +686,27 @@ export default class UserController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Cambio de contraseña con token',
-          message: 'Token no valido',
+          title: 'Password change with token',
+          message: 'Invalid token',
           data: {},
         }
       }
-      user.user_password = request.input('user_password')
-      user.user_token = ''
+      user.userPassword = request.input('userPassword')
+      user.userToken = ''
       user.save()
       response.status(200)
       return {
         type: 'success',
-        title: 'Cambio de contraseña con token',
-        message: 'La contraseña se ha cambiado correctamente',
+        title: 'Password change with token',
+        message: 'The password has been changed successfully',
         data: { user: user },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }
