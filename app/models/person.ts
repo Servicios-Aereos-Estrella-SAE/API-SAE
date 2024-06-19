@@ -48,8 +48,6 @@ import { DateTime } from 'luxon'
  */
 
 export default class Person extends BaseModel {
-  // public static table = 'people'
-
   @column({ isPrimary: true })
   declare personId: number
 

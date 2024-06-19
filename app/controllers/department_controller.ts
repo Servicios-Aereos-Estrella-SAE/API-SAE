@@ -151,8 +151,8 @@ export default class DepartmentController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Sincronización de departamentos',
-          message: 'Se han sincronizado los departamentos correctamente',
+          title: 'Sync departments',
+          message: 'Departments have been synchronized successfully',
           data: {
             data,
           },
@@ -161,8 +161,8 @@ export default class DepartmentController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sincronización de departamentos',
-          message: 'No se encontraron datos para sincronizar',
+          title: 'Sync departments',
+          message: 'No data found to synchronize',
           data: { data },
         }
       }
@@ -170,8 +170,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un Unexpected error en el servidor',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }

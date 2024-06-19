@@ -8,42 +8,40 @@ import { DateTime } from 'luxon'
  *      RoleSystemPermission:
  *        type: object
  *        properties:
- *          role_system_permission_id:
+ *          roleSystemPermissionId:
  *            type: number
- *            description: Id del permiso en el sistema del rol
- *          role_id:
+ *            description: Role system permission id
+ *          roleId:
  *            type: number
- *            description: Id del rol
- *          system_permission_id:
+ *            description: Role id
+ *          systemPermissionId:
  *            type: number
- *            description: Id del Permiso del sistema
- *          role_system_permission_created_at:
+ *            description: System permission id
+ *          roleSystemPermissionCreatedAt:
  *            type: string
- *          role_system_permission_updated_at:
+ *          roleSystemPermissionUpdatedAt:
  *            type: string
- *          role_system_permission_deleted_at:
+ *          roleSystemPermissionDeletedAt:
  *            type: string
  *
  */
 
 export default class RoleSystemPermission extends BaseModel {
-  // public static table = 'role_permissions'
-
   @column({ isPrimary: true })
-  declare role_system_permission_id: number
+  declare roleSystemPermissionId: number
 
   @column()
-  declare role_id: number
+  declare roleId: number
 
   @column()
-  declare system_permission_id: number
+  declare systemPermissionId: number
 
   @column.dateTime({ autoCreate: true })
-  declare role_system_permission_created_at: DateTime
+  declare roleSystemPermissionCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare role_system_permission_updated_at: DateTime
+  declare roleSystemPermissionUpdatedAt: DateTime
 
   @column()
-  declare role_system_permission_deleted_at: DateTime | null
+  declare roleSystemPermissionDeletedAt: DateTime | null
 }

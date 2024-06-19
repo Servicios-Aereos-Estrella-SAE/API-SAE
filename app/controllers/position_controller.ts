@@ -148,8 +148,8 @@ export default class PositionController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Sincronización de posiciones',
-          message: 'Se han sincronizado las posiciones correctamente',
+          title: 'Sync positions',
+          message: 'Positions have been synchronized successfully',
           data: {
             data,
           },
@@ -158,8 +158,8 @@ export default class PositionController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sincronización de posiciones',
-          message: 'No se encontraron datos para sincronizar',
+          title: 'Sync positions',
+          message: 'No data found to synchronize',
           data: { data },
         }
       }
@@ -167,8 +167,8 @@ export default class PositionController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }

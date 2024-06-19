@@ -10,47 +10,45 @@ import { DateTime } from 'luxon'
  *      SystemPermission:
  *        type: object
  *        properties:
- *          system_permission_id:
+ *          systemPermissionId:
  *            type: number
- *            description: Id del permiso del sistema
- *          system_permission_name:
+ *            description: System permission id
+ *          systemPermissionName:
  *            type: string
- *            description: Nombre del permiso
- *          system_module_id:
+ *            description: System permission name
+ *          systemModuleId:
  *            type: number
- *            description: Id del modulo del sistema
- *          system_permission_created_at:
+ *            description: System module id
+ *          systemPermissionCreatedAt:
  *            type: string
- *          system_permission_updated_at:
+ *          systemPermissionUpdatedAt:
  *            type: string
- *          system_permission_deleted_at:
+ *          systemPermissionDeletedAt:
  *            type: string
  *
  */
 
 export default class SystemPermission extends BaseModel {
-  // public static table = 'system_permissions'
-
   @column({ isPrimary: true })
-  declare system_permission_id: number
+  declare systemPermissionId: number
 
   @column()
-  declare system_permission_name: string
+  declare systemPermissionName: string
 
   @column()
-  declare system_module_id: number
+  declare systemModuleId: number
 
   @belongsTo(() => SystemModule, {
-    foreignKey: 'system_module_id',
+    foreignKey: 'systemModuleId',
   })
   declare module: BelongsTo<typeof SystemModule>
 
   @column.dateTime({ autoCreate: true })
-  declare system_permission_created_at: DateTime
+  declare systemPermissionCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare system_permission_updated_at: DateTime
+  declare systemPermissionUpdatedAt: DateTime
 
   @column()
-  declare system_permission_deleted_at: DateTime | null
+  declare systemPermissionDeletedAt: DateTime | null
 }

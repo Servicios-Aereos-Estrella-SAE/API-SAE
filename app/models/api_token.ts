@@ -9,32 +9,31 @@ import { DateTime } from 'luxon'
  *        properties:
  *          id:
  *            type: number
- *            description: Id del token
+ *            description: Token id
  *          type:
  *            type: string
- *            description: Tipo del token
+ *            description: Token type
  *          token:
  *            type: string
  *            description: Token
  *          name:
  *            type: string
- *            description: Nombre del token
- *          user_id:
+ *            description: Token name
+ *          userId:
  *            type: number
- *            description: Id del usuario
- *          api_token_browser:
+ *            description: User id
+ *          apiTokenBrowser:
  *            type: string
- *            description: Navegador
- *          created_at:
+ *            description: Browser
+ *          createdAt:
  *            type: string
- *          expires_at:
+ *          expiresAt:
  *            type: string
+ *            description: Expiration date
  *
  */
 
 export default class ApiToken extends BaseModel {
-  // public static table = 'api_tokens'
-
   @column({ isPrimary: true })
   declare id: number
 
@@ -48,14 +47,14 @@ export default class ApiToken extends BaseModel {
   declare name: string
 
   @column()
-  declare user_id: number
+  declare userId: number
 
   @column()
-  declare api_token_browser: string
+  declare apiTokenBrowser: string
 
   @column.dateTime({ autoCreate: true })
-  declare created_at: DateTime
+  declare createdAt: DateTime
 
   @column.dateTime()
-  declare expires_at: DateTime
+  declare expiresAt: DateTime
 }
