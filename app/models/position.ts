@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -50,7 +52,7 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
  *            type: string
  *
  */
-export default class Position extends BaseModel {
+export default class Position extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare positionId: number
 
@@ -90,8 +92,8 @@ export default class Position extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare positionUpdatedAt: DateTime
 
-  @column()
-  declare positionDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'position_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @belongsTo(() => Position, {
     foreignKey: 'parentPositionId',

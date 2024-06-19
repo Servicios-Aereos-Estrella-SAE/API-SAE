@@ -6,6 +6,7 @@ import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Person from './person.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -55,7 +56,7 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   passwordColumnName: 'userPassword',
 })
 
-export default class User extends compose(BaseModel, AuthFinder) {
+export default class User extends compose(BaseModel, SoftDeletes, AuthFinder) {
   static accessTokens = DbAccessTokensProvider.forModel(User, {
     expiresIn: '30 days',
     prefix: 'oat_',
@@ -97,8 +98,8 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare userUpdatedAt: DateTime
 
-  @column()
-  declare userDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'user_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @belongsTo(() => Person, {
     foreignKey: 'personId',

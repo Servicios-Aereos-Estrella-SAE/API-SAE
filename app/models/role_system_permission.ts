@@ -1,4 +1,6 @@
+import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
 
 /**
@@ -26,7 +28,7 @@ import { DateTime } from 'luxon'
  *
  */
 
-export default class RoleSystemPermission extends BaseModel {
+export default class RoleSystemPermission extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare roleSystemPermissionId: number
 
@@ -42,6 +44,6 @@ export default class RoleSystemPermission extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare roleSystemPermissionUpdatedAt: DateTime
 
-  @column()
-  declare roleSystemPermissionDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'role_system_permission_deleted_at' })
+  declare deletedAt: DateTime | null
 }

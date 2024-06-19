@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -50,7 +52,7 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
  *            type: string
  *
  */
-export default class Department extends BaseModel {
+export default class Department extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare departmentId: number
 
@@ -84,6 +86,15 @@ export default class Department extends BaseModel {
   @column()
   declare departmentLastSynchronizationAt: Date
 
+  @column.dateTime({ autoCreate: true })
+  declare departmentCreatedAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare departmentUpdatedAt: DateTime
+
+  @column.dateTime({ columnName: 'department_deleted_at' })
+  declare deletedAt: DateTime | null
+
   @belongsTo(() => Department, {
     foreignKey: 'parentDepartmentId',
   })
@@ -93,13 +104,4 @@ export default class Department extends BaseModel {
     foreignKey: 'parentDepartmentId',
   })
   declare subDepartments: HasMany<typeof Department>
-
-  @column.dateTime({ autoCreate: true })
-  declare departmentCreatedAt: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare departmentUpdatedAt: DateTime
-
-  @column()
-  declare departmentDeletedAt: DateTime | null
 }

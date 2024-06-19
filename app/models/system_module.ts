@@ -1,4 +1,6 @@
+import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
 
 /**
@@ -44,7 +46,7 @@ import { DateTime } from 'luxon'
  *
  */
 
-export default class SystemModule extends BaseModel {
+export default class SystemModule extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare systemModuleId: number
 
@@ -78,6 +80,6 @@ export default class SystemModule extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare systemModuleUpdatedAt: DateTime
 
-  @column()
-  declare systemModuleDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'system_module_deleted_at' })
+  declare deletedAt: DateTime | null
 }

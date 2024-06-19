@@ -2,6 +2,8 @@ import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import SystemModule from './system_module.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -28,7 +30,7 @@ import { DateTime } from 'luxon'
  *
  */
 
-export default class SystemPermission extends BaseModel {
+export default class SystemPermission extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare systemPermissionId: number
 
@@ -38,11 +40,6 @@ export default class SystemPermission extends BaseModel {
   @column()
   declare systemModuleId: number
 
-  @belongsTo(() => SystemModule, {
-    foreignKey: 'systemModuleId',
-  })
-  declare module: BelongsTo<typeof SystemModule>
-
   @column.dateTime({ autoCreate: true })
   declare systemPermissionCreatedAt: DateTime
 
@@ -51,4 +48,12 @@ export default class SystemPermission extends BaseModel {
 
   @column()
   declare systemPermissionDeletedAt: DateTime | null
+
+  @column.dateTime({ columnName: 'system_permission_deleted_at' })
+  declare deletedAt: DateTime | null
+
+  @belongsTo(() => SystemModule, {
+    foreignKey: 'systemModuleId',
+  })
+  declare systemModule: BelongsTo<typeof SystemModule>
 }

@@ -1,5 +1,7 @@
 /* eslint-disable max-len */
+import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
 /**
  * @swagger
@@ -47,7 +49,7 @@ import { DateTime } from 'luxon'
  *
  */
 
-export default class Person extends BaseModel {
+export default class Person extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare personId: number
 
@@ -84,6 +86,6 @@ export default class Person extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare personUpdatedAt: DateTime
 
-  @column()
-  declare personDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'person_deleted_at' })
+  declare deletedAt: DateTime | null
 }

@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 /**
  * @swagger
  * components:
@@ -30,7 +32,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *            type: string
  *
  */
-export default class Role extends BaseModel {
+export default class Role extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare roleId: number
 
@@ -52,6 +54,6 @@ export default class Role extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare roleUpdatedAt: DateTime
 
-  @column()
-  declare roleDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'role_deleted_at' })
+  declare deletedAt: DateTime | null
 }
