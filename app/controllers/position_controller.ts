@@ -13,8 +13,8 @@ export default class PositionController {
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Posiciones
-   *     summary: Sincronización de Información
+   *       - Positions
+   *     summary: sync information
    *     produces:
    *       - application/json
    *     requestBody:
@@ -25,27 +25,27 @@ export default class PositionController {
    *             properties:
    *               page:
    *                 type: integer
-   *                 description: Número de pagina para paginación
+   *                 description: The page number for pagination
    *                 required: false
    *                 default: 1
    *               limit:
    *                 type: integer
-   *                 description: Número de renglones por página
+   *                 description: The number of records per page
    *                 required: false
    *                 default: 200
    *               positionCode:
    *                 type: string
-   *                 description: Código de posición para filtrar
+   *                 description: The position code to filter by
    *                 required: false
    *                 default: ''
    *               positionName:
    *                 required: false
-   *                 description: Nombre de posición para filtrar
+   *                 description: The position name to filter by
    *                 type: string
    *                 default: ''
    *     responses:
    *       '200':
-   *         description: Recurso procesado de manera exitosa
+   *         description: Resource processed successfully
    *         content:
    *           application/json:
    *             schema:
@@ -53,18 +53,18 @@ export default class PositionController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Objeto procesado
+   *                   description: Processed object
    *       '404':
-   *         description: No se ha encontrado el recurso
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -72,18 +72,18 @@ export default class PositionController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       '400':
-   *         description: Los parametros ingresados son invalidos o faltan datos necesarios para procesar la solicitud
+   *         description: The parameters entered are invalid or essential data is missing to process the request
    *         content:
    *           application/json:
    *             schema:
@@ -91,18 +91,18 @@ export default class PositionController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Lista de parametros establecidos por el cliente
+   *                   description: List of parameters set by the client
    *       default:
-   *         description: Error inesperado
+   *         description: Unexpected error
    *         content:
    *           application/json:
    *             schema:
@@ -110,16 +110,16 @@ export default class PositionController {
    *               properties:
    *                 type:
    *                   type: string
-   *                   description: Tipo de respuesta generada
+   *                   description: Type of response generated
    *                 title:
    *                   type: string
-   *                   description: Titulo de la respuesta
+   *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Mensaje de la respuesta
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Mensaje de error obtenido
+   *                   description: Error message obtained
    *                   properties:
    *                     error:
    *                       type: string
@@ -148,8 +148,8 @@ export default class PositionController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Sincronización de posiciones',
-          message: 'Se han sincronizado las posiciones correctamente',
+          title: 'Sync positions',
+          message: 'Positions have been synchronized successfully',
           data: {
             data,
           },
@@ -158,8 +158,8 @@ export default class PositionController {
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sincronización de posiciones',
-          message: 'No se encontraron datos para sincronizar',
+          title: 'Sync positions',
+          message: 'No data found to synchronize',
           data: { data },
         }
       }
@@ -167,8 +167,8 @@ export default class PositionController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Error de servidor',
-        message: 'Se ha presentado un error inesperado en el servidor',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }

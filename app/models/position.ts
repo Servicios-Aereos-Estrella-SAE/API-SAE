@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -9,104 +11,107 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
  *      Position:
  *        type: object
  *        properties:
- *          position_id:
+ *          positionId:
  *            type: number
- *            description: Id de la posición
- *          position_sync_id:
+ *            description: Position id
+ *          positionSyncId:
  *            type: number
- *            description: Id de la posición importada
- *          position_code:
+ *            description: Imported position id
+ *          positionCode:
  *            type: string
- *            description: Código de la posición
- *          position_name:
+ *            description: Position code
+ *          positionName:
  *            type: string
- *            description: Nombre de la posición
- *          position_is_default:
+ *            description: Position name
+ *          positionAlias:
+ *            type: string
+ *            description: Position alias
+ *          positionIsDefault:
  *            type: boolean
- *            description: Si la posición es la default
- *          position_active:
+ *            description: If the position is the default
+ *          positionActive:
  *            type: number
- *            description: Activo o Inactivo
- *          parent_position_id:
+ *            description: Estatus
+ *          parentPositionId:
  *            type: number
- *            description: Id de la posición relacionado
- *          parent_position_sync_id:
+ *            description: Related position id
+ *          parentPositionSyncId:
  *            type: number
- *            description: Id de la posicion relacionada importada
- *          company_id:
+ *            description: Imported related position id
+ *          companyId:
  *            type: number
- *            description: Id de la compañia
- *          position_last_synchronization_at:
+ *            description: Company id
+ *          positionLastSynchronizationAt:
  *            type: string
- *            description: Fecha de última sincronización
- *          position_created_at:
+ *            description: Last synchronization date
+ *          positionCreatedAt:
  *            type: string
- *          position_updated_at:
+ *          positionUpdatedAt:
  *            type: string
- *          position_deleted_at:
+ *          positionDeletedAt:
  *            type: string
  *
  */
-export default class Position extends BaseModel {
+export default class Position extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare position_id: number
+  declare positionId: number
 
   @column()
-  declare position_sync_id: number
+  declare positionSyncId: number
 
   @column()
-  declare position_code: string
+  declare positionCode: string
 
   @column()
-  declare position_name: string
+  declare positionName: string
 
   @column()
-  declare position_alias: string
+  declare positionAlias: string
 
   @column()
-  declare position_is_default: boolean
+  declare positionIsDefault: boolean
 
   @column()
-  declare position_active: number
+  declare positionActive: number
 
   @column()
-  declare parent_position_id: number | null
+  declare parentPositionId: number | null
 
   @column()
-  declare parent_position_sync_id: number
+  declare parentPositionSyncId: number
 
   @column()
-  declare company_id: number
+  declare companyId: number
 
   @column()
-  declare position_last_synchronization_at: Date
-
-  @belongsTo(() => Position, {
-    foreignKey: 'parent_position_id',
-  })
-  declare parent_position: BelongsTo<typeof Position>
-
-  @hasMany(() => Position, {
-    foreignKey: 'parent_position_id',
-  })
-  declare sub_positions: HasMany<typeof Position>
-
-  @belongsTo(() => Position, {
-    foreignKey: 'parent_position_sync_id',
-  })
-  declare parentsyncposition: BelongsTo<typeof Position>
-
-  @hasMany(() => Position, {
-    foreignKey: 'parent_position_sync_id',
-  })
-  declare sub_sync_positions: HasMany<typeof Position>
+  declare positionLastSynchronizationAt: Date
 
   @column.dateTime({ autoCreate: true })
-  declare position_created_at: DateTime
+  declare positionCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare position_updated_at: DateTime
+  declare positionUpdatedAt: DateTime
 
-  @column()
-  declare position_deleted_at: DateTime | null
+  @column.dateTime({ columnName: 'position_deleted_at' })
+  declare deletedAt: DateTime | null
+
+  @belongsTo(() => Position, {
+    foreignKey: 'parentPositionId',
+  })
+  declare parentPosition: BelongsTo<typeof Position>
+
+  @hasMany(() => Position, {
+    foreignKey: 'parentPositionId',
+  })
+  declare subPositions: HasMany<typeof Position>
+
+  @belongsTo(() => Position, {
+    foreignKey: 'parentPositionSyncId',
+  })
+  declare parentSyncPosition: BelongsTo<typeof Position>
+
+  @hasMany(() => Position, {
+    foreignKey: 'parentPositionSyncId',
+  })
+  declare subSyncPositions: HasMany<typeof Position>
 }

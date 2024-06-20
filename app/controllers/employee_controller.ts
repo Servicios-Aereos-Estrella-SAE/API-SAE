@@ -16,7 +16,7 @@ export default class EmployeeController {
    *       - bearerAuth: []
    *     tags:
    *       - Employees
-   *     summary: Information synchronization
+   *     summary: sync information
    *     produces:
    *       - application/json
    *     requestBody:
@@ -229,7 +229,7 @@ export default class EmployeeController {
       return {
         type: 'error',
         title: 'Server error',
-        message: 'An unexpected error occurred on the server',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }

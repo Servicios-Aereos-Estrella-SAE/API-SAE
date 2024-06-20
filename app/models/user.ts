@@ -6,6 +6,7 @@ import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Person from './person.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -14,42 +15,48 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
  *      User:
  *        type: object
  *        properties:
- *          user_id:
+ *          userId:
  *            type: number
- *            description: Id del usuario
- *          user_email:
+ *            description: User id
+ *          userEmail:
  *            type: string
- *            description: Correo electrónico del usuario
- *          user_password:
+ *            description: User email
+ *          userPassword:
  *            type: string
- *            description: Contraseña del usuario
- *          user_token:
+ *            description: User password
+ *          userToken:
  *            type: string
- *            description: Token del usuario
- *          user_active:
+ *            description: User token
+ *          userActive:
  *            type: number
- *            description: Activo o Inactivo
- *          role_id:
- *            type: number
- *            description: Id del Rol
- *          person_id:
- *            type: number
- *            description: Id de la Persona
- *          user_created_at:
+ *            description: User status
+ *          userPinCode:
  *            type: string
- *          user_updated_at:
+ *            description: User pin code
+ *          userPinCodeExpiresAt:
+ *            type: Date
+ *            description: User expiration date pin code
+ *          roleId:
+ *            type: number
+ *            description: Role id
+ *          personId:
+ *            type: number
+ *            description: Person id
+ *          userCreatedAt:
  *            type: string
- *          user_deleted_at:
+ *          userUpdatedAt:
+ *            type: string
+ *          userDeletedAt:
  *            type: string
  *
  */
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-  uids: ['user_email'],
-  passwordColumnName: 'user_password',
+  uids: ['userEmail'],
+  passwordColumnName: 'userPassword',
 })
 
-export default class User extends compose(BaseModel, AuthFinder) {
+export default class User extends compose(BaseModel, SoftDeletes, AuthFinder) {
   static accessTokens = DbAccessTokensProvider.forModel(User, {
     expiresIn: '30 days',
     prefix: 'oat_',
@@ -59,43 +66,43 @@ export default class User extends compose(BaseModel, AuthFinder) {
   })
 
   @column({ isPrimary: true })
-  declare user_id: number
+  declare userId: number
 
   @column()
-  declare user_email: string
-
-  @column()
-  declare user_token: string
-
-  @column()
-  declare pin_code: string
-
-  @column()
-  declare user_active: number
-
-  @column()
-  declare role_id: number
-
-  @column()
-  declare person_id: number
+  declare userEmail: string
 
   @column({ serializeAs: null })
-  declare user_password: string
+  declare userPassword: string
 
   @column()
-  declare pin_code_expires_at: DateTime | null
+  declare userToken: string
+
+  @column()
+  declare userActive: number
+
+  @column()
+  declare userPinCode: string
+
+  @column()
+  declare userPinCodeExpiresAt: DateTime | null
+
+  @column()
+  declare roleId: number
+
+  @column()
+  declare personId: number
 
   @column.dateTime({ autoCreate: true })
-  declare user_created_at: DateTime
+  declare userCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare user_updated_at: DateTime
+  declare userUpdatedAt: DateTime
 
-  @column()
-  declare user_deleted_at: DateTime | null
+  @column.dateTime({ columnName: 'user_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @belongsTo(() => Person, {
-    foreignKey: 'person_id',
+    foreignKey: 'personId',
   })
   declare person: BelongsTo<typeof Person>
 }

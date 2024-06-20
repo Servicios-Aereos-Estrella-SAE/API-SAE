@@ -6,10 +6,11 @@ export default class extends BaseSeeder {
     // Write your database queries inside the run method
     await Role.createMany([
       {
-        role_name: 'Admin',
-        role_slug: 'admin',
-        role_description: 'Administrador',
-        role_active: 1,
+        roleId: 1,
+        roleName: 'Admin',
+        roleSlug: 'admin',
+        roleDescription: 'Administrador',
+        roleActive: 1,
       },
     ])
   }

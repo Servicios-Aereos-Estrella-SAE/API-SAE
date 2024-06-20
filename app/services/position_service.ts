@@ -4,31 +4,31 @@ import BiometricPositionInterface from '../interfaces/biometric_position_interfa
 export default class PositionService {
   async syncCreate(position: BiometricPositionInterface) {
     const newPosition = new Position()
-    newPosition.position_sync_id = position.id
-    newPosition.parent_position_sync_id = position.parentPositionId
-    newPosition.position_code = position.positionCode
-    newPosition.position_name = position.positionName
-    newPosition.position_is_default = position.isDefault
-    newPosition.position_active = 1
-    newPosition.parent_position_id = position.parentPositionId
+    newPosition.positionSyncId = position.id
+    newPosition.parentPositionSyncId = position.parentPositionId
+    newPosition.positionCode = position.positionCode
+    newPosition.positionName = position.positionName
+    newPosition.positionIsDefault = position.isDefault
+    newPosition.positionActive = 1
+    newPosition.parentPositionId = position.parentPositionId
       ? await this.getIdBySyncId(position.parentPositionId)
       : null
-    newPosition.company_id = position.companyId
-    newPosition.position_last_synchronization_at = new Date()
+    newPosition.companyId = position.companyId
+    newPosition.positionLastSynchronizationAt = new Date()
     await newPosition.save()
     return newPosition
   }
 
   async syncUpdate(position: BiometricPositionInterface, currentPosition: Position) {
-    currentPosition.parent_position_sync_id = position.parentPositionId
-    currentPosition.position_code = position.positionCode
-    currentPosition.position_name = position.positionName
-    currentPosition.position_is_default = position.isDefault
-    currentPosition.parent_position_id = position.parentPositionId
+    currentPosition.parentPositionSyncId = position.parentPositionId
+    currentPosition.positionCode = position.positionCode
+    currentPosition.positionName = position.positionName
+    currentPosition.positionIsDefault = position.isDefault
+    currentPosition.parentPositionId = position.parentPositionId
       ? await this.getIdBySyncId(position.parentPositionId)
       : null
-    currentPosition.company_id = position.companyId
-    currentPosition.position_last_synchronization_at = new Date()
+    currentPosition.companyId = position.companyId
+    currentPosition.positionLastSynchronizationAt = new Date()
     await currentPosition.save()
     return currentPosition
   }
@@ -36,7 +36,7 @@ export default class PositionService {
   async getIdBySyncId(positionSyncId: number) {
     const position = await Position.query().where('position_sync_id', positionSyncId).first()
     if (position) {
-      return position.position_id
+      return position.positionId
     } else {
       return 0
     }
@@ -45,7 +45,7 @@ export default class PositionService {
   async verifyExistPositionByName(positionName: string) {
     const position = await Position.query().where('position_name', positionName).first()
     if (position) {
-      return position.position_id
+      return position.positionId
     } else {
       return null
     }

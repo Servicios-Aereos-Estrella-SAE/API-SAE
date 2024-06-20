@@ -1,5 +1,7 @@
 /* eslint-disable max-len */
+import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
 /**
  * @swagger
@@ -8,87 +10,82 @@ import { DateTime } from 'luxon'
  *      Person:
  *        type: object
  *        properties:
- *          person_id:
+ *          personId:
  *            type: number
- *            description: ID del recurso
- *          person_firstname:
+ *            description: Person id
+ *          personFirstname:
  *            type: string
- *            description: Nombre o nombres de la persona
- *          person_lastname:
+ *            description: Person firstname
+ *          personLastname:
  *            type: string
- *            description: Primer apellido
- *          person_second_lastname:
+ *            description: Person lastname
+ *          personSecondLastname:
  *            type: string
- *            description: Segundo apellido
- *          person_gender:
+ *            description: Person second lastname
+ *          personGender:
  *            type: string
- *            description: Género de la persona
- *          person_birthday:
+ *            description: Person gender
+ *          personBirthday:
  *            type: string
- *            description: Fecha de nacimiento de la persona (YYYY-MM-DD)
- *          person_phone:
+ *            description: Person birthday (YYYY-MM-DD)
+ *          personPhone:
  *            type: string
- *            description: Número de teléfono
- *          person_curp:
+ *            description: Person phone
+ *          personCurp:
  *            type: string
- *            description: CURP única de la persona
- *          person_rfc:
+ *            description: Person CURP unique
+ *          personRfc:
  *            type: string
- *            description: RFC con homoclave, único de la pesona
- *          person_imss_nss:
+ *            description: Person RFC with homoclave, unique
+ *          personImssNss:
  *            type: string
- *            description: Número del seguro social
- *          person_created_at:
+ *            description: Person social security number
+ *          personCreatedAt:
  *            type: string
- *            description: Fecha en la que el recurso ha sido creado
- *          person_updated_at:
+ *          personUpdatedAt:
  *            type: string
- *            description: Ultima fecha en la que el recurso ha sido actualizado
- *          person_deleted_at:
+ *          personDeletedAt:
  *            type: string
- *            description: Fecha en la que el recurso ha sido eliminado
  *
  */
 
-export default class Person extends BaseModel {
-  // public static table = 'people'
-
+export default class Person extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare person_id: number
+  declare personId: number
 
   @column()
-  declare person_firstname: string
+  declare personFirstname: string
 
   @column()
-  declare person_lastname: string
+  declare personLastname: string
 
   @column()
-  declare person_second_lastname: string
+  declare personSecondLastname: string
 
   @column()
-  declare person_gender: string
+  declare personGender: string
 
   @column()
-  declare person_birthday: string
+  declare personBirthday: string
 
   @column()
-  declare person_phone: string
+  declare personPhone: string
 
   @column()
-  declare person_curp: string
+  declare personCurp: string
 
   @column()
-  declare person_rfc: string
+  declare personRfc: string
 
   @column()
-  declare person_imss_nss: string
+  declare personImssNss: string
 
   @column.dateTime({ autoCreate: true })
-  declare person_created_at: DateTime
+  declare personCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare person_updated_at: DateTime
+  declare personUpdatedAt: DateTime
 
-  @column()
-  declare person_deleted_at: DateTime | null
+  @column.dateTime({ columnName: 'person_deleted_at' })
+  declare deletedAt: DateTime | null
 }

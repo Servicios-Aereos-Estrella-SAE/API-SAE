@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 
 /**
  * @swagger
@@ -9,94 +11,97 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
  *      Department:
  *        type: object
  *        properties:
- *          department_id:
+ *          departmentId:
  *            type: number
- *            description: Id del departamento
- *          department_sync_id:
+ *            description: Department id
+ *          departmentSyncId:
  *            type: number
- *            description: Id del departamento importado
- *          department_code:
+ *            description: Imported department id
+ *          departmentCode:
  *            type: string
- *            description: Código del departamento
- *          department_name:
+ *            description: Department code
+ *          departmentName:
  *            type: string
- *            description: Nombre del departamento
- *          department_is_default:
+ *            description: Department name
+ *          departmentAlias:
+ *            type: string
+ *            description: Department alias
+ *          departmentIsDefault:
  *            type: boolean
- *            description: Si el departemento es el default
- *          department_active:
+ *            description: If the department is the default
+ *          departmentActive:
  *            type: number
- *            description: Activo o Inactivo
- *          parent_department_id:
+ *            description: Status
+ *          parentDepartmentId:
  *            type: number
- *            description: Id del departamento relacionado
- *          parent_department_sync_id:
+ *            description: Related department id
+ *          parentDepartmentSyncId:
  *            type: number
- *            description: Id del departamento relacionado importado
- *          company_id:
+ *            description: Imported related department id
+ *          companyId:
  *            type: number
- *            description: Id de la compañia
- *          department_last_synchronization_at:
+ *            description: Company id
+ *          departmentLastSynchronizationAt:
  *            type: string
- *            description: Fecha de última sincronización
- *          department_created_at:
+ *            description: Last synchronization date
+ *          departmentCreatedAt:
  *            type: string
- *          department_updated_at:
+ *          departmentUpdatedAt:
  *            type: string
- *          department_deleted_at:
+ *          departmentDeletedAt:
  *            type: string
  *
  */
-export default class Department extends BaseModel {
+export default class Department extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare department_id: number
+  declare departmentId: number
 
   @column()
-  declare department_sync_id: number
+  declare departmentSyncId: number
 
   @column()
-  declare department_code: string
+  declare departmentCode: string
 
   @column()
-  declare department_name: string
+  declare departmentName: string
 
   @column()
-  declare department_alias: string
+  declare departmentAlias: string
 
   @column()
-  declare department_is_default: boolean
+  declare departmentIsDefault: boolean
 
   @column()
-  declare department_active: number
+  declare departmentActive: number
 
   @column()
-  declare parent_department_id: number | null
+  declare parentDepartmentId: number | null
 
   @column()
-  declare parent_department_sync_id: number
+  declare parentDepartmentSyncId: number
 
   @column()
-  declare company_id: number
+  declare companyId: number
 
   @column()
-  declare department_last_synchronization_at: Date
+  declare departmentLastSynchronizationAt: Date
+
+  @column.dateTime({ autoCreate: true })
+  declare departmentCreatedAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare departmentUpdatedAt: DateTime
+
+  @column.dateTime({ columnName: 'department_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @belongsTo(() => Department, {
-    foreignKey: 'parent_department_id',
+    foreignKey: 'parentDepartmentId',
   })
   declare parentDepartment: BelongsTo<typeof Department>
 
   @hasMany(() => Department, {
-    foreignKey: 'parent_department_id',
+    foreignKey: 'parentDepartmentId',
   })
   declare subDepartments: HasMany<typeof Department>
-
-  @column.dateTime({ autoCreate: true })
-  declare department_created_at: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare department_updated_at: DateTime
-
-  @column()
-  declare department_deleted_at: DateTime | null
 }

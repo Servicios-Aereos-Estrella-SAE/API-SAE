@@ -1,4 +1,6 @@
+import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
 
 /**
@@ -8,78 +10,76 @@ import { DateTime } from 'luxon'
  *      SystemModule:
  *        type: object
  *        properties:
- *          system_module_id:
+ *          systemModuleId:
  *            type: number
- *            description: Id del modulo
- *          system_module_name:
+ *            description: System module id
+ *          systemModuleName:
  *            type: string
- *            description: Nombre del modulo
- *          system_module_slug:
+ *            description: System module name
+ *          systemModuleSlug:
  *            type: string
- *            description: SLUG del modulo
- *          system_module_description:
+ *            description: System module slug
+ *          systemModuleDescription:
  *            type: string
- *            description: Descripción del modulo
- *          system_modules:
+ *            description: System module description
+ *          systemModules:
  *            type: string
- *            description: Orden
- *          system_module_path:
+ *            description: System module order
+ *          systemModulePath:
  *            type: string
- *            description: Ruta del modulo
- *          system_module_group:
+ *            description: System module path
+ *          systemModuleGroup:
  *            type: string
- *            description: Grupo del modulo
- *          system_module_active:
+ *            description: System module group
+ *          systemModuleActive:
  *            type: number
- *            description: Activo o Inactivo
- *          system_module_icon:
+ *            description: System module status
+ *          systemModuleIcon:
  *            type: string
- *            description: Ruta de imagen del icono del modulo
- *          system_module_created_at:
+ *            description: System module icon path
+ *          systemModuleCreatedAt:
  *            type: string
- *          system_module_updated_at:
+ *          systemModuleUpdatedAt:
  *            type: string
- *          system_module_deleted_at:
+ *          systemModuleDeletedAt:
  *            type: string
  *
  */
 
-export default class SystemModule extends BaseModel {
-  // public static table = 'system_modules'
-
+export default class SystemModule extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare system_module_id: number
+  declare systemModuleId: number
 
   @column()
-  declare system_module_name: string
+  declare systemModuleName: string
 
   @column()
-  declare system_module_slug: string
+  declare systemModuleSlug: string
 
   @column()
-  declare system_module_description: string
+  declare systemModuleDescription: string
 
   @column()
-  declare system_modules: string
+  declare systemModules: string
 
   @column()
-  declare system_module_path: string
+  declare systemModulePath: string
 
   @column()
-  declare system_module_group: string
+  declare systemModuleGroup: string
 
   @column()
-  declare system_module_active: number
+  declare systemModuleActive: number
 
   @column()
-  declare system_module_icon: string
+  declare systemModuleIcon: string
 
   @column.dateTime({ autoCreate: true })
-  declare system_module_created_at: DateTime
+  declare systemModuleCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare system_module_updated_at: DateTime
+  declare systemModuleUpdatedAt: DateTime
 
-  @column()
-  declare system_module_deleted_at: DateTime | null
+  @column.dateTime({ columnName: 'system_module_deleted_at' })
+  declare deletedAt: DateTime | null
 }
