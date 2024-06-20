@@ -59,7 +59,7 @@ import { compose } from '@adonisjs/core/helpers'
  */
 export default class Employee extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare employee_id: number
+  declare employeeId: number
 
   @column()
   declare employeeSyncId: number
