@@ -5,6 +5,7 @@ import Department from './department.js'
 import Position from './position.js'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
+import Person from './person.js'
 
 /**
  * @swagger
@@ -40,12 +41,18 @@ import { compose } from '@adonisjs/core/helpers'
  *          departmentId:
  *            type: number
  *            description: Department id
+ *          departmentSyncId:
+ *            type: number
+ *            description: Department sync id
  *          positionId:
  *            type: number
  *            description: Position id
  *          positionSyncId:
  *            type: number
  *            description: Position sync id
+ *          personId:
+ *            type: number
+ *            description: Person id
  *          employeeLastSynchronizationAt:
  *            type: string
  *            description: Last synchronization date
@@ -95,6 +102,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
   declare positionSyncId: number
 
   @column()
+  declare personId: number
+
+  @column()
   declare employeeLastSynchronizationAt: Date
 
   @column.dateTime({ autoCreate: true })
@@ -115,4 +125,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'positionId',
   })
   declare position: BelongsTo<typeof Position>
+
+  @belongsTo(() => Person, {
+    foreignKey: 'personId',
+  })
+  declare person: BelongsTo<typeof Person>
 }
