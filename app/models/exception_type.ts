@@ -5,19 +5,25 @@ import * as relations from '@adonisjs/lucid/types/relations'
 
 export default class ExceptionType extends BaseModel {
   @column({ isPrimary: true })
-  declare exception_type_id: number
+  declare exceptionTypeId: number
 
   @column()
-  declare exception_type_type_name: string
+  declare exceptionTypeTypeName: string
+
+  @column()
+  declare exceptionTypeIcon: string
+
+  @column()
+  declare exceptionTypeSlug: string
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare exceptionTypeCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare exceptionTypeUpdatedAt: DateTime
 
   @column.dateTime()
-  declare deletedAt: DateTime
+  declare exceptionTypeDeletedAt: DateTime
 
   @hasMany(() => ShiftException)
   declare shiftExceptions: relations.HasMany<typeof ShiftException>

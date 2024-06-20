@@ -8,6 +8,7 @@ export default class extends BaseSchema {
       table.increments('holiday_id')
       table.string('holiday_name', 100)
       table.date('holiday_date')
+      table.text('holiday_icon')
       table.timestamp('holiday_created_at')
       table.timestamp('holiday_updated_at')
       table.timestamp('holiday_deleted_at').nullable()

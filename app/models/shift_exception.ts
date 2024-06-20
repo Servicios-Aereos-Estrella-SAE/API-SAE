@@ -6,28 +6,28 @@ import ExceptionType from './exception_type.js'
 
 export default class ShiftException extends BaseModel {
   @column({ isPrimary: true })
-  declare shift_exception_id: number
+  declare shiftExceptionId: number
 
   @column()
-  declare employee_id: number
+  declare employeeId: number
 
   @column()
-  declare exception_type_id: number
+  declare exceptionTypeId: number
 
   @column()
-  declare shift_exceptions_date: string
+  declare shiftExceptionDate: string
 
   @column()
-  declare shift_exceptions_description: string
+  declare shiftExceptionDescription: string
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare shiftExceptionCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare shiftExceptionUpdatedAt: DateTime
 
   @column.dateTime()
-  declare deletedAt: DateTime
+  declare shiftExceptionDeletedAt: DateTime
 
   @belongsTo(() => Employee)
   declare employee: relations.BelongsTo<typeof Employee>

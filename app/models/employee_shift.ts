@@ -6,22 +6,22 @@ import * as relations from '@adonisjs/lucid/types/relations'
 
 export default class EmployeeShift extends BaseModel {
   @column({ isPrimary: true })
-  declare employe_shift_id: number
+  declare employeShiftId: number
 
   @column()
-  declare employee_id: number
+  declare employeeId: number
 
   @column()
-  declare shift_id: number
+  declare shiftId: number
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare employeShiftCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare employeShiftUpdatedAt: DateTime
 
   @column.dateTime()
-  declare deletedAt: DateTime
+  declare employeShiftDeletedAt: DateTime
 
   @belongsTo(() => Employee)
   declare employee: relations.BelongsTo<typeof Employee>

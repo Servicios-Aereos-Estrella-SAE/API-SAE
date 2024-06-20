@@ -189,7 +189,7 @@ import Position from './position.js'
  */
 export default class Employee extends BaseModel {
   @column({ isPrimary: true })
-  declare employee_id: number
+  declare employeeId: number
 
   @column()
   declare employeeSyncId: number

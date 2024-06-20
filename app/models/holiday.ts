@@ -3,20 +3,23 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class Holiday extends BaseModel {
   @column({ isPrimary: true })
-  declare holiday_id: number
+  declare holidayId: number
 
   @column()
-  declare holiday_name: string
+  declare holidayName: string
 
   @column()
-  declare holiday_date: string
+  declare holidayDate: string
+
+  @column()
+  declare holidayIcon: string
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare holidayCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare holidayUpdatedAt: DateTime
 
   @column.dateTime()
-  declare deletedAt: DateTime
+  declare holidayDeletedAt: DateTime
 }

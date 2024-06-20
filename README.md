@@ -1,4 +1,3 @@
-[12:09] Wilvardo Ramirez Colunga
 ![Logo](https://sae.com.mx/wp-content/uploads/2024/03/logo_sae.svg)
  
 # API Principal SAE

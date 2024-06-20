@@ -5,31 +5,31 @@ import * as relations from '@adonisjs/lucid/types/relations'
 
 export default class Shift extends BaseModel {
   @column({ isPrimary: true })
-  declare shift_id: number
+  declare shiftId: number
 
   @column()
-  declare shift_name: string
+  declare shiftName: string
 
   @column()
-  declare day_start: number
+  declare shiftDayStart: number
 
   @column()
-  declare time_start: string
+  declare shiftTimeStart: string
 
   @column()
-  declare active_hours: number
+  declare shiftActiveHours: number
 
   @column()
-  declare rest_days: string
+  declare shiftRestDays: string
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare shiftCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare shiftUpdatedAt: DateTime
 
   @column.dateTime()
-  declare deletedAt: DateTime
+  declare shiftDeletedAt: DateTime
 
   @hasMany(() => EmployeeShift)
   declare employees: relations.HasMany<typeof EmployeeShift>
