@@ -1,6 +1,7 @@
 import Employee from '#models/employee'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import DepartmentService from './department_service.js'
+import PersonService from './person_service.js'
 import PositionService from './position_service.js'
 
 export default class EmployeeService {
@@ -10,6 +11,11 @@ export default class EmployeeService {
     positionService: PositionService
   ) {
     const newEmployee = new Employee()
+    const personService = new PersonService()
+    const newPerson = await personService.syncCreate(employee)
+    if (newPerson) {
+      newEmployee.personId = newPerson.personId
+    }
     newEmployee.employeeSyncId = employee.id
     newEmployee.employeeCode = employee.empCode
     newEmployee.employeeFirstName = employee.firstName
@@ -41,6 +47,11 @@ export default class EmployeeService {
     departmentService: DepartmentService,
     positionService: PositionService
   ) {
+    if (!currentEmployee.personId) {
+      const personService = new PersonService()
+      const newPerson = await personService.syncCreate(employee)
+      currentEmployee.personId = newPerson ? newPerson.personId : 0
+    }
     currentEmployee.employeeSyncId = employee.id
     currentEmployee.employeeCode = employee.empCode
     currentEmployee.employeeFirstName = employee.firstName

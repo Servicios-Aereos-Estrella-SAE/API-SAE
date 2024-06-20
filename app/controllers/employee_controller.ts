@@ -241,7 +241,7 @@ export default class EmployeeController {
     departmentService: DepartmentService,
     positionService: PositionService
   ) {
-    const existEmployee = await Employee.query().where('employee_sync_id', employee.id).first()
+    const existEmployee = await Employee.query().where('employee_code', employee.empCode).first()
     if (!existEmployee) {
       await employeeService.syncCreate(employee, departmentService, positionService)
     } else {
