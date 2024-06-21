@@ -6,6 +6,7 @@
 | The routes file is used for defining the HTTP routes.
 |
 */
+const ShiftController = () => import('#controllers/shifts_controller')
 
 import router from '@adonisjs/core/services/router'
 router.get('/', async ({ view }) => {
@@ -19,3 +20,5 @@ router.get('/', async ({ view }) => {
 import './routes/login_routes.js'
 import './routes/synchronization_routes.js'
 import './routes/department_routes.js'
+
+router.post('shift', [ShiftController, 'store'])
