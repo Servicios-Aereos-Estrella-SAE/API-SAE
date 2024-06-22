@@ -235,13 +235,157 @@ export default class EmployeeController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/employees:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get all
+   *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: page
+   *         in: query
+   *         required: true
+   *         description: The page number for pagination
+   *         schema:
+   *           type: integer
+   *       - name: limit
+   *         in: query
+   *         required: true
+   *         description: The number of records per page
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+
+  async getAll({ request, response }: HttpContext) {
+    try {
+      const search = request.input('search')
+      const page = request.input('page', 1)
+      const limit = request.input('limit', 100)
+      const employees = await Employee.query()
+        .if(search, (query) => {
+          query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+            `%${search.toUpperCase()}%`,
+          ])
+          query.orWhereRaw('UPPER(employee_code) LIKE ?', [`%${search.toUpperCase()}%`])
+        })
+        .orderBy('employee_id')
+        .paginate(page, limit)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees were found successfully',
+        data: {
+          employees,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private async verify(
     employee: BiometricEmployeeInterface,
     employeeService: EmployeeService,
     departmentService: DepartmentService,
     positionService: PositionService
   ) {
-    const existEmployee = await Employee.query().where('employee_sync_id', employee.id).first()
+    const existEmployee = await Employee.query().where('employee_code', employee.empCode).first()
     if (!existEmployee) {
       await employeeService.syncCreate(employee, departmentService, positionService)
     } else {
