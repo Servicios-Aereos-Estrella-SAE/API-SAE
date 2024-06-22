@@ -19,6 +19,13 @@ Install my-project with npm
   npm run prepare
   node ace configure adonisjs-6-swagger
 ```
+
+Create docs spec file
+
+```bash
+  mkdir docs
+  touch docs/swagger.json
+```
  
 Generate projectunique key
  
