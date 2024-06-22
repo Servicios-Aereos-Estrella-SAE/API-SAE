@@ -379,6 +379,201 @@ export default class EmployeeController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/employees:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: create new employee
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               employeeFirstName:
+   *                 type: string
+   *                 description: Employe first name
+   *                 required: false
+   *                 default: ''
+   *               employeeLastName:
+   *                 type: string
+   *                 description: Employee last name
+   *                 required: false
+   *                 default: ''
+   *               employeeSecondLastName:
+   *                 type: string
+   *                 description: Employee second last name
+   *                 required: false
+   *                 default: ''
+   *               employeeCode:
+   *                 type: string
+   *                 description: Employee code
+   *                 required: false
+   *                 default: ''
+   *               employeePayrollNum:
+   *                 type: string
+   *                 description: Employee pay roll num
+   *                 required: false
+   *                 default: ''
+   *               employeeHireDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee hire date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               personId:
+   *                 type: integer
+   *                 description: Person id
+   *                 required: true
+   *                 default: 0
+   *               companyId:
+   *                 type: integer
+   *                 description: Company id
+   *                 required: false
+   *                 default: 0
+   *               departmentId:
+   *                 type: integer
+   *                 description: Department id
+   *                 required: false
+   *                 default: 0
+   *               positionId:
+   *                 type: integer
+   *                 description: Position id
+   *                 required: false
+   *                 default: 0
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+
+  async create({ request, response }: HttpContext) {
+    try {
+      const employeeFirstName = request.input('employeeFirstName')
+      const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
+      const employeeCode = request.input('employeeCode')
+      const employeePayrollNum = request.input('employeePayrollNum')
+      const employeeHireDate = request.input('employeeHireDate')
+      const personId = request.input('personId')
+      const companyId = request.input('companyId')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const employee = {
+        employeeFirstName: employeeFirstName,
+        employeeLastName: `${employeeLastName}  ${employeeSecondLastName}`,
+        employeeCode: employeeCode,
+        employeePayrollNum: employeePayrollNum,
+        employeeHireDate: employeeHireDate,
+        companyId: companyId,
+        departmentId: departmentId,
+        positionId: positionId,
+        personId: personId,
+      } as Employee
+      const employeeService = new EmployeeService()
+      const newEmployee = await employeeService.create(employee)
+      if (newEmployee) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Employees',
+          message: 'The employee was created successfully',
+          data: { employee: newEmployee },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private async verify(
     employee: BiometricEmployeeInterface,
     employeeService: EmployeeService,
