@@ -77,6 +77,20 @@ export default class EmployeeService {
     return currentEmployee
   }
 
+  async create(employee: Employee) {
+    const newEmployee = new Employee()
+    newEmployee.employeeFirstName = employee.employeeFirstName
+    newEmployee.employeeLastName = employee.employeeLastName
+    newEmployee.employeeCode = employee.employeeCode
+    newEmployee.employeePayrollNum = employee.employeePayrollNum
+    newEmployee.employeeHireDate = employee.employeeHireDate
+    newEmployee.companyId = employee.companyId
+    newEmployee.departmentId = await employee.departmentId
+    newEmployee.positionId = await employee.positionId
+    await newEmployee.save()
+    return newEmployee
+  }
+
   async getNewPosition(
     employee: BiometricEmployeeInterface,
     positionService: PositionService,

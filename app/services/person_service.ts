@@ -12,6 +12,21 @@ export default class PersonService {
     return newPerson
   }
 
+  async create(person: Person) {
+    const newPerson = new Person()
+    newPerson.personFirstname = person.personFirstname
+    newPerson.personLastname = person.personLastname
+    newPerson.personSecondLastname = person.personSecondLastname
+    newPerson.personCurp = person.personCurp
+    newPerson.personRfc = person.personRfc
+    newPerson.personImssNss = person.personImssNss
+    newPerson.personBirthday = person.personBirthday
+    newPerson.personGender = person.personGender
+    newPerson.personPhone = person.personPhone
+    await newPerson.save()
+    return newPerson
+  }
+
   private getLastNames(lastNames: string) {
     const names = {
       lastName: '',
