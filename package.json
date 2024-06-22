@@ -53,19 +53,27 @@
     "pino-pretty": "^11.0.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "@adonisjs/auth": "^9.2.1",
     "@adonisjs/core": "^6.9.0",
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^20.6.0",
-    "@vinejs/vine": "^2.0.0",
+    "@adonisjs/mail": "^9.2.1",
+    "@adonisjs/session": "^7.4.0",
+    "@vinejs/vine": "^2.1.0",
+    "adonis-lucid-soft-deletes": "^2.0.0",
     "adonisjs-6-swagger": "^1.0.1",
+    "argon2": "^0.40.3",
+    "axios": "^1.7.2",
     "edge.js": "^6.0.2",
     "luxon": "^3.4.4",
     "mysql2": "^3.9.7",
-    "reflect-metadata": "^0.2.2"
+    "phc-argon2": "^1.1.4",
+    "phc-bcrypt": "^1.0.8",
+    "reflect-metadata": "^0.2.2",
+    "uuidv4": "^6.2.13"
   },
   "hotHook": {
     "boundaries": [
@@ -74,21 +82,30 @@
     ]
   },
   "eslintConfig": {
-    "extends": "@adonisjs/eslint-config/app"
+    "extends": "@adonisjs/eslint-config/app",
+    "rules": {
+      "unicorn/filename-case": [
+        "error",
+        {
+          "cases": {
+            "snakeCase": true
+          }
+        }
+      ],
+      "no-console": [
+        "error",
+        {
+          "allow": [
+            "warn",
+            "error"
+          ]
+        }
+      ]
+    }
   },
   "eslintIgnore": [
     "build"
   ],
-  "eslintRules": {
-    "no-console": [
-      "error",
-      {
-        "allow": [
-          "warn",
-          "error"
-        ]
-      }
-    ]
-  },
+  "eslintRules": {},
   "prettier": "@adonisjs/prettier-config"
 }

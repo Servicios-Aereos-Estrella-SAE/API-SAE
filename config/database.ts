@@ -2,7 +2,7 @@ import env from '#start/env'
 import { defineConfig } from '@adonisjs/lucid'
 
 const dbConfig = defineConfig({
-  connection: 'mysql',
+  connection: env.get('DB_CONNECTION', 'mysql'),
   connections: {
     mysql: {
       client: 'mysql2',
@@ -12,6 +12,7 @@ const dbConfig = defineConfig({
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
+        charset: 'utf8_bin',
       },
       migrations: {
         naturalSort: true,
