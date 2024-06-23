@@ -8,7 +8,7 @@ import env from '../../start/env.js'
 export default class UserController {
   /**
    * @swagger
-   * /api/login:
+   * /api/auth/login:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -112,7 +112,6 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-
   async login({ request, response }: HttpContext) {
     try {
       const userEmail = request.input('userEmail')
@@ -163,7 +162,109 @@ export default class UserController {
 
   /**
    * @swagger
-   * /api/login/logout:
+   * /api/auth/session:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Users
+   *     summary: get auth user session
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async authUser({ auth, response }: HttpContext) {
+    const userData = await auth.authenticateUsing(['api'])
+    await auth.use('api').authenticate()
+
+    const user = await User.query().where('user_id', userData.userId).preload('person').first()
+
+    response.status(200)
+    return response.send(user)
+  }
+
+  /**
+   * @swagger
+   * /api/auth/logout:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -253,7 +354,6 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-
   async logout({ auth, response }: HttpContext) {
     try {
       const user = await auth.authenticateUsing(['api'])
@@ -279,7 +379,7 @@ export default class UserController {
 
   /**
    * @swagger
-   * /api/login/recovery:
+   * /api/auth/recovery:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -379,7 +479,6 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-
   async recoveryPassword({ request, response }: HttpContext) {
     try {
       const url = request.header('origin')
@@ -438,7 +537,7 @@ export default class UserController {
 
   /**
    * @swagger
-   * /api/login/request/verify/{token}:
+   * /api/auth/request/verify/{token}:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -534,7 +633,6 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-
   async verifyRequestRecovery({ params, response }: HttpContext) {
     try {
       const user = await User.query()
@@ -570,7 +668,7 @@ export default class UserController {
 
   /**
    * @swagger
-   * /api/login/password/reset:
+   * /api/auth/password/reset:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -674,7 +772,6 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-
   async passwordReset({ request, response }: HttpContext) {
     try {
       const user = await User.query()
