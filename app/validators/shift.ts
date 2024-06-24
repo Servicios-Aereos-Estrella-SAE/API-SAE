@@ -1,9 +1,4 @@
 import Shift from '#models/shift'
-import {
-  ChainableContract,
-  RawQuery,
-  ReferenceBuilderContract,
-} from '@adonisjs/lucid/types/querybuilder'
 import vine from '@vinejs/vine'
 
 export const createShiftValidator = vine.compile(
