@@ -279,7 +279,6 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-
   async syncPositions({ request, response }: HttpContext) {
     try {
       const departmentId = request.input('departmentId')
@@ -346,7 +345,7 @@ export default class DepartmentController {
    *     summary: get positions
    *     parameters:
    *       - name: departmentId
-   *         in: query
+   *         in: path
    *         required: true
    *         description: Departmemnt id
    *         schema:
@@ -432,10 +431,9 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-
   async getPositions({ request, response }: HttpContext) {
     try {
-      const departmentId = request.input('departmentId')
+      const departmentId = request.param('departmentId')
       if (!departmentId) {
         response.status(400)
         return {
@@ -569,7 +567,6 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-
   async getAll({ response }: HttpContext) {
     try {
       const departments = await Department.query()
