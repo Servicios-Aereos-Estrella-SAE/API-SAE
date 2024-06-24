@@ -50,6 +50,7 @@ export default class SyncAssistsService {
       let response = await this.fetchExternalData(dateParam, page, limit)
       await this.updateLocalData(response)
       await this.updatePageSync(page, 'sync', this.getItemsCountsPage(page, response.pagination))
+      await this.updatePagination(response.pagination, statusSync)
     }
   }
 
@@ -191,6 +192,31 @@ export default class SyncAssistsService {
           itemsCount: itemsCount,
         })
       }
+    }
+  }
+
+  async updatePagination(pagination: PaginationDto, statusSync: StatusSync) {
+    for (let pageNumber: number = 1; pageNumber <= pagination.totalPages; pageNumber++) {
+      let pageSync = await PageSync.query().where('page_number', pageNumber).first()
+      const countItems = this.getItemsCountsPage(pageNumber, pagination)
+      if (!pageSync) {
+        await PageSync.create({
+          statusSyncId: statusSync.id,
+          pageNumber: pageNumber,
+          pageStatus: 'pending',
+          itemsCount: countItems,
+        })
+      } else {
+        await PageSync.query()
+          .where('page_number', pageNumber)
+          .update({
+            pageStatus: countItems === pageSync.pageNumber ? 'sync' : 'pending',
+            itemsCount: countItems,
+          })
+      }
+      statusSync.pageTotalSync = pagination.totalPages
+      statusSync.itemsTotalSync = pagination.totalItems
+      await statusSync.save()
     }
   }
 
