@@ -15,13 +15,15 @@ import ExceptionType from './exception_type.js'
  *           description: Shift exception ID
  *         employeeId:
  *           type: number
+ *           nullable: false
  *           description: ID of the employee associated with the shift exception
  *         exceptionTypeId:
  *           type: number
+ *           nullable: false
  *           description: ID of the exception type associated with the shift exception
  *         shiftExceptionDate:
  *           type: string
- *           format: date
+ *           format: date-time
  *           description: Date of the shift exception
  *         shiftExceptionDescription:
  *           type: string
@@ -70,7 +72,7 @@ export default class ShiftException extends BaseModel {
   declare exceptionTypeId: number
 
   @column()
-  declare shiftExceptionDate: string
+  declare shiftExceptionDate: DateTime
 
   @column()
   declare shiftExceptionDescription: string
