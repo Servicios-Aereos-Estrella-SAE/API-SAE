@@ -20,5 +20,4 @@ router.get('/', async ({ view }) => {
 import './routes/login_routes.js'
 import './routes/synchronization_routes.js'
 import './routes/department_routes.js'
-
-router.post('shift', [ShiftController, 'store'])
+import './routes/shift_routes.js'
