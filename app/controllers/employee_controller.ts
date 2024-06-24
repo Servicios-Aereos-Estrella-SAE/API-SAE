@@ -167,7 +167,6 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
@@ -344,21 +343,30 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-
   async getAll({ request, response }: HttpContext) {
     try {
       const search = request.input('search')
+      const department = request.input('department')
+      const position = request.input('position')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
+
       const employees = await Employee.query()
         .if(search, (query) => {
           query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
             `%${search.toUpperCase()}%`,
           ])
-          query.orWhereRaw('UPPER(employee_code) LIKE ?', [`%${search.toUpperCase()}%`])
+          query.orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
         })
+        .if(department && position, (query) => {
+          query.where('department_id', department)
+          query.where('position_id', position)
+        })
+        .preload('department')
+        .preload('position')
         .orderBy('employee_id')
         .paginate(page, limit)
+
       response.status(200)
       return {
         type: 'success',
@@ -528,7 +536,6 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-
   async create({ request, response }: HttpContext) {
     try {
       const employeeFirstName = request.input('employeeFirstName')
