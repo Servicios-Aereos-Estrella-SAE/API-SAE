@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-// Importa el validador adecuado
 import { HttpContext } from '@adonisjs/core/http'
 import Shift from '../models/shift.js'
 import { createShiftValidator, updateShiftValidator } from '../validators/shift.js'
