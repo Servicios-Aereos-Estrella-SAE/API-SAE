@@ -127,7 +127,6 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
