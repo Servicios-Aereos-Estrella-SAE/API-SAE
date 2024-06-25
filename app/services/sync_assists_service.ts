@@ -6,6 +6,7 @@ import ResponseApiAssistsDto from '#dtos/response_api_assists_dto'
 import PaginationDto from '#dtos/pagination_api_dto'
 import Assist from '#models/assist'
 import env from '#start/env'
+import logger from '@adonisjs/core/services/logger'
 
 export default class SyncAssistsService {
   async synchronize(startDate: string, page: number = 1, limit: number = 50) {
@@ -25,7 +26,12 @@ export default class SyncAssistsService {
     } else {
       const pagesToSync = await this.getPagesByPageRequest(page)
       for await (const pageSync of pagesToSync) {
-        await this.handleSyncAssists(statusSync, dateParam, pageSync.pageNumber, limit)
+        await this.handleSyncAssists(
+          statusSync,
+          statusSync.dateRequestSync.toJSDate(),
+          pageSync.pageNumber,
+          limit
+        )
       }
     }
     let result = await this.getAssistsRecords(dateParam, page, limit)
@@ -46,12 +52,10 @@ export default class SyncAssistsService {
     page: number = 1,
     limit: number = 50
   ) {
-    if (new Date(statusSync.dateRequestSync.toJSDate()) <= dateParam) {
-      let response = await this.fetchExternalData(dateParam, page, limit)
-      await this.updateLocalData(response)
-      await this.updatePageSync(page, 'sync', this.getItemsCountsPage(page, response.pagination))
-      await this.updatePagination(response.pagination, statusSync)
-    }
+    let response = await this.fetchExternalData(dateParam, page, limit)
+    await this.updateLocalData(response)
+    await this.updatePageSync(page, 'sync', this.getItemsCountsPage(page, response.pagination))
+    await this.updatePagination(response.pagination, statusSync)
   }
 
   async isPageSynced(pageSyncId: number) {
@@ -114,6 +118,7 @@ export default class SyncAssistsService {
     page: number,
     limit: number
   ): Promise<ResponseApiAssistsDto> {
+    logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
     let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/api/v1/transactions-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
@@ -199,6 +204,7 @@ export default class SyncAssistsService {
     for (let pageNumber: number = 1; pageNumber <= pagination.totalPages; pageNumber++) {
       let pageSync = await PageSync.query().where('page_number', pageNumber).first()
       const countItems = this.getItemsCountsPage(pageNumber, pagination)
+      // logger information pages
       if (!pageSync) {
         await PageSync.create({
           statusSyncId: statusSync.id,
@@ -207,12 +213,16 @@ export default class SyncAssistsService {
           itemsCount: countItems,
         })
       } else {
-        await PageSync.query()
-          .where('page_number', pageNumber)
-          .update({
-            pageStatus: countItems === pageSync.pageNumber ? 'sync' : 'pending',
-            itemsCount: countItems,
-          })
+        const countItemsString = String(countItems)
+        const pageItemsString = String(pageSync.itemsCount)
+        const statusText =
+          countItemsString === pageItemsString && pageSync.pageStatus === 'sync'
+            ? 'sync'
+            : 'pending'
+        await PageSync.query().where('page_number', pageNumber).update({
+          pageStatus: statusText,
+          itemsCount: countItems,
+        })
       }
       statusSync.pageTotalSync = pagination.totalPages
       statusSync.itemsTotalSync = pagination.totalItems
@@ -233,10 +243,15 @@ export default class SyncAssistsService {
   }
 
   async getPagesByPageRequest(page: number) {
-    return await PageSync.query()
+    const pages = await PageSync.query()
       .where('page_number', '<=', page)
       .andWhere('page_status', 'pending')
       .orderBy('page_number', 'asc')
+    const isLastPage = await this.isLastPage(page)
+    if (pages.length === 0 && isLastPage) {
+      return await await PageSync.query().where('page_number', page)
+    }
+    return pages
   }
 
   async updatePageStatus(page: number) {
@@ -244,5 +259,14 @@ export default class SyncAssistsService {
     await PageSync.query().where('page_number', '<=', page).update({
       page_status: 'sync',
     })
+  }
+
+  async isLastPage(page: number) {
+    const lastPage = await this.getLastPage()
+    return lastPage?.pageNumber === page
+  }
+
+  async getLastPage() {
+    return await PageSync.query().orderBy('page_number', 'desc').first()
   }
 }
