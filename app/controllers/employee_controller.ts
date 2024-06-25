@@ -612,6 +612,7 @@ export default class EmployeeController {
    *         name: employeeId
    *         schema:
    *           type: number
+   *         description: Employee id
    *         required: true
    *     requestBody:
    *       content:
@@ -783,6 +784,7 @@ export default class EmployeeController {
         .where('employee_id', employeeId)
         .first()
       if (!currentEmployee) {
+        response.status(404)
         return {
           type: 'warning',
           title: 'The employee was not found',
@@ -851,6 +853,7 @@ export default class EmployeeController {
    *         name: employeeId
    *         schema:
    *           type: number
+   *         description: Employee id
    *         required: true
    *     responses:
    *       '201':
@@ -942,7 +945,7 @@ export default class EmployeeController {
           type: 'warning',
           title: 'The employee Id was not found',
           message: 'Missing data to process',
-          data: { ...employeeId },
+          data: { employeeId },
         }
       }
       const currentEmployee = await Employee.query()
@@ -950,11 +953,12 @@ export default class EmployeeController {
         .where('employee_id', employeeId)
         .first()
       if (!currentEmployee) {
+        response.status(404)
         return {
           type: 'warning',
           title: 'The employee was not found',
           message: 'The employee was not found with the entered ID',
-          data: { ...employeeId },
+          data: { employeeId },
         }
       }
       const employeeService = new EmployeeService()

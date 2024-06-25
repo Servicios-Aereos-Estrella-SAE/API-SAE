@@ -13,6 +13,8 @@ import './routes/login_routes.js'
 import './routes/synchronization_routes.js'
 import './routes/department_routes.js'
 import './routes/employee_routes.js'
+import './routes/person_routes.js'
+import './routes/user_routes.js'
 
 const ShiftController = () => import('#controllers/shifts_controller')
 

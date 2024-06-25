@@ -141,7 +141,7 @@ export default class EmployeeService {
 
     if (!existDepartment && employee.departmentId) {
       return {
-        status: 404,
+        status: 400,
         type: 'warning',
         title: 'The department was not found',
         message: 'The department was not found with the entered ID',
@@ -156,7 +156,7 @@ export default class EmployeeService {
 
     if (!existPosition && employee.positionId) {
       return {
-        status: 404,
+        status: 400,
         type: 'warning',
         title: 'The position was not found',
         message: 'The position was not found with the entered ID',
@@ -171,7 +171,7 @@ export default class EmployeeService {
 
       if (!existPerson && employee.personId) {
         return {
-          status: 404,
+          status: 400,
           type: 'warning',
           title: 'The person was not found',
           message: 'The person was not found with the entered ID',
