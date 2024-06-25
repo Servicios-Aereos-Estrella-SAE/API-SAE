@@ -1,4 +1,7 @@
+import Department from '#models/department'
 import Employee from '#models/employee'
+import Person from '#models/person'
+import Position from '#models/position'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import DepartmentService from './department_service.js'
 import PersonService from './person_service.js'
@@ -87,8 +90,27 @@ export default class EmployeeService {
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = await employee.departmentId
     newEmployee.positionId = await employee.positionId
+    newEmployee.personId = await employee.personId
     await newEmployee.save()
     return newEmployee
+  }
+
+  async update(currentEmployee: Employee, employee: Employee) {
+    currentEmployee.employeeFirstName = employee.employeeFirstName
+    currentEmployee.employeeLastName = employee.employeeLastName
+    currentEmployee.employeeCode = employee.employeeCode
+    currentEmployee.employeePayrollNum = employee.employeePayrollNum
+    currentEmployee.employeeHireDate = employee.employeeHireDate
+    currentEmployee.companyId = employee.companyId
+    currentEmployee.departmentId = await employee.departmentId
+    currentEmployee.positionId = await employee.positionId
+    await currentEmployee.save()
+    return currentEmployee
+  }
+
+  async delete(currentEmployee: Employee) {
+    await currentEmployee.delete()
+    return currentEmployee
   }
 
   async getNewPosition(
@@ -109,5 +131,124 @@ export default class EmployeeService {
       }
     }
     return positionId
+  }
+
+  async verifyInfoExist(employee: Employee) {
+    const existDepartment = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', employee.departmentId)
+      .first()
+
+    if (!existDepartment && employee.departmentId) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The department was not found',
+        message: 'The department was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+
+    const existPosition = await Position.query()
+      .whereNull('position_deleted_at')
+      .where('position_id', employee.positionId)
+      .first()
+
+    if (!existPosition && employee.positionId) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The position was not found',
+        message: 'The position was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+    if (!employee.employeeId) {
+      const existPerson = await Person.query()
+        .whereNull('person_deleted_at')
+        .where('person_id', employee.personId)
+        .first()
+
+      if (!existPerson && employee.personId) {
+        return {
+          status: 404,
+          type: 'warning',
+          title: 'The person was not found',
+          message: 'The person was not found with the entered ID',
+          data: { ...employee },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifi successfully',
+      data: { ...employee },
+    }
+  }
+
+  async verifyInfo(employee: Employee) {
+    const action = employee.employeeId > 0 ? 'updated' : 'created'
+    const existCode = await Employee.query()
+      .if(employee.employeeId > 0, (query) => {
+        query.whereNot('employee_id', employee.employeeId)
+      })
+      .whereNull('employee_deleted_at')
+      .where('employee_code', employee.employeeCode)
+      .first()
+
+    if (existCode && employee.employeeCode) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee code already exists for another employee',
+        message: `The employee resource cannot be ${action} because the code is already assigned to another employee`,
+        data: { ...employee },
+      }
+    }
+    const existPayrollNum = await Employee.query()
+      .if(employee.employeeId > 0, (query) => {
+        query.whereNot('employee_id', employee.employeeId)
+      })
+      .whereNull('employee_deleted_at')
+      .where('employee_payroll_num', employee.employeePayrollNum)
+      .first()
+
+    if (existPayrollNum && employee.employeePayrollNum) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee payroll num already exists for another employee',
+        message: `The employee resource cannot be ${action} because the payroll num is already assigned to another employee`,
+        data: { ...employee },
+      }
+    }
+    if (!employee.employeeId) {
+      const existPersonId = await Employee.query()
+        .if(employee.employeeId > 0, (query) => {
+          query.whereNot('employee_id', employee.employeeId)
+        })
+        .whereNull('employee_deleted_at')
+        .where('person_id', employee.personId)
+        .first()
+
+      if (existPersonId && employee.personId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The employee person id exists for another employee',
+          message: `The employee resource cannot be ${action} because the person id is already assigned to another employee`,
+          data: { ...employee },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifi successfully',
+      data: { ...employee },
+    }
   }
 }
