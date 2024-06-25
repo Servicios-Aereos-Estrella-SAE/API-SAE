@@ -167,7 +167,6 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
@@ -235,13 +234,360 @@ export default class EmployeeController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/employees:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get all
+   *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: page
+   *         in: query
+   *         required: true
+   *         description: The page number for pagination
+   *         schema:
+   *           type: integer
+   *       - name: limit
+   *         in: query
+   *         required: true
+   *         description: The number of records per page
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getAll({ request, response }: HttpContext) {
+    try {
+      const search = request.input('search')
+      const department = request.input('department')
+      const position = request.input('position')
+      const page = request.input('page', 1)
+      const limit = request.input('limit', 100)
+
+      const employees = await Employee.query()
+        .if(search, (query) => {
+          query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+            `%${search.toUpperCase()}%`,
+          ])
+          query.orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
+        })
+        .if(department && position, (query) => {
+          query.where('department_id', department)
+          query.where('position_id', position)
+        })
+        .preload('department')
+        .preload('position')
+        .orderBy('employee_id')
+        .paginate(page, limit)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees were found successfully',
+        data: {
+          employees,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: create new employee
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               employeeFirstName:
+   *                 type: string
+   *                 description: Employe first name
+   *                 required: false
+   *                 default: ''
+   *               employeeLastName:
+   *                 type: string
+   *                 description: Employee last name
+   *                 required: false
+   *                 default: ''
+   *               employeeSecondLastName:
+   *                 type: string
+   *                 description: Employee second last name
+   *                 required: false
+   *                 default: ''
+   *               employeeCode:
+   *                 type: string
+   *                 description: Employee code
+   *                 required: false
+   *                 default: ''
+   *               employeePayrollNum:
+   *                 type: string
+   *                 description: Employee pay roll num
+   *                 required: false
+   *                 default: ''
+   *               employeeHireDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee hire date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               personId:
+   *                 type: integer
+   *                 description: Person id
+   *                 required: true
+   *                 default: 0
+   *               companyId:
+   *                 type: integer
+   *                 description: Company id
+   *                 required: false
+   *                 default: 0
+   *               departmentId:
+   *                 type: integer
+   *                 description: Department id
+   *                 required: false
+   *                 default: 0
+   *               positionId:
+   *                 type: integer
+   *                 description: Position id
+   *                 required: false
+   *                 default: 0
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async create({ request, response }: HttpContext) {
+    try {
+      const employeeFirstName = request.input('employeeFirstName')
+      const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
+      const employeeCode = request.input('employeeCode')
+      const employeePayrollNum = request.input('employeePayrollNum')
+      const employeeHireDate = request.input('employeeHireDate')
+      const personId = request.input('personId')
+      const companyId = request.input('companyId')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const employee = {
+        employeeFirstName: employeeFirstName,
+        employeeLastName: `${employeeLastName}  ${employeeSecondLastName}`,
+        employeeCode: employeeCode,
+        employeePayrollNum: employeePayrollNum,
+        employeeHireDate: employeeHireDate,
+        companyId: companyId,
+        departmentId: departmentId,
+        positionId: positionId,
+        personId: personId,
+      } as Employee
+      const employeeService = new EmployeeService()
+      const newEmployee = await employeeService.create(employee)
+      if (newEmployee) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Employees',
+          message: 'The employee was created successfully',
+          data: { employee: newEmployee },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private async verify(
     employee: BiometricEmployeeInterface,
     employeeService: EmployeeService,
     departmentService: DepartmentService,
     positionService: PositionService
   ) {
-    const existEmployee = await Employee.query().where('employee_sync_id', employee.id).first()
+    const existEmployee = await Employee.query().where('employee_code', employee.empCode).first()
     if (!existEmployee) {
       await employeeService.syncCreate(employee, departmentService, positionService)
     } else {

@@ -278,7 +278,6 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-
   async syncPositions({ request, response }: HttpContext) {
     try {
       const departmentId = request.input('departmentId')
@@ -336,7 +335,7 @@ export default class DepartmentController {
 
   /**
    * @swagger
-   * /api/departments/{departmentId}/get-positions:
+   * /api/departments/{departmentId}/positions:
    *   get:
    *     security:
    *       - bearerAuth: []
@@ -345,7 +344,7 @@ export default class DepartmentController {
    *     summary: get positions
    *     parameters:
    *       - name: departmentId
-   *         in: query
+   *         in: path
    *         required: true
    *         description: Departmemnt id
    *         schema:
@@ -431,10 +430,9 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-
   async getPositions({ request, response }: HttpContext) {
     try {
-      const departmentId = request.input('departmentId')
+      const departmentId = request.param('departmentId')
       if (!departmentId) {
         response.status(400)
         return {
@@ -465,6 +463,121 @@ export default class DepartmentController {
         message: 'The positions by department have been found successfully',
         data: {
           positions,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get all departments
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getAll({ response }: HttpContext) {
+    try {
+      const departments = await Department.query()
+        .has('departmentsPositions')
+        .orderBy('department_id')
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Departments',
+        message: 'Departments were found successfully',
+        data: {
+          departments,
         },
       }
     } catch (error) {
