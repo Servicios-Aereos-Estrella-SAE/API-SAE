@@ -18,11 +18,21 @@ export default class EmployeeShiftController {
         data: employeeShift.toJSON(),
       })
     } catch (error) {
-      return response.status(400).json({
+      console.error('Error:', error)
+      if (error.messages) {
+        return response.status(400).json({
+          type: 'error',
+          title: 'Validation error',
+          message: error.messages,
+          data: error,
+        })
+      }
+
+      return response.status(500).json({
         type: 'error',
-        title: 'Validation error',
-        message: error.messages,
-        data: null,
+        title: 'Server error',
+        message: 'An unexpected error occurred',
+        data: error,
       })
     }
   }
@@ -60,7 +70,7 @@ export default class EmployeeShiftController {
         type: 'error',
         title: 'Not found',
         message: 'Resource not found',
-        data: null,
+        data: error,
       })
     }
   }
@@ -104,7 +114,7 @@ export default class EmployeeShiftController {
         type: 'success',
         title: 'Successfully action',
         message: 'Resource deleted',
-        data: null,
+        data: employeeShift.toJSON(),
       })
     } catch (error) {
       if (error.code === 'E_ROW_NOT_FOUND') {

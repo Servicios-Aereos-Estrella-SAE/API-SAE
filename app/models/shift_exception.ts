@@ -72,19 +72,19 @@ export default class ShiftException extends BaseModel {
   declare exceptionTypeId: number
 
   @column()
-  declare shiftExceptionDate: DateTime
+  declare shiftExceptionsDate: DateTime
 
   @column()
-  declare shiftExceptionDescription: string
+  declare shiftExceptionsDescription: string
 
   @column.dateTime({ autoCreate: true })
-  declare shiftExceptionCreatedAt: DateTime
+  declare shiftExceptionsCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare shiftExceptionUpdatedAt: DateTime
+  declare shiftExceptionsUpdatedAt: DateTime
 
   @column.dateTime()
-  declare shiftExceptionDeletedAt: DateTime
+  declare shiftExceptionsDeletedAt: DateTime
 
   @belongsTo(() => Employee)
   declare employee: relations.BelongsTo<typeof Employee>
