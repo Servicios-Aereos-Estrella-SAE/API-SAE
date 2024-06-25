@@ -7,6 +7,9 @@ import PaginationDto from '#dtos/pagination_api_dto'
 import Assist from '#models/assist'
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
+import Employee from '#models/employee'
+import { AssistDayInterface } from '../interfaces/assist_day_interface.js'
+import { AssistInterface } from '../interfaces/assist_interface.js'
 
 export default class SyncAssistsService {
   async synchronize(startDate: string, page: number = 1, limit: number = 50) {
@@ -120,7 +123,7 @@ export default class SyncAssistsService {
   ): Promise<ResponseApiAssistsDto> {
     logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
-    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/api/v1/transactions-async`
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
     apiUrl = `${apiUrl}&limit=${limit || ''}`
     apiUrl = `${apiUrl}&assistDate=${startDate.toISOString() || ''}`
@@ -149,7 +152,7 @@ export default class SyncAssistsService {
             terminalId: item.terminal_id,
             punchTime: DateTime.fromISO(item.punch_time_local.toString()),
             punchTimeUtc: DateTime.fromISO(item.punch_time.toString()),
-            punchTimeOrigin: DateTime.fromISO(item.punch_time_origin.toString()),
+            punchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
           })
           .save()
       } else {
@@ -165,7 +168,7 @@ export default class SyncAssistsService {
         newAssist.terminalId = item.terminal_id
         newAssist.punchTime = DateTime.fromISO(item.punch_time_local.toString())
         newAssist.punchTimeUtc = DateTime.fromISO(item.punch_time.toString())
-        newAssist.punchTimeOrigin = DateTime.fromISO(item.punch_time_origin.toString())
+        newAssist.punchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
       }
@@ -268,5 +271,89 @@ export default class SyncAssistsService {
 
   async getLastPage() {
     return await PageSync.query().orderBy('page_number', 'desc').first()
+  }
+
+  async index(
+    params: { date: string; dateEnd: string; employeeID?: number },
+    paginator?: { page: number; limit: number }
+  ) {
+    const stringDate = `${params.date}T00:00:00.000-06:00`
+    const time = DateTime.fromISO(stringDate, { setZone: true })
+    const timeCST = time.setZone('America/Mexico_City')
+    const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
+
+    const query = Assist.query()
+      .where('punch_time_origin', '>=', filterInitialDate)
+      .orderBy('punch_time_origin', 'desc')
+
+    if (params.dateEnd && params.date) {
+      query.where('punch_time_origin', '>=', filterInitialDate)
+      query.where('punch_time_origin', '<=', `${params.dateEnd} 23:59:59`)
+    }
+
+    if (params.employeeID) {
+      const employee = await Employee.query()
+        .where('employee_id', params.employeeID || 0)
+        .first()
+
+      if (!employee) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'Invalid data',
+          message: 'Employee not found',
+          data: null,
+        }
+      }
+
+      query.where('emp_code', employee.employeeCode)
+    }
+
+    const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 50)
+    const assistListFlat = assistList.toJSON().data as AssistInterface[]
+    const assistDayCollection: AssistDayInterface[] = []
+
+    assistListFlat.forEach((item) => {
+      const assist = item as AssistInterface
+      const assistDate = DateTime.fromJSDate(new Date(`${assist.punchTimeOrigin}`)).toFormat(
+        'yyyy-LL-dd'
+      )
+
+      const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate)
+
+      if (!existDay) {
+        let dayAssist: AssistInterface[] = []
+        assistListFlat.forEach((dayItem: AssistInterface, index) => {
+          const currentDay = DateTime.fromJSDate(new Date(`${dayItem.punchTimeOrigin}`)).toFormat(
+            'yyyy-LL-dd'
+          )
+          if (currentDay === assistDate) {
+            dayAssist.push(assistListFlat[index])
+          }
+        })
+
+        dayAssist = dayAssist.sort((a: any, b: any) => a.punchTimeOrigin - b.punchTimeOrigin)
+
+        assistDayCollection.push({
+          day: assistDate,
+          assist: {
+            check_in: dayAssist.length > 0 ? dayAssist[0] : null,
+            check_out: dayAssist.length > 1 ? dayAssist[1] : null,
+          },
+        })
+      }
+    })
+
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Successfully action',
+      message: 'Success access data',
+      data: {
+        // date: DateTime.fromJSDate(new ())
+        meta: assistList.toJSON().meta,
+        data: assistDayCollection.sort(),
+      },
+    }
   }
 }
