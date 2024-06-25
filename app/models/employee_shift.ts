@@ -70,7 +70,7 @@ export default class EmployeeShift extends BaseModel {
   declare employeShiftUpdatedAt: DateTime
 
   @column.dateTime()
-  declare employeShiftDeletedAt: DateTime
+  declare employeShiftsDeletedAt: DateTime
 
   @belongsTo(() => Employee)
   declare employee: relations.BelongsTo<typeof Employee>
