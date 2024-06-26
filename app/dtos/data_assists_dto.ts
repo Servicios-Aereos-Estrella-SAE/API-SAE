@@ -14,4 +14,5 @@ export default interface DataAssistsDto {
   punch_time: DateTime
   punch_time_local: DateTime
   punch_time_origin: DateTime
+  punch_time_origin_real: DateTime
 }
