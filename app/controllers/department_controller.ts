@@ -722,14 +722,12 @@ export default class DepartmentController {
         }
       }
     } catch (error) {
-      const messageError =
-        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
       response.status(500)
       return {
         type: 'error',
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
-        error: messageError,
+        error: error.message,
       }
     }
   }

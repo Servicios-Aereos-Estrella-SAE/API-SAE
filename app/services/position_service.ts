@@ -50,4 +50,16 @@ export default class PositionService {
       return null
     }
   }
+
+  async show(positionId: number) {
+    const position = await Position.query()
+      .whereNull('position_deleted_at')
+      .where('position_id', positionId)
+      .first()
+    if (position) {
+      return position
+    } else {
+      return null
+    }
+  }
 }
