@@ -124,4 +124,12 @@ export default class PersonService {
       data: { ...person },
     }
   }
+
+  async show(personId: number) {
+    const person = await Person.query()
+      .whereNull('person_deleted_at')
+      .where('person_id', personId)
+      .first()
+    return person ? person : null
+  }
 }

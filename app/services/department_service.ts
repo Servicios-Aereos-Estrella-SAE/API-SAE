@@ -77,10 +77,6 @@ export default class DepartmentService {
       .whereNull('department_deleted_at')
       .where('department_id', departmentId)
       .first()
-    if (department) {
-      return department
-    } else {
-      return null
-    }
+    return department ? department : null
   }
 }

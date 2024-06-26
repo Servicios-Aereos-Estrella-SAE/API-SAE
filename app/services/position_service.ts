@@ -56,10 +56,6 @@ export default class PositionService {
       .whereNull('position_deleted_at')
       .where('position_id', positionId)
       .first()
-    if (position) {
-      return position
-    } else {
-      return null
-    }
+    return position ? position : null
   }
 }
