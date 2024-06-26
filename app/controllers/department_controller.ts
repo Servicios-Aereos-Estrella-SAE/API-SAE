@@ -591,6 +591,149 @@ export default class DepartmentController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/departments/{departmentId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get department
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department Id was not found',
+          message: 'Missing data to process',
+          data: { departmentId },
+        }
+      }
+      const departmentService = new DepartmentService()
+      const showDepartment = await departmentService.show(departmentId)
+      if (!showDepartment) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { departmentId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Departments',
+          message: 'The department was found successfully',
+          data: { department: showDepartment },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
   private async verify(
     department: BiometricDepartmentInterface,
     departmentService: DepartmentService

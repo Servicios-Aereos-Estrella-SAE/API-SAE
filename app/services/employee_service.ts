@@ -119,7 +119,7 @@ export default class EmployeeService {
     departmentService: DepartmentService
   ) {
     let positionId = 0
-    const department = await departmentService.show(employee.departmentId)
+    const department = await departmentService.showSync(employee.departmentId)
     if (department) {
       const existPosition = await positionService.verifyExistPositionByName(
         department.departmentName

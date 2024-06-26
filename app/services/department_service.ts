@@ -47,7 +47,7 @@ export default class DepartmentService {
     }
   }
 
-  async show(departmentSyncId: number) {
+  async showSync(departmentSyncId: number) {
     const department = await Department.query()
       .where('department_sync_id', departmentSyncId)
       .first()
@@ -70,5 +70,17 @@ export default class DepartmentService {
     }
     const position = await positionService.syncCreate(newPosition)
     return position ? position.positionId : 0
+  }
+
+  async show(departmentId: number) {
+    const department = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', departmentId)
+      .first()
+    if (department) {
+      return department
+    } else {
+      return null
+    }
   }
 }
