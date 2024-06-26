@@ -599,7 +599,7 @@ export default class DepartmentController {
    *       - bearerAuth: []
    *     tags:
    *       - Departments
-   *     summary: get department
+   *     summary: get department by id
    *     produces:
    *       - application/json
    *     parameters:
