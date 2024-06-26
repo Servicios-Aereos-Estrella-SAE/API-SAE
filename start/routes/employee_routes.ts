@@ -6,5 +6,6 @@ router
     router.post('/', '#controllers/employee_controller.store')
     router.put('/:employeeId', '#controllers/employee_controller.update')
     router.delete('/:employeeId', '#controllers/employee_controller.delete')
+    router.get('/:employeeId', '#controllers/employee_controller.show')
   })
   .prefix('/api/employees')

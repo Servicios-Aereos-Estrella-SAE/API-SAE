@@ -251,4 +251,12 @@ export default class EmployeeService {
       data: { ...employee },
     }
   }
+
+  async show(employeeId: number) {
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeId)
+      .first()
+    return employee ? employee : null
+  }
 }
