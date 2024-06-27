@@ -33,6 +33,36 @@ export default class PositionService {
     return currentPosition
   }
 
+  async create(position: Position) {
+    const newPosition = new Position()
+    newPosition.positionCode = position.positionCode
+    newPosition.positionName = position.positionName
+    newPosition.positionAlias = position.positionAlias
+    newPosition.positionIsDefault = position.positionIsDefault
+    newPosition.positionActive = position.positionActive
+    newPosition.parentPositionId = position.parentPositionId
+    newPosition.companyId = position.companyId
+    await newPosition.save()
+    return newPosition
+  }
+
+  async update(currentPosition: Position, position: Position) {
+    currentPosition.positionCode = position.positionCode
+    currentPosition.positionName = position.positionName
+    currentPosition.positionAlias = position.positionAlias
+    currentPosition.positionIsDefault = position.positionIsDefault
+    currentPosition.positionActive = position.positionActive
+    currentPosition.parentPositionId = position.parentPositionId
+    currentPosition.companyId = position.companyId
+    await currentPosition.save()
+    return currentPosition
+  }
+
+  async delete(currentPosition: Position) {
+    await currentPosition.delete()
+    return currentPosition
+  }
+
   async getIdBySyncId(positionSyncId: number) {
     const position = await Position.query().where('position_sync_id', positionSyncId).first()
     if (position) {
