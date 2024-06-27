@@ -17,10 +17,7 @@ import './routes/employee_routes.js'
 import './routes/person_routes.js'
 import './routes/user_routes.js'
 import './routes/assist_routes.js'
-
-const ShiftController = () => import('#controllers/shifts_controller')
-
-router.post('shift', [ShiftController, 'store'])
+import './routes/shift_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
