@@ -88,4 +88,58 @@ export default class PositionService {
       .first()
     return position ? position : null
   }
+
+  async verifyInfoExist(position: Position) {
+    if (position.parentPositionId) {
+      const existPositionParent = await Position.query()
+        .whereNull('position_deleted_at')
+        .where('position_id', position.parentPositionId)
+        .first()
+
+      if (!existPositionParent && position.parentPositionId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The position parent was not found',
+          message: 'The position parent was not found with the entered ID',
+          data: { ...position },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verify successfully',
+      data: { ...position },
+    }
+  }
+
+  async verifyInfo(position: Position) {
+    const action = position.positionId > 0 ? 'updated' : 'created'
+    const existCode = await Position.query()
+      .if(position.positionId > 0, (query) => {
+        query.whereNot('position_id', position.positionId)
+      })
+      .whereNull('position_deleted_at')
+      .where('position_code', position.positionCode)
+      .first()
+
+    if (existCode && position.positionCode) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The position code already exists for another position',
+        message: `The position resource cannot be ${action} because the code is already assigned to another position`,
+        data: { ...position },
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verify successfully',
+      data: { ...position },
+    }
+  }
 }
