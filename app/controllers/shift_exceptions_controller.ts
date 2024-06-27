@@ -5,7 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 export default class ShiftExceptionController {
   /**
    * @swagger
-   * /shift-exception:
+   * /api/shift-exception:
    *   get:
    *     summary: Retrieve a list of shift exceptions
    *     tags: [ShiftException]
@@ -41,7 +41,7 @@ export default class ShiftExceptionController {
   }
   /**
    * @swagger
-   * /shift-exception:
+   * /api/shift-exception:
    *   post:
    *     summary: Create a new shift exception
    *     tags: [ShiftException]
@@ -83,7 +83,7 @@ export default class ShiftExceptionController {
   }
   /**
    * @swagger
-   * /shift-exception/{id}:
+   * /api/shift-exception/{id}:
    *   get:
    *     summary: Get a shift exception by ID
    *     tags: [ShiftException]
@@ -124,7 +124,7 @@ export default class ShiftExceptionController {
   }
   /**
    * @swagger
-   * /shift-exception/{id}:
+   * /api/shift-exception/{id}:
    *   put:
    *     summary: Update a shift exception by ID
    *     tags: [ShiftException]
@@ -176,7 +176,7 @@ export default class ShiftExceptionController {
   }
   /**
    * @swagger
-   * /shift-exception/{id}:
+   * /api/shift-exception/{id}:
    *   delete:
    *     summary: Delete a shift exception by ID
    *     tags: [ShiftException]
