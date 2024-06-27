@@ -1,23 +1,18 @@
-import Department from '#models/department'
-import DepartmentService from '#services/department_service'
-import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
-import axios from 'axios'
-import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
-import Employee from '#models/employee'
-import DepartmentPosition from '#models/department_position'
-import DepartmentPositionService from '#services/department_position_service'
+import { createPersonValidator, updatePersonValidator } from '../validators/person.js'
+import Person from '#models/person'
+import PersonService from '#services/person_service'
 
-export default class DepartmentController {
+export default class PersonController {
   /**
    * @swagger
-   * /api/synchronization/departments:
+   * /api/persons:
    *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Departments
-   *     summary: sync information
+   *       - Persons
+   *     summary: create new person
    *     produces:
    *       - application/json
    *     requestBody:
@@ -26,179 +21,54 @@ export default class DepartmentController {
    *           schema:
    *             type: object
    *             properties:
-   *               page:
-   *                 type: integer
-   *                 description: The page number for pagination
-   *                 required: false
-   *                 default: 1
-   *               limit:
-   *                 type: integer
-   *                 description: The number of records per page
-   *                 required: false
-   *                 default: 200
-   *               deptCode:
+   *               personFirstname:
    *                 type: string
-   *                 description: The department code to filter by
-   *                 required: false
-   *                 default: ''
-   *               deptName:
-   *                 required: false
-   *                 description: The department name to filter by
-   *                 type: string
-   *                 default: ''
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Object processed
-   *       '404':
-   *         description: The resource could not be found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async synchronization({ request, response }: HttpContext) {
-    try {
-      const page = request.input('page', 1)
-      const limit = request.input('limit', 200)
-      const deptCode = request.input('deptCode')
-      const deptName = request.input('deptName')
-
-      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/departments`
-      apiUrl = `${apiUrl}?page=${page || ''}`
-      apiUrl = `${apiUrl}&limit=${limit || ''}`
-      apiUrl = `${apiUrl}&deptCode=${deptCode || ''}`
-      apiUrl = `${apiUrl}&deptName=${deptName || ''}`
-      const apiResponse = await axios.get(apiUrl)
-      const data = apiResponse.data.data
-      if (data) {
-        const departmentService = new DepartmentService()
-        data.sort((a: BiometricDepartmentInterface, b: BiometricDepartmentInterface) => a.id - b.id)
-        for await (const department of data) {
-          await this.verify(department, departmentService)
-        }
-        response.status(200)
-        return {
-          type: 'success',
-          title: 'Sync departments',
-          message: 'Departments have been synchronized successfully',
-          data: {
-            data,
-          },
-        }
-      } else {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'Sync departments',
-          message: 'No data found to synchronize',
-          data: { data },
-        }
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/departments/sync-positions:
-   *   post:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Departments
-   *     summary: sync positions
-   *     produces:
-   *       - application/json
-   *     requestBody:
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               departmentId:
-   *                 type: integer
-   *                 description: Department id
+   *                 description: Person first name
    *                 required: true
+   *                 default: ''
+   *               personLastname:
+   *                 type: string
+   *                 description: Person last name
+   *                 required: true
+   *                 default: ''
+   *               personSecondLastname:
+   *                 type: string
+   *                 description: Person second last name
+   *                 required: true
+   *                 default: ''
+   *               personGender:
+   *                 type: string
+   *                 description: Person gender
+   *                 required: false
+   *                 default: ''
+   *               personBirthday:
+   *                 type: string
+   *                 format: date
+   *                 description: Person birthday (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               personPhone:
+   *                 type: string
+   *                 description: Person phone
+   *                 required: false
+   *                 default: ''
+   *               personCurp:
+   *                 type: string
+   *                 description: Person CURP
+   *                 required: false
+   *                 default: ''
+   *               personRfc:
+   *                 type: string
+   *                 description: Person RFC
+   *                 required: false
+   *                 default: ''
+   *               personImssNss:
+   *                 type: string
+   *                 description: Person IMSS NSS
+   *                 required: false
+   *                 default: ''
    *     responses:
-   *       '200':
+   *       '201':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -213,12 +83,12 @@ export default class DepartmentController {
    *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Response message
+   *                   description: Message of response
    *                 data:
    *                   type: object
-   *                   description: Object processed
+   *                   description: Processed object
    *       '404':
-   *         description: The resource could not be found
+   *         description: Resource not found
    *         content:
    *           application/json:
    *             schema:
@@ -232,7 +102,7 @@ export default class DepartmentController {
    *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Response message
+   *                   description: Message of response
    *                 data:
    *                   type: object
    *                   description: List of parameters set by the client
@@ -251,7 +121,7 @@ export default class DepartmentController {
    *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Response message
+   *                   description: Message of response
    *                 data:
    *                   type: object
    *                   description: List of parameters set by the client
@@ -270,7 +140,7 @@ export default class DepartmentController {
    *                   description: Title of response generated
    *                 message:
    *                   type: string
-   *                   description: Response message
+   *                   description: Message of response
    *                 data:
    *                   type: object
    *                   description: Error message obtained
@@ -278,336 +148,450 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async syncPositions({ request, response }: HttpContext) {
+  async store({ request, response }: HttpContext) {
     try {
-      const departmentId = request.input('departmentId')
-      if (!departmentId) {
-        response.status(400)
+      const personFirstname = request.input('personFirstname')
+      const personLastname = request.input('personLastname')
+      const personSecondLastname = request.input('personSecondLastname')
+      const personGender = request.input('personGender')
+      const personBirthday = request.input('personBirthday')
+      const personPhone = request.input('personPhone')
+      const personCurp = request.input('personCurp')
+      const personRfc = request.input('personRfc')
+      const personImssNss = request.input('personImssNss')
+      const person = {
+        personFirstname: personFirstname,
+        personLastname: personLastname,
+        personSecondLastname: personSecondLastname,
+        personGender: personGender,
+        personBirthday: personBirthday,
+        personPhone: personPhone,
+        personCurp: personCurp,
+        personRfc: personRfc,
+        personImssNss: personImssNss,
+      } as Person
+      const personService = new PersonService()
+      await request.validateUsing(createPersonValidator)
+      const newPerson = await personService.create(person)
+      if (newPerson) {
+        response.status(201)
         return {
-          type: 'warning',
-          title: 'Sync positions by department',
-          message: 'Missing data to process',
-          data: {},
+          type: 'success',
+          title: 'Persons',
+          message: 'The person was created successfully',
+          data: { person: newPerson },
         }
-      }
-      const department = await Department.query().where('department_id', departmentId).first()
-      if (!department) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'Sync positions by department',
-          message: 'Department not found',
-          data: { department_id: departmentId },
-        }
-      }
-      const employees = await Employee.query()
-        .distinct('position_id')
-        .where('department_id', departmentId)
-        .preload('position')
-        .orderBy('position_id')
-      const departmentPositionService = new DepartmentPositionService()
-      for await (const employee of employees) {
-        await this.verifyRelatedPosition(
-          departmentId,
-          employee.positionId,
-          departmentPositionService
-        )
-      }
-      response.status(200)
-      return {
-        type: 'success',
-        title: 'Sync positions by department',
-        message: 'The positions by department have been sync successfully',
-        data: {
-          department,
-        },
       }
     } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
+        title: 'Server error',
         message: 'An unexpected error has occurred on the server',
-        error: error.message,
+        error: messageError,
       }
     }
   }
 
   /**
    * @swagger
-   * /api/departments/{departmentId}/positions:
-   *   get:
+   * /api/persons/{personId}:
+   *   put:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Departments
-   *     summary: get positions
-   *     parameters:
-   *       - name: departmentId
-   *         in: path
-   *         required: true
-   *         description: Departmemnt id
-   *         schema:
-   *           type: integer
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Object processed
-   *       '404':
-   *         description: The resource could not be found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async getPositions({ request, response }: HttpContext) {
-    try {
-      const departmentId = request.param('departmentId')
-      if (!departmentId) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'Positions by department',
-          message: 'Missing data to process',
-          data: {},
-        }
-      }
-      const department = await Department.query().where('department_id', departmentId).first()
-      if (!department) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'Positions by department',
-          message: 'Department not found',
-          data: { department_id: departmentId },
-        }
-      }
-      const positions = await DepartmentPosition.query()
-        .where('department_id', departmentId)
-        .preload('position')
-        .orderBy('position_id')
-      response.status(200)
-      return {
-        type: 'success',
-        title: 'Positions by department',
-        message: 'The positions by department have been found successfully',
-        data: {
-          positions,
-        },
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/departments:
-   *   get:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Departments
-   *     summary: get all departments
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Object processed
-   *       '404':
-   *         description: The resource could not be found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async getAll({ response }: HttpContext) {
-    try {
-      const departments = await Department.query()
-        .has('departmentsPositions')
-        .orderBy('department_id')
-      response.status(200)
-      return {
-        type: 'success',
-        title: 'Departments',
-        message: 'Departments were found successfully',
-        data: {
-          departments,
-        },
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/departments/{departmentId}:
-   *   get:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Departments
-   *     summary: get department by id
+   *       - Persons
+   *     summary: update person
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: departmentId
+   *         name: personId
    *         schema:
    *           type: number
-   *         description: Department id
+   *         description: Person id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               personFirstname:
+   *                 type: string
+   *                 description: Person first name
+   *                 required: true
+   *                 default: ''
+   *               personLastname:
+   *                 type: string
+   *                 description: Person last name
+   *                 required: true
+   *                 default: ''
+   *               personSecondLastname:
+   *                 type: string
+   *                 description: Person second last name
+   *                 required: true
+   *                 default: ''
+   *               personGender:
+   *                 type: string
+   *                 description: Person gender
+   *                 required: false
+   *                 default: ''
+   *               personBirthday:
+   *                 type: string
+   *                 format: date
+   *                 description: Person birthday (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               personPhone:
+   *                 type: string
+   *                 description: Person phone
+   *                 required: false
+   *                 default: ''
+   *               personCurp:
+   *                 type: string
+   *                 description: Person CURP
+   *                 required: false
+   *                 default: ''
+   *               personRfc:
+   *                 type: string
+   *                 description: Person RFC
+   *                 required: false
+   *                 default: ''
+   *               personImssNss:
+   *                 type: string
+   *                 description: Person IMSS NSS
+   *                 required: false
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ request, response }: HttpContext) {
+    try {
+      const personId = request.param('personId')
+      const personFirstname = request.input('personFirstname')
+      const personLastname = request.input('personLastname')
+      const personSecondLastname = request.input('personSecondLastname')
+      const personGender = request.input('personGender')
+      const personBirthday = request.input('personBirthday')
+      const personPhone = request.input('personPhone')
+      const personCurp = request.input('personCurp')
+      const personRfc = request.input('personRfc')
+      const personImssNss = request.input('personImssNss')
+      const person = {
+        personId: personId,
+        personFirstname: personFirstname,
+        personLastname: personLastname,
+        personSecondLastname: personSecondLastname,
+        personGender: personGender,
+        personBirthday: personBirthday,
+        personPhone: personPhone,
+        personCurp: personCurp,
+        personRfc: personRfc,
+        personImssNss: personImssNss,
+      } as Person
+      if (!personId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The person Id was not found',
+          message: 'Missing data to process',
+          data: { ...person },
+        }
+      }
+      const currentPerson = await Person.query()
+        .whereNull('person_deleted_at')
+        .where('person_id', personId)
+        .first()
+      if (!currentPerson) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The person was not found',
+          message: 'The person was not found with the entered ID',
+          data: { ...person },
+        }
+      }
+      const personService = new PersonService()
+      const data = await request.validateUsing(updatePersonValidator)
+      const verifyInfo = await personService.verifyInfo(person)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const updatePerson = await personService.update(currentPerson, person)
+      if (updatePerson) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Persons',
+          message: 'The person was updated successfully',
+          data: { person: updatePerson },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/persons/{personId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Persons
+   *     summary: delete person
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: personId
+   *         schema:
+   *           type: number
+   *         description: Person id
+   *         required: true
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async delete({ request, response }: HttpContext) {
+    try {
+      const personId = request.param('personId')
+      if (!personId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The person Id was not found',
+          message: 'Missing data to process',
+          data: { personId },
+        }
+      }
+      const currentPerson = await Person.query()
+        .whereNull('person_deleted_at')
+        .where('person_id', personId)
+        .first()
+      if (!currentPerson) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The person was not found',
+          message: 'The person was not found with the entered ID',
+          data: { personId },
+        }
+      }
+      const personService = new PersonService()
+      const deletePerson = await personService.delete(currentPerson)
+      if (deletePerson) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Person',
+          message: 'The person was deleted successfully',
+          data: { person: deletePerson },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/persons/{personId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Persons
+   *     summary: get person by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: personId
+   *         schema:
+   *           type: number
+   *         description: Person id
    *         required: true
    *     responses:
    *       '200':
@@ -692,33 +676,33 @@ export default class DepartmentController {
    */
   async show({ request, response }: HttpContext) {
     try {
-      const departmentId = request.param('departmentId')
-      if (!departmentId) {
+      const personId = request.param('personId')
+      if (!personId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department Id was not found',
+          title: 'The person Id was not found',
           message: 'Missing data to process',
-          data: { departmentId },
+          data: { personId },
         }
       }
-      const departmentService = new DepartmentService()
-      const showDepartment = await departmentService.show(departmentId)
-      if (!showDepartment) {
+      const personService = new PersonService()
+      const showPerson = await personService.show(personId)
+      if (!showPerson) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
-          data: { departmentId },
+          title: 'The person was not found',
+          message: 'The person was not found with the entered ID',
+          data: { personId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: 'Departments',
-          message: 'The department was found successfully',
-          data: { department: showDepartment },
+          title: 'Persons',
+          message: 'The person was found successfully',
+          data: { person: showPerson },
         }
       }
     } catch (error) {
@@ -729,34 +713,6 @@ export default class DepartmentController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
-    }
-  }
-
-  private async verify(
-    department: BiometricDepartmentInterface,
-    departmentService: DepartmentService
-  ) {
-    const existDepartment = await Department.query()
-      .where('department_sync_id', department.id)
-      .first()
-    if (!existDepartment) {
-      await departmentService.syncCreate(department)
-    } else {
-      departmentService.syncUpdate(department, existDepartment)
-    }
-  }
-
-  private async verifyRelatedPosition(
-    departmentId: number,
-    positionId: number,
-    departmentPositionService: DepartmentPositionService
-  ) {
-    const existDepartmentPosition = await DepartmentPosition.query()
-      .where('department_id', departmentId)
-      .where('position_id', positionId)
-      .first()
-    if (!existDepartmentPosition) {
-      await departmentPositionService.syncCreate(departmentId, positionId)
     }
   }
 }

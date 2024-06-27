@@ -174,6 +174,147 @@ export default class PositionController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/positions/{positionId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Positions
+   *     summary: get position by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: positionId
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const positionId = request.param('positionId')
+      if (!positionId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The position Id was not found',
+          message: 'Missing data to process',
+          data: { positionId },
+        }
+      }
+      const positionService = new PositionService()
+      const showPosition = await positionService.show(positionId)
+      if (!showPosition) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The position was not found',
+          message: 'The position was not found with the entered ID',
+          data: { positionId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Positions',
+          message: 'The position was found successfully',
+          data: { position: showPosition },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private async verify(position: BiometricPositionInterface, positionService: PositionService) {
     const existPosition = await Position.query().where('position_sync_id', position.id).first()
     if (!existPosition) {
