@@ -16,8 +16,10 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         employeeId:
  *           type: number
  *           description: ID of the associated employee
+ *           nullable: false
  *         shiftId:
  *           type: number
+ *           nullable: false
  *           description: ID of the associated shift
  *         employeShiftCreatedAt:
  *           type: string

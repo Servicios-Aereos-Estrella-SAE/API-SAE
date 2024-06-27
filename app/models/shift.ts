@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import EmployeeShift from './employee_shift.js'
 import * as relations from '@adonisjs/lucid/types/relations'
+
 /**
  * @swagger
  * components:
@@ -14,20 +15,24 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           description: Shift ID
  *         shiftName:
  *           type: string
- *           description: Shift name
+ *           description: Name of the shift
+ *           nullable: false
  *         shiftDayStart:
  *           type: number
- *           description: Day of the week when the shift starts (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+ *           description: Day the shift starts
+ *           nullable: false
  *         shiftTimeStart:
  *           type: string
- *           format: time
- *           description: Time when the shift starts (HH:MM format)
+ *           description: Time the shift starts (HH:mm format)
+ *           nullable: false
  *         shiftActiveHours:
  *           type: number
- *           description: Duration of the shift in hours
+ *           description: Number of active hours in the shift
+ *           nullable: false
  *         shiftRestDays:
  *           type: string
- *           description: Comma-separated list of rest days (e.g., "0,1" for Sunday and Monday)
+ *           description: Rest days for the shift (comma-separated values)
+ *           nullable: false
  *         shiftCreatedAt:
  *           type: string
  *           format: date-time
@@ -41,11 +46,6 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           format: date-time
  *           nullable: true
  *           description: Date and time when the shift was soft-deleted
- *         employees:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/EmployeeShift'
- *           description: Employees assigned to this shift
  *       example:
  *         shiftId: 1
  *         shiftName: "Morning Shift"
@@ -53,16 +53,9 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         shiftTimeStart: "08:00"
  *         shiftActiveHours: 8
  *         shiftRestDays: "0,6"
- *         shiftCreatedAt: '2024-06-20T08:00:00Z'
- *         shiftUpdatedAt: '2024-06-20T09:00:00Z'
+ *         shiftCreatedAt: "2024-06-20T12:00:00Z"
+ *         shiftUpdatedAt: "2024-06-20T13:00:00Z"
  *         shiftDeletedAt: null
- *         employees:
- *           - employeeShiftId: 1
- *             employeeId: 1
- *             shiftId: 1
- *             employeShiftCreatedAt: '2024-06-20T08:30:00Z'
- *             employeShiftUpdatedAt: '2024-06-20T09:30:00Z'
- *             employeShiftDeletedAt: null
  */
 
 export default class Shift extends BaseModel {
