@@ -9,7 +9,10 @@ export const createShiftValidator = vine.compile(
       .minLength(1)
       .maxLength(255)
       .unique(async (_db, value) => {
-        const existingShift = await Shift.query().where('shift_name', value).first()
+        const existingShift = await Shift.query()
+          .where('shift_name', value)
+          .whereNull('shiftDeletedAt')
+          .first()
         return !existingShift
       }),
     shiftDayStart: vine.number().min(0).max(6),
@@ -31,6 +34,7 @@ export const updateShiftValidator = (id: any) =>
           const existingShift = await Shift.query()
             .where('shift_name', value)
             .whereNot('shift_id', id)
+            .whereNull('shiftDeletedAt')
             .first()
           return !existingShift
         }),
