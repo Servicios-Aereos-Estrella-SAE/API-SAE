@@ -120,7 +120,7 @@ export default class PersonService {
       status: 200,
       type: 'success',
       title: 'Info verifiy successfully',
-      message: 'Info verifi successfully',
+      message: 'Info verifiy successfully',
       data: { ...person },
     }
   }
