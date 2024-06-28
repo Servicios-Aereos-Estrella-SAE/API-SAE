@@ -72,8 +72,8 @@ export default class ShiftController {
       return response.status(400).json({
         type: 'error',
         title: 'Validation error',
-        message: 'Invalid input, validation error',
-        data: error.messages,
+        message: 'Invalid input, validation error 400',
+        data: error,
       })
     }
   }
@@ -205,7 +205,10 @@ export default class ShiftController {
    */
   async show({ params, response }: HttpContext) {
     try {
-      const shift = await Shift.findOrFail(params.id)
+      const shift = await Shift.query()
+        .where('shiftId', params.id)
+        .whereNull('shiftDeletedAt')
+        .firstOrFail()
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -293,8 +296,21 @@ export default class ShiftController {
    */
   async update({ params, request, response }: HttpContext) {
     try {
+      const shift = await Shift.query()
+        .where('shiftId', params.id)
+        .whereNull('shiftDeletedAt')
+        .first()
+      if (!shift) {
+        return response.status(404).json({
+          type: 'error',
+          title: 'Not found',
+          message: 'ID Shift not found',
+          data: null,
+        })
+      }
+      // Validar los datos
       const data = await request.validateUsing(updateShiftValidator(params.id))
-      const shift = await Shift.findOrFail(params.id)
+      // Actualizar el registro
       shift.merge(data)
       await shift.save()
       return response.status(200).json({
@@ -304,14 +320,7 @@ export default class ShiftController {
         data: shift.toJSON(),
       })
     } catch (error) {
-      if (error.code === 'E_ROW_NOT_FOUND') {
-        return response.status(404).json({
-          type: 'error',
-          title: 'Not found',
-          message: 'Shift not found',
-          data: null,
-        })
-      }
+      // Manejar errores de validación
       return response.status(400).json({
         type: 'error',
         title: 'Validation error',
@@ -323,7 +332,7 @@ export default class ShiftController {
 
   /**
    * @swagger
-   * /api/shifts/{id}:
+   * /api/shift/{id}:
    *   delete:
    *     tags:
    *       - Shifts
@@ -357,7 +366,18 @@ export default class ShiftController {
    */
   async destroy({ params, response }: HttpContext) {
     try {
-      const shift = await Shift.findOrFail(params.id)
+      const shift = await Shift.query()
+        .where('shiftId', params.id)
+        .whereNull('shiftDeletedAt')
+        .first()
+      if (!shift) {
+        return response.status(404).json({
+          type: 'error',
+          title: 'Not found',
+          message: 'ID Shift not found',
+          data: null,
+        })
+      }
       shift.shiftDeletedAt = DateTime.now()
       await shift.save()
       return response.status(200).json({
