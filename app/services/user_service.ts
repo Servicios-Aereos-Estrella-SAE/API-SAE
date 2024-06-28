@@ -1,7 +1,18 @@
 import Person from '#models/person'
 import User from '#models/user'
+import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
 
 export default class UserService {
+  async index(filters: UserFilterSearchInterface) {
+    const users = await User.query()
+      .if(filters.search, (query) => {
+        query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+      })
+      .orderBy('user_id')
+      .paginate(filters.page, filters.limit)
+    return users
+  }
+
   async create(user: User) {
     const newUser = new User()
     newUser.userEmail = user.userEmail
@@ -25,6 +36,11 @@ export default class UserService {
   async delete(currentUser: User) {
     await currentUser.delete()
     return currentUser
+  }
+
+  async show(userId: number) {
+    const user = await User.query().whereNull('user_deleted_at').where('user_id', userId).first()
+    return user ? user : null
   }
 
   async verifyInfo(user: User) {

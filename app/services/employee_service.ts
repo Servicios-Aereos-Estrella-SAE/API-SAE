@@ -3,6 +3,7 @@ import Employee from '#models/employee'
 import Person from '#models/person'
 import Position from '#models/position'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
+import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
 import DepartmentService from './department_service.js'
 import PersonService from './person_service.js'
 import PositionService from './position_service.js'
@@ -80,6 +81,25 @@ export default class EmployeeService {
     return currentEmployee
   }
 
+  async index(filters: EmployeeFilterSearchInterface) {
+    const employees = await Employee.query()
+      .if(filters.search, (query) => {
+        query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+          `%${filters.search.toUpperCase()}%`,
+        ])
+        query.orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+      })
+      .if(filters.departmentId && filters.positionId, (query) => {
+        query.where('department_id', filters.departmentId)
+        query.where('position_id', filters.positionId)
+      })
+      .preload('department')
+      .preload('position')
+      .orderBy('employee_id')
+      .paginate(filters.page, filters.limit)
+    return employees
+  }
+
   async create(employee: Employee) {
     const newEmployee = new Employee()
     newEmployee.employeeFirstName = employee.employeeFirstName
@@ -111,6 +131,14 @@ export default class EmployeeService {
   async delete(currentEmployee: Employee) {
     await currentEmployee.delete()
     return currentEmployee
+  }
+
+  async show(employeeId: number) {
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeId)
+      .first()
+    return employee ? employee : null
   }
 
   async getNewPosition(
@@ -250,13 +278,5 @@ export default class EmployeeService {
       message: 'Info verifi successfully',
       data: { ...employee },
     }
-  }
-
-  async show(employeeId: number) {
-    const employee = await Employee.query()
-      .whereNull('employee_deleted_at')
-      .where('employee_id', employeeId)
-      .first()
-    return employee ? employee : null
   }
 }
