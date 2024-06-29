@@ -41,6 +41,7 @@ export default defineConfig({
     () => import('adonis-lucid-soft-deletes/provider'),
     () => import('@adonisjs/session/session_provider'),
     () => import('@adonisjs/mail/mail_provider'),
+    () => import('#providers/app_provider'),
   ],
 
   /*

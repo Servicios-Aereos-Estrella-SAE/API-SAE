@@ -1,3 +1,4 @@
+// import Ws from '#services/ws'
 import Person from '#models/person'
 import User from '#models/user'
 import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
@@ -35,6 +36,9 @@ export default class UserService {
 
   async delete(currentUser: User) {
     await currentUser.delete()
+    /* if (Ws.io) {
+      Ws.io.emit(`user-deleted:${currentUser.userEmail}`, {})
+    } */
     return currentUser
   }
 
