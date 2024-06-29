@@ -8,6 +8,8 @@ export default class AssistsController {
    * /api/v1/assists/synchronize:
    *   post:
    *     summary: Synchronize assists
+   *     security:
+   *       - bearerAuth: []
    *     tags: [Assists]
    *     requestBody:
    *       required: true
@@ -52,7 +54,7 @@ export default class AssistsController {
 
     try {
       const result = await syncAssistsService.synchronize(dateParamApi, page)
-      return response.status(202).json(result)
+      return response.status(200).json(result)
     } catch (error) {
       return response.status(400).json({ message: error.message })
     }
