@@ -5,12 +5,12 @@ import EmployeeShift from '#models/employee_shift'
 
 type ShiftRecord = {
   shiftId: number
-  shiftDate: string
+  shiftDate: any
 }
 
 type EmployeeRecord = {
   employeeId: number
-  employeeCode: string
+  employeeCode: any
   shifts: ShiftRecord[]
 }
 
@@ -41,13 +41,13 @@ export default class RecordsController {
 
       if (payload.departmentId !== undefined) {
         query = query.whereHas('employee', (builder) => {
-          builder.where('department_id', payload.departmentId)
+          builder.where('department_id', payload.departmentId!)
         })
       }
 
       if (payload.positionId !== undefined) {
         query = query.whereHas('employee', (builder) => {
-          builder.where('position_id', payload.positionId)
+          builder.where('position_id', payload.positionId!)
         })
       }
 
