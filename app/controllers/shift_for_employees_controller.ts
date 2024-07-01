@@ -3,6 +3,17 @@ import { fetchRecordsValidator } from '../validators/shift_for_employees.js'
 import { DateTime } from 'luxon'
 import EmployeeShift from '#models/employee_shift'
 
+type ShiftRecord = {
+  shiftId: number
+  shiftDate: string
+}
+
+type EmployeeRecord = {
+  employeeId: number
+  employeeCode: string
+  shifts: ShiftRecord[]
+}
+
 export default class RecordsController {
   async index({ request, response }: HttpContext) {
     try {
@@ -18,22 +29,23 @@ export default class RecordsController {
           message: 'startDate must be less than endDate',
         })
       }
+
       let query = EmployeeShift.query()
         .whereBetween('employeShiftsCreatedAt', [startDate, endDate])
         .preload('employee')
         .whereNull('employeShiftsDeletedAt')
 
-      if (payload.employeeId !== undefined && payload.employeeId !== null) {
+      if (payload.employeeId !== undefined) {
         query = query.where('employeeId', payload.employeeId)
       }
 
-      if (payload.departmentId !== undefined && payload.departmentId !== null) {
+      if (payload.departmentId !== undefined) {
         query = query.whereHas('employee', (builder) => {
           builder.where('department_id', payload.departmentId)
         })
       }
 
-      if (payload.positionId !== undefined && payload.positionId !== null) {
+      if (payload.positionId !== undefined) {
         query = query.whereHas('employee', (builder) => {
           builder.where('position_id', payload.positionId)
         })
@@ -41,24 +53,30 @@ export default class RecordsController {
 
       const records = await query
 
-      const employeeRecords = records.reduce((acc, record) => {
-        if (!acc[record.employeeId]) {
-          acc[record.employeeId] = {
-            employeeId: record.employeeId,
-            employeeCode: record.employee.employeeCode,
-            shifts: [],
+      const employeeRecords = records.reduce(
+        (acc, record) => {
+          if (!acc[record.employeeId]) {
+            acc[record.employeeId] = {
+              employeeId: record.employeeId,
+              employeeCode: record.employee.employeeCode,
+              shifts: [],
+            }
           }
-        }
-        acc[record.employeeId].shifts.push({
-          shiftId: record.shiftId,
-          shiftDate: record.employeShiftsCreatedAt,
-        })
-        return acc
-      }, {})
+          acc[record.employeeId].shifts.push({
+            shiftId: record.shiftId,
+            shiftDate: record.employeShiftsCreatedAt,
+          })
+          return acc
+        },
+        {} as { [key: number]: EmployeeRecord }
+      )
 
-      Object.values(employeeRecords).forEach((employee) => {
-        employee.shifts.sort((a, b) => new Date(b[1]) - new Date(a[1]))
+      Object.values(employeeRecords).forEach((employee: EmployeeRecord) => {
+        employee.shifts.sort(
+          (a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime()
+        )
       })
+
       return response.status(200).json({
         type: 'success',
         title: 'Successfully fetched',
