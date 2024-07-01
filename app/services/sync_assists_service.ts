@@ -65,6 +65,7 @@ export default class SyncAssistsService {
     const pageSync = await PageSync.query().where('id', pageSyncId).first()
     return pageSync?.pageStatus === 'sync'
   }
+  getLogger = () => logger
 
   async getAssistsRecords(dateParam: Date, page: number, limit: number) {
     return Assist.query()
@@ -123,10 +124,11 @@ export default class SyncAssistsService {
   ): Promise<ResponseApiAssistsDto> {
     logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
-    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-async`
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/api/v1/transactions-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
     apiUrl = `${apiUrl}&limit=${limit || ''}`
     apiUrl = `${apiUrl}&assistDate=${startDate.toISOString() || ''}`
+    logger.info(`API URL: ${apiUrl}`)
     const apiResponse = await axios.get(apiUrl)
     let responseDataDto: ResponseApiAssistsDto
     responseDataDto = apiResponse.data
