@@ -1,7 +1,7 @@
-import StatusSync from '#models/status_sync'
+import AssistStatusSync from '#models/assist_status_sync'
 import { DateTime } from 'luxon'
 import axios from 'axios'
-import PageSync from '#models/page_sync'
+import PageSync from '#models/assist_page_sync'
 import ResponseApiAssistsDto from '#dtos/response_api_assists_dto'
 import PaginationDto from '#dtos/pagination_api_dto'
 import Assist from '#models/assist'
@@ -14,11 +14,11 @@ import { AssistInterface } from '../interfaces/assist_interface.js'
 export default class SyncAssistsService {
   async synchronize(startDate: string, page: number = 1, limit: number = 50) {
     const dateParam = new Date(startDate)
-    let statusSync = await this.getStatusSync()
+    let statusSync = await this.getAssistStatusSync()
     if (!statusSync) {
       page = 1
       let response = await this.fetchExternalData(dateParam, page, limit)
-      statusSync = await this.createStatusSync(response.pagination)
+      statusSync = await this.createAssistStatusSync(response.pagination)
       await this.createPageSyncRecords(statusSync.id, response.pagination)
       await this.updateLocalData(response)
     } else if (new Date(statusSync.dateRequestSync.toJSDate()) > dateParam) {
@@ -50,7 +50,7 @@ export default class SyncAssistsService {
   }
 
   async handleSyncAssists(
-    statusSync: StatusSync,
+    statusSync: AssistStatusSync,
     dateParam: Date,
     page: number = 1,
     limit: number = 50
@@ -65,20 +65,21 @@ export default class SyncAssistsService {
     const pageSync = await PageSync.query().where('id', pageSyncId).first()
     return pageSync?.pageStatus === 'sync'
   }
+  getLogger = () => logger
 
   async getAssistsRecords(dateParam: Date, page: number, limit: number) {
     return Assist.query()
-      .where('punchTime', '>', dateParam)
-      .orderBy('punch_time', 'asc')
+      .where('assistPunchTime', '>', dateParam)
+      .orderBy('assistPunchTime', 'asc')
       .paginate(page, limit)
   }
 
-  async getStatusSync() {
-    return await StatusSync.query().orderBy('date_request_sync', 'desc').first()
+  async getAssistStatusSync() {
+    return await AssistStatusSync.query().orderBy('date_request_sync', 'desc').first()
   }
 
-  async createStatusSync(pagination: PaginationDto) {
-    return await StatusSync.create({
+  async createAssistStatusSync(pagination: PaginationDto) {
+    return await AssistStatusSync.create({
       dateRequestSync: DateTime.fromISO(pagination.DateParam.toString()),
       dateTimeStartSync: DateTime.fromISO(pagination.DateParam.toString()),
       statusSync: 'in_process',
@@ -97,7 +98,7 @@ export default class SyncAssistsService {
   }
 
   async resetSyncStatus(pagination: PaginationDto, statusSyncId: number) {
-    const statusSync = await StatusSync.query().where('id', statusSyncId).first()
+    const statusSync = await AssistStatusSync.query().where('id', statusSyncId).first()
     if (statusSync) {
       await statusSync
         .merge({
@@ -123,10 +124,11 @@ export default class SyncAssistsService {
   ): Promise<ResponseApiAssistsDto> {
     logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
-    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-async`
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/api/v1/transactions-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
     apiUrl = `${apiUrl}&limit=${limit || ''}`
     apiUrl = `${apiUrl}&assistDate=${startDate.toISOString() || ''}`
+    logger.info(`API URL: ${apiUrl}`)
     const apiResponse = await axios.get(apiUrl)
     let responseDataDto: ResponseApiAssistsDto
     responseDataDto = apiResponse.data
@@ -141,34 +143,34 @@ export default class SyncAssistsService {
       if (existingAssist) {
         await existingAssist
           .merge({
-            empCode: item.emp_code,
-            terminalSn: item.terminal_sn,
-            terminalAlias: item.terminal_alias,
-            areaAlias: item.area_alias,
-            longitude: item.longitude,
-            latitude: item.latitude,
-            uploadTime: DateTime.fromISO(item.upload_time.toString()),
-            empId: item.emp_id,
-            terminalId: item.terminal_id,
-            punchTime: DateTime.fromISO(item.punch_time_local.toString()),
-            punchTimeUtc: DateTime.fromISO(item.punch_time.toString()),
-            punchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
+            assistEmpCode: item.emp_code,
+            assistTerminalSn: item.terminal_sn,
+            assistTerminalAlias: item.terminal_alias,
+            assistAreaAlias: item.area_alias,
+            assistLongitude: item.longitude,
+            assistLatitude: item.latitude,
+            assistUploadTime: DateTime.fromISO(item.upload_time.toString()),
+            assistEmpId: item.emp_id,
+            assistTerminalId: item.terminal_id,
+            assistPunchTime: DateTime.fromISO(item.punch_time_local.toString()),
+            assistPunchTimeUtc: DateTime.fromISO(item.punch_time.toString()),
+            assistPunchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
           })
           .save()
       } else {
         const newAssist = new Assist()
-        newAssist.empCode = item.emp_code
-        newAssist.terminalSn = item.terminal_sn
-        newAssist.terminalAlias = item.terminal_alias
-        newAssist.areaAlias = item.area_alias
-        newAssist.longitude = item.longitude
-        newAssist.latitude = item.latitude
-        newAssist.uploadTime = DateTime.fromISO(item.upload_time.toString())
-        newAssist.empId = item.emp_id
-        newAssist.terminalId = item.terminal_id
-        newAssist.punchTime = DateTime.fromISO(item.punch_time_local.toString())
-        newAssist.punchTimeUtc = DateTime.fromISO(item.punch_time.toString())
-        newAssist.punchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
+        newAssist.assistEmpCode = item.emp_code
+        newAssist.assistTerminalSn = item.terminal_sn
+        newAssist.assistTerminalAlias = item.terminal_alias
+        newAssist.assistAreaAlias = item.area_alias
+        newAssist.assistLongitude = item.longitude
+        newAssist.assistLatitude = item.latitude
+        newAssist.assistUploadTime = DateTime.fromISO(item.upload_time.toString())
+        newAssist.assistEmpId = item.emp_id
+        newAssist.assistTerminalId = item.terminal_id
+        newAssist.assistPunchTime = DateTime.fromISO(item.punch_time_local.toString())
+        newAssist.assistPunchTimeUtc = DateTime.fromISO(item.punch_time.toString())
+        newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
       }
@@ -203,7 +205,7 @@ export default class SyncAssistsService {
     }
   }
 
-  async updatePagination(pagination: PaginationDto, statusSync: StatusSync) {
+  async updatePagination(pagination: PaginationDto, statusSync: AssistStatusSync) {
     for (let pageNumber: number = 1; pageNumber <= pagination.totalPages; pageNumber++) {
       let pageSync = await PageSync.query().where('page_number', pageNumber).first()
       const countItems = this.getItemsCountsPage(pageNumber, pagination)
@@ -283,12 +285,12 @@ export default class SyncAssistsService {
     const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
 
     const query = Assist.query()
-      .where('punch_time_origin', '>=', filterInitialDate)
-      .orderBy('punch_time_origin', 'desc')
+      .where('assist_punch_time_origin', '>=', filterInitialDate)
+      .orderBy('assist_punch_time_origin', 'desc')
 
     if (params.dateEnd && params.date) {
-      query.where('punch_time_origin', '>=', filterInitialDate)
-      query.where('punch_time_origin', '<=', `${params.dateEnd} 23:59:59`)
+      query.where('assist_punch_time_origin', '>=', filterInitialDate)
+      query.where('assist_punch_time_origin', '<=', `${params.dateEnd} 23:59:59`)
     }
 
     if (params.employeeID) {
@@ -306,7 +308,7 @@ export default class SyncAssistsService {
         }
       }
 
-      query.where('emp_code', employee.employeeCode)
+      query.where('assist_emp_code', employee.employeeCode)
     }
 
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 50)

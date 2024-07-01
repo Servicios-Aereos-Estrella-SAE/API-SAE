@@ -78,7 +78,7 @@ export default class UserService {
       status: 200,
       type: 'success',
       title: 'Info verifiy successfully',
-      message: 'Info verifi successfully',
+      message: 'Info verifiy successfully',
       data: { ...user },
     }
   }
@@ -104,7 +104,7 @@ export default class UserService {
       status: 200,
       type: 'success',
       title: 'Info verifiy successfully',
-      message: 'Info verifi successfully',
+      message: 'Info verifiy successfully',
       data: { ...user },
     }
   }
