@@ -1,21 +1,21 @@
-import Position from '#models/position'
-import PositionService from '#services/position_service'
-import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
-import axios from 'axios'
-import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
-import { createPositionValidator, updatePositionValidator } from '#validators/position'
+import DepartmentPosition from '#models/department_position'
+import DepartmentPositionService from '#services/department_position_service'
+import {
+  createDepartmentPositionValidator,
+  updateDepartmentPositionValidator,
+} from '#validators/department_position'
 
-export default class PositionController {
+export default class DepartmentPositionController {
   /**
    * @swagger
-   * /api/synchronization/positions:
+   * /api/departments-positions:
    *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: sync information
+   *       - Departments Positions
+   *     summary: create new relation department-position
    *     produces:
    *       - application/json
    *     requestBody:
@@ -24,207 +24,14 @@ export default class PositionController {
    *           schema:
    *             type: object
    *             properties:
-   *               page:
-   *                 type: integer
-   *                 description: The page number for pagination
-   *                 required: false
-   *                 default: 1
-   *               limit:
-   *                 type: integer
-   *                 description: The number of records per page
-   *                 required: false
-   *                 default: 200
-   *               positionCode:
-   *                 type: string
-   *                 description: The position code to filter by
-   *                 required: false
-   *                 default: ''
-   *               positionName:
-   *                 required: false
-   *                 description: The position name to filter by
-   *                 type: string
-   *                 default: ''
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-
-  async synchronization({ request, response }: HttpContext) {
-    try {
-      const page = request.input('page', 1)
-      const limit = request.input('limit', 200)
-      const positionCode = request.input('positionCode')
-      const positionName = request.input('positionName')
-
-      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/positions`
-      apiUrl = `${apiUrl}?page=${page || ''}`
-      apiUrl = `${apiUrl}&limit=${limit || ''}`
-      apiUrl = `${apiUrl}&positionCode=${positionCode || ''}`
-      apiUrl = `${apiUrl}&positionName=${positionName || ''}`
-      const apiResponse = await axios.get(apiUrl)
-      const data = apiResponse.data.data
-      if (data) {
-        const positionService = new PositionService()
-        data.sort((a: BiometricPositionInterface, b: BiometricPositionInterface) => a.id - b.id)
-        for await (const position of data) {
-          await this.verify(position, positionService)
-        }
-        response.status(200)
-        return {
-          type: 'success',
-          title: 'Sync positions',
-          message: 'Positions have been synchronized successfully',
-          data: {
-            data,
-          },
-        }
-      } else {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'Sync positions',
-          message: 'No data found to synchronize',
-          data: { data },
-        }
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/positions:
-   *   post:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Positions
-   *     summary: create new position
-   *     produces:
-   *       - application/json
-   *     requestBody:
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               positionCode:
-   *                 type: string
-   *                 description: Position code
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
    *                 required: true
    *                 default: ''
-   *               positionName:
-   *                 type: string
-   *                 description: Position name
-   *                 required: true
-   *                 default: ''
-   *               positionAlias:
-   *                 type: string
-   *                 description: Position alias
-   *                 required: false
-   *                 default: ''
-   *               positionIsDefault:
-   *                 type: boolean
-   *                 description: Position if is default
-   *                 required: false
-   *                 default: false
-   *               positionActive:
-   *                 type: boolean
-   *                 description: Position status
-   *                 required: false
-   *                 default: false
-   *               parentPositionId:
+   *               positionId:
    *                 type: number
-   *                 description: Position parent id
-   *                 required: false
-   *                 default: ''
-   *               companyId:
-   *                 type: number
-   *                 description: Company id
+   *                 description: Position id
    *                 required: true
    *                 default: ''
    *     responses:
@@ -310,25 +117,15 @@ export default class PositionController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const positionCode = request.input('positionCode')
-      const positionName = request.input('positionName')
-      const positionAlias = request.input('positionAlias')
-      const positionIsDefault = request.input('positionIsDefault')
-      const positionActive = request.input('positionActive')
-      const parentPositionId = request.input('parentPositionId')
-      const companyId = request.input('companyId')
-      const position = {
-        positionCode: positionCode,
-        positionName: positionName,
-        positionAlias: positionAlias,
-        positionIsDefault: positionIsDefault,
-        positionActive: positionActive,
-        parentPositionId: parentPositionId,
-        companyId: companyId,
-      } as Position
-      const positionService = new PositionService()
-      const data = await request.validateUsing(createPositionValidator)
-      const exist = await positionService.verifyInfoExist(position)
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const departmentPosition = {
+        departmentId: departmentId,
+        positionId: positionId,
+      } as DepartmentPosition
+      const departmentPositionService = new DepartmentPositionService()
+      const data = await request.validateUsing(createDepartmentPositionValidator)
+      const exist = await departmentPositionService.verifyInfoExist(departmentPosition)
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -338,14 +135,24 @@ export default class PositionController {
           data: { ...data },
         }
       }
-      const newPosition = await positionService.create(position)
-      if (newPosition) {
+      const verifyInfo = await departmentPositionService.verifyInfo(departmentPosition)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const newDepartmentPosition = await departmentPositionService.create(departmentPosition)
+      if (newDepartmentPosition) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was created successfully',
-          data: { position: newPosition },
+          title: 'Departments positions',
+          message: 'The relation department-position was created successfully',
+          data: { departmentPosition: newDepartmentPosition },
         }
       }
     } catch (error) {
@@ -363,21 +170,21 @@ export default class PositionController {
 
   /**
    * @swagger
-   * /api/positions/{positionId}:
+   * /api/departments-positions/{departmentPositionId}:
    *   put:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: update position
+   *       - Departments Positions
+   *     summary: update relation department-position
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: positionId
+   *         name: departmentPositionId
    *         schema:
    *           type: number
-   *         description: Position id
+   *         description: Department position id
    *         required: true
    *     requestBody:
    *       content:
@@ -385,39 +192,14 @@ export default class PositionController {
    *           schema:
    *             type: object
    *             properties:
-   *               positionCode:
-   *                 type: string
-   *                 description: Position code
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
    *                 required: true
    *                 default: ''
-   *               positionName:
-   *                 type: string
-   *                 description: Position name
-   *                 required: true
-   *                 default: ''
-   *               positionAlias:
-   *                 type: string
-   *                 description: Position alias
-   *                 required: false
-   *                 default: ''
-   *               positionIsDefault:
-   *                 type: boolean
-   *                 description: Position if is default
-   *                 required: false
-   *                 default: false
-   *               positionActive:
-   *                 type: boolean
-   *                 description: Position status
-   *                 required: false
-   *                 default: false
-   *               parentPositionId:
+   *               positionId:
    *                 type: number
-   *                 description: Position parent id
-   *                 required: false
-   *                 default: ''
-   *               companyId:
-   *                 type: number
-   *                 description: Company id
+   *                 description: Position id
    *                 required: true
    *                 default: ''
    *     responses:
@@ -503,49 +285,39 @@ export default class PositionController {
    */
   async update({ request, response }: HttpContext) {
     try {
-      const positionId = request.param('positionId')
-      const positionCode = request.input('positionCode')
-      const positionName = request.input('positionName')
-      const positionAlias = request.input('positionAlias')
-      const positionIsDefault = request.input('positionIsDefault')
-      const positionActive = request.input('positionActive')
-      const parentPositionId = request.input('parentPositionId')
-      const companyId = request.input('companyId')
-      const position = {
+      const departmentPositionId = request.param('departmentPositionId')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const departmentPosition = {
+        departmentPositionId: departmentPositionId,
+        departmentId: departmentId,
         positionId: positionId,
-        positionCode: positionCode,
-        positionName: positionName,
-        positionAlias: positionAlias,
-        positionIsDefault: positionIsDefault,
-        positionActive: positionActive,
-        parentPositionId: parentPositionId,
-        companyId: companyId,
-      } as Position
-      if (!positionId) {
+      } as DepartmentPosition
+      if (!departmentPositionId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position Id was not found',
+          title: 'The relation department-position Id was not found',
           message: 'Missing data to process',
-          data: { ...position },
+          data: { ...departmentPosition },
         }
       }
-      const currentPosition = await Position.query()
-        .whereNull('position_deleted_at')
-        .where('position_id', positionId)
+      const currentDepartmentPosition = await DepartmentPosition.query()
+        .whereNull('department_position_deleted_at')
+        .where('department_position_id', departmentPositionId)
         .first()
-      if (!currentPosition) {
+      if (!currentDepartmentPosition) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { ...position },
+          title: 'The relation department-position was not found',
+          message: 'The relation department-position was not found with the entered ID',
+          data: { ...departmentPosition },
         }
       }
-      const positionService = new PositionService()
-      const data = await request.validateUsing(updatePositionValidator)
-      const exist = await positionService.verifyInfoExist(position)
+      const departmentPositionService = new DepartmentPositionService()
+      const data = await request.validateUsing(updateDepartmentPositionValidator)
+      const exist = await departmentPositionService.verifyInfoExist(departmentPosition)
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -555,7 +327,7 @@ export default class PositionController {
           data: { ...data },
         }
       }
-      const verifyInfo = await positionService.verifyInfo(position)
+      const verifyInfo = await departmentPositionService.verifyInfo(departmentPosition)
       if (verifyInfo.status !== 200) {
         response.status(verifyInfo.status)
         return {
@@ -565,14 +337,17 @@ export default class PositionController {
           data: { ...data },
         }
       }
-      const updatePosition = await positionService.update(currentPosition, position)
-      if (updatePosition) {
+      const updateDepartmentPosition = await departmentPositionService.update(
+        currentDepartmentPosition,
+        departmentPosition
+      )
+      if (updateDepartmentPosition) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was updated successfully',
-          data: { position: updatePosition },
+          title: 'Department positions',
+          message: 'The relation department-position was updated successfully',
+          data: { departmentPosition: updateDepartmentPosition },
         }
       }
     } catch (error) {
@@ -590,21 +365,21 @@ export default class PositionController {
 
   /**
    * @swagger
-   * /api/positions/{positionId}:
+   * /api/departments-positions/{departmentPositionId}:
    *   delete:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: delete position
+   *       - Departments Positions
+   *     summary: delete relation department position
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: positionId
+   *         name: departmentPositionId
    *         schema:
    *           type: number
-   *         description: Position id
+   *         description: Department position id
    *         required: true
    *     responses:
    *       '201':
@@ -689,38 +464,39 @@ export default class PositionController {
    */
   async delete({ request, response }: HttpContext) {
     try {
-      const positionId = request.param('positionId')
-      if (!positionId) {
+      const departmentPositionId = request.param('departmentPositionId')
+      if (!departmentPositionId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position Id was not found',
+          title: 'The relation department-position Id was not found',
           message: 'Missing data to process',
-          data: { positionId },
+          data: { departmentPositionId },
         }
       }
-      const currentPosition = await Position.query()
-        .whereNull('position_deleted_at')
-        .where('position_id', positionId)
+      const currentDepartmentPosition = await DepartmentPosition.query()
+        .whereNull('department_position_deleted_at')
+        .where('department_position_id', departmentPositionId)
         .first()
-      if (!currentPosition) {
+      if (!currentDepartmentPosition) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { positionId },
+          title: 'The relation department-position was not found',
+          message: 'The relation department-position was not found with the entered ID',
+          data: { departmentPositionId },
         }
       }
-      const positionService = new PositionService()
-      const deletePosition = await positionService.delete(currentPosition)
-      if (deletePosition) {
+      const departmentPositionService = new DepartmentPositionService()
+      const deleteDepartmentPosition =
+        await departmentPositionService.delete(currentDepartmentPosition)
+      if (deleteDepartmentPosition) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was deleted successfully',
-          data: { position: deletePosition },
+          title: 'Departments positions',
+          message: 'The relation department-position was deleted successfully',
+          data: { departmentPosition: deleteDepartmentPosition },
         }
       }
     } catch (error) {
@@ -736,21 +512,21 @@ export default class PositionController {
 
   /**
    * @swagger
-   * /api/positions/{positionId}:
+   * /api/departments-positions/{departmentPositionId}:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: get position by id
+   *       - Departments Positions
+   *     summary: get relation department-position by id
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: positionId
+   *         name: departmentPositionId
    *         schema:
    *           type: number
-   *         description: Position id
+   *         description: Department position id
    *         required: true
    *     responses:
    *       '200':
@@ -835,33 +611,33 @@ export default class PositionController {
    */
   async show({ request, response }: HttpContext) {
     try {
-      const positionId = request.param('positionId')
-      if (!positionId) {
+      const departmentPositionId = request.param('departmentPositionId')
+      if (!departmentPositionId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position Id was not found',
+          title: 'The relation department-position Id was not found',
           message: 'Missing data to process',
-          data: { positionId },
+          data: { departmentPositionId },
         }
       }
-      const positionService = new PositionService()
-      const showPosition = await positionService.show(positionId)
-      if (!showPosition) {
+      const departmentPositionService = new DepartmentPositionService()
+      const showDepartmentPosition = await departmentPositionService.show(departmentPositionId)
+      if (!showDepartmentPosition) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { positionId },
+          title: 'The relation department-position was not found',
+          message: 'The relation department-position was not found with the entered ID',
+          data: { departmentPositionId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was found successfully',
-          data: { position: showPosition },
+          title: 'Departments positions',
+          message: 'The relation department-position was found successfully',
+          data: { departmentPosition: showDepartmentPosition },
         }
       }
     } catch (error) {
@@ -872,15 +648,6 @@ export default class PositionController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
-    }
-  }
-
-  private async verify(position: BiometricPositionInterface, positionService: PositionService) {
-    const existPosition = await Position.query().where('position_sync_id', position.id).first()
-    if (!existPosition) {
-      await positionService.syncCreate(position)
-    } else {
-      positionService.syncUpdate(position, existPosition)
     }
   }
 }

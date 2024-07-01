@@ -211,7 +211,7 @@ export default class EmployeeService {
       status: 200,
       type: 'success',
       title: 'Info verifiy successfully',
-      message: 'Info verifi successfully',
+      message: 'Info verify successfully',
       data: { ...employee },
     }
   }
@@ -275,7 +275,7 @@ export default class EmployeeService {
       status: 200,
       type: 'success',
       title: 'Info verifiy successfully',
-      message: 'Info verifi successfully',
+      message: 'Info verifiy successfully',
       data: { ...employee },
     }
   }
