@@ -11,6 +11,13 @@ export default class RecordsController {
       const startDate = DateTime.fromJSDate(payload.startDate).toISO() || ''
       const endDate = DateTime.fromJSDate(payload.endDate).toISO() || ''
 
+      if (DateTime.fromISO(startDate) >= DateTime.fromISO(endDate)) {
+        return response.status(400).json({
+          type: 'error',
+          title: 'Validation error',
+          message: 'startDate must be less than endDate',
+        })
+      }
       let query = EmployeeShift.query()
         .whereBetween('employeShiftsCreatedAt', [startDate, endDate])
         .preload('employee')
@@ -42,7 +49,10 @@ export default class RecordsController {
             shifts: [],
           }
         }
-        acc[record.employeeId].shifts.push([record.shiftId, record.employeShiftsCreatedAt])
+        acc[record.employeeId].shifts.push({
+          shiftId: record.shiftId,
+          shiftDate: record.employeShiftsCreatedAt,
+        })
         return acc
       }, {})
 
