@@ -1,7 +1,8 @@
-// import Ws from '#services/ws'
+import Ws from '#services/ws'
 import Person from '#models/person'
 import User from '#models/user'
 import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
+import ApiToken from '#models/api_token'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
@@ -31,14 +32,21 @@ export default class UserService {
     currentUser.userActive = user.userActive
     currentUser.roleId = user.roleId
     await currentUser.save()
+    if (!user.userActive) {
+      await ApiToken.query().where('tokenable_id', currentUser.userId).delete()
+      if (Ws.io) {
+        Ws.io.emit(`user-forze-logout:${currentUser.userEmail}`, {})
+      }
+    }
     return currentUser
   }
 
   async delete(currentUser: User) {
     await currentUser.delete()
-    /* if (Ws.io) {
-      Ws.io.emit(`user-deleted:${currentUser.userEmail}`, {})
-    } */
+    await ApiToken.query().where('tokenable_id', currentUser.userId).delete()
+    if (Ws.io) {
+      Ws.io.emit(`user-forze-logout:${currentUser.userEmail}`, {})
+    }
     return currentUser
   }
 
