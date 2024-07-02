@@ -373,7 +373,7 @@ export default class SyncAssistsService {
               shiftId: 2,
               shiftName: 'Estandar',
               shiftDayStart: 1,
-              shiftTimeStart: '09:00:00',
+              shiftTimeStart: '08:00:00',
               shiftActiveHours: 10,
               shiftRestDays: '6,7',
               shiftCreatedAt: '2024-04-30 16:00:16',
