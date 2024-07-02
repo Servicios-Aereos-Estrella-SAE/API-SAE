@@ -1,20 +1,20 @@
 interface AssistInterface {
-  id: number | null
-  empCode: string
-  punchTime: string | Date
-  punchTimeUtc: string | Date
-  punchTimeOrigin: string | Date
-  terminalSn: string
-  terminalAlias: string
-  areaAlias: string
-  longitude: string
-  latitude: string
-  uploadTime: string | Date | null
-  empId: number
-  terminalId: number
-  assistSyncId: string
-  createdAt: string | Date | null
-  updatedAt: string | Date | null
+  assistId: number | null
+  assistEmpCode: string
+  assistPunchTime: string | Date
+  assistPunchTimeUtc: string | Date
+  assistPunchTimeOrigin: Date
+  assistTerminalSn: string
+  assistTerminalAlias: string
+  assistAreaAlias: string
+  assistLongitude: string
+  assistLatitude: string
+  assistUploadTime: string | Date | null
+  assistEmpId: number
+  assistTerminalId: number
+  assistAssistSyncId: string
+  assistCreatedAt: string | Date | null
+  assistUpdatedAt: string | Date | null
 }
 
 export type { AssistInterface }
