@@ -7,6 +7,7 @@ import BiometricDepartmentInterface from '../interfaces/biometric_department_int
 import Employee from '#models/employee'
 import DepartmentPosition from '#models/department_position'
 import DepartmentPositionService from '#services/department_position_service'
+import { createDepartmentValidator, updateDepartmentValidator } from '#validators/department'
 
 export default class DepartmentController {
   /**
@@ -585,6 +586,565 @@ export default class DepartmentController {
       return {
         type: 'error',
         title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: create new department
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentCode:
+   *                 type: string
+   *                 description: Department code
+   *                 required: true
+   *                 default: ''
+   *               departmentName:
+   *                 type: string
+   *                 description: Department name
+   *                 required: true
+   *                 default: ''
+   *               departmentAlias:
+   *                 type: string
+   *                 description: Department alias
+   *                 required: false
+   *                 default: ''
+   *               departmentIsDefault:
+   *                 type: boolean
+   *                 description: Department if is default
+   *                 required: false
+   *                 default: false
+   *               departmentActive:
+   *                 type: boolean
+   *                 description: Departmeent status
+   *                 required: false
+   *                 default: false
+   *               parentDepartmentId:
+   *                 type: number
+   *                 description: Department parent id
+   *                 required: false
+   *                 default: ''
+   *               companyId:
+   *                 type: number
+   *                 description: Company id
+   *                 required: true
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async store({ request, response }: HttpContext) {
+    try {
+      const departmentCode = request.input('departmentCode')
+      const departmentName = request.input('departmentName')
+      const departmentAlias = request.input('departmentAlias')
+      const departmentIsDefault = request.input('departmentIsDefault')
+      const departmentActive = request.input('departmentActive')
+      const parentDepartmentId = request.input('parentDepartmentId')
+      const companyId = request.input('companyId')
+      const department = {
+        departmentCode: departmentCode,
+        departmentName: departmentName,
+        departmentAlias: departmentAlias,
+        departmentIsDefault: departmentIsDefault,
+        departmentActive: departmentActive,
+        parentDepartmentId: parentDepartmentId,
+        companyId: companyId,
+      } as Department
+      const departmentService = new DepartmentService()
+      const data = await request.validateUsing(createDepartmentValidator)
+      const exist = await departmentService.verifyInfoExist(department)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const newDepartment = await departmentService.create(department)
+      if (newDepartment) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments',
+          message: 'The department was created successfully',
+          data: { department: newDepartment },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments/{departmentId}:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: update department
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentCode:
+   *                 type: string
+   *                 description: Department code
+   *                 required: true
+   *                 default: ''
+   *               departmentName:
+   *                 type: string
+   *                 description: Department name
+   *                 required: true
+   *                 default: ''
+   *               departmentAlias:
+   *                 type: string
+   *                 description: Department alias
+   *                 required: false
+   *                 default: ''
+   *               departmentIsDefault:
+   *                 type: boolean
+   *                 description: Department if is default
+   *                 required: false
+   *                 default: false
+   *               departmentActive:
+   *                 type: boolean
+   *                 description: Departmeent status
+   *                 required: false
+   *                 default: false
+   *               parentDepartmentId:
+   *                 type: number
+   *                 description: Department parent id
+   *                 required: false
+   *                 default: ''
+   *               companyId:
+   *                 type: number
+   *                 description: Company id
+   *                 required: true
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+      const departmentCode = request.input('departmentCode')
+      const departmentName = request.input('departmentName')
+      const departmentAlias = request.input('departmentAlias')
+      const departmentIsDefault = request.input('departmentIsDefault')
+      const departmentActive = request.input('departmentActive')
+      const parentDepartmentId = request.input('parentDepartmentId')
+      const companyId = request.input('companyId')
+      const department = {
+        departmentId: departmentId,
+        departmentCode: departmentCode,
+        departmentName: departmentName,
+        departmentAlias: departmentAlias,
+        departmentIsDefault: departmentIsDefault,
+        departmentActive: departmentActive,
+        parentDepartmentId: parentDepartmentId,
+        companyId: companyId,
+      } as Department
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department Id was not found',
+          message: 'Missing data to process',
+          data: { ...department },
+        }
+      }
+      const currentDepartment = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', departmentId)
+        .first()
+      if (!currentDepartment) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { ...department },
+        }
+      }
+      const departmentService = new DepartmentService()
+      const data = await request.validateUsing(updateDepartmentValidator)
+      const exist = await departmentService.verifyInfoExist(department)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await departmentService.verifyInfo(department)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const updateDepartment = await departmentService.update(currentDepartment, department)
+      if (updateDepartment) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments',
+          message: 'The department was updated successfully',
+          data: { department: updateDepartment },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments/{departmentId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: delete department
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *         required: true
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async delete({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department Id was not found',
+          message: 'Missing data to process',
+          data: { departmentId },
+        }
+      }
+      const currentDepartment = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', departmentId)
+        .first()
+      if (!currentDepartment) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { departmentId },
+        }
+      }
+      const departmentService = new DepartmentService()
+      const deleteDepartment = await departmentService.delete(currentDepartment)
+      if (deleteDepartment) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments',
+          message: 'The department was deleted successfully',
+          data: { department: deleteDepartment },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }

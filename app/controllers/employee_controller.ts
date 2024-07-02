@@ -8,6 +8,7 @@ import DepartmentService from '#services/department_service'
 import PositionService from '#services/position_service'
 import { createEmployeeValidator } from '../validators/employee.js'
 import { updateEmployeeValidator } from '../validators/employee.js'
+import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
 
 export default class EmployeeController {
   /**
@@ -252,16 +253,30 @@ export default class EmployeeController {
    *         description: Search
    *         schema:
    *           type: string
+   *       - name: departmentId
+   *         in: query
+   *         required: false
+   *         description: DepartmentId
+   *         schema:
+   *           type: integer
+   *       - name: positionId
+   *         in: query
+   *         required: false
+   *         description: PositionId
+   *         schema:
+   *           type: integer
    *       - name: page
    *         in: query
    *         required: true
    *         description: The page number for pagination
+   *         default: 1
    *         schema:
    *           type: integer
    *       - name: limit
    *         in: query
    *         required: true
    *         description: The number of records per page
+   *         default: 100
    *         schema:
    *           type: integer
    *     responses:
@@ -345,30 +360,22 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getAll({ request, response }: HttpContext) {
+  async index({ request, response }: HttpContext) {
     try {
       const search = request.input('search')
-      const department = request.input('department')
-      const position = request.input('position')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
-
-      const employees = await Employee.query()
-        .if(search, (query) => {
-          query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
-            `%${search.toUpperCase()}%`,
-          ])
-          query.orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
-        })
-        .if(department && position, (query) => {
-          query.where('department_id', department)
-          query.where('position_id', position)
-        })
-        .preload('department')
-        .preload('position')
-        .orderBy('employee_id')
-        .paginate(page, limit)
-
+      const filters = {
+        search: search,
+        departmentId: departmentId,
+        positionId: positionId,
+        page: page,
+        limit: limit,
+      } as EmployeeFilterSearchInterface
+      const employeeService = new EmployeeService()
+      const employees = await employeeService.index(filters)
       response.status(200)
       return {
         type: 'success',

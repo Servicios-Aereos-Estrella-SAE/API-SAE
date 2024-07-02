@@ -1,5 +1,6 @@
 import Person from '#models/person'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
+import { PersonFilterSearchInterface } from '../interfaces/person_filter_search_interface.js'
 
 export default class PersonService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -10,6 +11,23 @@ export default class PersonService {
     newPerson.personSecondLastname = lastNames.secondLastName
     await newPerson.save()
     return newPerson
+  }
+
+  async index(filters: PersonFilterSearchInterface) {
+    const persons = await Person.query()
+      .if(filters.search, (query) => {
+        query.whereRaw(
+          'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+          [`%${filters.search.toUpperCase()}%`]
+        )
+        query.orWhereRaw('UPPER(person_phone) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        query.orWhereRaw('UPPER(person_curp) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        query.orWhereRaw('UPPER(person_rfc) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        query.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+      })
+      .orderBy('person_id')
+      .paginate(filters.page, filters.limit)
+    return persons
   }
 
   async create(person: Person) {
@@ -44,6 +62,14 @@ export default class PersonService {
   async delete(currentPerson: Person) {
     await currentPerson.delete()
     return currentPerson
+  }
+
+  async show(personId: number) {
+    const person = await Person.query()
+      .whereNull('person_deleted_at')
+      .where('person_id', personId)
+      .first()
+    return person ? person : null
   }
 
   private getLastNames(lastNames: string) {
@@ -120,16 +146,8 @@ export default class PersonService {
       status: 200,
       type: 'success',
       title: 'Info verifiy successfully',
-      message: 'Info verifi successfully',
+      message: 'Info verifiy successfully',
       data: { ...person },
     }
-  }
-
-  async show(personId: number) {
-    const person = await Person.query()
-      .whereNull('person_deleted_at')
-      .where('person_id', personId)
-      .first()
-    return person ? person : null
   }
 }

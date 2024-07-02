@@ -6,6 +6,7 @@ import mail from '@adonisjs/mail/services/main'
 import env from '../../start/env.js'
 import UserService from '#services/user_service'
 import { createUserValidator, updateUserValidator } from '#validators/user'
+import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
 
 export default class UserController {
   /**
@@ -814,6 +815,149 @@ export default class UserController {
   /**
    * @swagger
    * /api/users:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Users
+   *     summary: get all
+   *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: page
+   *         in: query
+   *         required: true
+   *         description: The page number for pagination
+   *         default: 1
+   *         schema:
+   *           type: integer
+   *       - name: limit
+   *         in: query
+   *         required: true
+   *         description: The number of records per page
+   *         default: 100
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async index({ request, response }: HttpContext) {
+    try {
+      const search = request.input('search')
+      const page = request.input('page', 1)
+      const limit = request.input('limit', 100)
+      const filters = {
+        search: search,
+        page: page,
+        limit: limit,
+      } as UserFilterSearchInterface
+      const userService = new UserService()
+      const users = await userService.index(filters)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Users',
+        message: 'The users were found successfully',
+        data: {
+          users,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/users:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -1314,14 +1458,153 @@ export default class UserController {
         }
       }
     } catch (error) {
-      const messageError =
-        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
       response.status(500)
       return {
         type: 'error',
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
-        error: messageError,
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/users/{userId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Users
+   *     summary: get user by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         schema:
+   *           type: number
+   *         description: User id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const userId = request.param('userId')
+      if (!userId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The user Id was not found',
+          message: 'Missing data to process',
+          data: { userId },
+        }
+      }
+      const userService = new UserService()
+      const showUser = await userService.show(userId)
+      if (!showUser) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The user was not found',
+          message: 'The user was not found with the entered ID',
+          data: { userId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Users',
+          message: 'The user was found successfully',
+          data: { user: showUser },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
       }
     }
   }
