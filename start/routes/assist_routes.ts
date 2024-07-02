@@ -7,6 +7,7 @@ import { middleware } from '#start/kernel'
 router
   .group(() => {
     router.get('/', '#controllers/assists_controller.index')//.use(middleware.auth({ guards: ['api'] }))
+    router.get('/status', '#controllers/assists_controller.getStatusSync')
     router.post('/synchronize', '#controllers/assists_controller.synchronize')
   }).use(middleware.auth())
   .prefix('/api/v1/assists')
