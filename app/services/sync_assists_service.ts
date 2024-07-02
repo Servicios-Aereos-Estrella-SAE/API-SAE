@@ -126,7 +126,7 @@ export default class SyncAssistsService {
   ): Promise<ResponseApiAssistsDto> {
     logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
-    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/api/v1/transactions-async`
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
     apiUrl = `${apiUrl}&limit=${limit || ''}`
     apiUrl = `${apiUrl}&assistDate=${startDate.toISOString() || ''}`
