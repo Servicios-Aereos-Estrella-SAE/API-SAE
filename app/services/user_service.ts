@@ -7,9 +7,20 @@ import ApiToken from '#models/api_token'
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
     const users = await User.query()
+      .if(filters.roleId > 0, (query) => {
+        query.where('role_id', filters.roleId)
+      })
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        query.orWhereHas('person', (queryPerson) => {
+          queryPerson.whereRaw(
+            'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+            [`%${filters.search.toUpperCase()}%`]
+          )
+        })
       })
+      .preload('person')
+      .preload('role')
       .orderBy('user_id')
       .paginate(filters.page, filters.limit)
     return users
