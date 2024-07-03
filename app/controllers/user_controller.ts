@@ -828,6 +828,12 @@ export default class UserController {
    *         description: Search
    *         schema:
    *           type: string
+   *       - name: roleId
+   *         in: query
+   *         required: false
+   *         description: Role id
+   *         schema:
+   *           type: integer
    *       - name: page
    *         in: query
    *         required: true
@@ -926,10 +932,12 @@ export default class UserController {
   async index({ request, response }: HttpContext) {
     try {
       const search = request.input('search')
+      const roleId = request.input('roleId')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
         search: search,
+        roleId: roleId,
         page: page,
         limit: limit,
       } as UserFilterSearchInterface

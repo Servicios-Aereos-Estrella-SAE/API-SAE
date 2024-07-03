@@ -1,14 +1,14 @@
-// import { Server } from 'socket.io'
-// import AdonisServer from '@adonisjs/core/services/server'
+import { Server } from 'socket.io'
+import AdonisServer from '@adonisjs/core/services/server'
 
 class Ws {
-  // public io!: Server
-  /// private booted = false
-  // public boot() {
-  /**
-   * Ignore multiple calls to the boot method
-   */
-  /* if (this.booted) {
+  io: Server | undefined
+  private booted = false
+  boot() {
+    /**
+     * Ignore multiple calls to the boot method
+     */
+    if (this.booted) {
       return
     }
     this.booted = true
@@ -17,7 +17,7 @@ class Ws {
         origin: '*',
       },
     })
-  } */
+  }
 }
 
 export default new Ws()

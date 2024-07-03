@@ -1,14 +1,26 @@
-// import Ws from '#services/ws'
+import Ws from '#services/ws'
 import Person from '#models/person'
 import User from '#models/user'
 import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
+import ApiToken from '#models/api_token'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
     const users = await User.query()
+      .if(filters.roleId > 0, (query) => {
+        query.where('role_id', filters.roleId)
+      })
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        query.orWhereHas('person', (queryPerson) => {
+          queryPerson.whereRaw(
+            'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+            [`%${filters.search.toUpperCase()}%`]
+          )
+        })
       })
+      .preload('person')
+      .preload('role')
       .orderBy('user_id')
       .paginate(filters.page, filters.limit)
     return users
@@ -31,14 +43,21 @@ export default class UserService {
     currentUser.userActive = user.userActive
     currentUser.roleId = user.roleId
     await currentUser.save()
+    if (!user.userActive) {
+      await ApiToken.query().where('tokenable_id', currentUser.userId).delete()
+      if (Ws.io) {
+        Ws.io.emit(`user-forze-logout:${currentUser.userEmail}`, {})
+      }
+    }
     return currentUser
   }
 
   async delete(currentUser: User) {
     await currentUser.delete()
-    /* if (Ws.io) {
-      Ws.io.emit(`user-deleted:${currentUser.userEmail}`, {})
-    } */
+    await ApiToken.query().where('tokenable_id', currentUser.userId).delete()
+    if (Ws.io) {
+      Ws.io.emit(`user-forze-logout:${currentUser.userEmail}`, {})
+    }
     return currentUser
   }
 
