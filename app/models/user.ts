@@ -7,6 +7,7 @@ import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Person from './person.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import Role from './role.js'
 
 /**
  * @swagger
@@ -105,4 +106,9 @@ export default class User extends compose(BaseModel, SoftDeletes, AuthFinder) {
     foreignKey: 'personId',
   })
   declare person: BelongsTo<typeof Person>
+
+  @belongsTo(() => Role, {
+    foreignKey: 'roleId',
+  })
+  declare role: BelongsTo<typeof Role>
 }
