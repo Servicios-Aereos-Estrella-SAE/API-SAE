@@ -59,6 +59,36 @@ export default class AssistsController {
       return response.status(400).json({ message: error.message })
     }
   }
+  /**
+   * @swagger
+   * /api/v1/assists/status:
+   *   get:
+   *     summary: Retrieve the status of the sync assists operation
+   *     tags: [Assists]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Status retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/AssistStatusResponseDto'
+   *       400:
+   *         description: Error retrieving status
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: "Error al obtener el estado de sincronización"
+   */
+  @inject()
+  async getStatusSync({ response }: HttpContext, syncAssistsService: SyncAssistsService) {
+    return response.status(200).json(await syncAssistsService.getStatusSync())
+  }
 
   /**
    * @swagger

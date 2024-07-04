@@ -10,10 +10,32 @@ import logger from '@adonisjs/core/services/logger'
 import Employee from '#models/employee'
 import { AssistDayInterface } from '../interfaces/assist_day_interface.js'
 import { AssistInterface } from '../interfaces/assist_interface.js'
+import AssistStatusResponseDto from '#dtos/assist_status_response_dto'
 import { DailyEmployeeShiftsInterface } from '../interfaces/daily_employee_shifts_interface.js'
 import { EmployeeShiftInterface } from '../interfaces/employee_shift_interface.js'
 
 export default class SyncAssistsService {
+  /**
+   * Retrieves the status sync of assists.
+   * @returns {Promise<AssistStatusResponseDto>} The assist status response DTO.
+   */
+  async getStatusSync(): Promise<AssistStatusResponseDto | null> {
+    const assistStatusSync = await this.getAssistStatusSync()
+    let lastPageSync = await this.getLastPageSync()
+
+    if (assistStatusSync && lastPageSync) {
+      let dataApiBiometrics = await this.fetchExternalData(
+        assistStatusSync.dateRequestSync.toJSDate(),
+        lastPageSync.pageNumber
+      )
+      return new AssistStatusResponseDto(
+        assistStatusSync,
+        lastPageSync,
+        dataApiBiometrics.pagination
+      )
+    }
+    return null
+  }
   async synchronize(startDate: string, page: number = 1, limit: number = 50) {
     const dateParam = new Date(startDate)
     let statusSync = await this.getAssistStatusSync()
@@ -122,7 +144,7 @@ export default class SyncAssistsService {
   async fetchExternalData(
     startDate: Date,
     page: number,
-    limit: number
+    limit: number = 50
   ): Promise<ResponseApiAssistsDto> {
     logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
@@ -208,6 +230,15 @@ export default class SyncAssistsService {
   }
 
   async updatePagination(pagination: PaginationDto, statusSync: AssistStatusSync) {
+    // update status sync
+    logger.info(
+      `Updating status sync with id ${statusSync.id}, page total sync ${pagination.totalPages} and items total sync ${pagination.totalItems}`
+    )
+    await AssistStatusSync.query().where('id', statusSync.id).update({
+      pageTotalSync: pagination.totalPages,
+      itemsTotalSync: pagination.totalItems,
+    })
+
     for (let pageNumber: number = 1; pageNumber <= pagination.totalPages; pageNumber++) {
       let pageSync = await PageSync.query().where('page_number', pageNumber).first()
       const countItems = this.getItemsCountsPage(pageNumber, pagination)
@@ -275,6 +306,18 @@ export default class SyncAssistsService {
 
   async getLastPage() {
     return await PageSync.query().orderBy('page_number', 'desc').first()
+  }
+
+  async getLastPageSync(): Promise<PageSync | null> {
+    const lastPageSync = await PageSync.query()
+      .where('page_status', 'sync')
+      .orderBy('page_number', 'desc')
+      .first()
+    if (!lastPageSync) {
+      return await this.getLastPage()
+    } else {
+      return lastPageSync
+    }
   }
 
   async index(
@@ -456,12 +499,13 @@ export default class SyncAssistsService {
     compareDateTime: Date | DateTime,
     dailyShifs: EmployeeShiftInterface[]
   ) {
+    const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
+    const checkTime = DayTime.setZone('America/Mexico_City')
+
     const availableShifts = dailyShifs.filter((shift) => {
       const shiftDate = DateTime.fromISO(`${shift.employeShiftsApplySince}`, {
         setZone: true,
       }).setZone('America/Mexico_City')
-      const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
-      const checkTime = DayTime.setZone('America/Mexico_City')
 
       if (checkTime > shiftDate) {
         return shiftDate
@@ -511,7 +555,8 @@ export default class SyncAssistsService {
       const currentDate = DateTime.fromISO(`${dateStart}`, { setZone: true })
         .setZone('America/Mexico_City')
         .plus({ days: index })
-      const dateShift = this.getAssignedDateShift(dateStart, employeeShifts)
+
+      const dateShift = this.getAssignedDateShift(currentDate, employeeShifts)
       const fakeCheck: AssistDayInterface = {
         day: currentDate.toFormat('yyyy-LL-dd'),
         assist: {

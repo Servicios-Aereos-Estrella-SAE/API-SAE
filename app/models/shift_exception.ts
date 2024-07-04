@@ -72,7 +72,7 @@ export default class ShiftException extends BaseModel {
   declare exceptionTypeId: number
 
   @column()
-  declare shiftExceptionsDate: DateTime
+  declare shiftExceptionsDate: Date
 
   @column()
   declare shiftExceptionsDescription: string

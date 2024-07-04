@@ -12,7 +12,7 @@ import { HttpContext } from '@adonisjs/core/http'
 export default class HolidayController {
   /**
    * @swagger
-   * /holidays:
+   * /api/holidays:
    *   get:
    *     tags: [Holiday]
    *     summary: Get all holidays
@@ -63,7 +63,7 @@ export default class HolidayController {
 
   /**
    * @swagger
-   * /holidays:
+   * /api/holidays:
    *   post:
    *     tags: [Holiday]
    *     summary: Create a new holiday
@@ -119,7 +119,7 @@ export default class HolidayController {
 
   /**
    * @swagger
-   * /holidays/{id}:
+   * /api/holidays/{id}:
    *   get:
    *     tags: [Holiday]
    *     summary: Get a holiday by ID
@@ -175,7 +175,7 @@ export default class HolidayController {
 
   /**
    * @swagger
-   * /holidays/{id}:
+   * /api/holidays/{id}:
    *   put:
    *     tags: [Holiday]
    *     summary: Update a holiday
@@ -241,7 +241,7 @@ export default class HolidayController {
 
   /**
    * @swagger
-   * /holidays/{id}:
+   * /api/holidays/{id}:
    *   delete:
    *     tags: [Holiday]
    *     summary: Delete a holiday
