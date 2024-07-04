@@ -1,7 +1,6 @@
 import Employee from '#models/employee'
 import ExceptionType from '#models/exception_type'
 import vine from '@vinejs/vine'
-import { DateTime } from 'luxon'
 
 export const createShiftExceptionValidator = vine.compile(
   vine.object({
@@ -15,7 +14,7 @@ export const createShiftExceptionValidator = vine.compile(
         .first()
       return !!existingExceptionType
     }),
-    shiftExceptionsDate: vine.string().transform((value) => DateTime.fromISO(value)),
+    shiftExceptionsDate: vine.date(),
     shiftExceptionsDescription: vine.string(),
   })
 )
