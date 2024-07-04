@@ -1166,7 +1166,7 @@ export default class UserController {
    *               userPassword:
    *                 type: string
    *                 description: User password
-   *                 required: true
+   *                 required: false
    *                 default: ''
    *               userActive:
    *                 type: boolean
