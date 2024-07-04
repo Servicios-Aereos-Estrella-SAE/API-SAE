@@ -67,6 +67,7 @@
     "adonis-lucid-soft-deletes": "^2.0.0",
     "adonisjs-6-swagger": "^1.0.1",
     "adonisjs-queue": "^0.1.10",
+    "adonisjs-scheduler": "^1.0.5",
     "argon2": "^0.40.3",
     "axios": "^1.7.2",
     "edge.js": "^6.0.2",
