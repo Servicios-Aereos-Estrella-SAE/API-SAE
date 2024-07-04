@@ -6,6 +6,7 @@ import ApiToken from '#models/api_token'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
+    const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
     const users = await User.query()
       .if(filters.roleId > 0, (query) => {
         query.where('role_id', filters.roleId)
@@ -21,6 +22,7 @@ export default class UserService {
       })
       .preload('person')
       .preload('role')
+      .select(selectedColumns)
       .orderBy('user_id')
       .paginate(filters.page, filters.limit)
     return users
@@ -39,7 +41,7 @@ export default class UserService {
 
   async update(currentUser: User, user: User) {
     currentUser.userEmail = user.userEmail
-    currentUser.userPassword = user.userPassword
+    currentUser.userPassword = user.userPassword ? user.userPassword : currentUser.userPassword
     currentUser.userActive = user.userActive
     currentUser.roleId = user.roleId
     await currentUser.save()
@@ -62,7 +64,12 @@ export default class UserService {
   }
 
   async show(userId: number) {
-    const user = await User.query().whereNull('user_deleted_at').where('user_id', userId).first()
+    const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
+    const user = await User.query()
+      .whereNull('user_deleted_at')
+      .where('user_id', userId)
+      .select(selectedColumns)
+      .first()
     return user ? user : null
   }
 
