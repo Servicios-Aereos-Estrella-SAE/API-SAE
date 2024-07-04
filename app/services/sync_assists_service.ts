@@ -456,12 +456,13 @@ export default class SyncAssistsService {
     compareDateTime: Date | DateTime,
     dailyShifs: EmployeeShiftInterface[]
   ) {
+    const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
+    const checkTime = DayTime.setZone('America/Mexico_City')
+
     const availableShifts = dailyShifs.filter((shift) => {
       const shiftDate = DateTime.fromISO(`${shift.employeShiftsApplySince}`, {
         setZone: true,
       }).setZone('America/Mexico_City')
-      const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
-      const checkTime = DayTime.setZone('America/Mexico_City')
 
       if (checkTime > shiftDate) {
         return shiftDate
@@ -511,7 +512,8 @@ export default class SyncAssistsService {
       const currentDate = DateTime.fromISO(`${dateStart}`, { setZone: true })
         .setZone('America/Mexico_City')
         .plus({ days: index })
-      const dateShift = this.getAssignedDateShift(dateStart, employeeShifts)
+
+      const dateShift = this.getAssignedDateShift(currentDate, employeeShifts)
       const fakeCheck: AssistDayInterface = {
         day: currentDate.toFormat('yyyy-LL-dd'),
         assist: {
