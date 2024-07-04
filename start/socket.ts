@@ -1,11 +1,13 @@
-// import Ws from '#services/ws'
-// Ws.boot()
+import Ws from '#services/ws'
+Ws.boot()
 
 /**
  * Listen for incoming socket connections
  */
-/* Ws.io.on('connection', (socket) => {
-  socket.on('join-room', (_data) => {
-    socket.join(`room-${_data.room}`)
+if (Ws.io) {
+  Ws.io.on('connection', (socket) => {
+    socket.on('join-room', (_data) => {
+      socket.join(`room-${_data.room}`)
+    })
   })
-}) */
+}
