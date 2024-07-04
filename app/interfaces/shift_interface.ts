@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 interface ShiftInterface {
   shiftId: number | null
   shiftName: string
@@ -5,9 +7,9 @@ interface ShiftInterface {
   shiftTimeStart: string
   shiftActiveHours: number
   shiftRestDays: string
-  shiftCreatedAt: Date | string | null
-  shiftUpdatedAt: Date | string | null
-  shiftDeletedAt: Date | string | null
+  shiftCreatedAt: Date | DateTime | string | null
+  shiftUpdatedAt: Date | DateTime | string | null
+  shiftDeletedAt?: Date | DateTime | string | null
 }
 
 export type { ShiftInterface }

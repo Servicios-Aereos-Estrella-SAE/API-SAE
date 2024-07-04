@@ -95,6 +95,8 @@ export default class AssistsController {
    * /api/v1/assists:
    *   get:
    *     summary: get assists list
+   *     security:
+   *       - bearerAuth: []
    *     tags: [Assists]
    *     parameters:
    *       - name: date
@@ -106,28 +108,14 @@ export default class AssistsController {
    *         description: Date from get list
    *       - name: date-end
    *         in: query
-   *         required: false
+   *         required: true
    *         schema:
    *           type: string
    *         default: "2024-12-31"
-   *         description: Date limit to get list, if not setted default is NOW()
-   *       - name: page
+   *         description: Date limit to get list
+   *       - name: employeeId
    *         in: query
-   *         required: false
-   *         schema:
-   *           type: number
-   *         default: "1"
-   *         description: Number of paginator page
-   *       - name: limit
-   *         in: query
-   *         required: false
-   *         schema:
-   *           type: number
-   *         default: "50"
-   *         description: Number of limit on paginator page
-   *       - name: employee
-   *         in: query
-   *         required: false
+   *         required: true
    *         schema:
    *           type: number
    *         description: Number of limit on paginator page
@@ -138,6 +126,7 @@ export default class AssistsController {
    *           application/json:
    *             schema:
    *               type: object
+   *               example: {}
    *       400:
    *         description: Invalid data
    *         content:
@@ -147,7 +136,7 @@ export default class AssistsController {
    */
   async index({ request, response }: HttpContext) {
     const syncAssistsService = new SyncAssistsService()
-    const employeeID = request.input('employee')
+    const employeeID = request.input('employeeId')
     const filterDate = request.input('date')
     const filterDateEnd = request.input('date-end')
     const page = request.input('page')
@@ -155,7 +144,11 @@ export default class AssistsController {
 
     try {
       const result = await syncAssistsService.index(
-        { date: filterDate, dateEnd: filterDateEnd, employeeID: employeeID },
+        {
+          date: filterDate,
+          dateEnd: filterDateEnd,
+          employeeID: employeeID,
+        },
         { page, limit }
       )
       return response.status(result.status).json(result)

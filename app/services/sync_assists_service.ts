@@ -11,8 +11,9 @@ import Employee from '#models/employee'
 import { AssistDayInterface } from '../interfaces/assist_day_interface.js'
 import { AssistInterface } from '../interfaces/assist_interface.js'
 import AssistStatusResponseDto from '#dtos/assist_status_response_dto'
-import { DailyEmployeeShiftsInterface } from '../interfaces/daily_employee_shifts_interface.js'
-import { EmployeeShiftInterface } from '../interfaces/employee_shift_interface.js'
+import ShiftForEmployeeService from './shift_for_employees_service.js'
+import { EmployeeRecordInterface } from '../interfaces/employee_record_interface.js'
+import type { ShiftRecordInterface } from '../interfaces/shift_record_interface.js'
 
 export default class SyncAssistsService {
   /**
@@ -321,9 +322,14 @@ export default class SyncAssistsService {
   }
 
   async index(
-    params: { date: string; dateEnd: string; employeeID?: number },
+    params: {
+      date: string
+      dateEnd: string
+      employeeID?: number
+    },
     paginator?: { page: number; limit: number }
   ) {
+    const intialSyncDate = '2024-01-01T00:00:00.000-06:00'
     const stringDate = `${params.date}T00:00:00.000-06:00`
     const time = DateTime.fromISO(stringDate, { setZone: true })
     const timeCST = time.setZone('America/Mexico_City')
@@ -364,72 +370,28 @@ export default class SyncAssistsService {
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 50)
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
-    const dailyShifts: DailyEmployeeShiftsInterface[] = [
-      {
-        employeeId: 178,
-        employeeSyncId: '191',
-        employeeCode: '28000008',
-        employeeFirstName: 'Fernando',
-        employeeLastName: 'Hernández Cruz',
-        employeePayrollNum: 'SILER',
-        employeeHireDate: '2023-02-21',
-        companyId: 1,
-        departmentId: 14,
-        positionId: 52,
-        departmentSyncId: '28',
-        positionSyncId: '110',
-        personId: 183,
-        employeeLastSynchronizationAt: '2024-06-25T14:23:39.000Z',
-        employeeCreatedAt: '2024-06-23T00:34:10.000+00:00',
-        employeeUpdatedAt: '2024-06-25T14:23:38.000+00:00',
-        employeeDeletedAt: null,
-        employeeShifts: [
-          {
-            employeeShiftId: 1,
-            employeeId: 178,
-            shiftId: 1,
-            employeShiftsApplySince: '2024-04-01T06:00:00.000+00:00',
-            employeShiftsCreatedAt: '2024-01-01 16:00:16',
-            employeShiftsUpdatedAt: '2024-01-01 16:00:16',
-            employeShiftsDeletedAt: null,
-            shift: {
-              shiftId: 1,
-              shiftName: 'Estandar',
-              shiftDayStart: 1,
-              shiftTimeStart: '08:00:00',
-              shiftActiveHours: 10,
-              shiftRestDays: '6,7',
-              shiftCreatedAt: '2024-01-01 16:00:16',
-              shiftUpdatedAt: '2024-01-01 16:00:16',
-              shiftDeletedAt: null,
-            },
-          },
-          {
-            employeeShiftId: 2,
-            employeeId: 178,
-            shiftId: 2,
-            employeShiftsApplySince: '2024-06-18T06:00:00.000+00:00',
-            employeShiftsCreatedAt: '2024-06-18 00:00:16',
-            employeShiftsUpdatedAt: '2024-06-18 00:00:16',
-            employeShiftsDeletedAt: null,
-            shift: {
-              shiftId: 2,
-              shiftName: 'Estandar',
-              shiftDayStart: 1,
-              shiftTimeStart: '08:00:00',
-              shiftActiveHours: 10,
-              shiftRestDays: '6,7',
-              shiftCreatedAt: '2024-04-30 16:00:16',
-              shiftUpdatedAt: '2024-04-30 16:00:16',
-              shiftDeletedAt: null,
-            },
-          },
-        ],
-      },
-    ]
 
-    const employeeShifts: EmployeeShiftInterface[] = dailyShifts[0]
-      .employeeShifts as EmployeeShiftInterface[]
+    const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(
+      {
+        dateStart: intialSyncDate,
+        dateEnd: stringEndDate,
+        employeeId: params.employeeID,
+      },
+      999999999999999,
+      1
+    )
+
+    if (serviceResponse.status !== 200) {
+      return serviceResponse
+    }
+
+    const dailyShifts: EmployeeRecordInterface[] =
+      serviceResponse.status === 200
+        ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[])
+        : []
+
+    const employeeShifts: ShiftRecordInterface[] = dailyShifts[0]
+      .employeeShifts as ShiftRecordInterface[]
 
     assistListFlat.forEach((item) => {
       const assist = item as AssistInterface
@@ -488,8 +450,6 @@ export default class SyncAssistsService {
       title: 'Successfully action',
       message: 'Success access data',
       data: {
-        meta: assistList.toJSON().meta,
-        data: assistDayCollection.sort(),
         employeeCalendar,
       },
     }
@@ -497,7 +457,7 @@ export default class SyncAssistsService {
 
   private getAssignedDateShift(
     compareDateTime: Date | DateTime,
-    dailyShifs: EmployeeShiftInterface[]
+    dailyShifs: ShiftRecordInterface[]
   ) {
     const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
     const checkTime = DayTime.setZone('America/Mexico_City')
@@ -511,7 +471,6 @@ export default class SyncAssistsService {
         return shiftDate
       }
     })
-
     availableShifts.sort((a, b) => {
       const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
         setZone: true,
@@ -539,7 +498,7 @@ export default class SyncAssistsService {
     dateStart: Date | DateTime,
     dateEnd: Date | DateTime,
     employeeAssist: AssistDayInterface[],
-    employeeShifts: EmployeeShiftInterface[]
+    employeeShifts: ShiftRecordInterface[]
   ) {
     const dateTimeStart = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone(
       'America/Mexico_City'
