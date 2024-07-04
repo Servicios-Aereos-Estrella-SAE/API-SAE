@@ -48,7 +48,7 @@ export default class SyncAssistance extends BaseCommand {
     try {
       await mail.send((message) => {
         message
-          .to('wramirez@siler-mx.com')
+          .to('rogelio.jinestas@gmail.com')
           .from('wilvardo@gmail.com')
           .subject('Synchronization')
           .text(messageText)
