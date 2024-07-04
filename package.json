@@ -67,6 +67,7 @@
     "adonis-lucid-soft-deletes": "^2.0.0",
     "adonisjs-6-swagger": "^1.0.1",
     "adonisjs-queue": "^0.1.10",
+    "adonisjs-scheduler": "^1.0.5",
     "argon2": "^0.40.3",
     "axios": "^1.7.2",
     "edge.js": "^6.0.2",
@@ -76,6 +77,7 @@
     "phc-argon2": "^1.1.4",
     "phc-bcrypt": "^1.0.8",
     "reflect-metadata": "^0.2.2",
+    "socket.io": "^4.7.5",
     "uuidv4": "^6.2.13"
   },
   "hotHook": {
