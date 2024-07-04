@@ -49,7 +49,7 @@ export const updateShiftValidator = (id: any) =>
           return !existingShift
         }),
       shiftDayStart: vine.number().min(0).max(6),
-      shiftTimeStart: vine.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/),
+      shiftTimeStart: vine.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/),
       shiftActiveHours: vine.number().min(1).max(72),
       shiftRestDays: vine.any().transform((value) => {
         const restDaysArray = value.split(',').map(Number)
@@ -60,7 +60,7 @@ export const updateShiftValidator = (id: any) =>
         if (uniqueDays.size !== restDaysArray.length) {
           throw new Error('Shift rest days must not contain duplicate values')
         }
-        return restDaysArray
+        return restDaysArray.join(',')
       }),
     })
   )
