@@ -20,6 +20,9 @@ export default class UserService {
           )
         })
       })
+      .whereHas('person', (builder) => {
+        builder.whereNull('person_deleted_at')
+      })
       .preload('person')
       .preload('role')
       .select(selectedColumns)
@@ -41,7 +44,9 @@ export default class UserService {
 
   async update(currentUser: User, user: User) {
     currentUser.userEmail = user.userEmail
-    currentUser.userPassword = user.userPassword ? user.userPassword : currentUser.userPassword
+    if (user.userPassword) {
+      currentUser.userPassword = user.userPassword
+    }
     currentUser.userActive = user.userActive
     currentUser.roleId = user.roleId
     await currentUser.save()

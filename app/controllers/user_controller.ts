@@ -1089,7 +1089,11 @@ export default class UserController {
   async store({ request, response }: HttpContext) {
     try {
       const userEmail = request.input('userEmail')
-      const userPassword = request.input('userPassword')
+      let userPassword = request.input('userPassword')
+      const passwordArray = Array.isArray(userPassword)
+      userPassword = passwordArray
+        ? userPassword.map((item: string) => item).join(',')
+        : userPassword
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
       const personId = request.input('personId')
@@ -1263,7 +1267,11 @@ export default class UserController {
     try {
       const userId = request.param('userId')
       const userEmail = request.input('userEmail')
-      const userPassword = request.input('userPassword')
+      let userPassword = request.input('userPassword')
+      const passwordArray = Array.isArray(userPassword)
+      userPassword = passwordArray
+        ? userPassword.map((item: string) => item).join(',')
+        : userPassword
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
       const user = {
