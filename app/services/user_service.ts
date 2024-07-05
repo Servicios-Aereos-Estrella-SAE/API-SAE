@@ -9,9 +9,6 @@ export default class UserService {
     const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
     const users = await User.query()
       .whereNull('user_deleted_at')
-      .if(filters.roleId > 0, (query) => {
-        query.andWhere('role_id', filters.roleId)
-      })
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
         query.orWhereHas('person', (queryPerson) => {
@@ -21,7 +18,10 @@ export default class UserService {
           )
         })
       })
-      .andWhereHas('person', (query) => {
+      .if(filters.roleId > 0, (query) => {
+        query.where('role_id', filters.roleId)
+      })
+      .whereHas('person', (query) => {
         query.whereNull('person_deleted_at')
       })
       .preload('person')

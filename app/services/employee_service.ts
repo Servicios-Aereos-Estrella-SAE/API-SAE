@@ -283,7 +283,7 @@ export default class EmployeeService {
 
   async indexWithOutUser(filters: EmployeeFilterSearchInterface) {
     const personUsed = await User.query()
-      .withTrashed()
+      .whereNull('user_deleted_at')
       .select('person_id')
       .distinct('person_id')
       .orderBy('person_id')
