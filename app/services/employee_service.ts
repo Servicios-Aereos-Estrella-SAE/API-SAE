@@ -90,6 +90,9 @@ export default class EmployeeService {
         ])
         query.orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
       })
+      .if(filters.departmentId, (query) => {
+        query.where('department_id', filters.departmentId)
+      })
       .if(filters.departmentId && filters.positionId, (query) => {
         query.where('department_id', filters.departmentId)
         query.where('position_id', filters.positionId)
