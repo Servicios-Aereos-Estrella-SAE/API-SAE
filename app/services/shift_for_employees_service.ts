@@ -1,0 +1,120 @@
+import EmployeeShift from '#models/employee_shift'
+import { DateTime } from 'luxon'
+import type { ShiftForEmployeeFiltersInterface } from '../interfaces/shift_for_employee_filters_interface.js'
+import type { EmployeeRecordInterface } from '../interfaces/employee_record_interface.js'
+
+export default class ShiftForEmployeeService {
+  async getEmployeeShifts(
+    filters: ShiftForEmployeeFiltersInterface,
+    limitPage: number,
+    nPage: number
+  ) {
+    const onlyDateStart = filters.dateStart
+    const onliDateEnd = filters.dateEnd
+    const startDate =
+      DateTime.fromISO(onlyDateStart, { setZone: true }).setZone('America/Mexico_City') || ''
+    const endDate =
+      DateTime.fromISO(onliDateEnd, { setZone: true }).setZone('America/Mexico_City') || ''
+
+    const page = nPage || 1
+    const limit = limitPage || 10
+
+    if (startDate >= endDate) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'startDate must be less than endDate',
+      }
+    }
+
+    let query = EmployeeShift.query()
+      .whereBetween('employeShiftsApplySince', [onlyDateStart, onliDateEnd])
+      .preload('employee')
+      .preload('shift')
+      .whereNull('employeShiftsDeletedAt')
+
+    if (filters.employeeId) {
+      query = query.where('employeeId', filters.employeeId)
+    }
+
+    const records = await query.paginate(page, limit)
+
+    if (records.length === 0) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'no_employee_shifts',
+        message: 'The employe has not shifts',
+        data: null,
+      }
+    }
+
+    const employeeRecords = records.reduce(
+      (acc, record) => {
+        if (!acc[record.employeeId]) {
+          acc[record.employeeId] = {
+            employeeId: record.employeeId,
+            employeeSyncId: record.employee.employeeSyncId,
+            employeeCode: record.employee.employeeCode,
+            employeeFirstName: record.employee.employeeFirstName,
+            employeeLastName: record.employee.employeeLastName,
+            employeePayrollNum: record.employee.employeePayrollNum,
+            employeeHireDate: record.employee.employeeHireDate,
+            companyId: record.employee.companyId,
+            departmentId: record.employee.departmentId,
+            positionId: record.employee.positionId,
+            departmentSyncId: record.employee.departmentSyncId,
+            positionSyncId: record.employee.positionSyncId,
+            employeeLastSynchronizationAt: record.employee.employeeLastSynchronizationAt,
+            employeeCreatedAt: record.employee.employeeCreatedAt,
+            employeeUpdatedAt: record.employee.employeeUpdatedAt,
+            employeeShifts: [],
+          }
+        }
+        acc[record.employeeId].employeeShifts.push({
+          employeeShiftId: record.employeeShiftId,
+          employeeId: record.employeeId,
+          shiftId: record.shiftId,
+          employeShiftsApplySince: record.employeShiftsApplySince,
+          shiftDate: record.employeShiftsCreatedAt,
+          shift: {
+            shiftId: record.shift.shiftId,
+            shiftName: record.shift.shiftName,
+            shiftDayStart: record.shift.shiftDayStart,
+            shiftTimeStart: record.shift.shiftTimeStart,
+            shiftActiveHours: record.shift.shiftActiveHours,
+            shiftRestDays: record.shift.shiftRestDays,
+            shiftCreatedAt: record.shift.shiftCreatedAt,
+            shiftUpdatedAt: record.shift.shiftUpdatedAt,
+          },
+        })
+        return acc
+      },
+      {} as { [key: number]: EmployeeRecordInterface }
+    )
+
+    Object.values(employeeRecords).forEach((employee: EmployeeRecordInterface) => {
+      employee.employeeShifts.sort(
+        (a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime()
+      )
+    })
+
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Successfully fetched',
+      message: 'Records fetched successfully',
+      data: {
+        meta: {
+          total: records.total,
+          per_page: records.perPage,
+          current_page: records.currentPage,
+          last_page: records.lastPage,
+          first_page: 1,
+        },
+        data: Object.values(employeeRecords),
+      },
+    }
+  }
+}
