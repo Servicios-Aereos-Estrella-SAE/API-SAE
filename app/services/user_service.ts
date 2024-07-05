@@ -8,8 +8,9 @@ export default class UserService {
   async index(filters: UserFilterSearchInterface) {
     const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
     const users = await User.query()
+      .whereNull('user_deleted_at')
       .if(filters.roleId > 0, (query) => {
-        query.where('role_id', filters.roleId)
+        query.andWhere('role_id', filters.roleId)
       })
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
@@ -20,8 +21,8 @@ export default class UserService {
           )
         })
       })
-      .whereHas('person', (builder) => {
-        builder.whereNull('person_deleted_at')
+      .andWhereHas('person', (query) => {
+        query.whereNull('person_deleted_at')
       })
       .preload('person')
       .preload('role')
@@ -73,6 +74,8 @@ export default class UserService {
     const user = await User.query()
       .whereNull('user_deleted_at')
       .where('user_id', userId)
+      .preload('person')
+      .preload('role')
       .select(selectedColumns)
       .first()
     return user ? user : null

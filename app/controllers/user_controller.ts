@@ -1118,6 +1118,7 @@ export default class UserController {
       }
       const newUser = await userService.create(user)
       if (newUser) {
+        response.status(201)
         return {
           type: 'success',
           title: 'Users',
@@ -1265,6 +1266,7 @@ export default class UserController {
    */
   async update({ request, response }: HttpContext) {
     try {
+      const input = request.all()
       const userId = request.param('userId')
       const userEmail = request.input('userEmail')
       let userPassword = request.input('userPassword')
@@ -1272,6 +1274,8 @@ export default class UserController {
       userPassword = passwordArray
         ? userPassword.map((item: string) => item).join(',')
         : userPassword
+      input.userPassword = userPassword
+      request.updateBody(input)
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
       const user = {
