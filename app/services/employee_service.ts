@@ -2,6 +2,7 @@ import Department from '#models/department'
 import Employee from '#models/employee'
 import Person from '#models/person'
 import Position from '#models/position'
+import User from '#models/user'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
 import DepartmentService from './department_service.js'
@@ -278,5 +279,34 @@ export default class EmployeeService {
       message: 'Info verifiy successfully',
       data: { ...employee },
     }
+  }
+
+  async indexWithOutUser(filters: EmployeeFilterSearchInterface) {
+    const personUsed = await User.query()
+      .withTrashed()
+      .select('person_id')
+      .distinct('person_id')
+      .orderBy('person_id')
+    const persons = [] as Array<number>
+    for await (const user of personUsed) {
+      persons.push(user.personId)
+    }
+    const employees = await Employee.query()
+      .if(filters.search, (query) => {
+        query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+          `%${filters.search.toUpperCase()}%`,
+        ])
+        query.orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+      })
+      .if(filters.departmentId && filters.positionId, (query) => {
+        query.where('department_id', filters.departmentId)
+        query.where('position_id', filters.positionId)
+      })
+      .whereNotIn('person_id', persons)
+      .preload('department')
+      .preload('position')
+      .orderBy('employee_id')
+      .paginate(filters.page, filters.limit)
+    return employees
   }
 }

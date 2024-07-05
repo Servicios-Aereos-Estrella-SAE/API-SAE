@@ -15,7 +15,6 @@ export const createUserValidator = vine.compile(
           .first()
         return !existingEmail
       }),
-    userPassword: vine.string().trim().minLength(1).maxLength(255),
     userActive: vine.boolean(),
     roleId: vine.number().min(1),
     personId: vine
@@ -34,7 +33,6 @@ export const createUserValidator = vine.compile(
 export const updateUserValidator = vine.compile(
   vine.object({
     userEmail: vine.string().trim().minLength(0).maxLength(200),
-    userPassword: vine.string().trim().minLength(1).maxLength(255).optional(),
     userActive: vine.boolean(),
     roleId: vine.number().min(1),
   })

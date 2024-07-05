@@ -29,4 +29,3 @@ router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
   return view.render('swagger', { specUrl })
 })
-
