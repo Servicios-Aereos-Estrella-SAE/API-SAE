@@ -1,9 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { fetchRecordsValidator } from '../validators/shift_for_employees.js'
-import { DateTime } from 'luxon'
-import EmployeeShift from '#models/employee_shift'
 import ShiftForEmployeeService from '#services/shift_for_employees_service'
-import { EmployeeRecordInterface } from '../interfaces/employee_record_interface.js'
 
 /**
  * @swagger
