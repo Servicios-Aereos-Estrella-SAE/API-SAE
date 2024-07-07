@@ -16,8 +16,10 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         employeeId:
  *           type: number
  *           description: ID of the associated employee
+ *           nullable: false
  *         shiftId:
  *           type: number
+ *           nullable: false
  *           description: ID of the associated shift
  *         employeShiftCreatedAt:
  *           type: string
@@ -53,7 +55,7 @@ import * as relations from '@adonisjs/lucid/types/relations'
 
 export default class EmployeeShift extends BaseModel {
   @column({ isPrimary: true })
-  declare employeShiftId: number
+  declare employeeShiftId: number
 
   @column()
   declare employeeId: number
@@ -62,17 +64,24 @@ export default class EmployeeShift extends BaseModel {
   declare shiftId: number
 
   @column.dateTime({ autoCreate: true })
-  declare employeShiftCreatedAt: DateTime
+  declare employeShiftsCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare employeShiftUpdatedAt: DateTime
+  declare employeShiftsUpdatedAt: DateTime
 
   @column.dateTime()
-  declare employeShiftDeletedAt: DateTime
+  declare employeShiftsDeletedAt: DateTime
 
-  @belongsTo(() => Employee)
-  declare employee: relations.BelongsTo<typeof Employee>
+  @column.dateTime()
+  declare employeShiftsApplySince: DateTime
 
-  @belongsTo(() => Shift)
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeId', // Especifica la columna de clave externa si es diferente de 'id'
+  })
+  employee!: relations.BelongsTo<typeof Employee>
+
+  @belongsTo(() => Shift, {
+    foreignKey: 'shiftId',
+  })
   declare shift: relations.BelongsTo<typeof Shift>
 }

@@ -1,7 +1,7 @@
-import StatusSync from '#models/status_sync'
+import AssistStatusSync from '#models/assist_status_sync'
 import { DateTime } from 'luxon'
 import axios from 'axios'
-import PageSync from '#models/page_sync'
+import PageSync from '#models/assist_page_sync'
 import ResponseApiAssistsDto from '#dtos/response_api_assists_dto'
 import PaginationDto from '#dtos/pagination_api_dto'
 import Assist from '#models/assist'
@@ -10,15 +10,40 @@ import logger from '@adonisjs/core/services/logger'
 import Employee from '#models/employee'
 import { AssistDayInterface } from '../interfaces/assist_day_interface.js'
 import { AssistInterface } from '../interfaces/assist_interface.js'
+import AssistStatusResponseDto from '#dtos/assist_status_response_dto'
+import ShiftForEmployeeService from './shift_for_employees_service.js'
+import { EmployeeRecordInterface } from '../interfaces/employee_record_interface.js'
+import type { ShiftRecordInterface } from '../interfaces/shift_record_interface.js'
 
 export default class SyncAssistsService {
+  /**
+   * Retrieves the status sync of assists.
+   * @returns {Promise<AssistStatusResponseDto>} The assist status response DTO.
+   */
+  async getStatusSync(): Promise<AssistStatusResponseDto | null> {
+    const assistStatusSync = await this.getAssistStatusSync()
+    let lastPageSync = await this.getLastPageSync()
+
+    if (assistStatusSync && lastPageSync) {
+      let dataApiBiometrics = await this.fetchExternalData(
+        assistStatusSync.dateRequestSync.toJSDate(),
+        lastPageSync.pageNumber
+      )
+      return new AssistStatusResponseDto(
+        assistStatusSync,
+        lastPageSync,
+        dataApiBiometrics.pagination
+      )
+    }
+    return null
+  }
   async synchronize(startDate: string, page: number = 1, limit: number = 50) {
     const dateParam = new Date(startDate)
-    let statusSync = await this.getStatusSync()
+    let statusSync = await this.getAssistStatusSync()
     if (!statusSync) {
       page = 1
       let response = await this.fetchExternalData(dateParam, page, limit)
-      statusSync = await this.createStatusSync(response.pagination)
+      statusSync = await this.createAssistStatusSync(response.pagination)
       await this.createPageSyncRecords(statusSync.id, response.pagination)
       await this.updateLocalData(response)
     } else if (new Date(statusSync.dateRequestSync.toJSDate()) > dateParam) {
@@ -50,7 +75,7 @@ export default class SyncAssistsService {
   }
 
   async handleSyncAssists(
-    statusSync: StatusSync,
+    statusSync: AssistStatusSync,
     dateParam: Date,
     page: number = 1,
     limit: number = 50
@@ -65,20 +90,21 @@ export default class SyncAssistsService {
     const pageSync = await PageSync.query().where('id', pageSyncId).first()
     return pageSync?.pageStatus === 'sync'
   }
+  getLogger = () => logger
 
   async getAssistsRecords(dateParam: Date, page: number, limit: number) {
     return Assist.query()
-      .where('punchTime', '>', dateParam)
-      .orderBy('punch_time', 'asc')
+      .where('assistPunchTime', '>', dateParam)
+      .orderBy('assistPunchTime', 'asc')
       .paginate(page, limit)
   }
 
-  async getStatusSync() {
-    return await StatusSync.query().orderBy('date_request_sync', 'desc').first()
+  async getAssistStatusSync() {
+    return await AssistStatusSync.query().orderBy('date_request_sync', 'desc').first()
   }
 
-  async createStatusSync(pagination: PaginationDto) {
-    return await StatusSync.create({
+  async createAssistStatusSync(pagination: PaginationDto) {
+    return await AssistStatusSync.create({
       dateRequestSync: DateTime.fromISO(pagination.DateParam.toString()),
       dateTimeStartSync: DateTime.fromISO(pagination.DateParam.toString()),
       statusSync: 'in_process',
@@ -97,7 +123,7 @@ export default class SyncAssistsService {
   }
 
   async resetSyncStatus(pagination: PaginationDto, statusSyncId: number) {
-    const statusSync = await StatusSync.query().where('id', statusSyncId).first()
+    const statusSync = await AssistStatusSync.query().where('id', statusSyncId).first()
     if (statusSync) {
       await statusSync
         .merge({
@@ -119,7 +145,7 @@ export default class SyncAssistsService {
   async fetchExternalData(
     startDate: Date,
     page: number,
-    limit: number
+    limit: number = 50
   ): Promise<ResponseApiAssistsDto> {
     logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
@@ -127,6 +153,7 @@ export default class SyncAssistsService {
     apiUrl = `${apiUrl}?page=${page || ''}`
     apiUrl = `${apiUrl}&limit=${limit || ''}`
     apiUrl = `${apiUrl}&assistDate=${startDate.toISOString() || ''}`
+    logger.info(`API URL: ${apiUrl}`)
     const apiResponse = await axios.get(apiUrl)
     let responseDataDto: ResponseApiAssistsDto
     responseDataDto = apiResponse.data
@@ -141,34 +168,34 @@ export default class SyncAssistsService {
       if (existingAssist) {
         await existingAssist
           .merge({
-            empCode: item.emp_code,
-            terminalSn: item.terminal_sn,
-            terminalAlias: item.terminal_alias,
-            areaAlias: item.area_alias,
-            longitude: item.longitude,
-            latitude: item.latitude,
-            uploadTime: DateTime.fromISO(item.upload_time.toString()),
-            empId: item.emp_id,
-            terminalId: item.terminal_id,
-            punchTime: DateTime.fromISO(item.punch_time_local.toString()),
-            punchTimeUtc: DateTime.fromISO(item.punch_time.toString()),
-            punchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
+            assistEmpCode: item.emp_code,
+            assistTerminalSn: item.terminal_sn,
+            assistTerminalAlias: item.terminal_alias,
+            assistAreaAlias: item.area_alias,
+            assistLongitude: item.longitude,
+            assistLatitude: item.latitude,
+            assistUploadTime: DateTime.fromISO(item.upload_time.toString()),
+            assistEmpId: item.emp_id,
+            assistTerminalId: item.terminal_id,
+            assistPunchTime: DateTime.fromISO(item.punch_time_local.toString()),
+            assistPunchTimeUtc: DateTime.fromISO(item.punch_time.toString()),
+            assistPunchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
           })
           .save()
       } else {
         const newAssist = new Assist()
-        newAssist.empCode = item.emp_code
-        newAssist.terminalSn = item.terminal_sn
-        newAssist.terminalAlias = item.terminal_alias
-        newAssist.areaAlias = item.area_alias
-        newAssist.longitude = item.longitude
-        newAssist.latitude = item.latitude
-        newAssist.uploadTime = DateTime.fromISO(item.upload_time.toString())
-        newAssist.empId = item.emp_id
-        newAssist.terminalId = item.terminal_id
-        newAssist.punchTime = DateTime.fromISO(item.punch_time_local.toString())
-        newAssist.punchTimeUtc = DateTime.fromISO(item.punch_time.toString())
-        newAssist.punchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
+        newAssist.assistEmpCode = item.emp_code
+        newAssist.assistTerminalSn = item.terminal_sn
+        newAssist.assistTerminalAlias = item.terminal_alias
+        newAssist.assistAreaAlias = item.area_alias
+        newAssist.assistLongitude = item.longitude
+        newAssist.assistLatitude = item.latitude
+        newAssist.assistUploadTime = DateTime.fromISO(item.upload_time.toString())
+        newAssist.assistEmpId = item.emp_id
+        newAssist.assistTerminalId = item.terminal_id
+        newAssist.assistPunchTime = DateTime.fromISO(item.punch_time_local.toString())
+        newAssist.assistPunchTimeUtc = DateTime.fromISO(item.punch_time.toString())
+        newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
       }
@@ -203,7 +230,16 @@ export default class SyncAssistsService {
     }
   }
 
-  async updatePagination(pagination: PaginationDto, statusSync: StatusSync) {
+  async updatePagination(pagination: PaginationDto, statusSync: AssistStatusSync) {
+    // update status sync
+    logger.info(
+      `Updating status sync with id ${statusSync.id}, page total sync ${pagination.totalPages} and items total sync ${pagination.totalItems}`
+    )
+    await AssistStatusSync.query().where('id', statusSync.id).update({
+      pageTotalSync: pagination.totalPages,
+      itemsTotalSync: pagination.totalItems,
+    })
+
     for (let pageNumber: number = 1; pageNumber <= pagination.totalPages; pageNumber++) {
       let pageSync = await PageSync.query().where('page_number', pageNumber).first()
       const countItems = this.getItemsCountsPage(pageNumber, pagination)
@@ -273,22 +309,44 @@ export default class SyncAssistsService {
     return await PageSync.query().orderBy('page_number', 'desc').first()
   }
 
+  async getLastPageSync(): Promise<PageSync | null> {
+    const lastPageSync = await PageSync.query()
+      .where('page_status', 'sync')
+      .orderBy('page_number', 'desc')
+      .first()
+    if (!lastPageSync) {
+      return await this.getLastPage()
+    } else {
+      return lastPageSync
+    }
+  }
+
   async index(
-    params: { date: string; dateEnd: string; employeeID?: number },
+    params: {
+      date: string
+      dateEnd: string
+      employeeID?: number
+    },
     paginator?: { page: number; limit: number }
   ) {
+    const intialSyncDate = '2024-01-01T00:00:00.000-06:00'
     const stringDate = `${params.date}T00:00:00.000-06:00`
     const time = DateTime.fromISO(stringDate, { setZone: true })
     const timeCST = time.setZone('America/Mexico_City')
     const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
 
+    const stringEndDate = `${params.dateEnd}T23:59:59.000-06:00`
+    const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
+    const timeEndCST = timeEnd.setZone('America/Mexico_City')
+    const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
+
     const query = Assist.query()
-      .where('punch_time_origin', '>=', filterInitialDate)
-      .orderBy('punch_time_origin', 'desc')
+      .where('assist_punch_time_origin', '>=', filterInitialDate)
+      .orderBy('assist_punch_time_origin', 'desc')
 
     if (params.dateEnd && params.date) {
-      query.where('punch_time_origin', '>=', filterInitialDate)
-      query.where('punch_time_origin', '<=', `${params.dateEnd} 23:59:59`)
+      query.where('assist_punch_time_origin', '>=', filterInitialDate)
+      query.where('assist_punch_time_origin', '<=', filterEndDate)
     }
 
     if (params.employeeID) {
@@ -306,43 +364,85 @@ export default class SyncAssistsService {
         }
       }
 
-      query.where('emp_code', employee.employeeCode)
+      query.where('assist_emp_code', employee.employeeCode)
     }
 
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 50)
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
 
+    const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(
+      {
+        dateStart: intialSyncDate,
+        dateEnd: stringEndDate,
+        employeeId: params.employeeID,
+      },
+      999999999999999,
+      1
+    )
+
+    if (serviceResponse.status !== 200) {
+      return serviceResponse
+    }
+
+    const dailyShifts: EmployeeRecordInterface[] =
+      serviceResponse.status === 200
+        ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[])
+        : []
+
+    const employeeShifts: ShiftRecordInterface[] = dailyShifts[0]
+      .employeeShifts as ShiftRecordInterface[]
+
     assistListFlat.forEach((item) => {
       const assist = item as AssistInterface
-      const assistDate = DateTime.fromJSDate(new Date(`${assist.punchTimeOrigin}`)).toFormat(
-        'yyyy-LL-dd'
+      const assistDate = DateTime.fromISO(`${assist.assistPunchTimeOrigin}`, {
+        setZone: true,
+      }).setZone('UTC-5')
+      const existDay = assistDayCollection.find(
+        (itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd')
       )
-
-      const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate)
 
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
         assistListFlat.forEach((dayItem: AssistInterface, index) => {
-          const currentDay = DateTime.fromJSDate(new Date(`${dayItem.punchTimeOrigin}`)).toFormat(
-            'yyyy-LL-dd'
-          )
-          if (currentDay === assistDate) {
+          const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeOrigin}`, { setZone: true })
+            .setZone('UTC-5')
+            .toFormat('yyyy-LL-dd')
+          if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
             dayAssist.push(assistListFlat[index])
           }
         })
 
-        dayAssist = dayAssist.sort((a: any, b: any) => a.punchTimeOrigin - b.punchTimeOrigin)
+        dayAssist = dayAssist.sort(
+          (a: any, b: any) => a.assistPunchTimeOrigin - b.assistPunchTimeOrigin
+        )
+
+        const dateShift = this.getAssignedDateShift(assist.assistPunchTimeOrigin, employeeShifts)
 
         assistDayCollection.push({
-          day: assistDate,
+          day: assistDate.toFormat('yyyy-LL-dd'),
           assist: {
-            check_in: dayAssist.length > 0 ? dayAssist[0] : null,
-            check_out: dayAssist.length > 1 ? dayAssist[1] : null,
+            checkIn: dayAssist.length > 0 ? dayAssist[0] : null,
+            checkOut: dayAssist.length > 1 ? dayAssist[1] : null,
+            dateShift: dateShift.shift,
+            checkInStatus: '',
+            checkOutStatus: '',
+            isFutureDay: false,
+            isSundayBonus: false,
+            isRestDay: false,
+            isVacationDate: false,
+            isHoliday: false,
           },
         })
       }
     })
+
+    const employeeCalendar = await this.getEmployeeCalendar(
+      timeCST,
+      timeEndCST,
+      assistDayCollection,
+      employeeShifts
+    )
 
     return {
       status: 200,
@@ -350,10 +450,262 @@ export default class SyncAssistsService {
       title: 'Successfully action',
       message: 'Success access data',
       data: {
-        // date: DateTime.fromJSDate(new ())
-        meta: assistList.toJSON().meta,
-        data: assistDayCollection.sort(),
+        employeeCalendar,
       },
     }
+  }
+
+  private getAssignedDateShift(
+    compareDateTime: Date | DateTime,
+    dailyShifs: ShiftRecordInterface[]
+  ) {
+    const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
+    const checkTime = DayTime.setZone('America/Mexico_City')
+
+    const availableShifts = dailyShifs.filter((shift) => {
+      const shiftDate = DateTime.fromISO(`${shift.employeShiftsApplySince}`, {
+        setZone: true,
+      }).setZone('America/Mexico_City')
+
+      if (checkTime > shiftDate) {
+        return shiftDate
+      }
+    })
+    availableShifts.sort((a, b) => {
+      const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
+        setZone: true,
+      }).setZone('America/Mexico_City')
+      const shiftAssignedDateB = DateTime.fromISO(`${b.employeShiftsApplySince}`, {
+        setZone: true,
+      }).setZone('America/Mexico_City')
+
+      if (shiftAssignedDateB < shiftAssignedDateA) {
+        return -1
+      }
+
+      if (shiftAssignedDateB > shiftAssignedDateA) {
+        return 1
+      }
+
+      return 0
+    })
+
+    const selectedShift = availableShifts[0]
+    return selectedShift
+  }
+
+  private async getEmployeeCalendar(
+    dateStart: Date | DateTime,
+    dateEnd: Date | DateTime,
+    employeeAssist: AssistDayInterface[],
+    employeeShifts: ShiftRecordInterface[]
+  ) {
+    const dateTimeStart = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+    const dateTimeEnd = DateTime.fromISO(`${dateEnd}`, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+    const daysBetween = Math.floor(dateTimeEnd.diff(dateTimeStart, 'days').days) + 1
+    const assistList = employeeAssist
+    const dailyAssistList: AssistDayInterface[] = []
+
+    for (let index = 0; index < daysBetween; index++) {
+      const currentDate = DateTime.fromISO(`${dateStart}`, { setZone: true })
+        .setZone('America/Mexico_City')
+        .plus({ days: index })
+
+      const dateShift = this.getAssignedDateShift(currentDate, employeeShifts)
+      const fakeCheck: AssistDayInterface = {
+        day: currentDate.toFormat('yyyy-LL-dd'),
+        assist: {
+          checkIn: null,
+          checkOut: null,
+          dateShift: dateShift.shift,
+          checkInStatus: '',
+          checkOutStatus: '',
+          isFutureDay: false,
+          isSundayBonus: false,
+          isRestDay: false,
+          isVacationDate: false,
+          isHoliday: false,
+        },
+      }
+
+      dailyAssistList.push(fakeCheck)
+    }
+
+    dailyAssistList.forEach((item, index) => {
+      const date = assistList.find((assistDate) => assistDate.day === item.day)
+      let dateAssistItem = date || item
+      dateAssistItem = this.checkInStatus(dateAssistItem)
+      dateAssistItem = this.checkOutStatus(dateAssistItem)
+      dateAssistItem = this.isFutureDay(dateAssistItem)
+      dateAssistItem = this.isSundayBonus(dateAssistItem)
+      dateAssistItem = this.isRestDay(dateAssistItem)
+      dailyAssistList[index] = dateAssistItem
+    })
+
+    return dailyAssistList
+  }
+
+  private checkInStatus(checkAssist: AssistDayInterface) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
+      checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
+      return checkAssistCopy
+    }
+
+    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeOrigin}`, {
+      setZone: true,
+    })
+    const checkTime = DayTime.setZone('UTC-5')
+
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+
+    const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
+    const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+
+    const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
+
+    if (diffTime > 5 * 60) {
+      if (checkAssist.assist) {
+        checkAssistCopy.assist.checkOut = checkAssistCopy.assist.checkIn
+        checkAssistCopy.assist.checkIn = null
+      }
+      return checkAssistCopy
+    }
+
+    if (diffTime > 15) {
+      checkAssistCopy.assist.checkInStatus = 'delay'
+    }
+
+    if (diffTime <= 15) {
+      checkAssistCopy.assist.checkInStatus = 'tolerance'
+    }
+
+    if (diffTime <= 0) {
+      checkAssistCopy.assist.checkInStatus = 'ontime'
+    }
+
+    return checkAssistCopy
+  }
+
+  private checkOutStatus(checkAssist: AssistDayInterface) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
+      checkAssistCopy.assist.checkOutStatus =
+        checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
+      return checkAssistCopy
+    }
+
+    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
+      setZone: true,
+    })
+    const checkTime = DayTime.setZone('UTC-5')
+    const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+    const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
+    const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
+      .setZone('America/Mexico_City')
+      .plus({ hours: checkAssist.assist.dateShift.shiftActiveHours })
+    const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
+
+    if (diffTime > 15) {
+      checkAssistCopy.assist.checkOutStatus = 'delay'
+    }
+
+    if (diffTime <= 15) {
+      checkAssistCopy.assist.checkOutStatus = 'tolerance'
+    }
+
+    if (diffTime <= 0) {
+      checkAssistCopy.assist.checkOutStatus = 'ontime'
+    }
+
+    return checkAssistCopy
+  }
+
+  private isFutureDay(checkAssist: AssistDayInterface) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const now = DateTime.now().setZone('America/Mexico_City')
+    const assignedShift = checkAssist.assist.dateShift
+
+    if (!assignedShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = assignedShift.shiftTimeStart
+    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+    const diff = now.diff(timeToStart, 'seconds').seconds
+
+    checkAssistCopy.assist.isFutureDay = diff < 0
+    return checkAssistCopy
+  }
+
+  private isSundayBonus(checkAssist: AssistDayInterface) {
+    const currentDate = DateTime.fromISO(`${checkAssist.day}T00:00:00.000-06:00`, {
+      setZone: true,
+    }).setZone('America/Mexico_City')
+    const naturalDay = currentDate.toFormat('c')
+    checkAssist.assist.isSundayBonus =
+      Number.parseInt(`${naturalDay}`) === 7 && !!checkAssist?.assist?.checkIn
+    return checkAssist
+  }
+
+  private isRestDay(checkAssist: AssistDayInterface) {
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssist
+    }
+
+    const currentDate = DateTime.fromISO(
+      `${checkAssist.day}T${checkAssist.assist.dateShift.shiftTimeStart}.000-06:00`,
+      { setZone: true }
+    ).setZone('America/Mexico_City')
+    const naturalDay = currentDate.toFormat('c')
+    const restDay = checkAssist.assist.dateShift.shiftRestDays
+      .split(',')
+      .find(
+        (assistRestDay) => Number.parseInt(`${assistRestDay}`) === Number.parseInt(`${naturalDay}`)
+      )
+
+    checkAssist.assist.isRestDay = !!restDay
+
+    return checkAssist
   }
 }

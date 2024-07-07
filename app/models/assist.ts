@@ -1,52 +1,99 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
-
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Assist:
+ *      type: object
+ *      properties:
+ *        assistId:
+ *          type: integer
+ *        assistEmpCode:
+ *          type: string
+ *        assistTerminalSn:
+ *          type: string
+ *        assistTerminalAlias:
+ *          type: string
+ *        assistAreaAlias:
+ *          type: string
+ *        assistLongitude:
+ *          type: number
+ *          format: float
+ *        assistLatitude:
+ *          type: number
+ *          format: float
+ *        assistUploadTime:
+ *          type: string
+ *          format: date-time
+ *        assistEmpId:
+ *          type: integer
+ *        assistTerminalId:
+ *          type: integer
+ *        assistSyncId:
+ *          type: integer
+ *        assistPunchTime:
+ *          type: string
+ *          format: date-time
+ *        assistPunchTimeUtc:
+ *          type: string
+ *          format: date-time
+ *        assistPunchTimeOrigin:
+ *          type: string
+ *          format: date-time
+ *        assistCreatedAt:
+ *          type: string
+ *          format: date-time
+ *        assistUpdatedAt:
+ *          type: string
+ *          format: date-time
+ */
 export default class Assist extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare assistId: number
 
   @column()
-  declare empCode: string
+  declare assistEmpCode: string
 
   @column()
-  declare terminalSn: string
+  declare assistTerminalSn: string
 
   @column()
-  declare terminalAlias: string
+  declare assistTerminalAlias: string
 
   @column()
-  declare areaAlias: string
+  declare assistAreaAlias: string
 
   @column()
-  declare longitude: number
+  declare assistLongitude: number
 
   @column()
-  declare latitude: number
+  declare assistLatitude: number
 
   @column.dateTime({ autoCreate: true })
-  declare uploadTime: DateTime
+  declare assistUploadTime: DateTime
 
   @column()
-  declare empId: number
+  declare assistEmpId: number
 
   @column()
-  declare terminalId: number
+  declare assistTerminalId: number
 
   @column()
   declare assistSyncId: number
 
   @column.dateTime({ autoCreate: true })
-  declare punchTime: DateTime
+  declare assistPunchTime: DateTime
 
   @column.dateTime({ autoCreate: true })
-  declare punchTimeUtc: DateTime
+  declare assistPunchTimeUtc: DateTime
 
   @column.dateTime({ autoCreate: true })
-  declare punchTimeOrigin: DateTime
+  declare assistPunchTimeOrigin: DateTime
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
+  declare assistCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
+  declare assistUpdatedAt: DateTime
 }

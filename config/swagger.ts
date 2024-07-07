@@ -12,7 +12,7 @@ export default {
     definition: {
       openapi: '3.0.0',
       info: {
-        title: 'Application with swagger docs',
+        title: 'SAE Principal API',
         version: '1.0.0',
         description: 'My application with swagger docs',
       },

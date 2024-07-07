@@ -36,6 +36,36 @@ export default class DepartmentService {
     return currentDepartment
   }
 
+  async create(department: Department) {
+    const newDepartment = new Department()
+    newDepartment.departmentCode = department.departmentCode
+    newDepartment.departmentName = department.departmentName
+    newDepartment.departmentAlias = department.departmentAlias
+    newDepartment.departmentIsDefault = department.departmentIsDefault
+    newDepartment.departmentActive = department.departmentActive
+    newDepartment.parentDepartmentId = department.parentDepartmentId
+    newDepartment.companyId = department.companyId
+    await newDepartment.save()
+    return newDepartment
+  }
+
+  async update(currentDepartment: Department, department: Department) {
+    currentDepartment.departmentCode = department.departmentCode
+    currentDepartment.departmentName = department.departmentName
+    currentDepartment.departmentAlias = department.departmentAlias
+    currentDepartment.departmentIsDefault = department.departmentIsDefault
+    currentDepartment.departmentActive = department.departmentActive
+    currentDepartment.parentDepartmentId = department.parentDepartmentId
+    currentDepartment.companyId = department.companyId
+    await currentDepartment.save()
+    return currentDepartment
+  }
+
+  async delete(currentDepartment: Department) {
+    await currentDepartment.delete()
+    return currentDepartment
+  }
+
   async getIdBySyncId(departmentSyncId: number) {
     const department = await Department.query()
       .where('department_sync_id', departmentSyncId)
@@ -47,7 +77,7 @@ export default class DepartmentService {
     }
   }
 
-  async show(departmentSyncId: number) {
+  async showSync(departmentSyncId: number) {
     const department = await Department.query()
       .where('department_sync_id', departmentSyncId)
       .first()
@@ -70,5 +100,67 @@ export default class DepartmentService {
     }
     const position = await positionService.syncCreate(newPosition)
     return position ? position.positionId : 0
+  }
+
+  async show(departmentId: number) {
+    const department = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', departmentId)
+      .first()
+    return department ? department : null
+  }
+
+  async verifyInfoExist(department: Department) {
+    if (department.parentDepartmentId) {
+      const existDepartmentParent = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', department.parentDepartmentId)
+        .first()
+
+      if (!existDepartmentParent && department.parentDepartmentId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The department parent was not found',
+          message: 'The department parent was not found with the entered ID',
+          data: { ...department },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verify successfully',
+      data: { ...department },
+    }
+  }
+
+  async verifyInfo(department: Department) {
+    const action = department.departmentId > 0 ? 'updated' : 'created'
+    const existCode = await Department.query()
+      .if(department.departmentId > 0, (query) => {
+        query.whereNot('department_id', department.departmentId)
+      })
+      .whereNull('department_deleted_at')
+      .where('department_code', department.departmentCode)
+      .first()
+
+    if (existCode && department.departmentCode) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The department code already exists for another department',
+        message: `The department resource cannot be ${action} because the code is already assigned to another department`,
+        data: { ...department },
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verify successfully',
+      data: { ...department },
+    }
   }
 }
