@@ -1,6 +1,8 @@
 import SyncAssistsService from '#services/sync_assists_service'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
+import env from '#start/env'
+import ExcelJS from 'exceljs'
 
 export default class AssistsController {
   /**
@@ -152,6 +154,104 @@ export default class AssistsController {
         { page, limit }
       )
       return response.status(result.status).json(result)
+    } catch (error) {
+      return response.status(400).json({
+        type: 'success',
+        title: 'Successfully action',
+        message: error.message,
+        data: error.response || null,
+      })
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/v1/assists/get-excel:
+   *   get:
+   *     summary: get assists excel
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Assists]
+   *     parameters:
+   *       - name: date
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2023-01-01"
+   *         description: Date from get list
+   *       - name: date-end
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2024-12-31"
+   *         description: Date limit to get list
+   *       - name: employeeId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *     responses:
+   *       200:
+   *         description: Resource action successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               example: {}
+   *       400:
+   *         description: Invalid data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   */
+  async getExcel({ request, response }: HttpContext) {
+    try {
+      const employeeID = request.input('employeeId')
+      const filterDate = request.input('date')
+      const filterDateEnd = request.input('date-end')
+      let apiUrl = `${env.get('HOST')}:${env.get('PORT')}/api/v1/assists`
+      apiUrl = `${apiUrl}?date=${filterDate || ''}`
+      apiUrl = `${apiUrl}&date-end=${filterDateEnd || ''}`
+      apiUrl = `${apiUrl}&employeeId=${employeeID || ''}`
+      /*  const apiResponse = await axios.get(apiUrl)
+      const data = apiResponse.data.data
+      if (data) {
+        console.log(data)
+      } */
+      // Crear un nuevo libro de Excel
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Datos')
+
+      // Añadir columnas
+      worksheet.columns = [
+        { header: 'Nombre', key: 'nombre', width: 30 },
+        { header: 'Cargo', key: 'cargo', width: 20 },
+        { header: 'Fecha', key: 'fecha', width: 15 },
+        { header: 'Día de Semana', key: 'dia_semana', width: 20 },
+        { header: 'Primera Checada', key: 'primera_checada', width: 20 },
+        { header: 'Última Checada', key: 'ultima_checada', width: 20 },
+        { header: 'Notas', key: 'notas', width: 30 },
+        { header: 'Prima Dominical', key: 'prima_dominical', width: 20 },
+      ]
+
+      const rows = [{}]
+
+      worksheet.addRows(rows)
+
+      // Establecer el encabezado de respuesta para la descarga del archivo
+      response.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+
+      // Enviar el archivo Excel en la respuesta
+      await workbook.xlsx.write(response.response)
+      // return response.status(data.status).json(data)
     } catch (error) {
       return response.status(400).json({
         type: 'success',
