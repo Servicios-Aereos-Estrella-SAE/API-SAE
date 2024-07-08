@@ -125,9 +125,53 @@ export default class ShiftController {
    *                     type: string
    */
 
+  // async index({ request, response }: HttpContext) {
+  //   try {
+  //     const { shiftDayStart, shiftName, shiftActiveHours, page = 1, limit = 10 } = request.qs()
+
+  //     const query = Shift.query().whereNull('shiftDeletedAt')
+
+  //     if (shiftDayStart) {
+  //       query.where('shiftDayStart', shiftDayStart)
+  //     }
+
+  //     if (shiftName) {
+  //       query.where('shiftName', 'LIKE', `%${shiftName}%`)
+  //     }
+
+  //     if (shiftActiveHours) {
+  //       query.where('shiftActiveHours', shiftActiveHours)
+  //     }
+
+  //     const shifts = await query.paginate(page, limit)
+
+  //     return response.status(200).json({
+  //       type: 'success',
+  //       title: 'Successfully action',
+  //       message: 'Resources fetched',
+  //       data: {
+  //         meta: {
+  //           total: shifts.total,
+  //           per_page: shifts.perPage,
+  //           current_page: shifts.currentPage,
+  //           last_page: shifts.lastPage,
+  //           first_page: 1,
+  //         },
+  //         data: shifts.all().map((shift) => shift.toJSON()),
+  //       },
+  //     })
+  //   } catch (error) {
+  //     return response.status(500).json({
+  //       type: 'error',
+  //       title: 'Server error',
+  //       message: error.message,
+  //       data: null,
+  //     })
+  //   }
+  // }
   async index({ request, response }: HttpContext) {
     try {
-      const { shiftDayStart, shiftName, shiftActiveHours } = request.qs()
+      const { shiftDayStart, shiftName, shiftActiveHours, page = 1, limit = 10 } = request.qs()
 
       const query = Shift.query().whereNull('shiftDeletedAt')
 
@@ -143,12 +187,22 @@ export default class ShiftController {
         query.where('shiftActiveHours', shiftActiveHours)
       }
 
-      const shifts = await query
+      const shifts = await query.paginate(page, limit)
+
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
         message: 'Resources fetched',
-        data: shifts.map((shift) => shift.toJSON()),
+        data: {
+          meta: {
+            total: shifts.total,
+            per_page: shifts.perPage,
+            current_page: shifts.currentPage,
+            last_page: shifts.lastPage,
+            first_page: 1,
+          },
+          data: shifts.all().map((shift) => shift.toJSON()),
+        },
       })
     } catch (error) {
       return response.status(500).json({
@@ -159,7 +213,6 @@ export default class ShiftController {
       })
     }
   }
-
   /**
    * @swagger
    * /api/shift/{id}:
