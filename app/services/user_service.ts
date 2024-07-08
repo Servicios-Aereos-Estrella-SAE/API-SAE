@@ -8,9 +8,7 @@ export default class UserService {
   async index(filters: UserFilterSearchInterface) {
     const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
     const users = await User.query()
-      .if(filters.roleId > 0, (query) => {
-        query.where('role_id', filters.roleId)
-      })
+      .whereNull('user_deleted_at')
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
         query.orWhereHas('person', (queryPerson) => {
@@ -19,6 +17,12 @@ export default class UserService {
             [`%${filters.search.toUpperCase()}%`]
           )
         })
+      })
+      .if(filters.roleId > 0, (query) => {
+        query.where('role_id', filters.roleId)
+      })
+      .whereHas('person', (query) => {
+        query.whereNull('person_deleted_at')
       })
       .preload('person')
       .preload('role')
@@ -41,7 +45,9 @@ export default class UserService {
 
   async update(currentUser: User, user: User) {
     currentUser.userEmail = user.userEmail
-    currentUser.userPassword = user.userPassword ? user.userPassword : currentUser.userPassword
+    if (user.userPassword) {
+      currentUser.userPassword = user.userPassword
+    }
     currentUser.userActive = user.userActive
     currentUser.roleId = user.roleId
     await currentUser.save()
@@ -68,6 +74,8 @@ export default class UserService {
     const user = await User.query()
       .whereNull('user_deleted_at')
       .where('user_id', userId)
+      .preload('person')
+      .preload('role')
       .select(selectedColumns)
       .first()
     return user ? user : null

@@ -1089,7 +1089,11 @@ export default class UserController {
   async store({ request, response }: HttpContext) {
     try {
       const userEmail = request.input('userEmail')
-      const userPassword = request.input('userPassword')
+      let userPassword = request.input('userPassword')
+      const passwordArray = Array.isArray(userPassword)
+      userPassword = passwordArray
+        ? userPassword.map((item: string) => item).join(',')
+        : userPassword
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
       const personId = request.input('personId')
@@ -1114,6 +1118,7 @@ export default class UserController {
       }
       const newUser = await userService.create(user)
       if (newUser) {
+        response.status(201)
         return {
           type: 'success',
           title: 'Users',
@@ -1261,9 +1266,16 @@ export default class UserController {
    */
   async update({ request, response }: HttpContext) {
     try {
+      const input = request.all()
       const userId = request.param('userId')
       const userEmail = request.input('userEmail')
-      const userPassword = request.input('userPassword')
+      let userPassword = request.input('userPassword')
+      const passwordArray = Array.isArray(userPassword)
+      userPassword = passwordArray
+        ? userPassword.map((item: string) => item).join(',')
+        : userPassword
+      input.userPassword = userPassword
+      request.updateBody(input)
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
       const user = {

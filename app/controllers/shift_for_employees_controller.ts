@@ -1,44 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { fetchRecordsValidator } from '../validators/shift_for_employees.js'
-import { DateTime } from 'luxon'
-import EmployeeShift from '#models/employee_shift'
-
-type ShiftRecord = {
-  shiftId: number
-  shiftDate: any
-  employeeShiftId: any
-  employeShiftsApplySince: any
-  employeeId: any
-  shift: {
-    shiftId: number
-    shiftName: string
-    shiftDayStart: number
-    shiftTimeStart: string
-    shiftActiveHours: number
-    shiftRestDays: string
-    shiftCreatedAt: any
-    shiftUpdatedAt: any
-  }
-}
-
-type EmployeeRecord = {
-  employeeId: number
-  employeeSyncId: number
-  employeeCode: any
-  employeeFirstName: any
-  employeeLastName: any
-  employeePayrollNum: any
-  employeeHireDate: any
-  companyId: any
-  departmentId: any
-  positionId: any
-  departmentSyncId: any
-  positionSyncId: any
-  employeeLastSynchronizationAt: any
-  employeeCreatedAt: any
-  employeeUpdatedAt: any
-  employeeShifts: ShiftRecord[]
-}
+import ShiftForEmployeeService from '#services/shift_for_employees_service'
 
 /**
  * @swagger
@@ -58,14 +20,14 @@ type EmployeeRecord = {
  *         name: startDate
  *         schema:
  *           type: string
- *           format: date-time
+ *           format: date
  *         required: true
  *         description: Start date for filtering records
  *       - in: query
  *         name: endDate
  *         schema:
  *           type: string
- *           format: date-time
+ *           format: date
  *         required: true
  *         description: End date for filtering records
  *       - in: query
@@ -275,114 +237,23 @@ type EmployeeRecord = {
  *                   type: string
  *                   example: Detailed error message
  */
-
 export default class RecordsController {
   async index({ request, response }: HttpContext) {
     try {
       const payload = await request.validateUsing(fetchRecordsValidator)
-
-      const startDate = DateTime.fromJSDate(payload.startDate).toISO() || ''
-      const endDate = DateTime.fromJSDate(payload.endDate).toISO() || ''
-      const page = payload.page || 1
-      const limit = payload.limit || 10
-
-      if (DateTime.fromISO(startDate) >= DateTime.fromISO(endDate)) {
-        return response.status(400).json({
-          type: 'error',
-          title: 'Validation error',
-          message: 'startDate must be less than endDate',
-        })
-      }
-
-      let query = EmployeeShift.query()
-        .whereBetween('employeShiftsCreatedAt', [startDate, endDate])
-        .preload('employee')
-        .preload('shift')
-        .whereNull('employeShiftsDeletedAt')
-
-      if (payload.employeeId !== undefined) {
-        query = query.where('employeeId', payload.employeeId)
-      }
-
-      if (payload.departmentId !== undefined) {
-        query = query.whereHas('employee', (builder) => {
-          builder.where('department_id', payload.departmentId!)
-        })
-      }
-
-      if (payload.positionId !== undefined) {
-        query = query.whereHas('employee', (builder) => {
-          builder.where('position_id', payload.positionId!)
-        })
-      }
-
-      const records = await query.paginate(page, limit)
-
-      const employeeRecords = records.reduce(
-        (acc, record) => {
-          if (!acc[record.employeeId]) {
-            acc[record.employeeId] = {
-              employeeId: record.employeeId,
-              employeeSyncId: record.employee.employeeSyncId,
-              employeeCode: record.employee.employeeCode,
-              employeeFirstName: record.employee.employeeFirstName,
-              employeeLastName: record.employee.employeeLastName,
-              employeePayrollNum: record.employee.employeePayrollNum,
-              employeeHireDate: record.employee.employeeHireDate,
-              companyId: record.employee.companyId,
-              departmentId: record.employee.departmentId,
-              positionId: record.employee.positionId,
-              departmentSyncId: record.employee.departmentSyncId,
-              positionSyncId: record.employee.positionSyncId,
-              employeeLastSynchronizationAt: record.employee.employeeLastSynchronizationAt,
-              employeeCreatedAt: record.employee.employeeCreatedAt,
-              employeeUpdatedAt: record.employee.employeeUpdatedAt,
-              employeeShifts: [],
-            }
-          }
-          acc[record.employeeId].employeeShifts.push({
-            employeeShiftId: record.employeeShiftId,
-            employeeId: record.employeeId,
-            shiftId: record.shiftId,
-            employeShiftsApplySince: record.employeShiftsApplySince,
-            shiftDate: record.employeShiftsCreatedAt,
-            shift: {
-              shiftId: record.shift.shiftId,
-              shiftName: record.shift.shiftName,
-              shiftDayStart: record.shift.shiftDayStart,
-              shiftTimeStart: record.shift.shiftTimeStart,
-              shiftActiveHours: record.shift.shiftActiveHours,
-              shiftRestDays: record.shift.shiftRestDays,
-              shiftCreatedAt: record.shift.shiftCreatedAt,
-              shiftUpdatedAt: record.shift.shiftUpdatedAt,
-            },
-          })
-          return acc
+      const onlyDateStart = `${request.input('startDate')}`.split('T')[0]
+      const onliDateEnd = `${request.input('endDate')}`.split('T')[0]
+      const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(
+        {
+          dateStart: `${onlyDateStart}T00:00:00.000-06:00`,
+          dateEnd: `${onliDateEnd}T23:59:59.000-06:00`,
+          employeeId: payload.employeeId,
         },
-        {} as { [key: number]: EmployeeRecord }
+        payload.limit || 10,
+        payload.page || 1
       )
 
-      Object.values(employeeRecords).forEach((employee: EmployeeRecord) => {
-        employee.employeeShifts.sort(
-          (a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime()
-        )
-      })
-
-      return response.status(200).json({
-        type: 'success',
-        title: 'Successfully fetched',
-        message: 'Records fetched successfully',
-        data: {
-          meta: {
-            total: records.total,
-            per_page: records.perPage,
-            current_page: records.currentPage,
-            last_page: records.lastPage,
-            first_page: 1,
-          },
-          data: Object.values(employeeRecords),
-        },
-      })
+      return response.status(serviceResponse.status).send({ ...serviceResponse })
     } catch (error) {
       return response.status(400).json({
         type: 'error',
