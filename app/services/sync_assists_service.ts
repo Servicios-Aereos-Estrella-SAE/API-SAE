@@ -425,6 +425,8 @@ export default class SyncAssistsService {
             checkIn: dayAssist.length > 0 ? dayAssist[0] : null,
             checkOut: dayAssist.length > 1 ? dayAssist[1] : null,
             dateShift: dateShift.shift,
+            checkIntDateTime: null,
+            checkOutDateTime: null,
             checkInStatus: '',
             checkOutStatus: '',
             isFutureDay: false,
@@ -522,6 +524,8 @@ export default class SyncAssistsService {
           checkIn: null,
           checkOut: null,
           dateShift: dateShift.shift,
+          checkIntDateTime: null,
+          checkOutDateTime: null,
           checkInStatus: '',
           checkOutStatus: '',
           isFutureDay: false,
@@ -581,6 +585,8 @@ export default class SyncAssistsService {
       'America/Mexico_City'
     )
 
+    checkAssistCopy.assist.checkIntDateTime = timeCheckIn
+
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
 
     if (diffTime > 5 * 60) {
@@ -613,6 +619,17 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
+      .setZone('America/Mexico_City')
+      .plus({ hours: checkAssist.assist.dateShift.shiftActiveHours })
+
+    checkAssistCopy.assist.checkOutDateTime = timeToEnd
+
     if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
       checkAssistCopy.assist.checkOutStatus =
         checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
@@ -628,14 +645,6 @@ export default class SyncAssistsService {
     const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
       'America/Mexico_City'
     )
-    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
-      .setZone('America/Mexico_City')
-      .plus({ hours: checkAssist.assist.dateShift.shiftActiveHours })
     const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
 
     if (diffTime > 15) {

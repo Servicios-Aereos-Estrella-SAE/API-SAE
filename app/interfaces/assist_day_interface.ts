@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import { AssistInterface } from './assist_interface.js'
 import { ShiftInterface } from './shift_interface.js'
 
@@ -7,6 +8,8 @@ interface AssistDayInterface {
     checkIn: AssistInterface | null
     checkOut: AssistInterface | null
     dateShift: ShiftInterface | null
+    checkIntDateTime: Date | DateTime | null
+    checkOutDateTime: Date | DateTime | null
     checkInStatus: string
     checkOutStatus: string
     isFutureDay: boolean
