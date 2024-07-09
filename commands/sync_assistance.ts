@@ -36,7 +36,7 @@ export default class SyncAssistance extends BaseCommand {
           lastPageAfterSync?.pageNumber
         )
       }
-      this.sentMailStatus('Assistance synchronization completed successfully.')
+      // this.sentMailStatus('Assistance synchronization completed successfully.')
       logger.info('Assistance synchronization completed successfully.')
     } catch (error) {
       this.sentMailStatus('Error during assistance synchronization: ' + error.message)
@@ -48,7 +48,7 @@ export default class SyncAssistance extends BaseCommand {
     try {
       await mail.send((message) => {
         message
-          .to('rogelio.jinestas@gmail.com')
+          .to('wramirez@siler-mx.com')
           .from('wilvardo@gmail.com')
           .subject('Synchronization')
           .text(messageText)
