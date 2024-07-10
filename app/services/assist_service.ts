@@ -3,50 +3,69 @@ import { AssistDayInterface } from '../interfaces/assist_day_interface.js'
 import { AssistEmployeeExcelFilterInterface } from '../interfaces/assist_employee_excel_filter_interface.js'
 import ExcelJS from 'exceljs'
 import Employee from '#models/employee'
-import axios from 'axios'
-import env from '#start/env'
+import SyncAssistsService from './sync_assists_service.js'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
     try {
-      const employeeID = filters.employeeId
+      const employeeId = filters.employeeId
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
-      let apiUrl = `http://${env.get('HOST')}:${env.get('PORT')}/api/v1/assists`
-      apiUrl = `${apiUrl}?date=${filterDate || ''}`
-      apiUrl = `${apiUrl}&date-end=${filterDateEnd || ''}`
-      apiUrl = `${apiUrl}&employeeId=${employeeID || ''}`
-      const apiResponse = await axios.get(apiUrl)
-      const data = apiResponse.data.data
+      const page = 1
+      const limit = 999999999999999
+      const syncAssistsService = new SyncAssistsService()
+      const result = await syncAssistsService.index(
+        {
+          date: filterDate,
+          dateEnd: filterDateEnd,
+          employeeID: employeeId,
+        },
+        { page, limit }
+      )
+      const data: any = result.data
       const rows = []
       if (data) {
-        for await (const calendar of data.employeeCalendar) {
+        const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+        for await (const calendar of employeeCalendar) {
           const day = this.dateDay(calendar.day)
           const month = this.dateMonth(calendar.day)
-          const year = this.dateYear(calendar.year)
+          const year = this.dateYear(calendar.day)
           const calendarDay = this.calendarDay(year, month, day)
           const weekDayName = this.weekDayName(year, month, day)
           const firstCheck = this.chekInTime(calendar)
           const lastCheck = this.chekOutTime(calendar)
-          const checkInTime = DateTime.fromFormat(
-            calendar.assist.dateShift.shiftTimeStart,
-            'HH:mm:ss'
-          )
-          const checkOutTime = checkInTime
-            .plus({ hours: calendar.assist.dateShift.shiftActiveHours })
-            .toFormat('ff')
+          let status = calendar.assist.checkInStatus
+            ? `${calendar.assist.checkInStatus}`.toUpperCase()
+            : ''
+          if (calendar.assist.isFutureDay) {
+            status = 'NEXT'
+          } else if (calendar.assist.isRestDay && !firstCheck) {
+            status = 'REST'
+          } else if (calendar.assist.isVacationDate) {
+            status = 'VACATIONS'
+          } else if (calendar.assist.isHoliday) {
+            status = 'HOLIDAY'
+          }
           rows.push({
             name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
             position: employee.position.positionName ? employee.position.positionName : '',
             date: calendarDay,
             dayOfWeek: weekDayName,
-            checkInTime: checkInTime.toFormat('ff'),
+            checkInTime: calendar.assist.checkInDateTime
+              ? DateTime.fromISO(calendar.assist.checkInDateTime.toString(), { setZone: true })
+                  .setZone('America/Mexico_City')
+                  .toFormat('ff')
+              : '',
             firstCheck: firstCheck,
             lunchTime: '',
             returnLunchTime: '',
-            checkOutTime: checkOutTime,
+            checkOutTime: calendar.assist.checkOutDateTime
+              ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
+                  .setZone('America/Mexico_City')
+                  .toFormat('ff')
+              : '',
             lastCheck: lastCheck,
-            incidents: '',
+            incidents: status,
             notes: '',
             sundayPremium: '',
           })
@@ -86,7 +105,7 @@ export default class AssistsService {
       ])
       headerRow.font = { bold: true }
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
-      rows.forEach((rowData) => {
+      for await (const rowData of rows) {
         worksheet.addRow([
           rowData.name,
           rowData.position,
@@ -102,7 +121,7 @@ export default class AssistsService {
           rowData.notes,
           rowData.sundayPremium,
         ])
-      })
+      }
       const columnA = worksheet.getColumn(1)
       columnA.width = 44
       const columnB = worksheet.getColumn(2)
@@ -194,7 +213,7 @@ export default class AssistsService {
 
   private calendarDay(dateYear: number, dateMonth: number, dateDay: number) {
     const date = DateTime.local(dateYear, dateMonth, dateDay, 0)
-    const day = date.toFormat('DD')
+    const day = date.toFormat('DDD')
     return day
   }
 
@@ -206,8 +225,16 @@ export default class AssistsService {
     const time = DateTime.fromISO(checkAssist.assist.checkIn.assistPunchTimeOrigin.toString(), {
       setZone: true,
     })
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
     const timeCST = time.setZone('UTC-5')
-    return timeCST.toFormat('ff')
+    const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
+    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
+    const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+    return timeCheckIn.toFormat('ff')
   }
 
   private chekOutTime(checkAssist: AssistDayInterface) {
@@ -220,13 +247,21 @@ export default class AssistsService {
       setZone: true,
     })
     const timeDate = time.toFormat('yyyy-LL-dd')
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
     const timeCST = time.setZone('UTC-5')
+    const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
+    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
+    const timeCheckOut = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
 
     if (timeDate === now) {
       checkAssist.assist.checkOutStatus = ''
       return ''
     }
 
-    return timeCST.toFormat('ff')
+    return timeCheckOut.toFormat('ff')
   }
 }

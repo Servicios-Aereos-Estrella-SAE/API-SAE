@@ -156,12 +156,13 @@ export default class AssistsController {
       )
       return response.status(result.status).json(result)
     } catch (error) {
-      return response.status(400).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: error.message,
-        data: error.response || null,
-      })
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 
@@ -211,39 +212,38 @@ export default class AssistsController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
-      const employeeID = request.input('employeeId')
+      const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
       const employee = await Employee.query()
         .whereNull('employee_deleted_at')
-        .where('employee_id', employeeID)
+        .where('employee_id', employeeId)
         .preload('position')
         .first()
       if (!employee) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Excel assist by employee',
-          message: 'Missing data to process',
-          data: {},
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
         }
       }
       const filters = {
-        employeeId: employeeID,
+        employeeId: employeeId,
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
       } as AssistEmployeeExcelFilterInterface
       const assistService = new AssistsService()
       const buffer = await assistService.getExcelByEmployee(employee, filters)
       if (buffer.status === 201) {
-        response.status(200)
-        // Enviar la respuesta con el buffer del archivo Excel y la información adicional
         response.header(
           'Content-Type',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.send(buffer)
+        response.status(200)
+        response.send(buffer.buffer)
       } else {
         response.status(500)
         return {
