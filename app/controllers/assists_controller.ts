@@ -1,8 +1,9 @@
 import SyncAssistsService from '#services/sync_assists_service'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
-import env from '#start/env'
-import ExcelJS from 'exceljs'
+import Employee from '#models/employee'
+import AssistsService from '#services/assist_service'
+import { AssistEmployeeExcelFilterInterface } from '../interfaces/assist_employee_excel_filter_interface.js'
 
 export default class AssistsController {
   /**
@@ -155,12 +156,13 @@ export default class AssistsController {
       )
       return response.status(result.status).json(result)
     } catch (error) {
-      return response.status(400).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: error.message,
-        data: error.response || null,
-      })
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 
@@ -210,55 +212,55 @@ export default class AssistsController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
-      const employeeID = request.input('employeeId')
+      const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
-      let apiUrl = `${env.get('HOST')}:${env.get('PORT')}/api/v1/assists`
-      apiUrl = `${apiUrl}?date=${filterDate || ''}`
-      apiUrl = `${apiUrl}&date-end=${filterDateEnd || ''}`
-      apiUrl = `${apiUrl}&employeeId=${employeeID || ''}`
-      /*  const apiResponse = await axios.get(apiUrl)
-      const data = apiResponse.data.data
-      if (data) {
-        console.log(data)
-      } */
-      // Crear un nuevo libro de Excel
-      const workbook = new ExcelJS.Workbook()
-      const worksheet = workbook.addWorksheet('Datos')
-
-      // Añadir columnas
-      worksheet.columns = [
-        { header: 'Nombre', key: 'nombre', width: 30 },
-        { header: 'Cargo', key: 'cargo', width: 20 },
-        { header: 'Fecha', key: 'fecha', width: 15 },
-        { header: 'Día de Semana', key: 'dia_semana', width: 20 },
-        { header: 'Primera Checada', key: 'primera_checada', width: 20 },
-        { header: 'Última Checada', key: 'ultima_checada', width: 20 },
-        { header: 'Notas', key: 'notas', width: 30 },
-        { header: 'Prima Dominical', key: 'prima_dominical', width: 20 },
-      ]
-
-      const rows = [{}]
-
-      worksheet.addRows(rows)
-
-      // Establecer el encabezado de respuesta para la descarga del archivo
-      response.header(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      )
-      response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-
-      // Enviar el archivo Excel en la respuesta
-      await workbook.xlsx.write(response.response)
-      // return response.status(data.status).json(data)
+      const employee = await Employee.query()
+        .whereNull('employee_deleted_at')
+        .where('employee_id', employeeId)
+        .preload('position')
+        .first()
+      if (!employee) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const filters = {
+        employeeId: employeeId,
+        filterDate: filterDate,
+        filterDateEnd: filterDateEnd,
+      } as AssistEmployeeExcelFilterInterface
+      const assistService = new AssistsService()
+      const buffer = await assistService.getExcelByEmployee(employee, filters)
+      if (buffer.status === 201) {
+        response.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+        response.status(200)
+        response.send(buffer.buffer)
+      } else {
+        response.status(500)
+        return {
+          type: buffer.type,
+          title: buffer.title,
+          message: buffer.message,
+          error: buffer.error,
+        }
+      }
     } catch (error) {
-      return response.status(400).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: error.message,
-        data: error.response || null,
-      })
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 }
