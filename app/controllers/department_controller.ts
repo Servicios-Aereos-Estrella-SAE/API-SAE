@@ -592,6 +592,43 @@ export default class DepartmentController {
     }
   }
 
+  async getSearch({ request, response }: HttpContext) {
+    try {
+      const { departmentName, page = 1, limit = 50 } = request.qs()
+
+      const query = Department.query().has('departmentsPositions').orderBy('department_id')
+
+      if (departmentName) {
+        query.where('departmentName', 'LIKE', `%${departmentName}%`)
+      }
+
+      const departments = await query.paginate(page, limit)
+
+      return response.status(200).json({
+        type: 'success',
+        title: 'Successfully action',
+        message: 'Resources fetched',
+        data: {
+          meta: {
+            total: departments.total,
+            per_page: departments.perPage,
+            current_page: departments.currentPage,
+            last_page: departments.lastPage,
+            first_page: 1,
+          },
+          data: departments.all().map((department) => department.toJSON()),
+        },
+      })
+    } catch (error) {
+      return response.status(500).json({
+        type: 'error',
+        title: 'Server error',
+        message: error.message,
+        data: null,
+      })
+    }
+  }
+
   /**
    * @swagger
    * /api/departments:
