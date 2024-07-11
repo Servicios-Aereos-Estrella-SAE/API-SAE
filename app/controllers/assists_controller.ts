@@ -4,6 +4,10 @@ import { HttpContext } from '@adonisjs/core/http'
 import Employee from '#models/employee'
 import AssistsService from '#services/assist_service'
 import { AssistEmployeeExcelFilterInterface } from '../interfaces/assist_employee_excel_filter_interface.js'
+import Position from '#models/position'
+import Department from '#models/department'
+import { AssistPositionExcelFilterInterface } from '../interfaces/assist_position_excel_filter_interface.js'
+import { AssistDepartmentExcelFilterInterface } from '../interfaces/assist_department_excel_filter_interface.js'
 
 export default class AssistsController {
   /**
@@ -168,9 +172,9 @@ export default class AssistsController {
 
   /**
    * @swagger
-   * /api/v1/assists/get-excel:
+   * /api/v1/assists/get-excel-by-employee:
    *   get:
-   *     summary: get assists excel
+   *     summary: get assists excel by employee
    *     security:
    *       - bearerAuth: []
    *     tags: [Assists]
@@ -210,7 +214,7 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcel({ request, response }: HttpContext) {
+  async getExcelByEmployee({ request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
@@ -219,6 +223,7 @@ export default class AssistsController {
         .whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
         .preload('position')
+        .preload('department')
         .first()
       if (!employee) {
         response.status(400)
@@ -236,6 +241,227 @@ export default class AssistsController {
       } as AssistEmployeeExcelFilterInterface
       const assistService = new AssistsService()
       const buffer = await assistService.getExcelByEmployee(employee, filters)
+      if (buffer.status === 201) {
+        response.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+        response.status(200)
+        response.send(buffer.buffer)
+      } else {
+        response.status(500)
+        return {
+          type: buffer.type,
+          title: buffer.title,
+          message: buffer.message,
+          error: buffer.error,
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/v1/assists/get-excel-by-position:
+   *   get:
+   *     summary: get assists excel by position
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Assists]
+   *     parameters:
+   *       - name: date
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2023-01-01"
+   *         description: Date from get list
+   *       - name: date-end
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2024-12-31"
+   *         description: Date limit to get list
+   *       - name: departmentId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *       - name: positionId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *     responses:
+   *       200:
+   *         description: Resource action successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               example: {}
+   *       400:
+   *         description: Invalid data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   */
+  async getExcelByPosition({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const filterDate = request.input('date')
+      const filterDateEnd = request.input('date-end')
+      const department = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', departmentId)
+        .first()
+      if (!department) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { departmentId },
+        }
+      }
+      const position = await Position.query()
+        .whereNull('position_deleted_at')
+        .where('position_id', positionId)
+        .first()
+      if (!position) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The position was not found',
+          message: 'The position was not found with the entered ID',
+          data: { positionId },
+        }
+      }
+      const filters = {
+        positionId: positionId,
+        departmentId: departmentId,
+        filterDate: filterDate,
+        filterDateEnd: filterDateEnd,
+      } as AssistPositionExcelFilterInterface
+      const assistService = new AssistsService()
+      const buffer = await assistService.getExcelByPosition(filters)
+      if (buffer.status === 201) {
+        response.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+        response.status(200)
+        response.send(buffer.buffer)
+      } else {
+        response.status(500)
+        return {
+          type: buffer.type,
+          title: buffer.title,
+          message: buffer.message,
+          error: buffer.error,
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/v1/assists/get-excel-by-position:
+   *   get:
+   *     summary: get assists excel by position
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Assists]
+   *     parameters:
+   *       - name: date
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2023-01-01"
+   *         description: Date from get list
+   *       - name: date-end
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2024-12-31"
+   *         description: Date limit to get list
+   *       - name: departmentId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *       - name: positionId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *     responses:
+   *       200:
+   *         description: Resource action successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               example: {}
+   *       400:
+   *         description: Invalid data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   */
+  async getExcelByDepartment({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.input('departmentId')
+      const filterDate = request.input('date')
+      const filterDateEnd = request.input('date-end')
+      const department = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', departmentId)
+        .first()
+      if (!department) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { departmentId },
+        }
+      }
+      const filters = {
+        departmentId: departmentId,
+        filterDate: filterDate,
+        filterDateEnd: filterDateEnd,
+      } as AssistDepartmentExcelFilterInterface
+      const assistService = new AssistsService()
+      const buffer = await assistService.getExcelByDepartment(filters)
       if (buffer.status === 201) {
         response.header(
           'Content-Type',
