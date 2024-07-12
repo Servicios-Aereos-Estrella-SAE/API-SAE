@@ -84,11 +84,15 @@ export default class EmployeeService {
 
   async index(filters: EmployeeFilterSearchInterface) {
     const employees = await Employee.query()
+      .whereNull('employee_deleted_at')
       .if(filters.search, (query) => {
-        query.whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
-          `%${filters.search.toUpperCase()}%`,
-        ])
-        query.orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+        query.where((subQuery) => {
+          subQuery
+            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+        })
       })
       .if(filters.departmentId, (query) => {
         query.where('department_id', filters.departmentId)
@@ -99,6 +103,7 @@ export default class EmployeeService {
       })
       .preload('department')
       .preload('position')
+      .preload('person')
       .orderBy('employee_id')
       .paginate(filters.page, filters.limit)
     return employees
@@ -115,6 +120,7 @@ export default class EmployeeService {
     newEmployee.departmentId = await employee.departmentId
     newEmployee.positionId = await employee.positionId
     newEmployee.personId = await employee.personId
+    newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     await newEmployee.save()
     return newEmployee
   }
@@ -128,6 +134,7 @@ export default class EmployeeService {
     currentEmployee.companyId = employee.companyId
     currentEmployee.departmentId = await employee.departmentId
     currentEmployee.positionId = await employee.positionId
+    currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     await currentEmployee.save()
     return currentEmployee
   }
@@ -141,6 +148,9 @@ export default class EmployeeService {
     const employee = await Employee.query()
       .whereNull('employee_deleted_at')
       .where('employee_id', employeeId)
+      .preload('department')
+      .preload('position')
+      .preload('person')
       .first()
     return employee ? employee : null
   }
@@ -236,23 +246,6 @@ export default class EmployeeService {
         type: 'warning',
         title: 'The employee code already exists for another employee',
         message: `The employee resource cannot be ${action} because the code is already assigned to another employee`,
-        data: { ...employee },
-      }
-    }
-    const existPayrollNum = await Employee.query()
-      .if(employee.employeeId > 0, (query) => {
-        query.whereNot('employee_id', employee.employeeId)
-      })
-      .whereNull('employee_deleted_at')
-      .where('employee_payroll_num', employee.employeePayrollNum)
-      .first()
-
-    if (existPayrollNum && employee.employeePayrollNum) {
-      return {
-        status: 400,
-        type: 'warning',
-        title: 'The employee payroll num already exists for another employee',
-        message: `The employee resource cannot be ${action} because the payroll num is already assigned to another employee`,
         data: { ...employee },
       }
     }
