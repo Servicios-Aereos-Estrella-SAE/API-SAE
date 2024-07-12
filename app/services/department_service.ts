@@ -3,6 +3,7 @@ import { cuid } from '@adonisjs/core/helpers'
 import BiometricDepartmentInterface from '../interfaces/biometric_department_interface.js'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import PositionService from './position_service.js'
+import DepartmentPosition from '#models/department_position'
 
 export default class DepartmentService {
   async syncCreate(department: BiometricDepartmentInterface) {
@@ -162,5 +163,13 @@ export default class DepartmentService {
       message: 'Info verify successfully',
       data: { ...department },
     }
+  }
+
+  async getPositions(departmentId: number) {
+    const positions = await DepartmentPosition.query()
+      .where('department_id', departmentId)
+      .preload('position')
+      .orderBy('position_id')
+    return positions
   }
 }
