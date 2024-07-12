@@ -9,7 +9,6 @@ import PositionService from '#services/position_service'
 import { createEmployeeValidator } from '../validators/employee.js'
 import { updateEmployeeValidator } from '../validators/employee.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
-import UploadService from '#services/upload_service'
 import { inject } from '@adonisjs/core'
 export default class EmployeeController {
   /**
@@ -1380,7 +1379,7 @@ export default class EmployeeController {
    *                   description: Error details
    */
   @inject()
-  async uploadPhoto({ request, response }: HttpContext, uploadService: UploadService) {
+  async uploadPhoto({ request, response }: HttpContext) {
     const validationOptions = {
       types: ['image'],
       size: '2mb',

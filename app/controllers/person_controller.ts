@@ -3,7 +3,6 @@ import { createPersonValidator, updatePersonValidator } from '../validators/pers
 import Person from '#models/person'
 import PersonService from '#services/person_service'
 import { PersonFilterSearchInterface } from '../interfaces/person_filter_search_interface.js'
-import { DateTime } from 'luxon'
 
 export default class PersonController {
   /**
