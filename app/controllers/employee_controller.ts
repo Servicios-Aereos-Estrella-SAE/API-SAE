@@ -9,7 +9,7 @@ import PositionService from '#services/position_service'
 import { createEmployeeValidator } from '../validators/employee.js'
 import { updateEmployeeValidator } from '../validators/employee.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
-
+import { inject } from '@adonisjs/core'
 export default class EmployeeController {
   /**
    * @swagger
@@ -464,6 +464,11 @@ export default class EmployeeController {
    *                 description: Person id
    *                 required: true
    *                 default: 0
+   *               employeeWorkSchedule:
+   *                 type: string
+   *                 description: Work Schedule Onsite or Remote
+   *                 required: true
+   *                 default: 'Onsite'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -549,17 +554,18 @@ export default class EmployeeController {
     try {
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
-      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
-      const employeeHireDate = request.input('employeeHireDate')
+      let employeeHireDate = request.input('employeeHireDate')
+      employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
       const personId = request.input('personId')
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
+      const workSchedule = request.input('employeeWorkSchedule')
       const employee = {
         employeeFirstName: employeeFirstName,
-        employeeLastName: `${employeeLastName}  ${employeeSecondLastName}`,
+        employeeLastName: `${employeeLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
@@ -567,6 +573,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         personId: personId,
+        employeeWorkSchedule: workSchedule,
       } as Employee
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
@@ -673,6 +680,11 @@ export default class EmployeeController {
    *                 description: Position id
    *                 required: true
    *                 default: 0
+   *               employeeWorkSchedule:
+   *                 type: string
+   *                 description: Work Schedule Onsite or Remote
+   *                 required: true
+   *                 default: 'Onsite'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -759,23 +771,24 @@ export default class EmployeeController {
       const employeeId = request.param('employeeId')
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
-      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       const employeeHireDate = request.input('employeeHireDate')
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
+      const employeeWorkSchedule = request.input('employeeWorkSchedule')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
-        employeeLastName: `${employeeLastName}  ${employeeSecondLastName}`,
+        employeeLastName: `${employeeLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
+        employeeWorkSchedule: employeeWorkSchedule,
       } as Employee
       if (!employeeId) {
         response.status(400)
@@ -1304,5 +1317,87 @@ export default class EmployeeController {
     } else {
       employeeService.syncUpdate(employee, existEmployee, departmentService, positionService)
     }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/photo:
+   *   put:
+   *     summary: Upload a photo for an employee
+   *     tags:
+   *       - Employees
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the employee
+   *     requestBody:
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               photo:
+   *                 type: string
+   *                 format: binary
+   *                 description: The photo file to upload
+   *     responses:
+   *       200:
+   *         description: Photo uploaded successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 url:
+   *                   type: string
+   *                   description: URL of the uploaded photo
+   *       400:
+   *         description: Bad Request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   description: Error message
+   *       500:
+   *         description: Internal Server Error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   description: Error message
+   *                 error:
+   *                   type: object
+   *                   description: Error details
+   */
+  @inject()
+  async uploadPhoto({ request, response }: HttpContext) {
+    const validationOptions = {
+      types: ['image'],
+      size: '2mb',
+    }
+
+    const photo = request.file('photo', validationOptions)
+
+    if (!photo) {
+      return response.status(400).send({ message: 'Please upload a photo' })
+    }
+
+    // const fileName = `${new Date().getTime()}_${photo.clientName}`
+
+    // try {
+    // const photoUrl = await uploadService.uploadToS3Bucket(photo)
+    return response.status(200).send({ url: '' })
+    // } catch (error) {
+    //   return response.status(500).send({ message: 'Error uploading file', error })
+    // }
   }
 }

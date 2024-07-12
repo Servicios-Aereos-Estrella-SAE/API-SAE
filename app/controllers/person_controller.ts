@@ -298,7 +298,11 @@ export default class PersonController {
       const personLastname = request.input('personLastname')
       const personSecondLastname = request.input('personSecondLastname')
       const personGender = request.input('personGender')
-      const personBirthday = request.input('personBirthday')
+      let personBirthday = request.input('personBirthday')
+      personBirthday = personBirthday
+        ? (personBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
+        : null
+      // personBirthday = personBirthday ? personBirthday.toFormat('yyyy-MM-dd') : null
       const personPhone = request.input('personPhone')
       const personCurp = request.input('personCurp')
       const personRfc = request.input('personRfc')
@@ -497,7 +501,10 @@ export default class PersonController {
       const personLastname = request.input('personLastname')
       const personSecondLastname = request.input('personSecondLastname')
       const personGender = request.input('personGender')
-      const personBirthday = request.input('personBirthday')
+      let personBirthday = request.input('personBirthday')
+      personBirthday = personBirthday
+        ? (personBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
+        : null
       const personPhone = request.input('personPhone')
       const personCurp = request.input('personCurp')
       const personRfc = request.input('personRfc')
