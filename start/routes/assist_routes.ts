@@ -6,7 +6,9 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
-    router.get('/get-excel', '#controllers/assists_controller.getExcel')
+    router.get('/get-excel-by-employee', '#controllers/assists_controller.getExcelByEmployee')
+    router.get('/get-excel-by-position', '#controllers/assists_controller.getExcelByPosition')
+    router.get('/get-excel-by-department', '#controllers/assists_controller.getExcelByDepartment')
     router.get('/', '#controllers/assists_controller.index')//.use(middleware.auth({ guards: ['api'] }))
     router.get('/status', '#controllers/assists_controller.getStatusSync')
     router.post('/synchronize', '#controllers/assists_controller.synchronize')

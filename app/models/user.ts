@@ -59,11 +59,11 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
 
 export default class User extends compose(BaseModel, SoftDeletes, AuthFinder) {
   static accessTokens = DbAccessTokensProvider.forModel(User, {
-    expiresIn: '30 days',
-    prefix: 'oat_',
+    expiresIn: 60 * 60 * 24,
+    prefix: 'oauth__sae__',
     table: 'api_tokens',
     type: 'auth_token',
-    tokenSecretLength: 40,
+    tokenSecretLength: 80,
   })
 
   @column({ isPrimary: true })
