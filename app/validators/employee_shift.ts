@@ -15,6 +15,9 @@ export const createEmployeeShiftValidator = vine.compile(
       console.log('Shift:', existingShift)
       return !!existingShift
     }),
+    employeShiftsApplySince: vine.date({
+      formats: ['YYYY-MM-DD', 'x'],
+    }),
   })
 )
 
@@ -34,5 +37,8 @@ export const updateEmployeeShiftValidator = vine.compile(
         return !!existingShift
       })
       .optional(),
+    employeShiftsApplySince: vine.date({
+      formats: ['YYYY-MM-DD', 'x'],
+    }),
   })
 )
