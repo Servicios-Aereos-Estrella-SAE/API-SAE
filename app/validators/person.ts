@@ -8,11 +8,11 @@ export const createPersonValidator = vine.compile(
     personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
     personGender: vine.string().trim().minLength(0).maxLength(10).optional(),
-    personBirthday: vine
-      .date({
-        formats: ['YYYY-MM-DD', 'x'],
-      })
-      .optional(),
+    // personBirthday: vine
+    //   .date({
+    //     formats: ['YYYY-MM-DD'],
+    //   })
+    //   .optional(),
     personCurp: vine
       .string()
       .trim()
@@ -21,7 +21,9 @@ export const createPersonValidator = vine.compile(
       .unique(async (_db, value) => {
         const existingCurp = await Person.query()
           .where('person_curp', value)
+          .whereNotNull('person_curp')
           .whereNull('person_deleted_at')
+          .whereNot('person_curp', '')
           .first()
         return !existingCurp
       })
@@ -34,6 +36,8 @@ export const createPersonValidator = vine.compile(
       .unique(async (_db, value) => {
         const existingRfc = await Person.query()
           .where('person_rfc', value)
+          .whereNotNull('person_rfc')
+          .whereNot('person_rfc', '')
           .whereNull('person_deleted_at')
           .first()
         return !existingRfc
@@ -47,6 +51,8 @@ export const createPersonValidator = vine.compile(
       .unique(async (_db, value) => {
         const existingImssNss = await Person.query()
           .where('person_imss_nss', value)
+          .whereNotNull('person_imss_nss')
+          .whereNot('person_imss_nss', '')
           .whereNull('person_deleted_at')
           .first()
         return !existingImssNss
@@ -62,11 +68,11 @@ export const updatePersonValidator = vine.compile(
     personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
     personGender: vine.string().trim().minLength(0).maxLength(10).optional(),
-    personBirthday: vine
-      .date({
-        formats: ['YYYY-MM-DD', 'x'],
-      })
-      .optional(),
+    // personBirthday: vine
+    //   .date({
+    //     formats: ['YYYY-MM-DD', 'x'],
+    //   })
+    //   .optional(),
     personCurp: vine.string().trim().minLength(0).maxLength(45).optional(),
     personRfc: vine.string().trim().minLength(0).maxLength(45).optional(),
     personImssNss: vine.string().trim().minLength(0).maxLength(45).optional(),

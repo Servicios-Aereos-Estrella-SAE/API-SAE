@@ -83,6 +83,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
   @column()
   declare employeePayrollNum: string
 
+  @column()
+  declare employeeWorkSchedule: string
+
+  @column()
+  declare employeePhoto: string
+
   @column.date()
   declare employeeHireDate: DateTime
 
