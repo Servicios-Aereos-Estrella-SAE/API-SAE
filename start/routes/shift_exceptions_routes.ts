@@ -7,5 +7,9 @@ router
     router.get('/shift-exception/:id', '#controllers/shift_exceptions_controller.show')
     router.put('/shift-exception/:id', '#controllers/shift_exceptions_controller.update')
     router.delete('/shift-exception/:id', '#controllers/shift_exceptions_controller.destroy')
+    router.get(
+      '/shift-exception-employee/:employeeId',
+      '#controllers/shift_exceptions_controller.getByEmployee'
+    )
   })
   .prefix('/api')
