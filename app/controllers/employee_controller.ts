@@ -10,6 +10,7 @@ import { createEmployeeValidator } from '../validators/employee.js'
 import { updateEmployeeValidator } from '../validators/employee.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
 import { inject } from '@adonisjs/core'
+import UploadService from '#services/upload_service'
 export default class EmployeeController {
   /**
    * @swagger
@@ -1379,25 +1380,39 @@ export default class EmployeeController {
    *                   description: Error details
    */
   @inject()
-  async uploadPhoto({ request, response }: HttpContext) {
+  async uploadPhoto(
+    { request, response }: HttpContext,
+    uploadService: UploadService,
+    employeeService: EmployeeService
+  ) {
     const validationOptions = {
       types: ['image'],
       size: '2mb',
     }
-
+    const employeeId = request.param('employeeId')
     const photo = request.file('photo', validationOptions)
-
+    // validate file required
     if (!photo) {
       return response.status(400).send({ message: 'Please upload a photo' })
     }
 
-    // const fileName = `${new Date().getTime()}_${photo.clientName}`
+    const currentEmployee = await Employee.query().where('employee_id', employeeId).first()
+    if (!currentEmployee) {
+      return response.status(404).send({ message: 'Employee not found' })
+    }
+    // get file name and extension
+    const fileName = `${new Date().getTime()}_${photo.clientName}`
 
-    // try {
-    // const photoUrl = await uploadService.uploadToS3Bucket(photo)
-    return response.status(200).send({ url: '' })
-    // } catch (error) {
-    //   return response.status(500).send({ message: 'Error uploading file', error })
-    // }
+    // get employee and update employee photo
+    try {
+      const photoUrl = await uploadService.fileUpload(photo, 'employees', fileName)
+      if (currentEmployee.employeePhoto) {
+        await uploadService.deleteFile(currentEmployee.employeePhoto)
+      }
+      const employee = await employeeService.updateEmployeePhotoUrl(employeeId, photoUrl)
+      return response.status(200).send({ url: photoUrl, employee })
+    } catch (error) {
+      return response.status(500).send({ message: 'Error uploading file', error })
+    }
   }
 }
