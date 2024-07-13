@@ -247,7 +247,7 @@ export default class AssistsController {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.status(200)
+        response.status(201)
         response.send(buffer.buffer)
       } else {
         response.status(500)
@@ -365,7 +365,7 @@ export default class AssistsController {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.status(200)
+        response.status(201)
         response.send(buffer.buffer)
       } else {
         response.status(500)
@@ -468,7 +468,7 @@ export default class AssistsController {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.status(200)
+        response.status(201)
         response.send(buffer.buffer)
       } else {
         response.status(500)
