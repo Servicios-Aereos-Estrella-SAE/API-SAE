@@ -1,3 +1,5 @@
+import ShiftExceptionService from '#services/shift_exception_service'
+import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_filter_interface.js'
 import ShiftException from '../models/shift_exception.js'
 import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
@@ -214,6 +216,168 @@ export default class ShiftExceptionController {
         message: 'Resource not found',
         data: null,
       })
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/shift-exception-employee/{employeeId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - ShiftException
+   *     summary: get shifts exceptions by employee
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *       - name: exceptionTypeId
+   *         in: query
+   *         required: false
+   *         description: Exception type id
+   *         schema:
+   *           type: number
+   *       - name: dateStart
+   *         in: query
+   *         required: false
+   *         description: Date start (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *       - name: dateEnd
+   *         in: query
+   *         required: false
+   *         description: Date end (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getByEmployee({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      const exceptionTypeId = request.input('exceptionTypeId')
+      const dateStart = request.input('dateStart')
+      const dateEnd = request.input('dateEnd')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee Id was not found',
+          message: 'Missing data to process',
+          data: { employeeId },
+        }
+      }
+      const filters = {
+        employeeId: employeeId,
+        exceptionTypeId: exceptionTypeId,
+        dateStart: dateStart,
+        dateEnd: dateEnd,
+      } as ShiftExceptionFilterInterface
+      const shiftExceptionService = new ShiftExceptionService()
+      const shiftExceptions = await shiftExceptionService.getByEmployee(filters)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Shift exceptions',
+        message: 'The shift exceptions were found successfully',
+        data: {
+          shiftExceptions: shiftExceptions,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 }

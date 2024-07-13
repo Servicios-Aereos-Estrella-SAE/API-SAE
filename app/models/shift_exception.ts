@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import * as relations from '@adonisjs/lucid/types/relations'
 import Employee from './employee.js'
 import ExceptionType from './exception_type.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 /**
  * @swagger
  * components:
@@ -51,8 +51,8 @@ import ExceptionType from './exception_type.js'
  *         shiftExceptionId: 1
  *         employeeId: 1
  *         exceptionTypeId: 1
- *         shiftExceptionDate: '2024-06-20'
- *         shiftExceptionDescription: "Employee was absent from work"
+ *         shiftExceptionsDate: '2024-06-20T12:00:00Z'
+ *         shiftExceptionsDescription: "Employee was absent from work"
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'
  *         shiftExceptionDeletedAt: null
@@ -86,9 +86,13 @@ export default class ShiftException extends BaseModel {
   @column.dateTime()
   declare shiftExceptionsDeletedAt: DateTime
 
-  @belongsTo(() => Employee)
-  declare employee: relations.BelongsTo<typeof Employee>
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeId',
+  })
+  declare employee: BelongsTo<typeof Employee>
 
-  @belongsTo(() => ExceptionType)
-  declare exceptionType: relations.BelongsTo<typeof ExceptionType>
+  @belongsTo(() => ExceptionType, {
+    foreignKey: 'exceptionTypeId',
+  })
+  declare exceptionType: BelongsTo<typeof ExceptionType>
 }

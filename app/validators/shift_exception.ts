@@ -14,7 +14,9 @@ export const createShiftExceptionValidator = vine.compile(
         .first()
       return !!existingExceptionType
     }),
-    shiftExceptionsDate: vine.date(),
+    shiftExceptionsDate: vine.date({
+      formats: ['YYYY-MM-DD HH:mm:ss', 'x'],
+    }),
     shiftExceptionsDescription: vine.string(),
   })
 )
