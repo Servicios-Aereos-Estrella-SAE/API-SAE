@@ -139,6 +139,24 @@ export default class EmployeeService {
     return currentEmployee
   }
 
+  async updateEmployeePhotoUrl(employeeId: number, photoUrl: string) {
+    const currentEmployee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeId)
+      .first()
+    if (!currentEmployee) {
+      return null
+    }
+    currentEmployee.employeePhoto = photoUrl
+    await currentEmployee.save()
+    return Employee.query()
+      .preload('person')
+      .preload('department')
+      .preload('position')
+      .where('employee_id', employeeId)
+      .first()
+  }
+
   async delete(currentEmployee: Employee) {
     await currentEmployee.delete()
     return currentEmployee

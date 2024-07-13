@@ -70,7 +70,7 @@
     "adonisjs-queue": "^0.1.10",
     "adonisjs-scheduler": "^1.0.5",
     "argon2": "^0.40.3",
-    "aws-sdk": "^2.1658.0",
+    "aws-sdk": "^2.1176.0",
     "axios": "^1.7.2",
     "edge.js": "^6.0.2",
     "exceljs": "^4.4.0",
