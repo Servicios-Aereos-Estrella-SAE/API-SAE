@@ -18,26 +18,16 @@ export const createEmployeeValidator = vine.compile(
       }),
     employeeFirstName: vine.string().trim().minLength(0).maxLength(25).optional(),
     employeeLastName: vine.string().trim().minLength(0).maxLength(25).optional(),
-    employeePayrollNum: vine
-      .string()
-      .trim()
-      .minLength(1)
-      .maxLength(50)
-      .unique(async (_db, value) => {
-        const existingPayrollNum = await Employee.query()
-          .where('employee_payroll_num', value)
-          .whereNull('employee_deleted_at')
-          .first()
-        return !existingPayrollNum
-      }),
-    employeeHireDate: vine.date({
-      formats: ['YYYY-MM-DD', 'x'],
-    }),
+    employeePayrollNum: vine.string().trim().minLength(1).maxLength(50),
+    // employeeHireDate: vine.date({
+    //   formats: ['YYYY-MM-DD', 'x'],
+    // }),
     companyId: vine.number().min(1),
     departmentId: vine.number().min(1),
     departmentSyncId: vine.number().min(0).optional(),
     positionId: vine.number().min(1),
     positionSyncId: vine.number().min(0).optional(),
+    employeeWorkSchedule: vine.string().in(['Onsite', 'Remote']),
     personId: vine
       .number()
       .min(1)

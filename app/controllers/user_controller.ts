@@ -1,4 +1,5 @@
 import User from '../models/user.js'
+import Ws from '#services/ws'
 import { HttpContext } from '@adonisjs/core/http'
 import ApiToken from '../models/api_token.js'
 import { uuid } from 'uuidv4'
@@ -120,6 +121,7 @@ export default class UserController {
       const userEmail = request.input('userEmail')
       const userPassword = request.input('userPassword')
       const user = await User.query().where('user_email', userEmail).where('user_active', 1).first()
+
       if (!user) {
         response.status(404)
         return {
@@ -129,9 +131,18 @@ export default class UserController {
           data: { user: {} },
         }
       }
+
       await ApiToken.query().where('tokenable_id', user.userId).delete()
+
+      if (Ws.io) {
+        try {
+          Ws.io.emit(`user-forze-logout:${user.userEmail}`, {})
+        } catch (error) {}
+      }
+
       const userVerify = await User.verifyCredentials(userEmail, userPassword)
       const token = await User.accessTokens.create(user)
+
       if (userVerify && token) {
         response.status(200)
         return {

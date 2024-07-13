@@ -425,6 +425,8 @@ export default class SyncAssistsService {
             checkIn: dayAssist.length > 0 ? dayAssist[0] : null,
             checkOut: dayAssist.length > 1 ? dayAssist[1] : null,
             dateShift: dateShift.shift,
+            checkInDateTime: null,
+            checkOutDateTime: null,
             checkInStatus: '',
             checkOutStatus: '',
             isFutureDay: false,
@@ -522,6 +524,8 @@ export default class SyncAssistsService {
           checkIn: null,
           checkOut: null,
           dateShift: dateShift.shift,
+          checkInDateTime: null,
+          checkOutDateTime: null,
           checkInStatus: '',
           checkOutStatus: '',
           isFutureDay: false,
@@ -556,6 +560,17 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+
+    checkAssistCopy.assist.checkInDateTime = timeToStart
+
     if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
       checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
       return checkAssistCopy
@@ -565,15 +580,6 @@ export default class SyncAssistsService {
       setZone: true,
     })
     const checkTime = DayTime.setZone('UTC-5')
-
-    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
 
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
@@ -613,6 +619,17 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
+      .setZone('America/Mexico_City')
+      .plus({ hours: checkAssist.assist.dateShift.shiftActiveHours })
+
+    checkAssistCopy.assist.checkOutDateTime = timeToEnd
+
     if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
       checkAssistCopy.assist.checkOutStatus =
         checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
@@ -628,14 +645,6 @@ export default class SyncAssistsService {
     const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
       'America/Mexico_City'
     )
-    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
-      .setZone('America/Mexico_City')
-      .plus({ hours: checkAssist.assist.dateShift.shiftActiveHours })
     const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
 
     if (diffTime > 15) {
