@@ -67,6 +67,7 @@ export default class ShiftExceptionController {
     try {
       const data = await request.validateUsing(createShiftExceptionValidator)
       const shiftException = await ShiftException.create(data)
+      await shiftException.load('exceptionType')
       return response.status(201).json({
         type: 'success',
         title: 'Successfully action',
@@ -109,6 +110,7 @@ export default class ShiftExceptionController {
   async show({ params, response }: HttpContext) {
     try {
       const shiftException = await ShiftException.findOrFail(params.id)
+      await shiftException.load('exceptionType')
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -160,6 +162,7 @@ export default class ShiftExceptionController {
       const data = await request.validateUsing(createShiftExceptionValidator)
       const shiftException = await ShiftException.findOrFail(params.id)
       shiftException.merge(data)
+      await shiftException.load('exceptionType')
       await shiftException.save()
       return response.status(200).json({
         type: 'success',
