@@ -3,6 +3,8 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import Employee from './employee.js'
 import ExceptionType from './exception_type.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import { compose } from '@adonisjs/core/helpers'
 /**
  * @swagger
  * components:
@@ -61,7 +63,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
  *         exceptionType:
  *           # Example ExceptionType object
  */
-export default class ShiftException extends BaseModel {
+export default class ShiftException extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare shiftExceptionId: number
 
@@ -72,7 +74,7 @@ export default class ShiftException extends BaseModel {
   declare exceptionTypeId: number
 
   @column()
-  declare shiftExceptionsDate: Date
+  declare shiftExceptionsDate: Date | string
 
   @column()
   declare shiftExceptionsDescription: string
@@ -83,8 +85,8 @@ export default class ShiftException extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare shiftExceptionsUpdatedAt: DateTime
 
-  @column.dateTime()
-  declare shiftExceptionsDeletedAt: DateTime
+  @column.dateTime({ columnName: 'shift_exceptions_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @belongsTo(() => Employee, {
     foreignKey: 'employeeId',

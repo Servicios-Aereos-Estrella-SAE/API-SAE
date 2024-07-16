@@ -65,15 +65,37 @@ export default class ShiftExceptionController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const data = await request.validateUsing(createShiftExceptionValidator)
-      const shiftException = await ShiftException.create(data)
-      await shiftException.load('exceptionType')
-      return response.status(201).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: 'Resource created',
-        data: shiftException.toJSON(),
-      })
+      const employeeId = request.input('employeeId')
+      const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
+      const shiftExceptionsDate = request.input('shiftExceptionsDate')
+      const exceptionTypeId = request.input('exceptionTypeId')
+      await request.validateUsing(createShiftExceptionValidator)
+      const shiftExceptionService = new ShiftExceptionService()
+      if (!shiftExceptionService.isValidDate(shiftExceptionsDate)) {
+        return response.status(400).json({
+          type: 'error',
+          title: 'Validation error',
+          message: 'date is invalid',
+          data: null,
+        })
+      }
+      const shiftException = {
+        employeeId: employeeId,
+        shiftExceptionsDescription: shiftExceptionsDescription,
+        shiftExceptionsDate: shiftExceptionService.getDateAndTime(shiftExceptionsDate),
+        exceptionTypeId: exceptionTypeId,
+      } as ShiftException
+      const newShiftException = await shiftExceptionService.create(shiftException)
+      if (newShiftException) {
+        await newShiftException.load('exceptionType')
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Shift exception',
+          message: 'The shift exception was created successfully',
+          data: { shiftException: newShiftException },
+        }
+      }
     } catch (error) {
       console.error('Error:', error)
       return response.status(400).json({
@@ -159,17 +181,41 @@ export default class ShiftExceptionController {
    */
   async update({ params, request, response }: HttpContext) {
     try {
-      const data = await request.validateUsing(createShiftExceptionValidator)
-      const shiftException = await ShiftException.findOrFail(params.id)
-      shiftException.merge(data)
-      await shiftException.load('exceptionType')
-      await shiftException.save()
-      return response.status(200).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: 'Resource updated',
-        data: shiftException.toJSON(),
-      })
+      const employeeId = request.input('employeeId')
+      const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
+      const shiftExceptionsDate = request.input('shiftExceptionsDate')
+      const exceptionTypeId = request.input('exceptionTypeId')
+      await request.validateUsing(createShiftExceptionValidator)
+      const shiftExceptionService = new ShiftExceptionService()
+      if (!shiftExceptionService.isValidDate(shiftExceptionsDate)) {
+        return response.status(400).json({
+          type: 'error',
+          title: 'Validation error',
+          message: 'date is invalid',
+          data: null,
+        })
+      }
+      const currentShiftException = await ShiftException.findOrFail(params.id)
+      const shiftException = {
+        employeeId: employeeId,
+        shiftExceptionsDescription: shiftExceptionsDescription,
+        shiftExceptionsDate: shiftExceptionService.getDateAndTime(shiftExceptionsDate),
+        exceptionTypeId: exceptionTypeId,
+      } as ShiftException
+      const updateShiftException = await shiftExceptionService.update(
+        currentShiftException,
+        shiftException
+      )
+      if (updateShiftException) {
+        await updateShiftException.load('exceptionType')
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Shift exception',
+          message: 'The shift exception was updated successfully',
+          data: { shiftException: updateShiftException },
+        }
+      }
     } catch (error) {
       return response.status(400).json({
         type: 'error',
