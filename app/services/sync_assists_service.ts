@@ -23,12 +23,24 @@ export default class SyncAssistsService {
   async getStatusSync(): Promise<AssistStatusResponseDto | null> {
     const assistStatusSync = await this.getAssistStatusSync()
     let lastPageSync = await this.getLastPageSync()
-
     if (assistStatusSync && lastPageSync) {
-      let dataApiBiometrics = await this.fetchExternalData(
-        assistStatusSync.dateRequestSync.toJSDate(),
-        lastPageSync.pageNumber
-      )
+      let dataApiBiometrics = {
+        pagination: {
+          totalItems: 0,
+          page: 0,
+          pageSize: 0,
+          totalPages: 0,
+          DateParam: new Date(),
+        },
+      }
+
+      try {
+        dataApiBiometrics = await this.fetchExternalData(
+          assistStatusSync.dateRequestSync.toJSDate(),
+          lastPageSync.pageNumber
+        )
+      } catch (error) {}
+
       return new AssistStatusResponseDto(
         assistStatusSync,
         lastPageSync,
@@ -314,6 +326,7 @@ export default class SyncAssistsService {
       .where('page_status', 'sync')
       .orderBy('page_number', 'desc')
       .first()
+
     if (!lastPageSync) {
       return await this.getLastPage()
     } else {
@@ -465,14 +478,15 @@ export default class SyncAssistsService {
     const checkTime = DayTime.setZone('America/Mexico_City')
 
     const availableShifts = dailyShifs.filter((shift) => {
-      const shiftDate = DateTime.fromISO(`${shift.employeShiftsApplySince}`, {
-        setZone: true,
-      }).setZone('America/Mexico_City')
+      const shiftDate = DateTime.fromJSDate(new Date(shift.employeShiftsApplySince)).setZone(
+        'America/Mexico_City'
+      )
 
       if (checkTime > shiftDate) {
         return shiftDate
       }
     })
+
     availableShifts.sort((a, b) => {
       const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
         setZone: true,
