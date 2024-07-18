@@ -2,6 +2,8 @@ import { HttpContext } from '@adonisjs/core/http'
 import Shift from '../models/shift.js'
 import { createShiftValidator, updateShiftValidator } from '../validators/shift.js'
 import { DateTime } from 'luxon'
+import Employee from '#models/employee'
+import EmployeeShift from '#models/employee_shift'
 
 /**
  * @swagger
@@ -124,51 +126,95 @@ export default class ShiftController {
    *                   shiftRestDays:
    *                     type: string
    */
+  async searchPositionDepartment({ request, response }: HttpContext) {
+    try {
+      const {
+        shiftDayStart,
+        shiftName,
+        shiftActiveHours,
+        departmentId,
+        positionId,
+        page = 1,
+        limit = 10,
+      } = request.qs()
 
-  // async index({ request, response }: HttpContext) {
-  //   try {
-  //     const { shiftDayStart, shiftName, shiftActiveHours, page = 1, limit = 10 } = request.qs()
+      const query = Shift.query()
+        .whereNull('shiftDeletedAt')
+        .withCount('employees', (employeeQuery) => {
+          employeeQuery.whereNull('employeShiftsDeletedAt')
+          if (departmentId || positionId) {
+            employeeQuery.whereHas('employee', (employeeSubQuery) => {
+              if (departmentId) {
+                employeeSubQuery.where('departmentId', departmentId)
+              }
+              if (positionId) {
+                employeeSubQuery.where('positionId', positionId)
+              }
+            })
+          }
+        })
+        .preload('employees', (employeeQuery) => {
+          employeeQuery
+            .whereHas('employee', (employeeSubQuery) => {
+              if (departmentId) {
+                employeeSubQuery.where('departmentId', departmentId)
+              }
+              if (positionId) {
+                employeeSubQuery.where('positionId', positionId)
+              }
+            })
+            .preload('employee')
+            .whereNull('employeShiftsDeletedAt')
+        })
 
-  //     const query = Shift.query().whereNull('shiftDeletedAt')
+      if (shiftDayStart) {
+        query.where('shiftDayStart', shiftDayStart)
+      }
 
-  //     if (shiftDayStart) {
-  //       query.where('shiftDayStart', shiftDayStart)
-  //     }
+      if (shiftName) {
+        query.where('shiftName', 'LIKE', `%${shiftName}%`)
+      }
 
-  //     if (shiftName) {
-  //       query.where('shiftName', 'LIKE', `%${shiftName}%`)
-  //     }
+      if (shiftActiveHours) {
+        query.where('shiftActiveHours', shiftActiveHours)
+      }
 
-  //     if (shiftActiveHours) {
-  //       query.where('shiftActiveHours', shiftActiveHours)
-  //     }
+      const shifts = await query.paginate(page, limit)
 
-  //     const shifts = await query.paginate(page, limit)
+      const filteredShifts = shifts.all().filter((shift) => shift.$extras.employees_count > 0)
 
-  //     return response.status(200).json({
-  //       type: 'success',
-  //       title: 'Successfully action',
-  //       message: 'Resources fetched',
-  //       data: {
-  //         meta: {
-  //           total: shifts.total,
-  //           per_page: shifts.perPage,
-  //           current_page: shifts.currentPage,
-  //           last_page: shifts.lastPage,
-  //           first_page: 1,
-  //         },
-  //         data: shifts.all().map((shift) => shift.toJSON()),
-  //       },
-  //     })
-  //   } catch (error) {
-  //     return response.status(500).json({
-  //       type: 'error',
-  //       title: 'Server error',
-  //       message: error.message,
-  //       data: null,
-  //     })
-  //   }
-  // }
+      return response.status(200).json({
+        type: 'success',
+        title: 'Successfully action',
+        message: 'Resources fetched',
+        data: {
+          meta: {
+            total: filteredShifts.length,
+            per_page: shifts.perPage,
+            current_page: shifts.currentPage,
+            last_page: shifts.lastPage,
+            first_page: 1,
+          },
+          data: filteredShifts.map((shift) => ({
+            ...shift.toJSON(),
+            employee_count: shift.$extras.employees_count,
+            employees: shift.employees.map((employeeShift) => ({
+              employeeId: employeeShift.employeeId,
+              employeeFirstName: employeeShift.employee?.employeeFirstName,
+              employeeLastName: employeeShift.employee?.employeeLastName,
+            })),
+          })),
+        },
+      })
+    } catch (error) {
+      return response.status(500).json({
+        type: 'error',
+        title: 'Server error',
+        message: error.message,
+        data: null,
+      })
+    }
+  }
   async index({ request, response }: HttpContext) {
     try {
       const { shiftDayStart, shiftName, shiftActiveHours, page = 1, limit = 10 } = request.qs()
@@ -213,6 +259,7 @@ export default class ShiftController {
       })
     }
   }
+
   /**
    * @swagger
    * /api/shift/{id}:

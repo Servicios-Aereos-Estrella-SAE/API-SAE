@@ -76,9 +76,9 @@ export default class EmployeeShift extends BaseModel {
   declare employeShiftsApplySince: DateTime
 
   @belongsTo(() => Employee, {
-    foreignKey: 'employeeId', // Especifica la columna de clave externa si es diferente de 'id'
+    foreignKey: 'employeeId',
   })
-  employee!: relations.BelongsTo<typeof Employee>
+  declare employee: relations.BelongsTo<typeof Employee>
 
   @belongsTo(() => Shift, {
     foreignKey: 'shiftId',

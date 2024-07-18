@@ -459,6 +459,64 @@ export default class DepartmentController {
         .orderBy('position_id')
       response.status(200)
       return {
+        type: 'successi',
+        title: 'Positions by department',
+        message: 'The positions by department have been found successfully',
+        data: {
+          positions,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getSearchPositions({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+      const positionName = request.input('positionName') || null
+
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Positions by department',
+          message: 'Missing data to process',
+          data: {},
+        }
+      }
+
+      const department = await Department.query().where('department_id', departmentId).first()
+      if (!department) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Positions by department',
+          message: 'Department not found',
+          data: { department_id: departmentId },
+        }
+      }
+
+      const positionsQuery = DepartmentPosition.query()
+        .where('department_id', departmentId)
+        .preload('position')
+
+      if (positionName) {
+        positionsQuery.whereHas('position', (query) => {
+          query.where('positionName', 'LIKE', `%${positionName}%`)
+        })
+      }
+
+      const positions = await positionsQuery.orderBy('position_id')
+
+      response.status(200)
+      return {
         type: 'success',
         title: 'Positions by department',
         message: 'The positions by department have been found successfully',
