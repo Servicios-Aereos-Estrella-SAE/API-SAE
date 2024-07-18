@@ -96,7 +96,8 @@ export default class ShiftForEmployeeService {
 
     Object.values(employeeRecords).forEach((employee: EmployeeRecordInterface) => {
       employee.employeeShifts.sort(
-        (a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime()
+        (a, b) =>
+          new Date(b.shiftDate.toString()).getTime() - new Date(a.shiftDate.toString()).getTime()
       )
     })
 
