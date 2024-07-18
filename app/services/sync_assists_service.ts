@@ -478,14 +478,15 @@ export default class SyncAssistsService {
     const checkTime = DayTime.setZone('America/Mexico_City')
 
     const availableShifts = dailyShifs.filter((shift) => {
-      const shiftDate = DateTime.fromISO(`${shift.employeShiftsApplySince}`, {
-        setZone: true,
-      }).setZone('America/Mexico_City')
+      const shiftDate = DateTime.fromJSDate(new Date(shift.employeShiftsApplySince)).setZone(
+        'America/Mexico_City'
+      )
 
       if (checkTime > shiftDate) {
         return shiftDate
       }
     })
+
     availableShifts.sort((a, b) => {
       const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
         setZone: true,
