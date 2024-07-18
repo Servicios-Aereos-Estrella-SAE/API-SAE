@@ -733,10 +733,10 @@ export default class EmployeeShiftController {
    *           type: number
    *         description: Employee id
    *         required: true
-   *       - name: exceptionTypeId
+   *       - name: shiftId
    *         in: query
    *         required: false
-   *         description: Exception type id
+   *         description: Shift id
    *         schema:
    *           type: number
    *       - name: dateStart
