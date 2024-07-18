@@ -7,5 +7,13 @@ router
     router.get('/employee_shifts/:id', '#controllers/employee_shifts_controller.show')
     router.put('/employee_shifts/:id', '#controllers/employee_shifts_controller.update')
     router.delete('/employee_shifts/:id', '#controllers/employee_shifts_controller.destroy')
+    router.get(
+      '/employee-shifts-employee/:employeeId',
+      '#controllers/employee_shifts_controller.getByEmployee'
+    )
+    router.get(
+      '/employee-shifts-active-shift-employee/:employeeId',
+      '#controllers/employee_shifts_controller.getShiftActiveByEmployee'
+    )
   })
   .prefix('/api')

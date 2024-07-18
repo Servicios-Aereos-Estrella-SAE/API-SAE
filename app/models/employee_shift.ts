@@ -72,8 +72,8 @@ export default class EmployeeShift extends BaseModel {
   @column.dateTime()
   declare employeShiftsDeletedAt: DateTime
 
-  @column.dateTime()
-  declare employeShiftsApplySince: DateTime
+  @column()
+  declare employeShiftsApplySince: Date | string
 
   @belongsTo(() => Employee, {
     foreignKey: 'employeeId', // Especifica la columna de clave externa si es diferente de 'id'
