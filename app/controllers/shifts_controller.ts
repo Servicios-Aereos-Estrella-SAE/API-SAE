@@ -2,9 +2,6 @@ import { HttpContext } from '@adonisjs/core/http'
 import Shift from '../models/shift.js'
 import { createShiftValidator, updateShiftValidator } from '../validators/shift.js'
 import { DateTime } from 'luxon'
-import Employee from '#models/employee'
-import EmployeeShift from '#models/employee_shift'
-
 /**
  * @swagger
  * /api/shift:
