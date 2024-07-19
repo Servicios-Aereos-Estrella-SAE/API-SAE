@@ -49,9 +49,11 @@ export default class SyncAssistsService {
     }
     return null
   }
+
   async synchronize(startDate: string, page: number = 1, limit: number = 50) {
     const dateParam = new Date(startDate)
     let statusSync = await this.getAssistStatusSync()
+
     if (!statusSync) {
       page = 1
       let response = await this.fetchExternalData(dateParam, page, limit)
@@ -300,7 +302,7 @@ export default class SyncAssistsService {
       .orderBy('page_number', 'asc')
     const isLastPage = await this.isLastPage(page)
     if (pages.length === 0 && isLastPage) {
-      return await await PageSync.query().where('page_number', page)
+      return await PageSync.query().where('page_number', page)
     }
     return pages
   }
@@ -435,8 +437,10 @@ export default class SyncAssistsService {
         assistDayCollection.push({
           day: assistDate.toFormat('yyyy-LL-dd'),
           assist: {
-            checkIn: dayAssist.length > 0 ? dayAssist[0] : null,
-            checkOut: dayAssist.length > 1 ? dayAssist[1] : null,
+            checkIn: this.getCheckInDate(dayAssist),
+            checkEatIn: this.getCheckEatInDate(dayAssist),
+            checkEatOut: this.getCheckEatOutDate(dayAssist),
+            checkOut: this.getCheckOutDate(dayAssist),
             dateShift: dateShift.shift,
             checkInDateTime: null,
             checkOutDateTime: null,
@@ -537,6 +541,8 @@ export default class SyncAssistsService {
         assist: {
           checkIn: null,
           checkOut: null,
+          checkEatIn: null,
+          checkEatOut: null,
           dateShift: dateShift.shift,
           checkInDateTime: null,
           checkOutDateTime: null,
@@ -730,5 +736,60 @@ export default class SyncAssistsService {
     checkAssist.assist.isRestDay = !!restDay
 
     return checkAssist
+  }
+
+  private getCheckInDate(dayAssist: AssistInterface[]) {
+    const assist = dayAssist.length > 0 ? dayAssist[0] : null
+    return assist
+  }
+
+  private getCheckEatInDate(dayAssist: AssistInterface[]) {
+    let assist = null
+
+    if (dayAssist.length > 1) {
+      assist = dayAssist[1]
+    }
+
+    if (dayAssist.length <= 2) {
+      assist = null
+    }
+
+    return assist
+  }
+
+  private getCheckEatOutDate(dayAssist: AssistInterface[]) {
+    let assist = null
+
+    if (dayAssist.length > 2) {
+      assist = dayAssist[2]
+    }
+
+    if (dayAssist.length <= 3) {
+      assist = null
+    }
+
+    return assist
+  }
+
+  private getCheckOutDate(dayAssist: AssistInterface[]) {
+    let assist = null
+
+    if (dayAssist.length > 0) {
+      assist = dayAssist[0]
+    }
+
+    if (dayAssist.length > 1) {
+      assist = dayAssist[1]
+    }
+
+    if (dayAssist.length > 2) {
+      assist = dayAssist[2]
+    }
+
+    if (dayAssist.length > 3) {
+      assist = dayAssist[3]
+    }
+
+    return assist
   }
 }
