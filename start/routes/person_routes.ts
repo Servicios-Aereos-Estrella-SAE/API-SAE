@@ -9,3 +9,8 @@ router
     router.get('/:personId', '#controllers/person_controller.show')
   })
   .prefix('/api/persons')
+router
+  .group(() => {
+    router.get('/:personId', '#controllers/person_controller.getEmployee')
+  })
+  .prefix('/api/person-get-employee')
