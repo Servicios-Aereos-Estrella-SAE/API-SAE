@@ -7,6 +7,8 @@ interface AssistDayInterface {
   assist: {
     checkIn: AssistInterface | null
     checkOut: AssistInterface | null
+    checkEatIn: AssistInterface | null
+    checkEatOut: AssistInterface | null
     dateShift: ShiftInterface | null
     checkInDateTime: Date | DateTime | null
     checkOutDateTime: Date | DateTime | null
