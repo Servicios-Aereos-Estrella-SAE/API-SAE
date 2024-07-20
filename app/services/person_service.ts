@@ -94,6 +94,8 @@ export default class PersonService {
     const employee = await Employee.query()
       .whereNull('employee_deleted_at')
       .where('person_id', personId)
+      .preload('department')
+      .preload('position')
       .first()
     return employee ? employee : null
   }

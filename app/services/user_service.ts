@@ -50,6 +50,7 @@ export default class UserService {
     }
     currentUser.userActive = user.userActive
     currentUser.roleId = user.roleId
+    currentUser.personId = user.personId
     await currentUser.save()
     if (!user.userActive) {
       await ApiToken.query().where('tokenable_id', currentUser.userId).delete()
