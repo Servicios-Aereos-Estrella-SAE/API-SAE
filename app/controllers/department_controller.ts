@@ -8,6 +8,7 @@ import Employee from '#models/employee'
 import DepartmentPosition from '#models/department_position'
 import DepartmentPositionService from '#services/department_position_service'
 import { createDepartmentValidator, updateDepartmentValidator } from '#validators/department'
+import { DepartmentShiftFilterInterface } from '../interfaces/department_shift_filter_interface.js'
 
 export default class DepartmentController {
   /**
@@ -1374,6 +1375,175 @@ export default class DepartmentController {
           title: 'Departments',
           message: 'The department was found successfully',
           data: { department: showDepartment },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/department/assign-shift/{departmentId}:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: assign shift to employees by department
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               shiftId:
+   *                 type: number
+   *                 description: Shift id
+   *                 required: true
+   *                 default: ''
+   *               applySince:
+   *                 type: string
+   *                 format: date
+   *                 description: Apply since (YYYY-MM-DD HH:mm:ss)
+   *                 required: true
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async assignShift({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+      const shiftId = request.input('shiftId')
+      const applySince = request.input('applySince')
+      const departmentShiftFilterInterface = {
+        departmentId: departmentId,
+        shiftId: shiftId,
+        applySince: applySince,
+      } as DepartmentShiftFilterInterface
+
+      const departmentService = new DepartmentService()
+      const isValidInfo = await departmentService.verifyInfoAssignShift(
+        departmentShiftFilterInterface
+      )
+      if (isValidInfo.status !== 200) {
+        return {
+          status: isValidInfo.status,
+          type: isValidInfo.type,
+          title: isValidInfo.title,
+          message: isValidInfo.message,
+          data: isValidInfo.data,
+        }
+      }
+      const assignDepartment = await departmentService.assignShift(departmentShiftFilterInterface)
+      if (assignDepartment.status === 201) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments',
+          message: 'The shift was assign to department successfully',
+          data: { department: assignDepartment },
+        }
+      } else {
+        return {
+          status: assignDepartment.status,
+          type: assignDepartment.type,
+          title: assignDepartment.title,
+          message: assignDepartment.message,
+          data: {},
         }
       }
     } catch (error) {

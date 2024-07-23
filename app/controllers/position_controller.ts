@@ -5,7 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import { createPositionValidator, updatePositionValidator } from '#validators/position'
-import Department from '#models/department'
+import { PositionShiftFilterInterface } from '../interfaces/position_shift_filter_interface.js'
 
 export default class PositionController {
   /**
@@ -878,7 +878,7 @@ export default class PositionController {
 
   /**
    * @swagger
-   * /api/positions-assign-shift/{positionId}:
+   * /api/position/assign-shift/{positionId}:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -910,14 +910,14 @@ export default class PositionController {
    *                 description: Shift id
    *                 required: true
    *                 default: ''
-   *               employeShiftsApplySince:
+   *               applySince:
    *                 type: string
    *                 format: date
-   *                 description: Apply since (YYYY-MM-DD)
+   *                 description: Apply since (YYYY-MM-DD HH:mm:ss)
    *                 required: true
    *                 default: ''
    *     responses:
-   *       '200':
+   *       '201':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -1001,59 +1001,42 @@ export default class PositionController {
     try {
       const positionId = request.param('positionId')
       const departmentId = request.input('departmentId')
-      if (!departmentId) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'The department Id was not found',
-          message: 'Missing data to process',
-          data: { departmentId },
-        }
-      }
-      const currentDepartment = await Department.query()
-        .whereNull('department_deleted_at')
-        .where('department_id', departmentId)
-        .first()
-      if (!currentDepartment) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
-          data: { departmentId },
-        }
-      }
-      if (!positionId) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'The position Id was not found',
-          message: 'Missing data to process',
-          data: { positionId },
-        }
-      }
-      const currentPosition = await Position.query()
-        .whereNull('position_deleted_at')
-        .where('position_id', positionId)
-        .first()
-      if (!currentPosition) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { positionId },
-        }
-      }
+      const shiftId = request.input('shiftId')
+      const applySince = request.input('applySince')
+      const positionShiftFilterInterface = {
+        departmentId: departmentId,
+        positionId: positionId,
+        shiftId: shiftId,
+        applySince: applySince,
+      } as PositionShiftFilterInterface
+
       const positionService = new PositionService()
-      const assignPosition = await positionService.assignShift(currentDepartment, currentPosition)
-      if (assignPosition) {
-        response.status(200)
+      const isValidInfo = await positionService.verifyInfoAssignShift(positionShiftFilterInterface)
+      if (isValidInfo.status !== 200) {
+        return {
+          status: isValidInfo.status,
+          type: isValidInfo.type,
+          title: isValidInfo.title,
+          message: isValidInfo.message,
+          data: isValidInfo.data,
+        }
+      }
+      const assignPosition = await positionService.assignShift(positionShiftFilterInterface)
+      if (assignPosition.status === 201) {
+        response.status(201)
         return {
           type: 'success',
           title: 'Positions',
           message: 'The shift was assign to position successfully',
           data: { position: assignPosition },
+        }
+      } else {
+        return {
+          status: assignPosition.status,
+          type: assignPosition.type,
+          title: assignPosition.title,
+          message: assignPosition.message,
+          data: {},
         }
       }
     } catch (error) {
