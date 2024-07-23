@@ -5,6 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import { createPositionValidator, updatePositionValidator } from '#validators/position'
+import Department from '#models/department'
 
 export default class PositionController {
   /**
@@ -862,6 +863,197 @@ export default class PositionController {
           title: 'Positions',
           message: 'The position was found successfully',
           data: { position: showPosition },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/positions-assign-shift/{positionId}:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Positions
+   *     summary: assign shift to employees by position
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: positionId
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
+   *                 required: true
+   *                 default: ''
+   *               shiftId:
+   *                 type: number
+   *                 description: Shift id
+   *                 required: true
+   *                 default: ''
+   *               employeShiftsApplySince:
+   *                 type: string
+   *                 format: date
+   *                 description: Apply since (YYYY-MM-DD)
+   *                 required: true
+   *                 default: ''
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async assignShift({ request, response }: HttpContext) {
+    try {
+      const positionId = request.param('positionId')
+      const departmentId = request.input('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department Id was not found',
+          message: 'Missing data to process',
+          data: { departmentId },
+        }
+      }
+      const currentDepartment = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', departmentId)
+        .first()
+      if (!currentDepartment) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { departmentId },
+        }
+      }
+      if (!positionId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The position Id was not found',
+          message: 'Missing data to process',
+          data: { positionId },
+        }
+      }
+      const currentPosition = await Position.query()
+        .whereNull('position_deleted_at')
+        .where('position_id', positionId)
+        .first()
+      if (!currentPosition) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The position was not found',
+          message: 'The position was not found with the entered ID',
+          data: { positionId },
+        }
+      }
+      const positionService = new PositionService()
+      const assignPosition = await positionService.assignShift(currentDepartment, currentPosition)
+      if (assignPosition) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Positions',
+          message: 'The shift was assign to position successfully',
+          data: { position: assignPosition },
         }
       }
     } catch (error) {

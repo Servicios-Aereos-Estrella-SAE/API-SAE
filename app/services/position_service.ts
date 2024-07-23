@@ -1,5 +1,7 @@
+import Department from '#models/department'
 import Position from '#models/position'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
+import EmployeeService from './employee_service.js'
 
 export default class PositionService {
   async syncCreate(position: BiometricPositionInterface) {
@@ -61,6 +63,25 @@ export default class PositionService {
   async delete(currentPosition: Position) {
     await currentPosition.delete()
     return currentPosition
+  }
+
+  async assignShift(currentDepartment: Department, currentPosition: Position) {
+    const employeeService = new EmployeeService()
+    const departmentId = currentDepartment.departmentId
+    const page = 1
+    const limit = 999999999999999
+    const resultEmployes = await employeeService.index({
+      search: '',
+      departmentId: departmentId,
+      positionId: currentPosition.positionId,
+      page: page,
+      limit: limit,
+    })
+    const dataEmployes: any = resultEmployes
+    for await (const employee of dataEmployes) {
+      employee.save()
+    }
+    return 'ok'
   }
 
   async getIdBySyncId(positionSyncId: number) {
