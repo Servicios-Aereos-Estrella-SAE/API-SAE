@@ -14,6 +14,8 @@ import AssistStatusResponseDto from '#dtos/assist_status_response_dto'
 import ShiftForEmployeeService from './shift_for_employees_service.js'
 import { EmployeeRecordInterface } from '../interfaces/employee_record_interface.js'
 import type { ShiftRecordInterface } from '../interfaces/shift_record_interface.js'
+import HolidayService from './holiday_service.js'
+import { HolidayInterface } from '../interfaces/holiday_interface.js'
 
 export default class SyncAssistsService {
   /**
@@ -451,6 +453,7 @@ export default class SyncAssistsService {
             isRestDay: false,
             isVacationDate: false,
             isHoliday: false,
+            holiday: null,
           },
         })
       }
@@ -553,13 +556,16 @@ export default class SyncAssistsService {
           isRestDay: false,
           isVacationDate: false,
           isHoliday: false,
+          holiday: null,
         },
       }
 
       dailyAssistList.push(fakeCheck)
     }
 
-    dailyAssistList.forEach((item, index) => {
+    let dailyAssistListCounter = 0
+
+    for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
       dateAssistItem = this.checkInStatus(dateAssistItem)
@@ -567,8 +573,10 @@ export default class SyncAssistsService {
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
       dateAssistItem = this.isRestDay(dateAssistItem)
-      dailyAssistList[index] = dateAssistItem
-    })
+      dateAssistItem = await this.isHoliday(dateAssistItem)
+      dailyAssistList[dailyAssistListCounter] = dateAssistItem
+      dailyAssistListCounter = dailyAssistListCounter + 1
+    }
 
     return dailyAssistList
   }
@@ -736,6 +744,44 @@ export default class SyncAssistsService {
     checkAssist.assist.isRestDay = !!restDay
 
     return checkAssist
+  }
+
+  private async isHoliday(checkAssist: AssistDayInterface) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const assignedShift = checkAssist.assist.dateShift
+
+    if (!assignedShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = assignedShift.shiftTimeStart
+    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+
+    const service = await new HolidayService().index(
+      timeToStart.toFormat('yyyy-LL-dd'),
+      timeToStart.toFormat('yyyy-LL-dd'),
+      '',
+      1,
+      100
+    )
+
+    checkAssistCopy.assist.isHoliday =
+      service.status === 200 && service.holidays && service.holidays.length > 0 ? true : false
+
+    checkAssistCopy.assist.holiday =
+      200 && service.holidays && service.holidays.length > 0
+        ? (service.holidays[0] as unknown as HolidayInterface)
+        : null
+
+    return checkAssistCopy
   }
 
   private getCheckInDate(dayAssist: AssistInterface[]) {
