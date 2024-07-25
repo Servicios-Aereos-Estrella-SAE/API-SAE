@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { AssistInterface } from './assist_interface.js'
 import { ShiftInterface } from './shift_interface.js'
 import { HolidayInterface } from './holiday_interface.js'
+import { ShiftExceptionInterface } from './shift_exception_interface.js'
 
 interface AssistDayInterface {
   day: string
@@ -21,6 +22,8 @@ interface AssistDayInterface {
     isVacationDate: boolean
     isHoliday: boolean
     holiday: HolidayInterface | null
+    hasExceptions: boolean
+    exceptions: ShiftExceptionInterface[]
   }
 }
 
