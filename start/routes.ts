@@ -25,6 +25,7 @@ import './routes/shift_for_employees.js'
 import './routes/department_position_routes.js'
 import './routes/role_routes.js'
 import './routes/exception_type_routes.js'
+import './routes/vacations_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
