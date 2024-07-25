@@ -612,6 +612,8 @@ export default class SyncAssistsService {
     checkAssistCopy.assist.checkInDateTime = timeToStart
 
     if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
+      checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
+
       if (checkAssist.assist.exceptions.length > 0) {
         const absentException = checkAssist.assist.exceptions.find(
           (ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work'
@@ -623,7 +625,6 @@ export default class SyncAssistsService {
         }
       }
 
-      checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
       return checkAssistCopy
     }
 
@@ -638,6 +639,16 @@ export default class SyncAssistsService {
       'America/Mexico_City'
     )
 
+    if (checkAssist.assist.exceptions.length > 0) {
+      const vacationException = checkAssist.assist.exceptions.find(
+        (ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation'
+      )
+
+      if (vacationException) {
+        checkAssistCopy.assist.checkInStatus = ''
+      }
+    }
+
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
 
     if (diffTime > 5 * 60) {
@@ -646,6 +657,17 @@ export default class SyncAssistsService {
         checkAssistCopy.assist.checkIn = null
         checkAssistCopy.assist.checkInStatus = 'fault'
       }
+
+      if (checkAssist.assist.exceptions.length > 0) {
+        const vacationException = checkAssist.assist.exceptions.find(
+          (ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation'
+        )
+
+        if (vacationException) {
+          checkAssistCopy.assist.checkInStatus = ''
+        }
+      }
+
       return checkAssistCopy
     }
 
