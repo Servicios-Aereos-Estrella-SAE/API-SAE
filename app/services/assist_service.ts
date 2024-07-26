@@ -37,7 +37,7 @@ export default class AssistsService {
           const day = this.dateDay(calendar.day)
           const month = this.dateMonth(calendar.day)
           const year = this.dateYear(calendar.day)
-          const calendarDay = this.calendarDay(year, month, day)
+          const calendarDay = this.calendarDayMonth(year, month, day)
           const weekDayName = this.weekDayName(year, month, day)
           const firstCheck = this.chekInTime(calendar)
           const lastCheck = this.chekOutTime(calendar)
@@ -75,8 +75,20 @@ export default class AssistsService {
                   .toFormat('ff')
               : '',
             firstCheck: firstCheck,
-            lunchTime: '',
-            returnLunchTime: '',
+            lunchTime: calendar.assist.checkEatIn
+              ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                  setZone: true,
+                })
+                  .setZone('America/Mexico_City')
+                  .toFormat('ff')
+              : '',
+            returnLunchTime: calendar.assist.checkEatOut
+              ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                  setZone: true,
+                })
+                  .setZone('America/Mexico_City')
+                  .toFormat('ff')
+              : '',
             checkOutTime: calendar.assist.checkOutDateTime
               ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
                   .setZone('America/Mexico_City')
@@ -94,13 +106,13 @@ export default class AssistsService {
       const worksheet = workbook.addWorksheet('Datos')
 
       // Agregar título del reporte en negritas
-      const titleRow = worksheet.addRow(['REGISTROS DE ASISTENCIA '])
+      const titleRow = worksheet.addRow(['Assistance Report'])
       titleRow.font = { bold: true, size: 24 }
       titleRow.height = 20
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A1:M1')
 
-      const periodRow = worksheet.addRow([`Fecha desde ${filterDate} hasta ${filterDateEnd}`])
+      const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
       periodRow.font = { size: 15 }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A2:M2')
@@ -115,16 +127,16 @@ export default class AssistsService {
         'Departamento',
         'Cargo',
         'Fecha',
-        'Día de Semana',
-        'Hora entrada',
-        'Check Entrada',
-        'Hora salida a comer',
-        'Hora regreso de comer',
-        'Hora Salida',
-        'Check Salida',
+        'Día de la semana',
+        'Hora de entrada',
+        'Check-in',
+        'Hora de salida a comer',
+        'Hora de regreso de comer',
+        'Hora de salida',
+        'Check-out',
         'Incidencias',
         'Notas',
-        'Prima Dominical',
+        'Prima dominical',
       ])
       headerRow.font = { bold: true }
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
@@ -240,7 +252,7 @@ export default class AssistsService {
             const day = this.dateDay(calendar.day)
             const month = this.dateMonth(calendar.day)
             const year = this.dateYear(calendar.day)
-            const calendarDay = this.calendarDay(year, month, day)
+            const calendarDay = this.calendarDayMonth(year, month, day)
             const weekDayName = this.weekDayName(year, month, day)
             const firstCheck = this.chekInTime(calendar)
             const lastCheck = this.chekOutTime(calendar)
@@ -280,8 +292,20 @@ export default class AssistsService {
                     .toFormat('ff')
                 : '',
               firstCheck: firstCheck,
-              lunchTime: '',
-              returnLunchTime: '',
+              lunchTime: calendar.assist.checkEatIn
+                ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                    setZone: true,
+                  })
+                    .setZone('America/Mexico_City')
+                    .toFormat('ff')
+                : '',
+              returnLunchTime: calendar.assist.checkEatOut
+                ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                    setZone: true,
+                  })
+                    .setZone('America/Mexico_City')
+                    .toFormat('ff')
+                : '',
               checkOutTime: calendar.assist.checkOutDateTime
                 ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
                     .setZone('America/Mexico_City')
@@ -301,13 +325,13 @@ export default class AssistsService {
       const worksheet = workbook.addWorksheet('Datos')
 
       // Agregar título del reporte en negritas
-      const titleRow = worksheet.addRow(['REGISTROS DE ASISTENCIA '])
+      const titleRow = worksheet.addRow(['Assistance Report'])
       titleRow.font = { bold: true, size: 24 }
       titleRow.height = 20
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A1:M1')
 
-      const periodRow = worksheet.addRow([`Fecha desde ${filterDate} hasta ${filterDateEnd}`])
+      const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
       periodRow.font = { size: 15 }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A2:M2')
@@ -322,16 +346,16 @@ export default class AssistsService {
         'Departamento',
         'Cargo',
         'Fecha',
-        'Día de Semana',
-        'Hora entrada',
-        'Check Entrada',
-        'Hora salida a comer',
-        'Hora regreso de comer',
-        'Hora Salida',
-        'Check Salida',
+        'Día de la semana',
+        'Hora de entrada',
+        'Check-in',
+        'Hora de salida a comer',
+        'Hora de regreso de comer',
+        'Hora de salida',
+        'Check-out',
         'Incidencias',
         'Notas',
-        'Prima Dominical',
+        'Prima dominical',
       ])
       headerRow.font = { bold: true }
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
@@ -449,7 +473,7 @@ export default class AssistsService {
               const day = this.dateDay(calendar.day)
               const month = this.dateMonth(calendar.day)
               const year = this.dateYear(calendar.day)
-              const calendarDay = this.calendarDay(year, month, day)
+              const calendarDay = this.calendarDayMonth(year, month, day)
               const weekDayName = this.weekDayName(year, month, day)
               const firstCheck = this.chekInTime(calendar)
               const lastCheck = this.chekOutTime(calendar)
@@ -491,8 +515,20 @@ export default class AssistsService {
                       .toFormat('ff')
                   : '',
                 firstCheck: firstCheck,
-                lunchTime: '',
-                returnLunchTime: '',
+                lunchTime: calendar.assist.checkEatIn
+                  ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                      setZone: true,
+                    })
+                      .setZone('America/Mexico_City')
+                      .toFormat('ff')
+                  : '',
+                returnLunchTime: calendar.assist.checkEatOut
+                  ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                      setZone: true,
+                    })
+                      .setZone('America/Mexico_City')
+                      .toFormat('ff')
+                  : '',
                 checkOutTime: calendar.assist.checkOutDateTime
                   ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
                       .setZone('America/Mexico_City')
@@ -513,13 +549,13 @@ export default class AssistsService {
       const worksheet = workbook.addWorksheet('Datos')
 
       // Agregar título del reporte en negritas
-      const titleRow = worksheet.addRow(['REGISTROS DE ASISTENCIA '])
+      const titleRow = worksheet.addRow(['Assistance Report'])
       titleRow.font = { bold: true, size: 24 }
       titleRow.height = 20
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A1:M1')
 
-      const periodRow = worksheet.addRow([`Fecha desde ${filterDate} hasta ${filterDateEnd}`])
+      const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
       periodRow.font = { size: 15 }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A2:M2')
@@ -534,16 +570,16 @@ export default class AssistsService {
         'Departamento',
         'Cargo',
         'Fecha',
-        'Día de Semana',
-        'Hora entrada',
-        'Check Entrada',
-        'Hora salida a comer',
-        'Hora regreso de comer',
-        'Hora Salida',
-        'Check Salida',
+        'Día de la semana',
+        'Hora de entrada',
+        'Check-in',
+        'Hora de salida a comer',
+        'Hora de regreso de comer',
+        'Hora de salida',
+        'Check-out',
         'Incidencias',
         'Notas',
-        'Prima Dominical',
+        'Prima dominical',
       ])
       headerRow.font = { bold: true }
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
@@ -665,7 +701,7 @@ export default class AssistsService {
                 const day = this.dateDay(calendar.day)
                 const month = this.dateMonth(calendar.day)
                 const year = this.dateYear(calendar.day)
-                const calendarDay = this.calendarDay(year, month, day)
+                const calendarDay = this.calendarDayMonth(year, month, day)
                 const weekDayName = this.weekDayName(year, month, day)
                 const firstCheck = this.chekInTime(calendar)
                 const lastCheck = this.chekOutTime(calendar)
@@ -709,8 +745,20 @@ export default class AssistsService {
                         .toFormat('ff')
                     : '',
                   firstCheck: firstCheck,
-                  lunchTime: '',
-                  returnLunchTime: '',
+                  lunchTime: calendar.assist.checkEatIn
+                    ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                        setZone: true,
+                      })
+                        .setZone('America/Mexico_City')
+                        .toFormat('ff')
+                    : '',
+                  returnLunchTime: calendar.assist.checkEatOut
+                    ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                        setZone: true,
+                      })
+                        .setZone('America/Mexico_City')
+                        .toFormat('ff')
+                    : '',
                   checkOutTime: calendar.assist.checkOutDateTime
                     ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), {
                         setZone: true,
@@ -734,13 +782,13 @@ export default class AssistsService {
       const worksheet = workbook.addWorksheet('Datos')
 
       // Agregar título del reporte en negritas
-      const titleRow = worksheet.addRow(['REGISTROS DE ASISTENCIA '])
+      const titleRow = worksheet.addRow(['Assistance Report'])
       titleRow.font = { bold: true, size: 24 }
       titleRow.height = 20
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A1:M1')
 
-      const periodRow = worksheet.addRow([`Fecha desde ${filterDate} hasta ${filterDateEnd}`])
+      const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
       periodRow.font = { size: 15 }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A2:M2')
@@ -755,16 +803,16 @@ export default class AssistsService {
         'Departamento',
         'Cargo',
         'Fecha',
-        'Día de Semana',
-        'Hora entrada',
-        'Check Entrada',
-        'Hora salida a comer',
-        'Hora regreso de comer',
-        'Hora Salida',
-        'Check Salida',
+        'Día de la semana',
+        'Hora de entrada',
+        'Check-in',
+        'Hora de salida a comer',
+        'Hora de regreso de comer',
+        'Hora de salida',
+        'Check-out',
         'Incidencias',
         'Notas',
-        'Prima Dominical',
+        'Prima dominical',
       ])
       headerRow.font = { bold: true }
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
@@ -845,6 +893,19 @@ export default class AssistsService {
     }
   }
 
+  private getRange(dateStart: string, dateEnd: string) {
+    const dayStart = this.dateDay(dateStart)
+    const monthStart = this.dateMonth(dateStart)
+    const yearStart = this.dateYear(dateStart)
+    const calendarDayStart = this.calendarDay(yearStart, monthStart, dayStart)
+    const dayEnd = this.dateDay(dateEnd)
+    const monthEnd = this.dateMonth(dateEnd)
+    const yearEnd = this.dateYear(dateEnd)
+    const calendarDayEnd = this.calendarDay(yearEnd, monthEnd, dayEnd)
+
+    return `From ${calendarDayStart} to ${calendarDayEnd}`
+  }
+
   private addRowExcelEmpty(rows: AssistExcelRowInterface[]) {
     rows.push({
       name: '',
@@ -900,6 +961,12 @@ export default class AssistsService {
   private calendarDay(dateYear: number, dateMonth: number, dateDay: number) {
     const date = DateTime.local(dateYear, dateMonth, dateDay, 0)
     const day = date.toFormat('DDD')
+    return day
+  }
+
+  private calendarDayMonth(dateYear: number, dateMonth: number, dateDay: number) {
+    const date = DateTime.local(dateYear, dateMonth, dateDay, 0)
+    const day = date.toFormat('dd/MMMM')
     return day
   }
 
