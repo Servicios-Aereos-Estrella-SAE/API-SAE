@@ -139,6 +139,7 @@ export default class AssistsService {
         'Prima dominical',
       ])
       headerRow.font = { bold: true }
+      let rowCount = 4
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
       for await (const rowData of rows) {
         worksheet.addRow([
@@ -157,6 +158,10 @@ export default class AssistsService {
           rowData.notes,
           rowData.sundayPremium,
         ])
+        if (rowData.name) {
+          this.paintIncidents(worksheet, rowCount, rowData.incidents)
+        }
+        rowCount += 1
       }
       const columnA = worksheet.getColumn(1)
       columnA.width = 44
@@ -358,6 +363,7 @@ export default class AssistsService {
         'Prima dominical',
       ])
       headerRow.font = { bold: true }
+      let rowCount = 4
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
       for await (const rowData of rows) {
         worksheet.addRow([
@@ -376,6 +382,10 @@ export default class AssistsService {
           rowData.notes,
           rowData.sundayPremium,
         ])
+        if (rowData.name) {
+          this.paintIncidents(worksheet, rowCount, rowData.incidents)
+        }
+        rowCount += 1
       }
       const columnA = worksheet.getColumn(1)
       columnA.width = 44
@@ -582,6 +592,7 @@ export default class AssistsService {
         'Prima dominical',
       ])
       headerRow.font = { bold: true }
+      let rowCount = 4
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
       for await (const rowData of rows) {
         worksheet.addRow([
@@ -600,6 +611,10 @@ export default class AssistsService {
           rowData.notes,
           rowData.sundayPremium,
         ])
+        if (rowData.name) {
+          this.paintIncidents(worksheet, rowCount, rowData.incidents)
+        }
+        rowCount += 1
       }
       const columnA = worksheet.getColumn(1)
       columnA.width = 44
@@ -816,6 +831,7 @@ export default class AssistsService {
       ])
       headerRow.font = { bold: true }
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
+      let rowCount = 4
       for await (const rowData of rows) {
         worksheet.addRow([
           rowData.name,
@@ -833,6 +849,10 @@ export default class AssistsService {
           rowData.notes,
           rowData.sundayPremium,
         ])
+        if (rowData.name) {
+          this.paintIncidents(worksheet, rowCount, rowData.incidents)
+        }
+        rowCount += 1
       }
       const columnA = worksheet.getColumn(1)
       columnA.width = 44
@@ -890,6 +910,41 @@ export default class AssistsService {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
+    }
+  }
+
+  private paintIncidents(worksheet: ExcelJS.Worksheet, row: number, value: string) {
+    let color = 'FFFFFFF'
+    let fgColor = 'FFFFFFF'
+    if (value === 'FAULT') {
+      color = 'FFD45633'
+      fgColor = 'FFFFFFF'
+    } else if (value === 'ONTIME') {
+      color = 'FF33D4AD'
+    } else if (value === 'NEXT') {
+      color = 'E4E4E4'
+      fgColor = '000000'
+    } else if (value === 'REST') {
+      color = 'E4E4E4'
+      fgColor = '000000'
+    } else if (value === 'VACATIONS') {
+      color = 'FFFFFFF'
+      fgColor = '000000'
+    } else if (value === 'HOLIDAY') {
+      color = 'FFFFFFF'
+      fgColor = '000000'
+    } else if (value === 'DELAY') {
+      color = 'FF993A'
+    } else if (value === 'TOLERANCE') {
+      color = '3CB4E5'
+    }
+    worksheet.getCell('L' + row).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: color }, // Color de fondo rojo
+    }
+    worksheet.getCell('L' + row).font = {
+      color: { argb: fgColor }, // Color de fondo rojo
     }
   }
 
