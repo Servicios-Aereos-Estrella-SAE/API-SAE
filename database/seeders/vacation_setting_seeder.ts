@@ -10,10 +10,10 @@ export default class VacationSettingSeeder extends BaseSeeder {
       { yearsOfService: 4, vacationDays: 18 },
       { yearsOfService: 5, vacationDays: 20 },
       { yearsOfService: 6, vacationDays: 22 },
-      { yearsOfService: 7, vacationDays: 24 },
-      { yearsOfService: 8, vacationDays: 26 },
-      { yearsOfService: 9, vacationDays: 28 },
-      { yearsOfService: 10, vacationDays: 30 },
+      { yearsOfService: 7, vacationDays: 22 },
+      { yearsOfService: 8, vacationDays: 22 },
+      { yearsOfService: 9, vacationDays: 22 },
+      { yearsOfService: 10, vacationDays: 22 },
     ]
 
     for (const setting of vacationSettings) {

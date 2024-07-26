@@ -10,7 +10,7 @@ import { DateTime } from 'luxon'
 export default class VacationSettingController {
   /**
    * @swagger
-   * /api/vacation-settings:
+   * /api/vacations:
    *   get:
    *     tags:
    *       - Vacation Settings
@@ -81,7 +81,7 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacation-settings:
+   * /api/vacations:
    *   post:
    *     tags:
    *       - Vacation Settings
@@ -164,7 +164,7 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacation-settings/{id}:
+   * /api/vacations/{id}:
    *   get:
    *     tags:
    *       - Vacation Settings
@@ -239,7 +239,7 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacation-settings/{id}:
+   * /api/vacations/{id}:
    *   put:
    *     tags:
    *       - Vacation Settings
@@ -355,7 +355,7 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacation-settings/{id}:
+   * /api/vacations/{id}:
    *   delete:
    *     tags:
    *       - Vacation Settings
