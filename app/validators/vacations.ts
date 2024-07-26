@@ -10,8 +10,13 @@ export const createVacationSettingValidator = vine.compile(
       .unique(async (_db, value) => {
         const existingSetting = await VacationSetting.query()
           .where('years_of_service', value)
+          .whereNull('deleted_at')
           .first()
-        return !existingSetting
+
+        if (existingSetting) {
+          return false
+        }
+        return true
       }),
     vacationDays: vine.number().min(1).max(30),
   })
