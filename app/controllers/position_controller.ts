@@ -5,6 +5,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import { createPositionValidator, updatePositionValidator } from '#validators/position'
+import { PositionShiftFilterInterface } from '../interfaces/position_shift_filter_interface.js'
 
 export default class PositionController {
   /**
@@ -862,6 +863,180 @@ export default class PositionController {
           title: 'Positions',
           message: 'The position was found successfully',
           data: { position: showPosition },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/position/assign-shift/{positionId}:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Positions
+   *     summary: assign shift to employees by position
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: positionId
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
+   *                 required: true
+   *                 default: ''
+   *               shiftId:
+   *                 type: number
+   *                 description: Shift id
+   *                 required: true
+   *                 default: ''
+   *               applySince:
+   *                 type: string
+   *                 format: date
+   *                 description: Apply since (YYYY-MM-DD HH:mm:ss)
+   *                 required: true
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async assignShift({ request, response }: HttpContext) {
+    try {
+      const positionId = request.param('positionId')
+      const departmentId = request.input('departmentId')
+      const shiftId = request.input('shiftId')
+      const applySince = request.input('applySince')
+      const positionShiftFilterInterface = {
+        departmentId: departmentId,
+        positionId: positionId,
+        shiftId: shiftId,
+        applySince: applySince,
+      } as PositionShiftFilterInterface
+
+      const positionService = new PositionService()
+      const isValidInfo = await positionService.verifyInfoAssignShift(positionShiftFilterInterface)
+      if (isValidInfo.status !== 200) {
+        return {
+          status: isValidInfo.status,
+          type: isValidInfo.type,
+          title: isValidInfo.title,
+          message: isValidInfo.message,
+          data: isValidInfo.data,
+        }
+      }
+      const assignPosition = await positionService.assignShift(positionShiftFilterInterface)
+      if (assignPosition.status === 201) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Positions',
+          message: 'The shift was assign to position successfully',
+          data: { position: assignPosition },
+        }
+      } else {
+        return {
+          status: assignPosition.status,
+          type: assignPosition.type,
+          title: assignPosition.title,
+          message: assignPosition.message,
+          data: {},
         }
       }
     } catch (error) {

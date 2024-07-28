@@ -8,3 +8,8 @@ router
     router.get('/:positionId', '#controllers/position_controller.show')
   })
   .prefix('/api/positions')
+router
+  .group(() => {
+    router.post('/assign-shift/:positionId', '#controllers/position_controller.assignShift')
+  })
+  .prefix('/api/position')
