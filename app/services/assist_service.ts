@@ -235,6 +235,7 @@ export default class AssistsService {
         search: '',
         departmentId: departmentId,
         positionId: positionId,
+        employeeWorkSchedule: '',
         page: page,
         limit: limit,
       })
@@ -463,6 +464,7 @@ export default class AssistsService {
           search: '',
           departmentId: departmentId,
           positionId: position.positionId,
+          employeeWorkSchedule: '',
           page: page,
           limit: limit,
         })

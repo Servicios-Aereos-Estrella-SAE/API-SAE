@@ -94,6 +94,13 @@ export default class EmployeeService {
             .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
         })
       })
+      .if(filters.employeeWorkSchedule, (query) => {
+        query.where((subQuery) => {
+          subQuery.whereRaw('UPPER(employee_work_schedule) LIKE ?', [
+            `%${filters.employeeWorkSchedule.toUpperCase()}%`,
+          ])
+        })
+      })
       .if(filters.departmentId, (query) => {
         query.where('department_id', filters.departmentId)
       })
@@ -322,5 +329,13 @@ export default class EmployeeService {
       .orderBy('employee_id')
       .paginate(filters.page, filters.limit)
     return employees
+  }
+
+  async getWorkSchedules() {
+    const workSchedules = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .select('employee_work_schedule')
+      .distinct('employee_work_schedule')
+    return workSchedules
   }
 }
