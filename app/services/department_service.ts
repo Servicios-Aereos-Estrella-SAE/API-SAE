@@ -144,6 +144,7 @@ export default class DepartmentService {
         positionId: position.positionId,
         page: page,
         limit: limit,
+        employeeWorkSchedule: '',
       })
       const dataEmployes: any = resultEmployes
       for await (const employee of dataEmployes) {
