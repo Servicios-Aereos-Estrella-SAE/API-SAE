@@ -91,6 +91,7 @@ export default class PositionService {
       positionId: filters.positionId,
       page: page,
       limit: limit,
+      employeeWorkSchedule: '',
     })
     const dataEmployes: any = resultEmployes
     const warnings = [] as Array<PositionShiftEmployeeWarningInterface>
