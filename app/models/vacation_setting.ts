@@ -3,13 +3,13 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class VacationSetting extends BaseModel {
   @column({ isPrimary: true })
-  id!: number
+  vacationSettingId!: number
 
   @column()
-  yearsOfService!: number
+  vacationSettingYearsOfService!: number
 
   @column()
-  vacationDays!: number
+  vacationSettingVacationDays!: number
 
   @column.dateTime({ autoCreate: true })
   createdAt!: DateTime

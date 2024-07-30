@@ -3,13 +3,13 @@ import vine from '@vinejs/vine'
 
 export const createVacationSettingValidator = vine.compile(
   vine.object({
-    yearsOfService: vine
+    vacationSettingYearsOfService: vine
       .number()
       .min(1)
       .max(50)
       .unique(async (_db, value) => {
         const existingSetting = await VacationSetting.query()
-          .where('years_of_service', value)
+          .where('vacation_setting_years_of_service', value)
           .whereNull('deleted_at')
           .first()
 
@@ -18,13 +18,13 @@ export const createVacationSettingValidator = vine.compile(
         }
         return true
       }),
-    vacationDays: vine.number().min(1).max(30),
+    vacationSettingVacationDays: vine.number().min(1).max(30),
   })
 )
 
 export const updateVacationSettingValidator = vine.compile(
   vine.object({
-    yearsOfService: vine.number().min(1).max(50),
-    vacationDays: vine.number().min(1).max(30),
+    vacationSettingYearsOfService: vine.number().min(1).max(50),
+    vacationSettingVacationDays: vine.number().min(1).max(30),
   })
 )

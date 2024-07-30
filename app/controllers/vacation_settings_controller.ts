@@ -60,7 +60,16 @@ export default class VacationSettingController {
   async index({ request, response }: HttpContext) {
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
-    const settings = await VacationSetting.query().whereNull('deletedAt').paginate(page, limit)
+    const searchText = request.input('searchText', '')
+
+    const query = VacationSetting.query().whereNull('deletedAt')
+
+    if (searchText) {
+      query.where((builder) => {
+        builder.where('yearsOfService', `${searchText}`)
+      })
+    }
+    const settings = await query.paginate(page, limit)
 
     const formattedResponse = formatResponse(
       'success',
