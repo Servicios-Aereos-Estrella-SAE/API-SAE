@@ -1,166 +1,30 @@
-import { HttpContext } from '@adonisjs/core/http'
-import { inject } from '@adonisjs/core'
-import UploadService from '#services/upload_service'
-import ProceedingFileService from '#services/proceeding_file_service'
-import ProceedingFile from '#models/proceeding_file'
-import {
-  createProceedingFileValidator,
-  updateProceedingFileValidator,
-} from '#validators/proceeding_file'
-import { cuid } from '@adonisjs/core/helpers'
-export default class ProceedingFileController {
+export default class EmployeeProceedingFileController {
   /**
    * @swagger
-   * /api/proceeding-files:
-   *   get:
+   * /api/employees-proceeding-files:
+   *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Proceeding Files
-   *     summary: get all proceeding files
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Object processed
-   *       '404':
-   *         description: The resource could not be found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request.
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Response message
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-
-  async index({ response }: HttpContext) {
-    try {
-      const proceedingFiles = await ProceedingFile.query().whereNull('proceeding_file_deleted_at')
-      return response.status(200).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: 'Resources were found successfully',
-        data: proceedingFiles,
-      })
-    } catch (error) {
-      return response.status(500).json({
-        type: 'error',
-        title: 'Server error',
-        message: error.message,
-        data: null,
-      })
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/proceeding-files/:
-   *   post:
-   *     summary: Upload a file
-   *     tags:
-   *       - Proceeding Files
+   *       - Employees Proceeding Files
+   *     summary: create new relation employee-proceeding-files
+   *     produces:
+   *       - application/json
    *     requestBody:
    *       content:
-   *         multipart/form-data:
+   *         application/json:
    *           schema:
    *             type: object
    *             properties:
-   *               photo:
-   *                 type: string
-   *                 format: binary
-   *                 description: The file to upload
-   *               proceedingFileName:
-   *                 type: string
-   *                 description: Proceeding file name
-   *                 required: true
-   *                 default: ''
-   *               proceedingFileTypeId:
+   *               employeeId:
    *                 type: number
-   *                 description: Proceeding file type id
+   *                 description: Employee id
    *                 required: true
    *                 default: ''
-   *               proceedingFileExpirationAt:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file expiration at (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileActive:
-   *                 type: boolean
-   *                 description: Proceeding file status
-   *                 required: false
-   *                 default: true
-   *               proceedingFileIdentify:
-   *                 type: string
-   *                 description: Proceeding file identify
-   *                 required: false
+   *               proceedingFileId:
+   *                 type: number
+   *                 description: Proceeding file id
+   *                 required: true
    *                 default: ''
    *     responses:
    *       '201':
@@ -243,67 +107,45 @@ export default class ProceedingFileController {
    *                     error:
    *                       type: string
    */
-  @inject()
-  async store({ request, response }: HttpContext) {
-    await request.validateUsing(createProceedingFileValidator)
-    const validationOptions = {
-      types: ['image', 'document', 'text', 'application', 'archive'],
-      size: '',
-    }
-    const file = request.file('photo', validationOptions)
-    // validate file required
-    if (!file) {
-      response.status(400)
-      return {
-        status: 400,
-        type: 'warning',
-        title: 'Please upload a file valid',
-        message: 'Missing data to process',
-        data: file,
-      }
-    }
-    const proceedingFileName = request.input('proceedingFileName')
-    const proceedingFileTypeId = request.input('proceedingFileTypeId')
-    const proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
-    const proceedingFileActive = request.input('proceedingFileActive')
-    const proceedingFileIdentify = request.input('proceedingFileIdentify')
-    const proceedingFileUuid = cuid()
-    const proceedingFile = {
-      proceedingFileName: proceedingFileName,
-      proceedingFilePath: '',
-      proceedingFileTypeId: proceedingFileTypeId,
-      proceedingFileExpirationAt: proceedingFileExpirationAt,
-      proceedingFileActive: proceedingFileActive && proceedingFileActive === 'true' ? 1 : 0,
-      proceedingFileIdentify: proceedingFileIdentify,
-      proceedingFileUuid: proceedingFileUuid,
-    } as ProceedingFile
-    // get file name and extension
-    const fileName = `${new Date().getTime()}_${file.clientName}`
-    const uploadService = new UploadService()
-    const proceedingFileService = new ProceedingFileService()
-    const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
-    if (isValidInfo.status !== 200) {
-      return {
-        status: isValidInfo.status,
-        type: isValidInfo.type,
-        title: isValidInfo.title,
-        message: isValidInfo.message,
-        data: isValidInfo.data,
-      }
-    }
+  /* async store({ request, response }: HttpContext) {
     try {
-      const fileUrl = await uploadService.fileUpload(file, 'proceeding-files', fileName)
-      proceedingFile.proceedingFilePath = fileUrl
-      if (!proceedingFile.proceedingFileName) {
-        proceedingFile.proceedingFileName = fileName
+      const employeeId = request.input('employeeId')
+      const proceedingFileId = request.input('proceedingFileId')
+      const employeeProceedingFile = {
+        employeeId: employeeId,
+        proceedingFileId: proceedingFileId,
+      } as EmployeeProceedingFile
+      const departmentPositionService = new DepartmentPositionService()
+      const data = await request.validateUsing(createDepartmentPositionValidator)
+      const exist = await departmentPositionService.verifyInfoExist(departmentPosition)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
       }
-      const newProceedingFile = await proceedingFileService.create(proceedingFile)
-      response.status(201)
-      return {
-        type: 'success',
-        title: 'Proceeding file',
-        message: 'The proceeding file was created successfully',
-        data: { proceedingFile: newProceedingFile },
+      const verifyInfo = await departmentPositionService.verifyInfo(departmentPosition)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const newDepartmentPosition = await departmentPositionService.create(departmentPosition)
+      if (newDepartmentPosition) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments positions',
+          message: 'The relation department-position was created successfully',
+          data: { departmentPosition: newDepartmentPosition },
+        }
       }
     } catch (error) {
       const messageError =
@@ -316,262 +158,43 @@ export default class ProceedingFileController {
         error: messageError,
       }
     }
-  }
-
+  } */
   /**
    * @swagger
-   * /api/proceeding-files/{proceedingFileId}:
+   * /api/departments-positions/{departmentPositionId}:
    *   put:
-   *     summary: Update upload a file
-   *     tags:
-   *       - Proceeding Files
-   *     parameters:
-   *       - in: path
-   *         name: proceedingFileId
-   *         schema:
-   *           type: number
-   *         description: Proceeding file id
-   *         required: true
-   *     requestBody:
-   *       content:
-   *         multipart/form-data:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               photo:
-   *                 type: string
-   *                 format: binary
-   *                 description: The file to upload
-   *               proceedingFileName:
-   *                 type: string
-   *                 description: Proceeding file name
-   *                 required: true
-   *                 default: ''
-   *               proceedingFileTypeId:
-   *                 type: number
-   *                 description: Proceeding file type id
-   *                 required: true
-   *                 default: ''
-   *               proceedingFileExpirationAt:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file expiration at (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileActive:
-   *                 type: boolean
-   *                 description: Proceeding file status
-   *                 required: false
-   *                 default: true
-   *               proceedingFileIdentify:
-   *                 type: string
-   *                 description: Proceeding file identify
-   *                 required: false
-   *                 default: ''
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  @inject()
-  async update({ request, response }: HttpContext) {
-    await request.validateUsing(updateProceedingFileValidator)
-    const validationOptions = {
-      types: ['image', 'document', 'text', 'application', 'archive'],
-      size: '',
-    }
-    const file = request.file('photo', validationOptions)
-    // validate file required
-    if (!file) {
-      response.status(400)
-      return {
-        status: 400,
-        type: 'warning',
-        title: 'Please upload a file valid',
-        message: 'Missing data to process',
-        data: file,
-      }
-    }
-    const proceedingFileId = request.param('proceedingFileId')
-    if (!proceedingFileId) {
-      response.status(400)
-      return {
-        type: 'warning',
-        title: 'The proceeding file Id was not found',
-        message: 'Missing data to process',
-        data: { ...proceedingFileId },
-      }
-    }
-    const currentProceedingFile = await ProceedingFile.query()
-      .whereNull('proceeding_file_deleted_at')
-      .where('proceeding_file_id', proceedingFileId)
-      .first()
-    if (!currentProceedingFile) {
-      response.status(404)
-      return {
-        type: 'warning',
-        title: 'The proceeding file was not found',
-        message: 'The proceeding file was not found with the entered ID',
-        data: { proceedingFileId },
-      }
-    }
-    const proceedingFileName = request.input('proceedingFileName')
-    const proceedingFileTypeId = request.input('proceedingFileTypeId')
-    const proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
-    const proceedingFileActive = request.input('proceedingFileActive')
-    const proceedingFileIdentify = request.input('proceedingFileIdentify')
-    const proceedingFile = {
-      proceedingFileId: proceedingFileId,
-      proceedingFileName: proceedingFileName,
-      proceedingFilePath: '',
-      proceedingFileTypeId: proceedingFileTypeId,
-      proceedingFileExpirationAt: proceedingFileExpirationAt,
-      proceedingFileActive: proceedingFileActive && proceedingFileActive === 'true' ? 1 : 0,
-      proceedingFileIdentify: proceedingFileIdentify,
-    } as ProceedingFile
-    // get file name and extension
-    const proceedingFileService = new ProceedingFileService()
-    const fileName = `${new Date().getTime()}_${file.clientName}`
-    const uploadService = new UploadService()
-    const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
-    if (isValidInfo.status !== 200) {
-      return {
-        status: isValidInfo.status,
-        type: isValidInfo.type,
-        title: isValidInfo.title,
-        message: isValidInfo.message,
-        data: isValidInfo.data,
-      }
-    }
-    try {
-      const fileUrl = await uploadService.fileUpload(file, 'proceeding-files', fileName)
-      if (currentProceedingFile.proceedingFilePath) {
-        await uploadService.deleteFile(currentProceedingFile.proceedingFilePath)
-      }
-      proceedingFile.proceedingFilePath = fileUrl
-      if (!proceedingFile.proceedingFileName) {
-        proceedingFile.proceedingFileName = fileName
-      }
-      const updateProceedingFile = await proceedingFileService.update(
-        currentProceedingFile,
-        proceedingFile
-      )
-      response.status(200)
-      return {
-        type: 'success',
-        title: 'Proceeding file',
-        message: 'The proceeding file was updated successfully',
-        data: { proceedingFile: updateProceedingFile },
-      }
-    } catch (error) {
-      const messageError =
-        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
-        error: messageError,
-      }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/proceeding-files/{proceedingFileId}:
-   *   delete:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Proceeding Files
-   *     summary: delete proceeding file
+   *       - Departments Positions
+   *     summary: update relation department-position
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: proceedingFileId
+   *         name: departmentPositionId
    *         schema:
    *           type: number
-   *         description: Proceeding file id
+   *         description: Department position id
    *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
+   *                 required: true
+   *                 default: ''
+   *               positionId:
+   *                 type: number
+   *                 description: Position id
+   *                 required: true
+   *                 default: ''
    *     responses:
-   *       '200':
+   *       '201':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -651,40 +274,219 @@ export default class ProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async delete({ request, response }: HttpContext) {
+  /* async update({ request, response }: HttpContext) {
     try {
-      const proceedingFileId = request.param('proceedingFileId')
-      if (!proceedingFileId) {
+      const departmentPositionId = request.param('departmentPositionId')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const departmentPosition = {
+        departmentPositionId: departmentPositionId,
+        departmentId: departmentId,
+        positionId: positionId,
+      } as DepartmentPosition
+      if (!departmentPositionId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The proceeding file Id was not found',
+          title: 'The relation department-position Id was not found',
           message: 'Missing data to process',
-          data: { proceedingFileId },
+          data: { ...departmentPosition },
         }
       }
-      const currentProceedingFile = await ProceedingFile.query()
-        .whereNull('proceeding_file_deleted_at')
-        .where('proceeding_file_id', proceedingFileId)
+      const currentDepartmentPosition = await DepartmentPosition.query()
+        .whereNull('department_position_deleted_at')
+        .where('department_position_id', departmentPositionId)
         .first()
-      if (!currentProceedingFile) {
+      if (!currentDepartmentPosition) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The proceeding file was not found',
-          message: 'The proceeding file was not found with the entered ID',
-          data: { proceedingFileId },
+          title: 'The relation department-position was not found',
+          message: 'The relation department-position was not found with the entered ID',
+          data: { ...departmentPosition },
         }
       }
-      const proceedingFileService = new ProceedingFileService()
-      const deleteProceedingFile = await proceedingFileService.delete(currentProceedingFile)
-      if (deleteProceedingFile) {
+      const departmentPositionService = new DepartmentPositionService()
+      const data = await request.validateUsing(updateDepartmentPositionValidator)
+      const exist = await departmentPositionService.verifyInfoExist(departmentPosition)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await departmentPositionService.verifyInfo(departmentPosition)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const updateDepartmentPosition = await departmentPositionService.update(
+        currentDepartmentPosition,
+        departmentPosition
+      )
+      if (updateDepartmentPosition) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Proceeding file',
-          message: 'The proceeding file was deleted successfully',
-          data: { proceedingFile: deleteProceedingFile },
+          title: 'Department positions',
+          message: 'The relation department-position was updated successfully',
+          data: { departmentPosition: updateDepartmentPosition },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  } */
+  /**
+   * @swagger
+   * /api/departments-positions/{departmentPositionId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments Positions
+   *     summary: delete relation department position
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: departmentPositionId
+   *         schema:
+   *           type: number
+   *         description: Department position id
+   *         required: true
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  /* async delete({ request, response }: HttpContext) {
+    try {
+      const departmentPositionId = request.param('departmentPositionId')
+      if (!departmentPositionId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The relation department-position Id was not found',
+          message: 'Missing data to process',
+          data: { departmentPositionId },
+        }
+      }
+      const currentDepartmentPosition = await DepartmentPosition.query()
+        .whereNull('department_position_deleted_at')
+        .where('department_position_id', departmentPositionId)
+        .first()
+      if (!currentDepartmentPosition) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The relation department-position was not found',
+          message: 'The relation department-position was not found with the entered ID',
+          data: { departmentPositionId },
+        }
+      }
+      const departmentPositionService = new DepartmentPositionService()
+      const deleteDepartmentPosition =
+        await departmentPositionService.delete(currentDepartmentPosition)
+      if (deleteDepartmentPosition) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments positions',
+          message: 'The relation department-position was deleted successfully',
+          data: { departmentPosition: deleteDepartmentPosition },
         }
       }
     } catch (error) {
@@ -696,25 +498,24 @@ export default class ProceedingFileController {
         error: error.message,
       }
     }
-  }
-
+  } */
   /**
    * @swagger
-   * /api/proceeding-files/{proceedingFileId}:
+   * /api/departments-positions/{departmentPositionId}:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Proceeding Files
-   *     summary: get proceeding file by id
+   *       - Departments Positions
+   *     summary: get relation department-position by id
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: proceedingFileId
+   *         name: departmentPositionId
    *         schema:
    *           type: number
-   *         description: Proceeding file id
+   *         description: Department position id
    *         required: true
    *     responses:
    *       '200':
@@ -797,35 +598,35 @@ export default class ProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async show({ request, response }: HttpContext) {
+  /* async show({ request, response }: HttpContext) {
     try {
-      const proceedingFileId = request.param('proceedingFileId')
-      if (!proceedingFileId) {
+      const departmentPositionId = request.param('departmentPositionId')
+      if (!departmentPositionId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The proceeding file Id was not found',
+          title: 'The relation department-position Id was not found',
           message: 'Missing data to process',
-          data: { proceedingFileId },
+          data: { departmentPositionId },
         }
       }
-      const proceedingFileService = new ProceedingFileService()
-      const showProceedingFile = await proceedingFileService.show(proceedingFileId)
-      if (!showProceedingFile) {
+      const departmentPositionService = new DepartmentPositionService()
+      const showDepartmentPosition = await departmentPositionService.show(departmentPositionId)
+      if (!showDepartmentPosition) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The proceeding file was not found',
-          message: 'The proceeding file was not found with the entered ID',
-          data: { proceedingFileId },
+          title: 'The relation department-position was not found',
+          message: 'The relation department-position was not found with the entered ID',
+          data: { departmentPositionId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: 'Proceeding file',
-          message: 'The proceeding file was found successfully',
-          data: { showProceedingFile: showProceedingFile },
+          title: 'Departments positions',
+          message: 'The relation department-position was found successfully',
+          data: { departmentPosition: showDepartmentPosition },
         }
       }
     } catch (error) {
@@ -837,5 +638,5 @@ export default class ProceedingFileController {
         error: error.message,
       }
     }
-  }
+  } */
 }
