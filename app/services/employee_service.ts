@@ -1,5 +1,6 @@
 import Department from '#models/department'
 import Employee from '#models/employee'
+import EmployeeProceedingFile from '#models/employee_proceeding_file'
 import Person from '#models/person'
 import Position from '#models/position'
 import User from '#models/user'
@@ -337,5 +338,16 @@ export default class EmployeeService {
       .select('employee_work_schedule')
       .distinct('employee_work_schedule')
     return workSchedules
+  }
+
+  async getProceedingFiles(employeeId: number) {
+    const proceedingFiles = await EmployeeProceedingFile.query()
+      .whereNull('employee_proceeding_file_deleted_at')
+      .where('employee_id', employeeId)
+      .preload('proceedingFile', (query) => {
+        query.preload('proceedingFileType')
+      })
+      .orderBy('employee_id')
+    return proceedingFiles ? proceedingFiles : []
   }
 }

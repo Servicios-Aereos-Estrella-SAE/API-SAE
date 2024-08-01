@@ -1,7 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import ProceedingFile from './proceeding_file.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 /**
  * @swagger
@@ -47,4 +49,9 @@ export default class EmployeeProceedingFile extends compose(BaseModel, SoftDelet
 
   @column.dateTime({ columnName: 'employee_proceeding_file_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => ProceedingFile, {
+    foreignKey: 'proceedingFileId',
+  })
+  declare proceedingFile: BelongsTo<typeof ProceedingFile>
 }

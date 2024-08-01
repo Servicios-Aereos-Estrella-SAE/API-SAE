@@ -3,11 +3,13 @@ import { inject } from '@adonisjs/core'
 import UploadService from '#services/upload_service'
 import ProceedingFileService from '#services/proceeding_file_service'
 import ProceedingFile from '#models/proceeding_file'
+import Env from '#start/env'
 import {
   createProceedingFileValidator,
   updateProceedingFileValidator,
 } from '#validators/proceeding_file'
 import { cuid } from '@adonisjs/core/helpers'
+import path from 'node:path'
 export default class ProceedingFileController {
   /**
    * @swagger
@@ -132,7 +134,7 @@ export default class ProceedingFileController {
    *           schema:
    *             type: object
    *             properties:
-   *               photo:
+   *               file:
    *                 type: string
    *                 format: binary
    *                 description: The file to upload
@@ -250,9 +252,33 @@ export default class ProceedingFileController {
       types: ['image', 'document', 'text', 'application', 'archive'],
       size: '',
     }
-    const file = request.file('photo', validationOptions)
+    const file = request.file('file', validationOptions)
     // validate file required
     if (!file) {
+      response.status(400)
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'Please upload a file valid',
+        message: 'Missing data to process',
+        data: file,
+      }
+    }
+    const disallowedExtensions = [
+      'mp4',
+      'avi',
+      'mkv',
+      'mov',
+      'wmv',
+      'flv', // Video
+      'mp3',
+      'wav',
+      'flac',
+      'aac',
+      'ogg', // Audio
+    ]
+    // Verificar si la extensión del archivo está en la lista de no permitidas
+    if (disallowedExtensions.includes(file.extname ? file.extname : '')) {
       response.status(400)
       return {
         status: 400,
@@ -338,7 +364,7 @@ export default class ProceedingFileController {
    *           schema:
    *             type: object
    *             properties:
-   *               photo:
+   *               file:
    *                 type: string
    *                 format: binary
    *                 description: The file to upload
@@ -451,82 +477,108 @@ export default class ProceedingFileController {
    */
   @inject()
   async update({ request, response }: HttpContext) {
-    await request.validateUsing(updateProceedingFileValidator)
-    const validationOptions = {
-      types: ['image', 'document', 'text', 'application', 'archive'],
-      size: '',
-    }
-    const file = request.file('photo', validationOptions)
-    // validate file required
-    if (!file) {
-      response.status(400)
-      return {
-        status: 400,
-        type: 'warning',
-        title: 'Please upload a file valid',
-        message: 'Missing data to process',
-        data: file,
-      }
-    }
-    const proceedingFileId = request.param('proceedingFileId')
-    if (!proceedingFileId) {
-      response.status(400)
-      return {
-        type: 'warning',
-        title: 'The proceeding file Id was not found',
-        message: 'Missing data to process',
-        data: { ...proceedingFileId },
-      }
-    }
-    const currentProceedingFile = await ProceedingFile.query()
-      .whereNull('proceeding_file_deleted_at')
-      .where('proceeding_file_id', proceedingFileId)
-      .first()
-    if (!currentProceedingFile) {
-      response.status(404)
-      return {
-        type: 'warning',
-        title: 'The proceeding file was not found',
-        message: 'The proceeding file was not found with the entered ID',
-        data: { proceedingFileId },
-      }
-    }
-    const proceedingFileName = request.input('proceedingFileName')
-    const proceedingFileTypeId = request.input('proceedingFileTypeId')
-    const proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
-    const proceedingFileActive = request.input('proceedingFileActive')
-    const proceedingFileIdentify = request.input('proceedingFileIdentify')
-    const proceedingFile = {
-      proceedingFileId: proceedingFileId,
-      proceedingFileName: proceedingFileName,
-      proceedingFilePath: '',
-      proceedingFileTypeId: proceedingFileTypeId,
-      proceedingFileExpirationAt: proceedingFileExpirationAt,
-      proceedingFileActive: proceedingFileActive && proceedingFileActive === 'true' ? 1 : 0,
-      proceedingFileIdentify: proceedingFileIdentify,
-    } as ProceedingFile
-    // get file name and extension
-    const proceedingFileService = new ProceedingFileService()
-    const fileName = `${new Date().getTime()}_${file.clientName}`
-    const uploadService = new UploadService()
-    const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
-    if (isValidInfo.status !== 200) {
-      return {
-        status: isValidInfo.status,
-        type: isValidInfo.type,
-        title: isValidInfo.title,
-        message: isValidInfo.message,
-        data: isValidInfo.data,
-      }
-    }
     try {
-      const fileUrl = await uploadService.fileUpload(file, 'proceeding-files', fileName)
-      if (currentProceedingFile.proceedingFilePath) {
-        await uploadService.deleteFile(currentProceedingFile.proceedingFilePath)
+      await request.validateUsing(updateProceedingFileValidator)
+      const validationOptions = {
+        types: ['image', 'document', 'text', 'application', 'archive'],
+        size: '1mb',
       }
-      proceedingFile.proceedingFilePath = fileUrl
-      if (!proceedingFile.proceedingFileName) {
-        proceedingFile.proceedingFileName = fileName
+      const file = request.file('file', validationOptions)
+      const proceedingFileId = request.param('proceedingFileId')
+      if (!proceedingFileId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The proceeding file Id was not found',
+          message: 'Missing data to process',
+          data: { proceedingFileId },
+        }
+      }
+      const currentProceedingFile = await ProceedingFile.query()
+        .whereNull('proceeding_file_deleted_at')
+        .where('proceeding_file_id', proceedingFileId)
+        .first()
+      if (!currentProceedingFile) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The proceeding file was not found',
+          message: 'The proceeding file was not found with the entered ID',
+          data: { proceedingFileId },
+        }
+      }
+      const proceedingFileName = request.input('proceedingFileName')
+      const proceedingFileTypeId = request.input('proceedingFileTypeId')
+      const proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
+      const proceedingFileActive = request.input('proceedingFileActive')
+      const proceedingFileIdentify = request.input('proceedingFileIdentify')
+      const proceedingFile = {
+        proceedingFileId: proceedingFileId,
+        proceedingFileName: proceedingFileName
+          ? proceedingFileName
+          : currentProceedingFile.proceedingFileName,
+        proceedingFilePath: currentProceedingFile.proceedingFilePath
+          ? currentProceedingFile.proceedingFilePath
+          : '',
+        proceedingFileTypeId: proceedingFileTypeId
+          ? proceedingFileTypeId
+          : currentProceedingFile.proceedingFileTypeId,
+        proceedingFileExpirationAt: proceedingFileExpirationAt,
+        proceedingFileActive: proceedingFileActive && proceedingFileActive === 'true' ? 1 : 0,
+        proceedingFileIdentify: proceedingFileIdentify
+          ? proceedingFileIdentify
+          : currentProceedingFile.proceedingFileIdentify,
+      } as ProceedingFile
+      const proceedingFileService = new ProceedingFileService()
+      const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
+      if (isValidInfo.status !== 200) {
+        return {
+          status: isValidInfo.status,
+          type: isValidInfo.type,
+          title: isValidInfo.title,
+          message: isValidInfo.message,
+          data: isValidInfo.data,
+        }
+      }
+      if (file) {
+        const disallowedExtensions = [
+          'mp4',
+          'avi',
+          'mkv',
+          'mov',
+          'wmv',
+          'flv', // Video
+          'mp3',
+          'wav',
+          'flac',
+          'aac',
+          'ogg', // Audio
+        ]
+        if (disallowedExtensions.includes(file.extname ? file.extname : '')) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Please upload a file valid',
+            message: 'Missing data to process',
+            data: file,
+          }
+        }
+        const fileName = `${new Date().getTime()}_${file.clientName}`
+        const uploadService = new UploadService()
+        const fileUrl = await uploadService.fileUpload(file, 'proceeding-files', fileName)
+        if (currentProceedingFile.proceedingFilePath) {
+          const fileNameWithExt = path.basename(currentProceedingFile.proceedingFilePath)
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/proceeding-files/${fileNameWithExt}`
+          await uploadService.deleteFile(fileKey)
+        }
+        proceedingFile.proceedingFilePath = fileUrl
+        if (!proceedingFile.proceedingFileName) {
+          proceedingFile.proceedingFileName = fileName
+        }
+      }
+      if (!proceedingFile.proceedingFileExpirationAt) {
+        proceedingFile.proceedingFileExpirationAt = currentProceedingFile.proceedingFileExpirationAt
       }
       const updateProceedingFile = await proceedingFileService.update(
         currentProceedingFile,

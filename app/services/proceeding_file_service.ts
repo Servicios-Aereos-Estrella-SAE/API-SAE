@@ -48,7 +48,7 @@ export default class ProceedingFileService {
         type: 'error',
         title: 'Validation error',
         message: 'Date is invalid',
-        data: null,
+        data: proceedingFileExpirationAt,
       }
     }
     return {
