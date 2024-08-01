@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 /**
  * @swagger
  * components:
@@ -20,6 +22,12 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *         holidayIcon:
  *           type: string
  *           description: Icon representing the holiday
+ *         holidayFrequency:
+ *           type: number
+ *           description: holidayFrequency representing the holiday
+ *         holidayIconId:
+ *           type: number
+ *           description: holidayIconId representing the icon id
  *         holidayCreatedAt:
  *           type: string
  *           format: date-time
@@ -40,9 +48,9 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *         holidayIcon: "icon_christmas"
  *         holidayCreatedAt: '2024-06-20T12:00:00Z'
  *         holidayUpdatedAt: '2024-06-20T13:00:00Z'
- *         holidayDeletedAt: null
+ *         deletedAt: null
  */
-export default class Holiday extends BaseModel {
+export default class Holiday extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare holidayId: number
 
@@ -53,7 +61,13 @@ export default class Holiday extends BaseModel {
   declare holidayDate: string
 
   @column()
-  declare holidayIcon: string
+  declare holidayIcon: string | null
+
+  @column()
+  declare holidayIconId: number | null
+
+  @column()
+  declare holidayFrequency: number
 
   @column.dateTime({ autoCreate: true })
   declare holidayCreatedAt: DateTime
@@ -61,6 +75,6 @@ export default class Holiday extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare holidayUpdatedAt: DateTime
 
-  @column.dateTime()
-  declare holidayDeletedAt: DateTime
+  @column.dateTime({ columnName: 'holiday_deleted_at' })
+  declare deletedAt: DateTime | null
 }

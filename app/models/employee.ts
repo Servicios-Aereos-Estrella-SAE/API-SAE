@@ -1,11 +1,12 @@
 import { DateTime } from 'luxon'
-import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Department from './department.js'
 import Position from './position.js'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
 import Person from './person.js'
+import ShiftException from './shift_exception.js'
 
 /**
  * @swagger
@@ -136,4 +137,13 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'personId',
   })
   declare person: BelongsTo<typeof Person>
+
+  @hasMany(() => ShiftException, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('shift_exceptions_deleted_at')
+      query.preload('exceptionType')
+    },
+  })
+  declare shift_exceptions: HasMany<typeof ShiftException>
 }

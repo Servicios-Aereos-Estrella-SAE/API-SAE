@@ -1,3 +1,4 @@
+import Employee from '#models/employee'
 import Person from '#models/person'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import { PersonFilterSearchInterface } from '../interfaces/person_filter_search_interface.js'
@@ -87,6 +88,16 @@ export default class PersonService {
       }
     }
     return names
+  }
+
+  async getEmployee(personId: number) {
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('person_id', personId)
+      .preload('department')
+      .preload('position')
+      .first()
+    return employee ? employee : null
   }
 
   async verifyInfo(person: Person) {

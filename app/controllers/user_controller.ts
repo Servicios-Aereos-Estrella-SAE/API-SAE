@@ -1194,6 +1194,11 @@ export default class UserController {
    *                 description: Role id
    *                 required: true
    *                 default: ''
+   *               personId:
+   *                 type: number
+   *                 description: Person id
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -1289,12 +1294,14 @@ export default class UserController {
       request.updateBody(input)
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
+      const personId = request.input('personId')
       const user = {
         userId: userId,
         userEmail: userEmail,
         userPassword: userPassword,
         userActive: userActive,
         roleId: roleId,
+        personId: personId,
       } as User
       if (!userId) {
         response.status(400)

@@ -86,6 +86,8 @@ export default class Shift extends BaseModel {
   @column.dateTime()
   declare shiftDeletedAt: DateTime
 
-  @hasMany(() => EmployeeShift)
+  @hasMany(() => EmployeeShift, {
+    foreignKey: 'shiftId',
+  })
   declare employees: relations.HasMany<typeof EmployeeShift>
 }

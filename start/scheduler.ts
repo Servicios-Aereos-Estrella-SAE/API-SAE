@@ -1,4 +1,4 @@
 import scheduler from 'adonisjs-scheduler/services/main'
 
 // scheduler.command('inspire').everyFiveSeconds()
-scheduler.command('sync:assistance').cron('* * * * *')
+scheduler.command('sync:assistance').cron('*/5 * * * *')
