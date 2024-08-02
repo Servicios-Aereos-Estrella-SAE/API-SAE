@@ -4,6 +4,7 @@ interface EmployeeFilterSearchInterface {
   limit: number
   departmentId: number
   positionId: number
+  employeeWorkSchedule: string
 }
 
 export type { EmployeeFilterSearchInterface }

@@ -91,7 +91,7 @@ export default class EmployeeController {
    *                 required: false
    *                 default: ''
    *     responses:
-   *       '200':
+   *       '201':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -174,7 +174,7 @@ export default class EmployeeController {
   async synchronization({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
-      const limit = request.input('limit', 300)
+      const limit = request.input('limit', 1000)
       const empCode = request.input('empCode')
       const firstName = request.input('firstName')
       const lastName = request.input('lastName')
@@ -209,7 +209,7 @@ export default class EmployeeController {
         for await (const employee of data) {
           await this.verify(employee, employeeService, departmentService, positionService)
         }
-        response.status(200)
+        response.status(201)
         return {
           type: 'success',
           title: 'Employee synchronization',
@@ -266,6 +266,12 @@ export default class EmployeeController {
    *         description: PositionId
    *         schema:
    *           type: integer
+   *       - name: employeeWorkSchedule
+   *         in: query
+   *         required: false
+   *         description: Employee work schedule
+   *         schema:
+   *           type: string
    *       - name: page
    *         in: query
    *         required: true
@@ -366,12 +372,14 @@ export default class EmployeeController {
       const search = request.input('search')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
+      const employeeWorkSchedule = request.input('employeeWorkSchedule')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
         search: search,
         departmentId: departmentId,
         positionId: positionId,
+        employeeWorkSchedule: employeeWorkSchedule,
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
@@ -1312,7 +1320,10 @@ export default class EmployeeController {
     departmentService: DepartmentService,
     positionService: PositionService
   ) {
-    const existEmployee = await Employee.query().where('employee_code', employee.empCode).first()
+    const existEmployee = await Employee.query()
+      .where('employee_code', employee.empCode)
+      .withTrashed()
+      .first()
     if (!existEmployee) {
       await employeeService.syncCreate(employee, departmentService, positionService)
     } else {
@@ -1413,6 +1424,261 @@ export default class EmployeeController {
       return response.status(200).send({ url: photoUrl, employee })
     } catch (error) {
       return response.status(500).send({ message: 'Error uploading file', error })
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/get-work-schedules:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get all work schedules
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getWorkSchedules({ response }: HttpContext) {
+    try {
+      const employeeService = new EmployeeService()
+      const employeeWorkSchedules = await employeeService.getWorkSchedules()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employee work schedules',
+        message: 'The employee work schedules were found successfully',
+        data: {
+          employeeWorkSchedules,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/proceeding-files:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get proceeding files by employee id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getProceedingFiles({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee Id was not found',
+          message: 'Missing data to process',
+          data: { employeeId },
+        }
+      }
+      const employeeService = new EmployeeService()
+      const showEmployee = await employeeService.show(employeeId)
+      if (!showEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const proceedingFiles = await employeeService.getProceedingFiles(employeeId)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The proceeding files were found successfully',
+        data: { proceedingFiles: proceedingFiles },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 }

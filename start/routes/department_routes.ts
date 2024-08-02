@@ -16,3 +16,8 @@ router
     router.get('/:departmentId', '#controllers/department_controller.show')
   })
   .prefix('/api/departments')
+router
+  .group(() => {
+    router.post('/assign-shift/:departmentId', '#controllers/department_controller.assignShift')
+  })
+  .prefix('/api/department')
