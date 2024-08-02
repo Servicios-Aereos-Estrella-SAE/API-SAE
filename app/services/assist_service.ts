@@ -11,6 +11,7 @@ import DepartmentService from './department_service.js'
 import { AssistExcelRowInterface } from '../interfaces/assist_excel_row_interface.js'
 import { AssistExcelFilterInterface } from '../interfaces/assist_excel_filter_interface.js'
 import Department from '#models/department'
+import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -33,7 +34,12 @@ export default class AssistsService {
       const rows = [] as AssistExcelRowInterface[]
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-        for await (const calendar of employeeCalendar) {
+        let newRows = [] as AssistExcelRowInterface[]
+        newRows = await this.addRowCalendar(employee, employeeCalendar)
+        for await (const row of newRows) {
+          rows.push(row)
+        }
+        /* for await (const calendar of employeeCalendar) {
           const day = this.dateDay(calendar.day)
           const month = this.dateMonth(calendar.day)
           const year = this.dateYear(calendar.day)
@@ -64,6 +70,7 @@ export default class AssistsService {
           position =
             position === '' && employee.position?.positionName ? employee.position.positionName : ''
           rows.push({
+            code: employee.employeeCode.toString(),
             name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
             department: department,
             position: position,
@@ -76,14 +83,14 @@ export default class AssistsService {
               : '',
             firstCheck: firstCheck,
             lunchTime: calendar.assist.checkEatIn
-              ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+              ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
                   setZone: true,
                 })
                   .setZone('America/Mexico_City')
                   .toFormat('ff')
               : '',
             returnLunchTime: calendar.assist.checkEatOut
-              ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+              ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
                   setZone: true,
                 })
                   .setZone('America/Mexico_City')
@@ -99,7 +106,7 @@ export default class AssistsService {
             notes: '',
             sundayPremium: '',
           })
-        }
+        } */
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
@@ -122,7 +129,9 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
       ]
       // Añadir columnas de datos (encabezados)
-      const headerRow = worksheet.addRow([
+      this.addHeadRow(worksheet)
+      /*  const headerRow = worksheet.addRow([
+        'Código de empleado',
         'Nombre',
         'Departamento',
         'Cargo',
@@ -138,11 +147,12 @@ export default class AssistsService {
         'Notas',
         'Prima dominical',
       ])
-      headerRow.font = { bold: true }
-      let rowCount = 4
+      headerRow.font = { bold: true } */
+      // let rowCount = 4
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
-      for await (const rowData of rows) {
+      /* for await (const rowData of rows) {
         worksheet.addRow([
+          rowData.code,
           rowData.name,
           rowData.department,
           rowData.position,
@@ -160,18 +170,22 @@ export default class AssistsService {
         ])
         if (rowData.name) {
           this.paintIncidents(worksheet, rowCount, rowData.incidents)
+          this.paintCheckOutStatus(worksheet, rowCount, rowData.checkOutStatus)
+        }
+        if (rowData.exceptions.length > 0) {
+          await this.addExceptions(rowData, worksheet, rowCount)
         }
         rowCount += 1
-      }
-      const columnA = worksheet.getColumn(1)
-      columnA.width = 44
+      } */
+      await this.addRowToWorkSheet(rows, worksheet)
+      /* const columnA = worksheet.getColumn(1)
+      columnA.width = 20
       const columnB = worksheet.getColumn(2)
       columnB.width = 44
       const columnC = worksheet.getColumn(3)
       columnC.width = 44
       const columnD = worksheet.getColumn(4)
-      columnD.width = 25
-      columnD.alignment = { vertical: 'middle', horizontal: 'center' }
+      columnD.width = 44
       const columnE = worksheet.getColumn(5)
       columnE.width = 25
       columnE.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -194,7 +208,7 @@ export default class AssistsService {
       columnK.width = 25
       columnK.alignment = { vertical: 'middle', horizontal: 'center' }
       const columnL = worksheet.getColumn(12)
-      columnL.width = 30
+      columnL.width = 25
       columnL.alignment = { vertical: 'middle', horizontal: 'center' }
       const columnM = worksheet.getColumn(13)
       columnM.width = 30
@@ -202,6 +216,9 @@ export default class AssistsService {
       const columnN = worksheet.getColumn(14)
       columnN.width = 30
       columnN.alignment = { vertical: 'middle', horizontal: 'center' }
+      const columnO = worksheet.getColumn(15)
+      columnO.width = 30
+      columnO.alignment = { vertical: 'middle', horizontal: 'center' } */
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -254,7 +271,12 @@ export default class AssistsService {
         const data: any = result.data
         if (data) {
           const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-          for await (const calendar of employeeCalendar) {
+          let newRows = [] as AssistExcelRowInterface[]
+          newRows = await this.addRowCalendar(employee, employeeCalendar)
+          for await (const row of newRows) {
+            rows.push(row)
+          }
+          /* for await (const calendar of employeeCalendar) {
             const day = this.dateDay(calendar.day)
             const month = this.dateMonth(calendar.day)
             const year = this.dateYear(calendar.day)
@@ -287,6 +309,7 @@ export default class AssistsService {
                 ? employee.position.positionName
                 : ''
             rows.push({
+              code: employee.employeeCode.toString(),
               name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
               department: department,
               position: position,
@@ -299,14 +322,14 @@ export default class AssistsService {
                 : '',
               firstCheck: firstCheck,
               lunchTime: calendar.assist.checkEatIn
-                ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
                     setZone: true,
                   })
                     .setZone('America/Mexico_City')
                     .toFormat('ff')
                 : '',
               returnLunchTime: calendar.assist.checkEatOut
-                ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
                     setZone: true,
                   })
                     .setZone('America/Mexico_City')
@@ -322,7 +345,7 @@ export default class AssistsService {
               notes: '',
               sundayPremium: '',
             })
-          }
+          } */
           this.addRowExcelEmpty(rows)
         }
       }
@@ -347,7 +370,9 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
       ]
       // Añadir columnas de datos (encabezados)
-      const headerRow = worksheet.addRow([
+      this.addHeadRow(worksheet)
+      /* const headerRow = worksheet.addRow([
+        'Número',
         'Nombre',
         'Departamento',
         'Cargo',
@@ -363,11 +388,12 @@ export default class AssistsService {
         'Notas',
         'Prima dominical',
       ])
-      headerRow.font = { bold: true }
-      let rowCount = 4
+      headerRow.font = { bold: true } */
+      // let rowCount = 4
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
-      for await (const rowData of rows) {
+      /*  for await (const rowData of rows) {
         worksheet.addRow([
+          rowData.code,
           rowData.name,
           rowData.department,
           rowData.position,
@@ -385,10 +411,15 @@ export default class AssistsService {
         ])
         if (rowData.name) {
           this.paintIncidents(worksheet, rowCount, rowData.incidents)
+          this.paintCheckOutStatus(worksheet, rowCount, rowData.checkOutStatus)
+        }
+        if (rowData.exceptions.length > 0) {
+          await this.addExceptions(rowData, worksheet, rowCount)
         }
         rowCount += 1
-      }
-      const columnA = worksheet.getColumn(1)
+      } */
+      await this.addRowToWorkSheet(rows, worksheet)
+      /* const columnA = worksheet.getColumn(1)
       columnA.width = 44
       const columnB = worksheet.getColumn(2)
       columnB.width = 44
@@ -426,7 +457,7 @@ export default class AssistsService {
       columnM.alignment = { vertical: 'middle', horizontal: 'center' }
       const columnN = worksheet.getColumn(14)
       columnN.width = 30
-      columnN.alignment = { vertical: 'middle', horizontal: 'center' }
+      columnN.alignment = { vertical: 'middle', horizontal: 'center' } */
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -481,7 +512,12 @@ export default class AssistsService {
           const data: any = result.data
           if (data) {
             const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-            for await (const calendar of employeeCalendar) {
+            let newRows = [] as AssistExcelRowInterface[]
+            newRows = await this.addRowCalendar(employee, employeeCalendar)
+            for await (const row of newRows) {
+              rows.push(row)
+            }
+            /* for await (const calendar of employeeCalendar) {
               const day = this.dateDay(calendar.day)
               const month = this.dateMonth(calendar.day)
               const year = this.dateYear(calendar.day)
@@ -516,6 +552,7 @@ export default class AssistsService {
                   ? employee.position.positionName
                   : ''
               rows.push({
+                code: employee.employeeCode.toString(),
                 name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
                 department: department,
                 position: positionName,
@@ -528,14 +565,14 @@ export default class AssistsService {
                   : '',
                 firstCheck: firstCheck,
                 lunchTime: calendar.assist.checkEatIn
-                  ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                  ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
                       setZone: true,
                     })
                       .setZone('America/Mexico_City')
                       .toFormat('ff')
                   : '',
                 returnLunchTime: calendar.assist.checkEatOut
-                  ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                  ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
                       setZone: true,
                     })
                       .setZone('America/Mexico_City')
@@ -551,7 +588,7 @@ export default class AssistsService {
                 notes: '',
                 sundayPremium: '',
               })
-            }
+            } */
             this.addRowExcelEmpty(rows)
           }
         }
@@ -577,7 +614,9 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
       ]
       // Añadir columnas de datos (encabezados)
-      const headerRow = worksheet.addRow([
+      this.addHeadRow(worksheet)
+      /* const headerRow = worksheet.addRow([
+        'Número',
         'Nombre',
         'Departamento',
         'Cargo',
@@ -593,11 +632,12 @@ export default class AssistsService {
         'Notas',
         'Prima dominical',
       ])
-      headerRow.font = { bold: true }
-      let rowCount = 4
+      headerRow.font = { bold: true } */
+      // let rowCount = 4
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
-      for await (const rowData of rows) {
+      /* for await (const rowData of rows) {
         worksheet.addRow([
+          rowData.code,
           rowData.name,
           rowData.department,
           rowData.position,
@@ -615,10 +655,15 @@ export default class AssistsService {
         ])
         if (rowData.name) {
           this.paintIncidents(worksheet, rowCount, rowData.incidents)
+          this.paintCheckOutStatus(worksheet, rowCount, rowData.checkOutStatus)
+        }
+        if (rowData.exceptions.length > 0) {
+          await this.addExceptions(rowData, worksheet, rowCount)
         }
         rowCount += 1
-      }
-      const columnA = worksheet.getColumn(1)
+      } */
+      await this.addRowToWorkSheet(rows, worksheet)
+      /*  const columnA = worksheet.getColumn(1)
       columnA.width = 44
       const columnB = worksheet.getColumn(2)
       columnB.width = 44
@@ -656,7 +701,7 @@ export default class AssistsService {
       columnM.alignment = { vertical: 'middle', horizontal: 'center' }
       const columnN = worksheet.getColumn(14)
       columnN.width = 30
-      columnN.alignment = { vertical: 'middle', horizontal: 'center' }
+      columnN.alignment = { vertical: 'middle', horizontal: 'center' } */
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -715,7 +760,12 @@ export default class AssistsService {
             const data: any = result.data
             if (data) {
               const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-              for await (const calendar of employeeCalendar) {
+              let newRows = [] as AssistExcelRowInterface[]
+              newRows = await this.addRowCalendar(employee, employeeCalendar)
+              for await (const row of newRows) {
+                rows.push(row)
+              }
+              /* for await (const calendar of employeeCalendar) {
                 const day = this.dateDay(calendar.day)
                 const month = this.dateMonth(calendar.day)
                 const year = this.dateYear(calendar.day)
@@ -750,6 +800,7 @@ export default class AssistsService {
                     ? employee.position.positionName
                     : ''
                 rows.push({
+                  code: employee.employeeCode.toString(),
                   name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
                   department: department,
                   position: positionName,
@@ -764,14 +815,14 @@ export default class AssistsService {
                     : '',
                   firstCheck: firstCheck,
                   lunchTime: calendar.assist.checkEatIn
-                    ? DateTime.fromISO(calendar.assist.checkEatIn.toString(), {
+                    ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
                         setZone: true,
                       })
                         .setZone('America/Mexico_City')
                         .toFormat('ff')
                     : '',
                   returnLunchTime: calendar.assist.checkEatOut
-                    ? DateTime.fromISO(calendar.assist.checkEatOut.toString(), {
+                    ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
                         setZone: true,
                       })
                         .setZone('America/Mexico_City')
@@ -789,7 +840,7 @@ export default class AssistsService {
                   notes: '',
                   sundayPremium: '',
                 })
-              }
+              } */
               this.addRowExcelEmpty(rows)
             }
           }
@@ -816,7 +867,9 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
       ]
       // Añadir columnas de datos (encabezados)
-      const headerRow = worksheet.addRow([
+      this.addHeadRow(worksheet)
+      /* const headerRow = worksheet.addRow([
+        'Número',
         'Nombre',
         'Departamento',
         'Cargo',
@@ -832,11 +885,12 @@ export default class AssistsService {
         'Notas',
         'Prima dominical',
       ])
-      headerRow.font = { bold: true }
+      headerRow.font = { bold: true } */
       // Añadir filas de datos (esto es un ejemplo, puedes obtener estos datos de tu base de datos)
-      let rowCount = 4
-      for await (const rowData of rows) {
+      // let rowCount = 4
+      /* for await (const rowData of rows) {
         worksheet.addRow([
+          rowData.code,
           rowData.name,
           rowData.department,
           rowData.position,
@@ -854,10 +908,15 @@ export default class AssistsService {
         ])
         if (rowData.name) {
           this.paintIncidents(worksheet, rowCount, rowData.incidents)
+          this.paintCheckOutStatus(worksheet, rowCount, rowData.checkOutStatus)
+        }
+        if (rowData.exceptions.length > 0) {
+          await this.addExceptions(rowData, worksheet, rowCount)
         }
         rowCount += 1
-      }
-      const columnA = worksheet.getColumn(1)
+      } */
+      await this.addRowToWorkSheet(rows, worksheet)
+      /*   const columnA = worksheet.getColumn(1)
       columnA.width = 44
       const columnB = worksheet.getColumn(2)
       columnB.width = 44
@@ -895,7 +954,7 @@ export default class AssistsService {
       columnM.alignment = { vertical: 'middle', horizontal: 'center' }
       const columnN = worksheet.getColumn(14)
       columnN.width = 30
-      columnN.alignment = { vertical: 'middle', horizontal: 'center' }
+      columnN.alignment = { vertical: 'middle', horizontal: 'center' } */
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -941,13 +1000,22 @@ export default class AssistsService {
     } else if (value === 'TOLERANCE') {
       color = '3CB4E5'
     }
-    worksheet.getCell('L' + row).fill = {
+    worksheet.getCell('M' + row).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: color }, // Color de fondo rojo
     }
-    worksheet.getCell('L' + row).font = {
+    worksheet.getCell('M' + row).font = {
       color: { argb: fgColor }, // Color de fondo rojo
+    }
+  }
+
+  private paintCheckOutStatus(worksheet: ExcelJS.Worksheet, row: number, value: string) {
+    if (value.toString().toUpperCase() === 'DELAY') {
+      const fgColor = 'FF993A'
+      worksheet.getCell('L' + row).font = {
+        color: { argb: fgColor },
+      }
     }
   }
 
@@ -966,6 +1034,7 @@ export default class AssistsService {
 
   private addRowExcelEmpty(rows: AssistExcelRowInterface[]) {
     rows.push({
+      code: '',
       name: '',
       department: '',
       position: '',
@@ -980,6 +1049,8 @@ export default class AssistsService {
       incidents: '',
       notes: '',
       sundayPremium: '',
+      checkOutStatus: '',
+      exceptions: [],
     })
   }
 
@@ -1074,5 +1145,202 @@ export default class AssistsService {
     }
 
     return timeCheckOut.toFormat('ff')
+  }
+
+  addHeadRow(worksheet: ExcelJS.Worksheet) {
+    const headerRow = worksheet.addRow([
+      'Código de empleado',
+      'Nombre',
+      'Departamento',
+      'Cargo',
+      'Fecha',
+      'Día de la semana',
+      'Hora de entrada',
+      'Check-in',
+      'Hora de salida a comer',
+      'Hora de regreso de comer',
+      'Hora de salida',
+      'Check-out',
+      'Incidencias',
+      'Notas',
+      'Prima dominical',
+    ])
+    headerRow.font = { bold: true }
+    const columnA = worksheet.getColumn(1)
+    columnA.width = 20
+    const columnB = worksheet.getColumn(2)
+    columnB.width = 44
+    const columnC = worksheet.getColumn(3)
+    columnC.width = 44
+    const columnD = worksheet.getColumn(4)
+    columnD.width = 44
+    const columnE = worksheet.getColumn(5)
+    columnE.width = 25
+    columnE.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnF = worksheet.getColumn(6)
+    columnF.width = 25
+    columnF.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnG = worksheet.getColumn(7)
+    columnG.width = 25
+    columnG.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnH = worksheet.getColumn(8)
+    columnH.width = 25
+    columnH.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnI = worksheet.getColumn(9)
+    columnI.width = 25
+    columnI.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnJ = worksheet.getColumn(10)
+    columnJ.width = 25
+    columnJ.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnK = worksheet.getColumn(11)
+    columnK.width = 25
+    columnK.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnL = worksheet.getColumn(12)
+    columnL.width = 25
+    columnL.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnM = worksheet.getColumn(13)
+    columnM.width = 30
+    columnM.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnN = worksheet.getColumn(14)
+    columnN.width = 30
+    columnN.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnO = worksheet.getColumn(15)
+    columnO.width = 30
+    columnO.alignment = { vertical: 'middle', horizontal: 'center' }
+  }
+
+  async addRowCalendar(employee: Employee, employeeCalendar: AssistDayInterface[]) {
+    const rows = [] as AssistExcelRowInterface[]
+    for await (const calendar of employeeCalendar) {
+      const exceptions = [] as ShiftExceptionInterface[]
+      if (calendar.assist.exceptions.length > 0) {
+        for await (const exception of calendar.assist.exceptions) {
+          exceptions.push(exception)
+        }
+      }
+      const day = this.dateDay(calendar.day)
+      const month = this.dateMonth(calendar.day)
+      const year = this.dateYear(calendar.day)
+      const calendarDay = this.calendarDayMonth(year, month, day)
+      const weekDayName = this.weekDayName(year, month, day)
+      const firstCheck = this.chekInTime(calendar)
+      const lastCheck = this.chekOutTime(calendar)
+      let status = calendar.assist.checkInStatus
+        ? `${calendar.assist.checkInStatus}`.toUpperCase()
+        : ''
+      if (calendar.assist.isFutureDay) {
+        status = 'NEXT'
+      } else if (calendar.assist.isRestDay && !firstCheck) {
+        status = 'REST'
+      } else if (calendar.assist.isVacationDate) {
+        status = 'VACATIONS'
+      } else if (calendar.assist.isHoliday) {
+        status = 'HOLIDAY'
+      }
+      let department = employee.department.departmentAlias
+        ? employee.department.departmentAlias
+        : ''
+      department =
+        department === '' && employee.department?.departmentName
+          ? employee.department.departmentName
+          : ''
+      let position = employee.position.positionAlias ? employee.position.positionAlias : ''
+      position =
+        position === '' && employee.position?.positionName ? employee.position.positionName : ''
+      rows.push({
+        code: employee.employeeCode.toString(),
+        name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        department: department,
+        position: position,
+        date: calendarDay,
+        dayOfWeek: weekDayName,
+        checkInTime: calendar.assist.checkInDateTime
+          ? DateTime.fromISO(calendar.assist.checkInDateTime.toString(), { setZone: true })
+              .setZone('America/Mexico_City')
+              .toFormat('ff')
+          : '',
+        firstCheck: firstCheck,
+        lunchTime: calendar.assist.checkEatIn
+          ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
+              setZone: true,
+            })
+              .setZone('America/Mexico_City')
+              .toFormat('ff')
+          : '',
+        returnLunchTime: calendar.assist.checkEatOut
+          ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
+              setZone: true,
+            })
+              .setZone('America/Mexico_City')
+              .toFormat('ff')
+          : '',
+        checkOutTime: calendar.assist.checkOutDateTime
+          ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
+              .setZone('America/Mexico_City')
+              .toFormat('ff')
+          : '',
+        lastCheck: lastCheck,
+        incidents: status,
+        notes: '',
+        sundayPremium: '',
+        checkOutStatus: calendar.assist.checkOutStatus,
+        exceptions: exceptions,
+      })
+    }
+    return rows
+  }
+
+  async addExceptions(
+    rowData: AssistExcelRowInterface,
+    worksheet: ExcelJS.Worksheet,
+    rowCount: number
+  ) {
+    const richText = []
+    for await (const exception of rowData.exceptions) {
+      const type = exception.exceptionType ? exception.exceptionType.exceptionTypeTypeName : ''
+      const description = exception.shiftExceptionsDescription
+        ? exception.shiftExceptionsDescription
+        : ''
+      richText.push(
+        { text: type, font: { bold: true, size: 14, color: { argb: '000000' } } },
+        { text: `\n${description}\n`, font: { italic: true, size: 12, color: { argb: '000000' } } }
+      )
+    }
+    const cell = worksheet.getCell('N' + rowCount)
+    cell.value = {
+      richText: richText,
+    }
+    cell.alignment = { wrapText: true }
+  }
+
+  async addRowToWorkSheet(rows: AssistExcelRowInterface[], worksheet: ExcelJS.Worksheet) {
+    let rowCount = 4
+    for await (const rowData of rows) {
+      worksheet.addRow([
+        rowData.code,
+        rowData.name,
+        rowData.department,
+        rowData.position,
+        rowData.date,
+        rowData.dayOfWeek,
+        rowData.checkInTime,
+        rowData.firstCheck,
+        rowData.lunchTime,
+        rowData.returnLunchTime,
+        rowData.checkOutTime,
+        rowData.lastCheck,
+        rowData.incidents,
+        rowData.notes,
+        rowData.sundayPremium,
+      ])
+      if (rowData.name) {
+        this.paintIncidents(worksheet, rowCount, rowData.incidents)
+        this.paintCheckOutStatus(worksheet, rowCount, rowData.checkOutStatus)
+      }
+      if (rowData.exceptions.length > 0) {
+        await this.addExceptions(rowData, worksheet, rowCount)
+      }
+      rowCount += 1
+    }
   }
 }
