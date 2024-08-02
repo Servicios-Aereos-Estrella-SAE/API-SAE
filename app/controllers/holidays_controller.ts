@@ -1,4 +1,5 @@
 import Icon from '#models/icon'
+import HolidayService from '#services/holiday_service'
 import Holiday from '../models/holiday.js'
 import { createOrUpdateHolidayValidator } from '../validators/holiday.js'
 import { HttpContext } from '@adonisjs/core/http'
@@ -92,28 +93,10 @@ export default class HolidayController {
       const limit = request.input('limit', 100)
       const firstDate = request.input('firstDate')
       const lastDate = request.input('lastDate')
-      const holidays = Holiday.query()
 
-      if (search) {
-        holidays.where('holidayName', 'like', `%${search}%`)
-      }
+      const service = await new HolidayService().index(firstDate, lastDate, search, page, limit)
 
-      if (firstDate) {
-        holidays.where('holidayDate', '>=', firstDate)
-      }
-
-      if (lastDate) {
-        holidays.where('holidayDate', '<=', lastDate)
-      }
-
-      const responseHolidays = await holidays.orderBy('holidayDate', 'asc').paginate(page, limit)
-
-      return response.status(200).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: 'Resources fetched',
-        holidays: responseHolidays,
-      })
+      return response.status(service.status).json(service)
     } catch (error) {
       return response.status(500).json({
         type: 'error',

@@ -4,6 +4,12 @@ import BiometricDepartmentInterface from '../interfaces/biometric_department_int
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import PositionService from './position_service.js'
 import DepartmentPosition from '#models/department_position'
+import { DepartmentShiftFilterInterface } from '../interfaces/department_shift_filter_interface.js'
+import Shift from '#models/shift'
+import EmployeeShiftService from './employee_shift_service.js'
+import EmployeeService from './employee_service.js'
+import { DepartmentShiftEmployeeWarningInterface } from '../interfaces/department_shift_employee_warning_interface.js'
+import EmployeeShift from '#models/employee_shift'
 
 export default class DepartmentService {
   async syncCreate(department: BiometricDepartmentInterface) {
@@ -111,6 +117,65 @@ export default class DepartmentService {
     return department ? department : null
   }
 
+  async assignShift(filters: DepartmentShiftFilterInterface) {
+    const employeeShiftService = new EmployeeShiftService()
+    if (!employeeShiftService.isValidDate(filters.applySince)) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date is invalid',
+        data: null,
+      }
+    }
+    const page = 1
+    const limit = 999999999999999
+    const employeeService = new EmployeeService()
+    const departmentId = filters.departmentId
+    const departmentPositions = await DepartmentPosition.query()
+      .whereNull('department_position_deleted_at')
+      .where('department_id', departmentId)
+      .orderBy('position_id')
+    const warnings = [] as Array<DepartmentShiftEmployeeWarningInterface>
+    for await (const position of departmentPositions) {
+      const resultEmployes = await employeeService.index({
+        search: '',
+        departmentId: departmentId,
+        positionId: position.positionId,
+        page: page,
+        limit: limit,
+        employeeWorkSchedule: '',
+      })
+      const dataEmployes: any = resultEmployes
+      for await (const employee of dataEmployes) {
+        const employeeShift = {
+          employeeId: employee.employeeId,
+          shiftId: filters.shiftId,
+          employeShiftsApplySince: employeeShiftService.getDateAndTime(filters.applySince),
+        } as EmployeeShift
+        const verifyInfo = await employeeShiftService.verifyInfo(employeeShift)
+        if (verifyInfo.status !== 200) {
+          warnings.push({
+            status: verifyInfo.status,
+            type: verifyInfo.type,
+            title: verifyInfo.title,
+            message: verifyInfo.message,
+            employee: employee,
+          })
+        } else {
+          await EmployeeShift.create(employeeShift)
+        }
+      }
+    }
+    return {
+      status: 201,
+      type: 'success',
+      title: 'Successfully action',
+      message: 'Resource created',
+      data: { warnings },
+    }
+  }
+
   async verifyInfoExist(department: Department) {
     if (department.parentDepartmentId) {
       const existDepartmentParent = await Department.query()
@@ -162,6 +227,62 @@ export default class DepartmentService {
       title: 'Info verifiy successfully',
       message: 'Info verify successfully',
       data: { ...department },
+    }
+  }
+
+  async verifyInfoAssignShift(filter: DepartmentShiftFilterInterface) {
+    const departmentId = filter.departmentId
+    const shiftId = filter.shiftId
+    if (!departmentId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The department Id was not found',
+        message: 'Missing data to process',
+        data: { departmentId },
+      }
+    }
+    const currentDepartment = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', departmentId)
+      .first()
+    if (!currentDepartment) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The department was not found',
+        message: 'The department was not found with the entered ID',
+        data: { departmentId },
+      }
+    }
+    if (!shiftId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The shift Id was not found',
+        message: 'Missing data to process',
+        data: { shiftId },
+      }
+    }
+    const currentShift = await Shift.query()
+      .whereNull('shift_deleted_at')
+      .where('shift_id', shiftId)
+      .first()
+    if (!currentShift) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The shift was not found',
+        message: 'The shift was not found with the entered ID',
+        data: { shiftId },
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verify successfully',
+      data: { ...filter },
     }
   }
 

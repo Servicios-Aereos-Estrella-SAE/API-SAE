@@ -1,50 +1,23 @@
-import Position from '#models/position'
-import PositionService from '#services/position_service'
-import env from '#start/env'
+import EmployeeProceedingFile from '#models/employee_proceeding_file'
+import EmployeeProceedingFileService from '#services/employee_proceeding_file_service'
+import {
+  createEmployeeProceedingFileValidator,
+  updateEmployeeProceedingFileValidator,
+} from '#validators/employee_proceeding_file'
 import { HttpContext } from '@adonisjs/core/http'
-import axios from 'axios'
-import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
-import { createPositionValidator, updatePositionValidator } from '#validators/position'
-import { PositionShiftFilterInterface } from '../interfaces/position_shift_filter_interface.js'
 
-export default class PositionController {
+export default class EmployeeProceedingFileController {
   /**
    * @swagger
-   * /api/synchronization/positions:
-   *   post:
+   * /api/employees-proceeding-files/:
+   *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: sync information
+   *       - Employees Proceeding Files
+   *     summary: get all relation employee-proceedingfile
    *     produces:
    *       - application/json
-   *     requestBody:
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               page:
-   *                 type: integer
-   *                 description: The page number for pagination
-   *                 required: false
-   *                 default: 1
-   *               limit:
-   *                 type: integer
-   *                 description: The number of records per page
-   *                 required: false
-   *                 default: 200
-   *               positionCode:
-   *                 type: string
-   *                 description: The position code to filter by
-   *                 required: false
-   *                 default: ''
-   *               positionName:
-   *                 required: false
-   *                 description: The position name to filter by
-   *                 type: string
-   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -126,44 +99,16 @@ export default class PositionController {
    *                     error:
    *                       type: string
    */
-
-  async synchronization({ request, response }: HttpContext) {
+  async index({ response }: HttpContext) {
     try {
-      const page = request.input('page', 1)
-      const limit = request.input('limit', 200)
-      const positionCode = request.input('positionCode')
-      const positionName = request.input('positionName')
-
-      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/positions`
-      apiUrl = `${apiUrl}?page=${page || ''}`
-      apiUrl = `${apiUrl}&limit=${limit || ''}`
-      apiUrl = `${apiUrl}&positionCode=${positionCode || ''}`
-      apiUrl = `${apiUrl}&positionName=${positionName || ''}`
-      const apiResponse = await axios.get(apiUrl)
-      const data = apiResponse.data.data
-      if (data) {
-        const positionService = new PositionService()
-        data.sort((a: BiometricPositionInterface, b: BiometricPositionInterface) => a.id - b.id)
-        for await (const position of data) {
-          await this.verify(position, positionService)
-        }
-        response.status(200)
-        return {
-          type: 'success',
-          title: 'Sync positions',
-          message: 'Positions have been synchronized successfully',
-          data: {
-            data,
-          },
-        }
-      } else {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'Sync positions',
-          message: 'No data found to synchronize',
-          data: { data },
-        }
+      const employeeProceedingFileService = new EmployeeProceedingFileService()
+      const showEmployeeProceedingFiles = await employeeProceedingFileService.index()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees proceeding files',
+        message: 'The relation employee-proceedingfile were found successfully',
+        data: { employeeProceedingFiles: showEmployeeProceedingFiles },
       }
     } catch (error) {
       response.status(500)
@@ -178,13 +123,13 @@ export default class PositionController {
 
   /**
    * @swagger
-   * /api/positions:
+   * /api/employees-proceeding-files:
    *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: create new position
+   *       - Employees Proceeding Files
+   *     summary: create new relation employee-proceeding-files
    *     produces:
    *       - application/json
    *     requestBody:
@@ -193,39 +138,14 @@ export default class PositionController {
    *           schema:
    *             type: object
    *             properties:
-   *               positionCode:
-   *                 type: string
-   *                 description: Position code
+   *               employeeId:
+   *                 type: number
+   *                 description: Employee id
    *                 required: true
    *                 default: ''
-   *               positionName:
-   *                 type: string
-   *                 description: Position name
-   *                 required: true
-   *                 default: ''
-   *               positionAlias:
-   *                 type: string
-   *                 description: Position alias
-   *                 required: false
-   *                 default: ''
-   *               positionIsDefault:
-   *                 type: boolean
-   *                 description: Position if is default
-   *                 required: false
-   *                 default: false
-   *               positionActive:
-   *                 type: boolean
-   *                 description: Position status
-   *                 required: false
-   *                 default: false
-   *               parentPositionId:
+   *               proceedingFileId:
    *                 type: number
-   *                 description: Position parent id
-   *                 required: false
-   *                 default: ''
-   *               companyId:
-   *                 type: number
-   *                 description: Company id
+   *                 description: Proceeding file id
    *                 required: true
    *                 default: ''
    *     responses:
@@ -311,25 +231,15 @@ export default class PositionController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const positionCode = request.input('positionCode')
-      const positionName = request.input('positionName')
-      const positionAlias = request.input('positionAlias')
-      const positionIsDefault = request.input('positionIsDefault')
-      const positionActive = request.input('positionActive')
-      const parentPositionId = request.input('parentPositionId')
-      const companyId = request.input('companyId')
-      const position = {
-        positionCode: positionCode,
-        positionName: positionName,
-        positionAlias: positionAlias,
-        positionIsDefault: positionIsDefault,
-        positionActive: positionActive,
-        parentPositionId: parentPositionId,
-        companyId: companyId,
-      } as Position
-      const positionService = new PositionService()
-      const data = await request.validateUsing(createPositionValidator)
-      const exist = await positionService.verifyInfoExist(position)
+      const employeeId = request.input('employeeId')
+      const proceedingFileId = request.input('proceedingFileId')
+      const employeeProceedingFile = {
+        employeeId: employeeId,
+        proceedingFileId: proceedingFileId,
+      } as EmployeeProceedingFile
+      const employeeProceedingFileService = new EmployeeProceedingFileService()
+      const data = await request.validateUsing(createEmployeeProceedingFileValidator)
+      const exist = await employeeProceedingFileService.verifyInfoExist(employeeProceedingFile)
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -339,14 +249,25 @@ export default class PositionController {
           data: { ...data },
         }
       }
-      const newPosition = await positionService.create(position)
-      if (newPosition) {
+      const verifyInfo = await employeeProceedingFileService.verifyInfo(employeeProceedingFile)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const newEmployeeProceedingFile =
+        await employeeProceedingFileService.create(employeeProceedingFile)
+      if (newEmployeeProceedingFile) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was created successfully',
-          data: { position: newPosition },
+          title: 'Employees proceeding files',
+          message: 'The relation employee-proceedingfile was created successfully',
+          data: { employeeProceedingFile: newEmployeeProceedingFile },
         }
       }
     } catch (error) {
@@ -361,24 +282,23 @@ export default class PositionController {
       }
     }
   }
-
   /**
    * @swagger
-   * /api/positions/{positionId}:
+   * /api/employees-proceeding-files/{employeeProceedingFileId}:
    *   put:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: update position
+   *       - Employees Proceeding Files
+   *     summary: update relation employee-proceedingfile
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: positionId
+   *         name: employeeProceedingFileId
    *         schema:
    *           type: number
-   *         description: Position id
+   *         description: Employee proceeding file id
    *         required: true
    *     requestBody:
    *       content:
@@ -386,43 +306,18 @@ export default class PositionController {
    *           schema:
    *             type: object
    *             properties:
-   *               positionCode:
-   *                 type: string
-   *                 description: Position code
+   *               employeeId:
+   *                 type: number
+   *                 description: Employee id
    *                 required: true
    *                 default: ''
-   *               positionName:
-   *                 type: string
-   *                 description: Position name
-   *                 required: true
-   *                 default: ''
-   *               positionAlias:
-   *                 type: string
-   *                 description: Position alias
-   *                 required: false
-   *                 default: ''
-   *               positionIsDefault:
-   *                 type: boolean
-   *                 description: Position if is default
-   *                 required: false
-   *                 default: false
-   *               positionActive:
-   *                 type: boolean
-   *                 description: Position status
-   *                 required: false
-   *                 default: false
-   *               parentPositionId:
+   *               proceedingFileId:
    *                 type: number
-   *                 description: Position parent id
-   *                 required: false
-   *                 default: ''
-   *               companyId:
-   *                 type: number
-   *                 description: Company id
+   *                 description: ProceedingFile id
    *                 required: true
    *                 default: ''
    *     responses:
-   *       '201':
+   *       '200':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -504,49 +399,39 @@ export default class PositionController {
    */
   async update({ request, response }: HttpContext) {
     try {
-      const positionId = request.param('positionId')
-      const positionCode = request.input('positionCode')
-      const positionName = request.input('positionName')
-      const positionAlias = request.input('positionAlias')
-      const positionIsDefault = request.input('positionIsDefault')
-      const positionActive = request.input('positionActive')
-      const parentPositionId = request.input('parentPositionId')
-      const companyId = request.input('companyId')
-      const position = {
-        positionId: positionId,
-        positionCode: positionCode,
-        positionName: positionName,
-        positionAlias: positionAlias,
-        positionIsDefault: positionIsDefault,
-        positionActive: positionActive,
-        parentPositionId: parentPositionId,
-        companyId: companyId,
-      } as Position
-      if (!positionId) {
+      const employeeProceedingFileId = request.param('employeeProceedingFileId')
+      const employeeId = request.input('employeeId')
+      const proceedingFileId = request.input('proceedingFileId')
+      const employeeProceedingFile = {
+        employeeProceedingFileId: employeeProceedingFileId,
+        employeeId: employeeId,
+        proceedingFileId: proceedingFileId,
+      } as EmployeeProceedingFile
+      if (!employeeProceedingFileId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position Id was not found',
+          title: 'The relation employee-proceedingfile Id was not found',
           message: 'Missing data to process',
-          data: { ...position },
+          data: { ...employeeProceedingFile },
         }
       }
-      const currentPosition = await Position.query()
-        .whereNull('position_deleted_at')
-        .where('position_id', positionId)
+      const currentEmployeeProceedingFile = await EmployeeProceedingFile.query()
+        .whereNull('employee_proceeding_file_deleted_at')
+        .where('employee_proceeding_file_id', employeeProceedingFileId)
         .first()
-      if (!currentPosition) {
+      if (!currentEmployeeProceedingFile) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { ...position },
+          title: 'The relation employee-proceedingfile was not found',
+          message: 'The relation employee-proceedingfile was not found with the entered ID',
+          data: { ...employeeProceedingFile },
         }
       }
-      const positionService = new PositionService()
-      const data = await request.validateUsing(updatePositionValidator)
-      const exist = await positionService.verifyInfoExist(position)
+      const employeeProceedingFileService = new EmployeeProceedingFileService()
+      const data = await request.validateUsing(updateEmployeeProceedingFileValidator)
+      const exist = await employeeProceedingFileService.verifyInfoExist(employeeProceedingFile)
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -556,7 +441,7 @@ export default class PositionController {
           data: { ...data },
         }
       }
-      const verifyInfo = await positionService.verifyInfo(position)
+      const verifyInfo = await employeeProceedingFileService.verifyInfo(employeeProceedingFile)
       if (verifyInfo.status !== 200) {
         response.status(verifyInfo.status)
         return {
@@ -566,14 +451,17 @@ export default class PositionController {
           data: { ...data },
         }
       }
-      const updatePosition = await positionService.update(currentPosition, position)
-      if (updatePosition) {
-        response.status(201)
+      const updateEmployeeProceedingFile = await employeeProceedingFileService.update(
+        currentEmployeeProceedingFile,
+        employeeProceedingFile
+      )
+      if (updateEmployeeProceedingFile) {
+        response.status(200)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was updated successfully',
-          data: { position: updatePosition },
+          title: 'Employee proceeding files',
+          message: 'The relation employee-proceedingfile was updated successfully',
+          data: { employeeProceedingFile: updateEmployeeProceedingFile },
         }
       }
     } catch (error) {
@@ -588,27 +476,26 @@ export default class PositionController {
       }
     }
   }
-
   /**
    * @swagger
-   * /api/positions/{positionId}:
+   * /api/employees-proceeding-files/{employeeProceedingFileId}:
    *   delete:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: delete position
+   *       - Employees Proceeding Files
+   *     summary: delete relation employee proceeding files
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: positionId
+   *         name: employeeProceedingFileId
    *         schema:
    *           type: number
-   *         description: Position id
+   *         description: Employee proceeding file id
    *         required: true
    *     responses:
-   *       '201':
+   *       '200':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -690,38 +577,40 @@ export default class PositionController {
    */
   async delete({ request, response }: HttpContext) {
     try {
-      const positionId = request.param('positionId')
-      if (!positionId) {
+      const employeeProceedingFileId = request.param('employeeProceedingFileId')
+      if (!employeeProceedingFileId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position Id was not found',
+          title: 'The relation employee-proceedingfile Id was not found',
           message: 'Missing data to process',
-          data: { positionId },
+          data: { employeeProceedingFileId },
         }
       }
-      const currentPosition = await Position.query()
-        .whereNull('position_deleted_at')
-        .where('position_id', positionId)
+      const currentEmployeeProceedingFile = await EmployeeProceedingFile.query()
+        .whereNull('employee_proceeding_file_deleted_at')
+        .where('employee_proceeding_file_id', employeeProceedingFileId)
         .first()
-      if (!currentPosition) {
+      if (!currentEmployeeProceedingFile) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { positionId },
+          title: 'The relation employee-proceedingfile was not found',
+          message: 'The relation employee-proceedingfile was not found with the entered ID',
+          data: { employeeProceedingFileId },
         }
       }
-      const positionService = new PositionService()
-      const deletePosition = await positionService.delete(currentPosition)
-      if (deletePosition) {
-        response.status(201)
+      const employeeProceedingFileService = new EmployeeProceedingFileService()
+      const deleteEmployeeProceedingFile = await employeeProceedingFileService.delete(
+        currentEmployeeProceedingFile
+      )
+      if (deleteEmployeeProceedingFile) {
+        response.status(200)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was deleted successfully',
-          data: { position: deletePosition },
+          title: 'Employees proceeding files',
+          message: 'The relation employee-proceedingfile was deleted successfully',
+          data: { employeeProceedingFile: deleteEmployeeProceedingFile },
         }
       }
     } catch (error) {
@@ -734,24 +623,23 @@ export default class PositionController {
       }
     }
   }
-
   /**
    * @swagger
-   * /api/positions/{positionId}:
+   * /api/employees-proceeding-files/{employeeProceedingFileId}:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Positions
-   *     summary: get position by id
+   *       - Employees Proceeding Files
+   *     summary: get relation employee-proceedingfile by id
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: positionId
+   *         name: employeeProceedingFileId
    *         schema:
    *           type: number
-   *         description: Position id
+   *         description: Employee proceeding file id
    *         required: true
    *     responses:
    *       '200':
@@ -836,33 +724,34 @@ export default class PositionController {
    */
   async show({ request, response }: HttpContext) {
     try {
-      const positionId = request.param('positionId')
-      if (!positionId) {
+      const employeeProceedingFileId = request.param('employeeProceedingFileId')
+      if (!employeeProceedingFileId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position Id was not found',
+          title: 'The relation employee-proceedingfile Id was not found',
           message: 'Missing data to process',
-          data: { positionId },
+          data: { employeeProceedingFileId },
         }
       }
-      const positionService = new PositionService()
-      const showPosition = await positionService.show(positionId)
-      if (!showPosition) {
+      const employeeProceedingFileService = new EmployeeProceedingFileService()
+      const showEmployeeProceedingFile =
+        await employeeProceedingFileService.show(employeeProceedingFileId)
+      if (!showEmployeeProceedingFile) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
-          data: { positionId },
+          title: 'The relation employee-proceedingfile was not found',
+          message: 'The relation employee-proceedingfile was not found with the entered ID',
+          data: { employeeProceedingFileId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: 'Positions',
-          message: 'The position was found successfully',
-          data: { position: showPosition },
+          title: 'Employees proceeding files',
+          message: 'The relation employee-proceedingfile was found successfully',
+          data: { employeeProceedingFile: showEmployeeProceedingFile },
         }
       }
     } catch (error) {
@@ -873,189 +762,6 @@ export default class PositionController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/position/assign-shift/{positionId}:
-   *   post:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Positions
-   *     summary: assign shift to employees by position
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - in: path
-   *         name: positionId
-   *         schema:
-   *           type: number
-   *         description: Position id
-   *         required: true
-   *     requestBody:
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               departmentId:
-   *                 type: number
-   *                 description: Department id
-   *                 required: true
-   *                 default: ''
-   *               shiftId:
-   *                 type: number
-   *                 description: Shift id
-   *                 required: true
-   *                 default: ''
-   *               applySince:
-   *                 type: string
-   *                 format: date
-   *                 description: Apply since (YYYY-MM-DD HH:mm:ss)
-   *                 required: true
-   *                 default: ''
-   *     responses:
-   *       '201':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async assignShift({ request, response }: HttpContext) {
-    try {
-      const positionId = request.param('positionId')
-      const departmentId = request.input('departmentId')
-      const shiftId = request.input('shiftId')
-      const applySince = request.input('applySince')
-      const positionShiftFilterInterface = {
-        departmentId: departmentId,
-        positionId: positionId,
-        shiftId: shiftId,
-        applySince: applySince,
-      } as PositionShiftFilterInterface
-
-      const positionService = new PositionService()
-      const isValidInfo = await positionService.verifyInfoAssignShift(positionShiftFilterInterface)
-      if (isValidInfo.status !== 200) {
-        return {
-          status: isValidInfo.status,
-          type: isValidInfo.type,
-          title: isValidInfo.title,
-          message: isValidInfo.message,
-          data: isValidInfo.data,
-        }
-      }
-      const assignPosition = await positionService.assignShift(positionShiftFilterInterface)
-      if (assignPosition.status === 201) {
-        response.status(201)
-        return {
-          type: 'success',
-          title: 'Positions',
-          message: 'The shift was assign to position successfully',
-          data: { position: assignPosition },
-        }
-      } else {
-        return {
-          status: assignPosition.status,
-          type: assignPosition.type,
-          title: assignPosition.title,
-          message: assignPosition.message,
-          data: {},
-        }
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  private async verify(position: BiometricPositionInterface, positionService: PositionService) {
-    const existPosition = await Position.query().where('position_sync_id', position.id).first()
-    if (!existPosition) {
-      await positionService.syncCreate(position)
-    } else {
-      positionService.syncUpdate(position, existPosition)
     }
   }
 }

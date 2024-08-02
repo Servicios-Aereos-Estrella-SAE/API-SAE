@@ -489,4 +489,92 @@ export default class AssistsController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/v1/assists/get-excel-all:
+   *   get:
+   *     summary: get assists excel by position
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Assists]
+   *     parameters:
+   *       - name: date
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2023-01-01"
+   *         description: Date from get list
+   *       - name: date-end
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2024-12-31"
+   *         description: Date limit to get list
+   *       - name: departmentId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Department id
+   *       - name: positionId
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *     responses:
+   *       200:
+   *         description: Resource action successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               example: {}
+   *       400:
+   *         description: Invalid data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   */
+  async getExcelAll({ request, response }: HttpContext) {
+    try {
+      const filterDate = request.input('date')
+      const filterDateEnd = request.input('date-end')
+      const filters = {
+        filterDate: filterDate,
+        filterDateEnd: filterDateEnd,
+      } as AssistDepartmentExcelFilterInterface
+      const assistService = new AssistsService()
+      const buffer = await assistService.getExcelAll(filters)
+      if (buffer.status === 201) {
+        response.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+        response.status(201)
+        response.send(buffer.buffer)
+      } else {
+        response.status(500)
+        return {
+          type: buffer.type,
+          title: buffer.title,
+          message: buffer.message,
+          error: buffer.error,
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

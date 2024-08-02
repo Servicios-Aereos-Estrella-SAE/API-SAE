@@ -49,11 +49,11 @@ export default class ShiftExceptionService {
   isValidDate(date: string) {
     try {
       date = date.replaceAll('"', '')
-      let dt = DateTime.fromISO(date)
+      let dt = DateTime.fromFormat(date, 'yyyy-MM-dd')
       if (dt.isValid) {
         return true
       } else {
-        dt = DateTime.fromFormat(date, 'yyyy-MM-dd HH:mm:ss')
+        dt = DateTime.fromISO(date)
         if (dt.isValid) {
           return true
         }
