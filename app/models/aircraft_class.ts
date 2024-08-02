@@ -24,11 +24,11 @@ export default class AircraftClass extends BaseModel {
   aircraftClassStatus!: number
 
   @column.dateTime({ autoCreate: true })
-  createdAt!: DateTime
+  aircraftClassCreatedAt!: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  updatedAt!: DateTime
+  aircraftClassUpdatedAt!: DateTime
 
   @column.dateTime()
-  deletedAt!: DateTime | null
+  aircraftClassDeletedAt!: DateTime | null
 }
