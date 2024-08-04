@@ -7,6 +7,13 @@ import {
 import { formatResponse } from '../helpers/responseFormatter.js'
 import { DateTime } from 'luxon'
 
+function generateSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export default class AircraftClassController {
   /**
    * @swagger
@@ -70,7 +77,7 @@ export default class AircraftClassController {
     const limit = request.input('limit', 10)
     const searchText = request.input('searchText', '')
 
-    const query = AircraftClass.query().whereNull('deletedAt')
+    const query = AircraftClass.query().whereNull('aircraftClassDeletedAt')
 
     if (searchText) {
       query.where((builder) => {
@@ -172,9 +179,14 @@ export default class AircraftClassController {
    *                     message:
    *                       type: string
    */
+
   async store({ request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(createAircraftClassValidator)
+
+      // Generar el slug antes de guardar
+      data.aircraftClassSlug = generateSlug(data.aircraftClassName)
+
       const aircraftClass = await AircraftClass.create(data)
       return response
         .status(201)
@@ -260,7 +272,10 @@ export default class AircraftClassController {
    */
   async show({ params, response }: HttpContext) {
     try {
-      const aircraftClass = await AircraftClass.findOrFail(params.id)
+      const aircraftClass = await AircraftClass.query()
+        .where('aircraftClassId', params.id)
+        .whereNull('aircraftClassDeletedAt')
+        .firstOrFail()
       return response
         .status(200)
         .json(
@@ -274,7 +289,7 @@ export default class AircraftClassController {
     } catch (error) {
       return response
         .status(404)
-        .json(formatResponse('error', 'Not Found', 'Resource not found', error))
+        .json(formatResponse('error', 'Not Found', 'Resource not found', 'NO DATA'))
     }
   }
 
@@ -381,9 +396,17 @@ export default class AircraftClassController {
   async update({ params, request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(updateAircraftClassValidator)
+
       const aircraftClass = await AircraftClass.findOrFail(params.id)
+
+      // Regenerar el slug si se actualiza el aircraftClassName
+      if (data.aircraftClassName) {
+        data.aircraftClassSlug = generateSlug(data.aircraftClassName)
+      }
+
       aircraftClass.merge(data)
       await aircraftClass.save()
+
       return response
         .status(200)
         .json(
@@ -457,7 +480,7 @@ export default class AircraftClassController {
   async destroy({ params, response }: HttpContext) {
     try {
       const aircraftClass = await AircraftClass.findOrFail(params.id)
-      aircraftClass.deletedAt = DateTime.now()
+      aircraftClass.aircraftClassDeletedAt = DateTime.now()
       await aircraftClass.save()
       return response
         .status(200)

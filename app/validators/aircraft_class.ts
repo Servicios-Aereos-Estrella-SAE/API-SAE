@@ -18,17 +18,7 @@ export const createAircraftClassValidator = vine.compile(
     aircraftClassBanner: vine.string().url().optional(),
     aircraftClassLongDescription: vine.string().optional(),
     aircraftClassShortDescription: vine.string().optional(),
-    aircraftClassSlug: vine.string().unique(async (_db: any, value: any) => {
-      const existingClass = await AircraftClass.query()
-        .where('aircraft_class_slug', value)
-        .whereNull('deleted_at')
-        .first()
-
-      if (existingClass) {
-        return false
-      }
-      return true
-    }),
+    aircraftClassSlug: vine.string().optional(),
     aircraftClassStatus: vine.enum([0, 1]),
   })
 )
