@@ -50,11 +50,11 @@ export default class VacationSettingController {
    *                       items:
    *                         type: object
    *                         properties:
-   *                           id:
+   *                           vacationSettingId:
    *                             type: number
-   *                           yearsOfService:
+   *                           vacationSettingYearsOfService:
    *                             type: number
-   *                           vacationDays:
+   *                           vacationSettingVacationDays:
    *                             type: number
    */
   async index({ request, response }: HttpContext) {
@@ -62,11 +62,11 @@ export default class VacationSettingController {
     const limit = request.input('limit', 10)
     const searchText = request.input('searchText', '')
 
-    const query = VacationSetting.query().whereNull('deletedAt')
+    const query = VacationSetting.query().whereNull('vacationSettingDeletedAt')
 
     if (searchText) {
       query.where((builder) => {
-        builder.where('yearsOfService', `${searchText}`)
+        builder.where('vacationSettingYearsOfService', `${searchText}`)
       })
     }
     const settings = await query.paginate(page, limit)
@@ -102,9 +102,9 @@ export default class VacationSettingController {
    *           schema:
    *             type: object
    *             properties:
-   *               yearsOfService:
+   *               vacationSettingYearsOfService:
    *                 type: number
-   *               vacationDays:
+   *               vacationSettingVacationDays:
    *                 type: number
    *     responses:
    *       '201':
@@ -123,11 +123,11 @@ export default class VacationSettingController {
    *                 data:
    *                   type: object
    *                   properties:
-   *                     id:
+   *                     vacationSettingId:
    *                       type: number
-   *                     yearsOfService:
+   *                     vacationSettingYearsOfService:
    *                       type: number
-   *                     vacationDays:
+   *                     vacationSettingVacationDays:
    *                       type: number
    *       '400':
    *         description: Invalid input, validation error
@@ -173,13 +173,13 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacations/{id}:
+   * /api/vacations/{vacationSettingId}:
    *   get:
    *     tags:
    *       - Vacation Settings
    *     summary: Get a specific vacation setting
    *     parameters:
-   *       - name: id
+   *       - name: vacationSettingId
    *         in: path
    *         required: true
    *         schema:
@@ -201,11 +201,11 @@ export default class VacationSettingController {
    *                 data:
    *                   type: object
    *                   properties:
-   *                     id:
+   *                     vacationSettingId:
    *                       type: number
-   *                     yearsOfService:
+   *                     vacationSettingYearsOfService:
    *                       type: number
-   *                     vacationDays:
+   *                     vacationSettingVacationDays:
    *                       type: number
    *       '404':
    *         description: Vacation setting not found
@@ -228,7 +228,7 @@ export default class VacationSettingController {
    */
   async show({ params, response }: HttpContext) {
     try {
-      const vacationSetting = await VacationSetting.findOrFail(params.id)
+      const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
       return response
         .status(200)
         .json(
@@ -248,13 +248,13 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacations/{id}:
+   * /api/vacations/{vacationSettingId}:
    *   put:
    *     tags:
    *       - Vacation Settings
    *     summary: Update a specific vacation setting
    *     parameters:
-   *       - name: id
+   *       - name: vacationSettingId
    *         in: path
    *         required: true
    *         schema:
@@ -266,9 +266,9 @@ export default class VacationSettingController {
    *           schema:
    *             type: object
    *             properties:
-   *               yearsOfService:
+   *               vacationSettingYearsOfService:
    *                 type: number
-   *               vacationDays:
+   *               vacationSettingVacationDays:
    *                 type: number
    *     responses:
    *       '200':
@@ -287,11 +287,11 @@ export default class VacationSettingController {
    *                 data:
    *                   type: object
    *                   properties:
-   *                     id:
+   *                     vacationSettingId:
    *                       type: number
-   *                     yearsOfService:
+   *                     vacationSettingYearsOfService:
    *                       type: number
-   *                     vacationDays:
+   *                     vacationSettingVacationDays:
    *                       type: number
    *       '400':
    *         description: Invalid input, validation error
@@ -333,7 +333,7 @@ export default class VacationSettingController {
   async update({ params, request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(updateVacationSettingValidator)
-      const vacationSetting = await VacationSetting.findOrFail(params.id)
+      const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
       vacationSetting.merge(data)
       await vacationSetting.save()
 
@@ -364,13 +364,13 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacations/{id}:
+   * /api/vacations/{vacationSettingId}:
    *   delete:
    *     tags:
    *       - Vacation Settings
    *     summary: Delete a specific vacation setting
    *     parameters:
-   *       - name: id
+   *       - name: vacationSettingId
    *         in: path
    *         required: true
    *         schema:
@@ -410,8 +410,8 @@ export default class VacationSettingController {
    */
   async destroy({ params, response }: HttpContext) {
     try {
-      const vacationSetting = await VacationSetting.findOrFail(params.id)
-      vacationSetting.deletedAt = DateTime.now()
+      const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
+      vacationSetting.vacationSettingDeletedAt = DateTime.now()
       await vacationSetting.save()
 
       return response
