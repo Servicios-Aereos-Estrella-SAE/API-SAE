@@ -1,23 +1,30 @@
 import { HttpContext } from '@adonisjs/core/http'
-import VacationSetting from '../models/vacation_setting.js'
+import AircraftClass from '../models/aircraft_class.js'
 import {
-  createVacationSettingValidator,
-  updateVacationSettingValidator,
-} from '../validators/vacations.js'
+  createAircraftClassValidator,
+  updateAircraftClassValidator,
+} from '../validators/aircraft_class.js'
 import { formatResponse } from '../helpers/responseFormatter.js'
 import { DateTime } from 'luxon'
 
-export default class VacationSettingController {
+function generateSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+export default class AircraftClassController {
   /**
    * @swagger
-   * /api/vacations:
+   * /api/aircraft-classes:
    *   get:
    *     tags:
-   *       - Vacation Settings
-   *     summary: Get all vacation settings
+   *       - Aircraft Classes
+   *     summary: Get all aircraft classes
    *     responses:
    *       '200':
-   *         description: Vacation settings fetched successfully
+   *         description: Aircraft classes fetched successfully
    *         content:
    *           application/json:
    *             schema:
@@ -50,37 +57,45 @@ export default class VacationSettingController {
    *                       items:
    *                         type: object
    *                         properties:
-   *                           vacationSettingId:
+   *                           id:
    *                             type: number
-   *                           vacationSettingYearsOfService:
-   *                             type: number
-   *                           vacationSettingVacationDays:
-   *                             type: number
+   *                           aircraftClassName:
+   *                             type: string
+   *                           aircraftClassShortDescription:
+   *                             type: string
+   *                           aircraftClassLongDescription:
+   *                             type: string
+   *                           aircraftClassBanner:
+   *                             type: string
+   *                           aircraftClassSlug:
+   *                             type: string
+   *                           aircraftClassStatus:
+   *                             type: boolean
    */
   async index({ request, response }: HttpContext) {
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
     const searchText = request.input('searchText', '')
 
-    const query = VacationSetting.query().whereNull('vacationSettingDeletedAt')
+    const query = AircraftClass.query().whereNull('aircraftClassDeletedAt')
 
     if (searchText) {
       query.where((builder) => {
-        builder.where('vacationSettingYearsOfService', `${searchText}`)
+        builder.where('aircraftClassName', 'like', `%${searchText}%`)
       })
     }
-    const settings = await query.paginate(page, limit)
+    const classes = await query.paginate(page, limit)
 
     const formattedResponse = formatResponse(
       'success',
       'Successfully fetched',
       'Resources fetched',
-      settings.all(),
+      classes.all(),
       {
-        total: settings.total,
-        per_page: settings.perPage,
-        current_page: settings.currentPage,
-        last_page: settings.lastPage,
+        total: classes.total,
+        per_page: classes.perPage,
+        current_page: classes.currentPage,
+        last_page: classes.lastPage,
         first_page: 1,
       }
     )
@@ -90,11 +105,11 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacations:
+   * /api/aircraft-classes:
    *   post:
    *     tags:
-   *       - Vacation Settings
-   *     summary: Create a new vacation setting
+   *       - Aircraft Classes
+   *     summary: Create a new aircraft class
    *     requestBody:
    *       required: true
    *       content:
@@ -102,13 +117,21 @@ export default class VacationSettingController {
    *           schema:
    *             type: object
    *             properties:
-   *               vacationSettingYearsOfService:
-   *                 type: number
-   *               vacationSettingVacationDays:
-   *                 type: number
+   *               aircraftClassName:
+   *                 type: string
+   *               aircraftClassShortDescription:
+   *                 type: string
+   *               aircraftClassLongDescription:
+   *                 type: string
+   *               aircraftClassBanner:
+   *                 type: string
+   *               aircraftClassSlug:
+   *                 type: string
+   *               aircraftClassStatus:
+   *                 type: boolean
    *     responses:
    *       '201':
-   *         description: Vacation setting created successfully
+   *         description: Aircraft class created successfully
    *         content:
    *           application/json:
    *             schema:
@@ -123,12 +146,20 @@ export default class VacationSettingController {
    *                 data:
    *                   type: object
    *                   properties:
-   *                     vacationSettingId:
+   *                     id:
    *                       type: number
-   *                     vacationSettingYearsOfService:
-   *                       type: number
-   *                     vacationSettingVacationDays:
-   *                       type: number
+   *                     aircraftClassName:
+   *                       type: string
+   *                     aircraftClassShortDescription:
+   *                       type: string
+   *                     aircraftClassLongDescription:
+   *                       type: string
+   *                     aircraftClassBanner:
+   *                       type: string
+   *                     aircraftClassSlug:
+   *                       type: string
+   *                     aircraftClassStatus:
+   *                       type: boolean
    *       '400':
    *         description: Invalid input, validation error
    *         content:
@@ -148,10 +179,15 @@ export default class VacationSettingController {
    *                     message:
    *                       type: string
    */
+
   async store({ request, response }: HttpContext) {
     try {
-      const data = await request.validateUsing(createVacationSettingValidator)
-      const vacationSetting = await VacationSetting.create(data)
+      const data = await request.validateUsing(createAircraftClassValidator)
+
+      // Generar el slug antes de guardar
+      data.aircraftClassSlug = generateSlug(data.aircraftClassName)
+
+      const aircraftClass = await AircraftClass.create(data)
       return response
         .status(201)
         .json(
@@ -159,7 +195,7 @@ export default class VacationSettingController {
             'success',
             'Successfully action',
             'Resource created',
-            vacationSetting.toJSON()
+            aircraftClass.toJSON()
           )
         )
     } catch (error) {
@@ -173,20 +209,20 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacations/{vacationSettingId}:
+   * /api/aircraft-classes/{id}:
    *   get:
    *     tags:
-   *       - Vacation Settings
-   *     summary: Get a specific vacation setting
+   *       - Aircraft Classes
+   *     summary: Get a specific aircraft class
    *     parameters:
-   *       - name: vacationSettingId
+   *       - name: id
    *         in: path
    *         required: true
    *         schema:
    *           type: number
    *     responses:
    *       '200':
-   *         description: Vacation setting fetched successfully
+   *         description: Aircraft class fetched successfully
    *         content:
    *           application/json:
    *             schema:
@@ -201,14 +237,22 @@ export default class VacationSettingController {
    *                 data:
    *                   type: object
    *                   properties:
-   *                     vacationSettingId:
+   *                     id:
    *                       type: number
-   *                     vacationSettingYearsOfService:
-   *                       type: number
-   *                     vacationSettingVacationDays:
-   *                       type: number
+   *                     aircraftClassName:
+   *                       type: string
+   *                     aircraftClassShortDescription:
+   *                       type: string
+   *                     aircraftClassLongDescription:
+   *                       type: string
+   *                     aircraftClassBanner:
+   *                       type: string
+   *                     aircraftClassSlug:
+   *                       type: string
+   *                     aircraftClassStatus:
+   *                       type: boolean
    *       '404':
-   *         description: Vacation setting not found
+   *         description: Aircraft class not found
    *         content:
    *           application/json:
    *             schema:
@@ -228,7 +272,10 @@ export default class VacationSettingController {
    */
   async show({ params, response }: HttpContext) {
     try {
-      const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
+      const aircraftClass = await AircraftClass.query()
+        .where('aircraftClassId', params.id)
+        .whereNull('aircraftClassDeletedAt')
+        .firstOrFail()
       return response
         .status(200)
         .json(
@@ -236,25 +283,25 @@ export default class VacationSettingController {
             'success',
             'Successfully fetched',
             'Resource fetched',
-            vacationSetting.toJSON()
+            aircraftClass.toJSON()
           )
         )
     } catch (error) {
       return response
         .status(404)
-        .json(formatResponse('error', 'Not Found', 'Resource not found', error))
+        .json(formatResponse('error', 'Not Found', 'Resource not found', 'NO DATA'))
     }
   }
 
   /**
    * @swagger
-   * /api/vacations/{vacationSettingId}:
+   * /api/aircraft-classes/{id}:
    *   put:
    *     tags:
-   *       - Vacation Settings
-   *     summary: Update a specific vacation setting
+   *       - Aircraft Classes
+   *     summary: Update a specific aircraft class
    *     parameters:
-   *       - name: vacationSettingId
+   *       - name: id
    *         in: path
    *         required: true
    *         schema:
@@ -266,13 +313,21 @@ export default class VacationSettingController {
    *           schema:
    *             type: object
    *             properties:
-   *               vacationSettingYearsOfService:
-   *                 type: number
-   *               vacationSettingVacationDays:
-   *                 type: number
+   *               aircraftClassName:
+   *                 type: string
+   *               aircraftClassShortDescription:
+   *                 type: string
+   *               aircraftClassLongDescription:
+   *                 type: string
+   *               aircraftClassBanner:
+   *                 type: string
+   *               aircraftClassSlug:
+   *                 type: string
+   *               aircraftClassStatus:
+   *                 type: boolean
    *     responses:
    *       '200':
-   *         description: Vacation setting updated successfully
+   *         description: Aircraft class updated successfully
    *         content:
    *           application/json:
    *             schema:
@@ -287,14 +342,22 @@ export default class VacationSettingController {
    *                 data:
    *                   type: object
    *                   properties:
-   *                     vacationSettingId:
+   *                     id:
    *                       type: number
-   *                     vacationSettingYearsOfService:
-   *                       type: number
-   *                     vacationSettingVacationDays:
-   *                       type: number
-   *       '400':
-   *         description: Invalid input, validation error
+   *                     aircraftClassName:
+   *                       type: string
+   *                     aircraftClassShortDescription:
+   *                       type: string
+   *                     aircraftClassLongDescription:
+   *                       type: string
+   *                     aircraftClassBanner:
+   *                       type: string
+   *                     aircraftClassSlug:
+   *                       type: string
+   *                     aircraftClassStatus:
+   *                       type: boolean
+   *       '404':
+   *         description: Aircraft class not found
    *         content:
    *           application/json:
    *             schema:
@@ -311,8 +374,8 @@ export default class VacationSettingController {
    *                   properties:
    *                     message:
    *                       type: string
-   *       '404':
-   *         description: Vacation setting not found
+   *       '400':
+   *         description: Invalid input, validation error
    *         content:
    *           application/json:
    *             schema:
@@ -332,28 +395,29 @@ export default class VacationSettingController {
    */
   async update({ params, request, response }: HttpContext) {
     try {
-      const data = await request.validateUsing(updateVacationSettingValidator)
-      const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
-      vacationSetting.merge(data)
-      await vacationSetting.save()
+      const data = await request.validateUsing(updateAircraftClassValidator)
+
+      const aircraftClass = await AircraftClass.findOrFail(params.id)
+
+      // Regenerar el slug si se actualiza el aircraftClassName
+      if (data.aircraftClassName) {
+        data.aircraftClassSlug = generateSlug(data.aircraftClassName)
+      }
+
+      aircraftClass.merge(data)
+      await aircraftClass.save()
 
       return response
         .status(200)
         .json(
           formatResponse(
             'success',
-            'Successfully updated',
+            'Successfully action',
             'Resource updated',
-            vacationSetting.toJSON()
+            aircraftClass.toJSON()
           )
         )
     } catch (error) {
-      if (error.code === 'E_ROW_NOT_FOUND') {
-        return response
-          .status(404)
-          .json(formatResponse('error', 'Not Found', 'Resource not found', error))
-      }
-
       return response
         .status(400)
         .json(
@@ -364,20 +428,20 @@ export default class VacationSettingController {
 
   /**
    * @swagger
-   * /api/vacations/{vacationSettingId}:
+   * /api/aircraft-classes/{id}:
    *   delete:
    *     tags:
-   *       - Vacation Settings
-   *     summary: Delete a specific vacation setting
+   *       - Aircraft Classes
+   *     summary: Delete a specific aircraft class
    *     parameters:
-   *       - name: vacationSettingId
+   *       - name: id
    *         in: path
    *         required: true
    *         schema:
    *           type: number
    *     responses:
    *       '200':
-   *         description: Vacation setting deleted successfully
+   *         description: Aircraft class deleted successfully
    *         content:
    *           application/json:
    *             schema:
@@ -389,8 +453,13 @@ export default class VacationSettingController {
    *                   type: string
    *                 message:
    *                   type: string
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     message:
+   *                       type: string
    *       '404':
-   *         description: Vacation setting not found
+   *         description: Aircraft class not found
    *         content:
    *           application/json:
    *             schema:
@@ -410,17 +479,16 @@ export default class VacationSettingController {
    */
   async destroy({ params, response }: HttpContext) {
     try {
-      const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
-      vacationSetting.vacationSettingDeletedAt = DateTime.now()
-      await vacationSetting.save()
-
+      const aircraftClass = await AircraftClass.findOrFail(params.id)
+      aircraftClass.aircraftClassDeletedAt = DateTime.now()
+      await aircraftClass.save()
       return response
         .status(200)
-        .json(formatResponse('success', 'Successfully deleted', 'Resource deleted', null))
+        .json(formatResponse('success', 'Successfully action', 'Resource deleted', {}))
     } catch (error) {
       return response
         .status(404)
-        .json(formatResponse('error', 'Not Found', 'Resource not found', error.messages || error))
+        .json(formatResponse('error', 'Not Found', 'Resource not found', error))
     }
   }
 }

@@ -10,7 +10,7 @@ export const createVacationSettingValidator = vine.compile(
       .unique(async (_db, value) => {
         const existingSetting = await VacationSetting.query()
           .where('vacation_setting_years_of_service', value)
-          .whereNull('deleted_at')
+          .whereNull('vacation_setting_deleted_at')
           .first()
 
         if (existingSetting) {

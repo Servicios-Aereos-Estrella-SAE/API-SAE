@@ -1,5 +1,29 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *      VacationSetting:
+ *        type: object
+ *        properties:
+ *          vacationSettingId:
+ *            type: number
+ *            description: Vacation setting id
+ *          vacationSettingYearsOfService:
+ *            type: number
+ *            description: Vacation setting years of service
+ *          vacationSettingVacationDays:
+ *            type: number
+ *            description: Vacation setting vacation days
+ *          vacationSettingCreatedAt:
+ *            type: string
+ *          vacationSettingUpdatedAt:
+ *            type: string
+ *          vacationSettingDeletedAt:
+ *            type: string
+ *
+ */
 
 export default class VacationSetting extends BaseModel {
   @column({ isPrimary: true })
@@ -12,11 +36,11 @@ export default class VacationSetting extends BaseModel {
   vacationSettingVacationDays!: number
 
   @column.dateTime({ autoCreate: true })
-  createdAt!: DateTime
+  vacationSettingCreatedAt!: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  updatedAt!: DateTime
+  vacationSettingUpdatedAt!: DateTime
 
   @column.dateTime()
-  deletedAt!: DateTime | null
+  vacationSettingDeletedAt!: DateTime | null
 }
