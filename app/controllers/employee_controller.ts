@@ -1681,4 +1681,306 @@ export default class EmployeeController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/get-vacations-used:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get vacations used in current period by employee id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getVacationsUsed({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee Id was not found',
+          message: 'Missing data to process',
+          data: { employeeId },
+        }
+      }
+      const employeeService = new EmployeeService()
+      const employee = await employeeService.show(employeeId)
+      if (!employee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const vacations = await employeeService.getVacationsUsed(employee)
+      if (vacations.status === 200) {
+        response.status(vacations.status)
+        return {
+          type: 'success',
+          title: 'Employees',
+          message: 'The vacations used were found successfully',
+          data: { vacations: vacations.data.vacationsUsed },
+        }
+      } else {
+        response.status(vacations.status)
+        return {
+          type: vacations.type,
+          title: vacations.title,
+          message: vacations.message,
+          data: { vacations: 0 },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/get-vacations-corresponding:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get vacations corresponding in current period by employee id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getVacationsCorresponding({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee Id was not found',
+          message: 'Missing data to process',
+          data: { employeeId },
+        }
+      }
+      const employeeService = new EmployeeService()
+      const employee = await employeeService.show(employeeId)
+      if (!employee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const vacations = await employeeService.getDaysVacationsCorresponing(employee)
+      if (vacations.status === 200) {
+        response.status(vacations.status)
+        return {
+          type: 'success',
+          title: 'Employees',
+          message: 'The vacations corresponding were found successfully',
+          data: { vacations: vacations.data.vacationSettingVacationDays },
+        }
+      } else {
+        response.status(vacations.status)
+        return {
+          type: vacations.type,
+          title: vacations.title,
+          message: vacations.message,
+          data: { vacations: 0 },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

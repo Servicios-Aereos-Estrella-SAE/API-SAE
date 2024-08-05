@@ -1,14 +1,18 @@
 import Department from '#models/department'
 import Employee from '#models/employee'
 import EmployeeProceedingFile from '#models/employee_proceeding_file'
+import ExceptionType from '#models/exception_type'
 import Person from '#models/person'
 import Position from '#models/position'
+import ShiftException from '#models/shift_exception'
 import User from '#models/user'
+import { DateTime } from 'luxon'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
 import DepartmentService from './department_service.js'
 import PersonService from './person_service.js'
 import PositionService from './position_service.js'
+import VacationSetting from '#models/vacation_setting'
 
 export default class EmployeeService {
   async syncCreate(
@@ -349,5 +353,115 @@ export default class EmployeeService {
       })
       .orderBy('employee_id')
     return proceedingFiles ? proceedingFiles : []
+  }
+
+  async getVacationsUsed(employee: Employee) {
+    const shiftExceptionVacation = await ExceptionType.query()
+      .whereNull('exception_type_deleted_at')
+      .where('exception_type_slug', 'vacation')
+      .first()
+    if (!shiftExceptionVacation) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The exception type vacation was not found',
+        message: 'The exception type vacation was not found with the entered ID',
+        data: {},
+      }
+    }
+    const period = await this.getCurrentVacationPeriod(employee)
+    //console.log(period)
+    if (period && period.vacationPeriodStart) {
+      const vacations = await ShiftException.query()
+        .whereNull('shift_exceptions_deleted_at')
+        .where('employee_id', employee.employeeId)
+        .where('exception_type_id', shiftExceptionVacation.exceptionTypeId)
+        .whereRaw('DATE(shift_exceptions_date) >= ?', [period.vacationPeriodStart])
+        .whereRaw('DATE(shift_exceptions_date) <= ?', [period.vacationPeriodEnd])
+        .orderBy('employee_id')
+      const vacationsUsed = vacations ? vacations.length : 0
+      return {
+        status: 200,
+        type: 'success',
+        title: 'Info verifiy successfully',
+        message: 'Info verifiy successfully',
+        data: { vacationsUsed },
+      }
+    } else {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The vacation period was not found',
+        message: 'The vacation period was not found ',
+        data: {},
+      }
+    }
+  }
+
+  async getDaysVacationsCorresponing(employee: Employee) {
+    const employeeVacationsInfo = await this.getCurrentVacationPeriod(employee)
+    if (employeeVacationsInfo && employeeVacationsInfo.yearsWorked) {
+      const yearWorked = Math.floor(employeeVacationsInfo.yearsWorked)
+      const vacationSetting = await VacationSetting.query()
+        .whereNull('vacation_setting_deleted_at')
+        .where('vacation_setting_years_of_service', yearWorked)
+        .first()
+      if (!vacationSetting) {
+        return {
+          status: 404,
+          type: 'warning',
+          title: 'The vacation setting was not found',
+          message: `The vacation setting was not found with the years worked ${employeeVacationsInfo.yearsWorked}`,
+          data: {},
+        }
+      }
+      const vacationSettingVacationDays = vacationSetting.vacationSettingVacationDays
+      return {
+        status: 200,
+        type: 'success',
+        title: 'Info verifiy successfully',
+        message: 'Info verifiy successfully',
+        data: { vacationSettingVacationDays },
+      }
+    } else {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The vacation period was not found',
+        message: 'The vacation period was not found ',
+        data: {},
+      }
+    }
+  }
+
+  private getCurrentVacationPeriod(employee: Employee) {
+    // Fecha actual
+    const currentDate = DateTime.now()
+    // Fecha de inicio del empleo
+    const startDate = DateTime.fromISO(employee.employeeHireDate.toString())
+    // Verificar si la fecha de inicio es válida
+    if (!startDate.isValid) {
+      // console.log('Fecha de inicio del empleo no es válida')
+      return null
+    }
+    // Calcular los años trabajados
+    const yearsWorked = currentDate.diff(startDate, 'years').years
+    // Verificar si el empleado ha cumplido al menos un año
+    if (yearsWorked < 1) {
+      // console.log('El empleado aún no ha cumplido un año de servicio')
+      return null
+    }
+    // Calcular el año de vacaciones actual
+    const vacationYear = Math.floor(yearsWorked)
+    // Determinar las fechas de inicio y fin del período de vacaciones actual
+    const vacationPeriodStart = startDate.plus({ years: vacationYear }).startOf('day')
+    const vacationPeriodEnd = vacationPeriodStart.plus({ years: 1 }).minus({ days: 1 }).endOf('day')
+    return {
+      yearsWorked,
+      startDate,
+      vacationYear,
+      vacationPeriodStart: vacationPeriodStart.toISODate(),
+      vacationPeriodEnd: vacationPeriodEnd.toISODate(),
+    }
   }
 }
