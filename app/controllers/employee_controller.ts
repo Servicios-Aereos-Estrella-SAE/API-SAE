@@ -1811,7 +1811,7 @@ export default class EmployeeController {
           type: 'success',
           title: 'Employees',
           message: 'The vacations used were found successfully',
-          data: { vacations: vacations.data.vacationsUsed },
+          data: { vacations: vacations.data },
         }
       } else {
         response.status(vacations.status)
@@ -1962,7 +1962,7 @@ export default class EmployeeController {
           type: 'success',
           title: 'Employees',
           message: 'The vacations corresponding were found successfully',
-          data: { vacations: vacations.data.vacationSettingVacationDays },
+          data: { vacations: vacations.data },
         }
       } else {
         response.status(vacations.status)
