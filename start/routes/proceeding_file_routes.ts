@@ -10,5 +10,5 @@ router
     router.delete('/:proceedingFileId', '#controllers/proceeding_file_controller.delete')
     router.get('/:proceedingFileId', '#controllers/proceeding_file_controller.show')
   })
-  // .use(middleware.auth())
+  .use(middleware.auth())
   .prefix('/api/proceeding-files')
