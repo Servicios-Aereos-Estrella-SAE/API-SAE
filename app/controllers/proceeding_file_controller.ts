@@ -290,7 +290,10 @@ export default class ProceedingFileController {
     }
     const proceedingFileName = request.input('proceedingFileName')
     const proceedingFileTypeId = request.input('proceedingFileTypeId')
-    const proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
+    let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt', null)
+    if (proceedingFileExpirationAt === 'undefined' || proceedingFileExpirationAt === 'null') {
+      proceedingFileExpirationAt = null
+    }
     const proceedingFileActive = request.input('proceedingFileActive')
     const proceedingFileIdentify = request.input('proceedingFileIdentify')
     const proceedingFileUuid = cuid()
@@ -298,8 +301,11 @@ export default class ProceedingFileController {
       proceedingFileName: proceedingFileName,
       proceedingFilePath: '',
       proceedingFileTypeId: proceedingFileTypeId,
-      proceedingFileExpirationAt: proceedingFileExpirationAt,
-      proceedingFileActive: proceedingFileActive && proceedingFileActive === 'true' ? 1 : 0,
+      proceedingFileExpirationAt: proceedingFileExpirationAt ? proceedingFileExpirationAt : null,
+      proceedingFileActive:
+        proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
+          ? 1
+          : 0,
       proceedingFileIdentify: proceedingFileIdentify,
       proceedingFileUuid: proceedingFileUuid,
     } as ProceedingFile
@@ -507,9 +513,13 @@ export default class ProceedingFileController {
           data: { proceedingFileId },
         }
       }
+      const proceedingFileService = new ProceedingFileService()
       const proceedingFileName = request.input('proceedingFileName')
       const proceedingFileTypeId = request.input('proceedingFileTypeId')
-      const proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
+      let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt', null)
+      if (proceedingFileExpirationAt === 'undefined' || proceedingFileExpirationAt === 'null') {
+        proceedingFileExpirationAt = null
+      }
       const proceedingFileActive = request.input('proceedingFileActive')
       const proceedingFileIdentify = request.input('proceedingFileIdentify')
       const proceedingFile = {
@@ -523,13 +533,17 @@ export default class ProceedingFileController {
         proceedingFileTypeId: proceedingFileTypeId
           ? proceedingFileTypeId
           : currentProceedingFile.proceedingFileTypeId,
-        proceedingFileExpirationAt: proceedingFileExpirationAt,
-        proceedingFileActive: proceedingFileActive && proceedingFileActive === 'true' ? 1 : 0,
+        proceedingFileExpirationAt: proceedingFileExpirationAt
+          ? proceedingFileService.formatDate(proceedingFileExpirationAt)
+          : null,
+        proceedingFileActive:
+          proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
+            ? 1
+            : 0,
         proceedingFileIdentify: proceedingFileIdentify
           ? proceedingFileIdentify
           : currentProceedingFile.proceedingFileIdentify,
       } as ProceedingFile
-      const proceedingFileService = new ProceedingFileService()
       const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
       if (isValidInfo.status !== 200) {
         return {
@@ -578,7 +592,9 @@ export default class ProceedingFileController {
         }
       }
       if (!proceedingFile.proceedingFileExpirationAt) {
-        proceedingFile.proceedingFileExpirationAt = currentProceedingFile.proceedingFileExpirationAt
+        proceedingFile.proceedingFileExpirationAt = proceedingFileService.formatDate(
+          currentProceedingFile.proceedingFileExpirationAt
+        )
       }
       const updateProceedingFile = await proceedingFileService.update(
         currentProceedingFile,
