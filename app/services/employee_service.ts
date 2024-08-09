@@ -350,4 +350,11 @@ export default class EmployeeService {
       .orderBy('employee_id')
     return proceedingFiles ? proceedingFiles : []
   }
+
+  async hasEmployeesPosition(positionId: number): Promise<boolean> {
+    const employees = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('position_id', positionId)
+    return employees.length > 0
+  }
 }
