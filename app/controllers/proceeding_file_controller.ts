@@ -315,6 +315,7 @@ export default class ProceedingFileController {
     const proceedingFileService = new ProceedingFileService()
     const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
     if (isValidInfo.status !== 200) {
+      response.status(isValidInfo.status)
       return {
         status: isValidInfo.status,
         type: isValidInfo.type,
@@ -521,7 +522,10 @@ export default class ProceedingFileController {
         proceedingFileExpirationAt = null
       }
       const proceedingFileActive = request.input('proceedingFileActive')
-      const proceedingFileIdentify = request.input('proceedingFileIdentify')
+      let proceedingFileIdentify = request.input('proceedingFileIdentify', null)
+      if (proceedingFileIdentify === 'undefined' || proceedingFileIdentify === 'null') {
+        proceedingFileIdentify = null
+      }
       const proceedingFile = {
         proceedingFileId: proceedingFileId,
         proceedingFileName: proceedingFileName
@@ -546,6 +550,7 @@ export default class ProceedingFileController {
       } as ProceedingFile
       const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
       if (isValidInfo.status !== 200) {
+        response.status(isValidInfo.status)
         return {
           status: isValidInfo.status,
           type: isValidInfo.type,
@@ -590,11 +595,6 @@ export default class ProceedingFileController {
         if (!proceedingFile.proceedingFileName) {
           proceedingFile.proceedingFileName = fileName
         }
-      }
-      if (!proceedingFile.proceedingFileExpirationAt) {
-        proceedingFile.proceedingFileExpirationAt = proceedingFileService.formatDate(
-          currentProceedingFile.proceedingFileExpirationAt
-        )
       }
       const updateProceedingFile = await proceedingFileService.update(
         currentProceedingFile,
