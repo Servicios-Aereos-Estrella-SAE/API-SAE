@@ -968,7 +968,7 @@ export default class PositionController {
    *                     error:
    *                       type: string
    */
-  async get({ request, response }: HttpContext) {
+  async get({ response }: HttpContext) {
     try {
       const positionService = new PositionService()
       const positions = await positionService.get()

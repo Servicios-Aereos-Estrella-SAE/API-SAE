@@ -1,4 +1,3 @@
-import Department from '#models/department'
 import vine from '@vinejs/vine'
 
 export const createDepartmentValidator = vine.compile(
