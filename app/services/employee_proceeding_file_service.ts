@@ -30,6 +30,9 @@ export default class EmployeeProceedingFileService {
     const employeeProceedingFile = await EmployeeProceedingFile.query()
       .whereNull('employee_proceeding_file_deleted_at')
       .where('employee_proceeding_file_id', employeeProceedingFileId)
+      .preload('proceedingFile', async (query) => {
+        await query.preload('proceedingFileType')
+      })
       .first()
     return employeeProceedingFile ? employeeProceedingFile : null
   }
