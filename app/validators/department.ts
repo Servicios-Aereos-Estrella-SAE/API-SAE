@@ -1,20 +1,7 @@
-import Department from '#models/department'
 import vine from '@vinejs/vine'
 
 export const createDepartmentValidator = vine.compile(
   vine.object({
-    departmentCode: vine
-      .string()
-      .trim()
-      .minLength(1)
-      .maxLength(50)
-      .unique(async (_db, value) => {
-        const existingCode = await Department.query()
-          .where('department_code', value)
-          .whereNull('department_deleted_at')
-          .first()
-        return !existingCode
-      }),
     departmentName: vine.string().trim().minLength(1).maxLength(100),
     departmentAlias: vine.string().trim().minLength(0).maxLength(250).optional(),
     departmentIsDefault: vine.boolean().optional(),

@@ -460,4 +460,11 @@ export default class EmployeeService {
       vacationPeriodEnd: vacationPeriodEnd.toISODate(),
     }
   }
+  
+  async hasEmployeesPosition(positionId: number): Promise<boolean> {
+    const employees = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('position_id', positionId)
+    return employees.length > 0
+  }
 }

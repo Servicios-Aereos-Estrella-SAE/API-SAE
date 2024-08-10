@@ -149,6 +149,11 @@ export default class PositionService {
     return position ? position : null
   }
 
+  async get() {
+    const positions = await Position.query().whereNull('position_deleted_at')
+    return positions
+  }
+
   async verifyInfoExist(position: Position) {
     if (position.parentPositionId) {
       const existPositionParent = await Position.query()

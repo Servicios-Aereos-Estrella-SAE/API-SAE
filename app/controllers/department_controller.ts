@@ -823,13 +823,15 @@ export default class DepartmentController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const departmentCode = request.input('departmentCode')
       const departmentName = request.input('departmentName')
       const departmentAlias = request.input('departmentAlias')
       const departmentIsDefault = request.input('departmentIsDefault')
       const departmentActive = request.input('departmentActive')
       const parentDepartmentId = request.input('parentDepartmentId')
       const companyId = request.input('companyId')
+      // get last departmentId and add 1
+      const lastDepartment = await Department.query().orderBy('departmentId', 'desc').first()
+      const departmentCode = (lastDepartment ? lastDepartment.departmentId + 1 : 0).toString()
       const department = {
         departmentCode: departmentCode,
         departmentName: departmentName,
