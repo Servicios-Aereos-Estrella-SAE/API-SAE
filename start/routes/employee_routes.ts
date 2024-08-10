@@ -14,5 +14,13 @@ router
       '/:employeeId/proceeding-files',
       '#controllers/employee_controller.getProceedingFiles'
     )
+    router.get(
+      '/:employeeId/get-vacations-used',
+      '#controllers/employee_controller.getVacationsUsed'
+    )
+    router.get(
+      '/:employeeId/get-vacations-corresponding',
+      '#controllers/employee_controller.getVacationsCorresponding'
+    )
   })
   .prefix('/api/employees')
