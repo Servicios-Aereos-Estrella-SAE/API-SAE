@@ -164,6 +164,12 @@ export default class PilotController {
    *                 format: binary
    *                 description: The pilot photo
    *                 required: false
+   *               pilotHireDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Pilot hire date (YYYY-MM-DD)
+   *                 required: true
+   *                 default: ''
    *               personId:
    *                 type: integer
    *                 description: Person id
@@ -253,8 +259,11 @@ export default class PilotController {
   async store({ request, response }: HttpContext) {
     try {
       const personId = request.input('personId')
+      let pilotHireDate = request.input('pilotHireDate')
+      pilotHireDate = (pilotHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
       const pilot = {
         personId: personId,
+        pilotHireDate: pilotHireDate,
       } as Pilot
       const pilotService = new PilotService()
       const data = await request.validateUsing(createPilotValidator)
@@ -290,8 +299,8 @@ export default class PilotController {
           return {
             status: 400,
             type: 'warning',
-            title: 'Please upload a image valid',
-            message: 'Missing data to process',
+            title: 'Missing data to process',
+            message: 'Please upload a image valid',
             data: photo,
           }
         }
@@ -350,6 +359,12 @@ export default class PilotController {
    *                 format: binary
    *                 description: The pilot photo
    *                 required: false
+   *               pilotHireDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Pilot hire date (YYYY-MM-DD)
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -434,7 +449,11 @@ export default class PilotController {
   async update({ request, response }: HttpContext) {
     try {
       const pilotId = request.param('pilotId')
-      const pilot = {} as Pilot
+      let pilotHireDate = request.input('pilotHireDate')
+      pilotHireDate = (pilotHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      const pilot = {
+        pilotHireDate: pilotHireDate,
+      } as Pilot
       if (!pilotId) {
         response.status(400)
         return {
@@ -463,36 +482,29 @@ export default class PilotController {
         size: '',
       }
       const photo = request.file('photo', validationOptions)
-      if (!photo) {
-        response.status(400)
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'Please upload a photo valid',
-          message: 'Missing data to process',
-          data: photo,
+      pilot.pilotPhoto = currentPilot.pilotPhoto
+      if (photo) {
+        const allowedExtensions = ['jpeg', 'jpg', 'png', 'webp']
+        if (!allowedExtensions.includes(photo.extname ? photo.extname : '')) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Missing data to process',
+            message: 'Please upload a image valid',
+            data: photo,
+          }
         }
-      }
-      const allowedExtensions = ['jpeg', 'jpg', 'png', 'webp']
-      if (!allowedExtensions.includes(photo.extname ? photo.extname : '')) {
-        response.status(400)
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'Please upload a image valid',
-          message: 'Missing data to process',
-          data: photo,
+        const uploadService = new UploadService()
+        if (currentPilot.pilotPhoto) {
+          const fileNameWithExt = path.basename(currentPilot.pilotPhoto)
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/pilots/${fileNameWithExt}`
+          await uploadService.deleteFile(fileKey)
         }
+        const fileName = `${new Date().getTime()}_${photo.clientName}`
+        const fileUrl = await uploadService.fileUpload(photo, 'pilots', fileName)
+        pilot.pilotPhoto = fileUrl
       }
-      const uploadService = new UploadService()
-      if (currentPilot.pilotPhoto) {
-        const fileNameWithExt = path.basename(currentPilot.pilotPhoto)
-        const fileKey = `${Env.get('AWS_ROOT_PATH')}/pilots/${fileNameWithExt}`
-        await uploadService.deleteFile(fileKey)
-      }
-      const fileName = `${new Date().getTime()}_${photo.clientName}`
-      const fileUrl = await uploadService.fileUpload(photo, 'pilots', fileName)
-      pilot.pilotPhoto = fileUrl
       const updatePilot = await pilotService.update(currentPilot, pilot)
       response.status(200)
       return {

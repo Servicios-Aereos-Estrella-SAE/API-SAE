@@ -15,3 +15,10 @@ export const createPilotValidator = vine.compile(
       }),
   })
 )
+export const updatePilotValidator = vine.compile(
+  vine.object({
+    pilotHireDate: vine.date({
+      formats: ['YYYY-MM-DD', 'x'],
+    }),
+  })
+)

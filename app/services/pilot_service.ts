@@ -16,12 +16,14 @@ export default class PilotService {
   async create(pilot: Pilot) {
     const newPilot = new Pilot()
     newPilot.personId = await pilot.personId
+    newPilot.pilotHireDate = pilot.pilotHireDate
     newPilot.pilotPhoto = pilot.pilotPhoto
     await newPilot.save()
     return newPilot
   }
 
   async update(currentPilot: Pilot, pilot: Pilot) {
+    currentPilot.pilotHireDate = pilot.pilotHireDate
     currentPilot.pilotPhoto = pilot.pilotPhoto
     await currentPilot.save()
     return currentPilot

@@ -15,6 +15,9 @@ import Person from './person.js'
  *          pilotd:
  *            type: number
  *            description: Pilot Id
+ *          pilotHireDate:
+ *            type: date
+ *            description: Pilot hire date
  *          pilotPhoto:
  *            type: string
  *            description: Pilot photo
@@ -32,6 +35,9 @@ import Person from './person.js'
 export default class Pilot extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare pilotId: number
+
+  @column.date()
+  declare pilotHireDate: DateTime
 
   @column()
   declare pilotPhoto: string
