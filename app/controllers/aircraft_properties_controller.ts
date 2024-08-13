@@ -275,7 +275,7 @@ export default class AircraftPropertiesController {
    */
   async update({ params, request, response }: HttpContext) {
     try {
-      const data = await request.validateUsing(updateAircraftPropertyValidator)
+      await request.validateUsing(updateAircraftPropertyValidator)
       const aircraftProperty = await AircraftProperty.findOrFail(params.id)
       const bannerFile = request.file('aircraftPropertyBanner')
       if (bannerFile) {
