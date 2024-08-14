@@ -2,11 +2,22 @@ import Pilot from '#models/pilot'
 import Person from '#models/person'
 import { PilotFilterSearchInterface } from '../interfaces/pilot_filter_search_interface.js'
 import Employee from '#models/employee'
+import PilotProceedingFile from '#models/pilot_proceeding_file'
 
 export default class PilotService {
   async index(filters: PilotFilterSearchInterface) {
     const pilots = await Pilot.query()
       .whereNull('pilot_deleted_at')
+      .if(filters.search, (query) => {
+        query.where((subQuery) => {
+          subQuery.whereHas('person', (personQuery) => {
+            personQuery.whereRaw(
+              'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+              [`%${filters.search.toUpperCase()}%`]
+            )
+          })
+        })
+      })
       .preload('person')
       .orderBy('pilot_id')
       .paginate(filters.page, filters.limit)
@@ -67,6 +78,17 @@ export default class PilotService {
       message: 'Info verify successfully',
       data: { ...pilot },
     }
+  }
+
+  async getProceedingFiles(employeeId: number) {
+    const proceedingFiles = await PilotProceedingFile.query()
+      .whereNull('pilot_proceeding_file_deleted_at')
+      .where('pilot_id', employeeId)
+      .preload('proceedingFile', (query) => {
+        query.preload('proceedingFileType')
+      })
+      .orderBy('pilot_id')
+    return proceedingFiles ? proceedingFiles : []
   }
 
   async verifyInfo(pilot: Pilot) {

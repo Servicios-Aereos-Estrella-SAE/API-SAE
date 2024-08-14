@@ -7,5 +7,6 @@ router
     router.put('/:pilotId', '#controllers/pilot_controller.update')
     router.delete('/:pilotId', '#controllers/pilot_controller.delete')
     router.get('/:pilotId', '#controllers/pilot_controller.show')
+    router.get('/:pilotId/proceeding-files', '#controllers/pilot_controller.getProceedingFiles')
   })
   .prefix('/api/pilots')

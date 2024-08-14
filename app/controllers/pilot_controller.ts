@@ -17,6 +17,12 @@ export default class PilotController {
    *       - Pilots
    *     summary: get all
    *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
    *       - name: page
    *         in: query
    *         required: true
@@ -114,9 +120,11 @@ export default class PilotController {
    */
   async index({ request, response }: HttpContext) {
     try {
+      const search = request.input('search')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
+        search: search,
         page: page,
         limit: limit,
       } as PilotFilterSearchInterface
@@ -803,6 +811,147 @@ export default class PilotController {
           message: 'The pilot was found successfully',
           data: { pilot: showPilot },
         }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/pilots/{pilotId}/proceeding-files:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Pilots
+   *     summary: get proceeding files by pilot id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: pilotId
+   *         schema:
+   *           type: number
+   *         description: Pilot id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getProceedingFiles({ request, response }: HttpContext) {
+    try {
+      const pilotId = request.param('pilotId')
+      if (!pilotId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The pilot Id was not found',
+          message: 'Missing data to process',
+          data: { pilotId },
+        }
+      }
+      const pilotService = new PilotService()
+      const showPilot = await pilotService.show(pilotId)
+      if (!showPilot) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The pilot was not found',
+          message: 'The pilot was not found with the entered ID',
+          data: { pilotId },
+        }
+      }
+      const proceedingFiles = await pilotService.getProceedingFiles(pilotId)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Pilots',
+        message: 'The proceeding files were found successfully',
+        data: { proceedingFiles: proceedingFiles },
       }
     } catch (error) {
       response.status(500)
