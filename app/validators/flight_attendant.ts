@@ -13,6 +13,9 @@ export const createFlightAttendantValidator = vine.compile(
           .first()
         return !existingPersonId
       }),
+    flightAttendantHireDate: vine.date({
+      formats: ['YYYY-MM-DD', 'x'],
+    }),
   })
 )
 export const updateFlightAttendantValidator = vine.compile(

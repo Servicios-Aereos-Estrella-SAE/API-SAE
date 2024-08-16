@@ -47,7 +47,7 @@ export default class FlightAttendantProceedingFile extends compose(BaseModel, So
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare flightAttendantProceedingFileUpdatedAt: DateTime
 
-  @column.dateTime({ columnName: 'flightAttendant_proceeding_file_deleted_at' })
+  @column.dateTime({ columnName: 'flight_attendant_proceeding_file_deleted_at' })
   declare deletedAt: DateTime | null
 
   @belongsTo(() => ProceedingFile, {
