@@ -12,6 +12,7 @@ export default class ProceedingFileService {
     newProceedingFile.proceedingFileIdentify = proceedingFile.proceedingFileIdentify
     newProceedingFile.proceedingFileUuid = proceedingFile.proceedingFileUuid
     await newProceedingFile.save()
+    await newProceedingFile.load('proceedingFileType')
     return newProceedingFile
   }
 
@@ -36,6 +37,7 @@ export default class ProceedingFileService {
     const proceedingFile = await ProceedingFile.query()
       .whereNull('proceeding_file_deleted_at')
       .where('proceeding_file_id', proceedingFileId)
+      .preload('proceedingFileType')
       .first()
     return proceedingFile ? proceedingFile : null
   }
@@ -74,5 +76,12 @@ export default class ProceedingFileService {
       }
     } catch (error) {}
     return false
+  }
+
+  formatDate(date: string) {
+    const dateOrigin = new Date(date.toString())
+    const dateNew = DateTime.fromJSDate(dateOrigin)
+    const dateFormated = dateNew.toFormat('yyyy-MM-dd')
+    return dateFormated
   }
 }

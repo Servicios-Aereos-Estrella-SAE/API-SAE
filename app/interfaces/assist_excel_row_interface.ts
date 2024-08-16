@@ -1,4 +1,7 @@
+import { ShiftExceptionInterface } from './shift_exception_interface.js'
+
 interface AssistExcelRowInterface {
+  code: string
   name: string
   department: string
   position: string
@@ -13,5 +16,7 @@ interface AssistExcelRowInterface {
   incidents: string
   notes: string
   sundayPremium: string
+  checkOutStatus: string
+  exceptions: ShiftExceptionInterface[]
 }
 export type { AssistExcelRowInterface }
