@@ -1,5 +1,7 @@
 import Employee from '#models/employee'
 import EmployeeProceedingFile from '#models/employee_proceeding_file'
+import FlightAttendantProceedingFile from '#models/flight_attendant_proceeding_file'
+import PilotProceedingFile from '#models/pilot_proceeding_file'
 import ProceedingFile from '#models/proceeding_file'
 
 export default class EmployeeProceedingFileService {
@@ -30,6 +32,9 @@ export default class EmployeeProceedingFileService {
     const employeeProceedingFile = await EmployeeProceedingFile.query()
       .whereNull('employee_proceeding_file_deleted_at')
       .where('employee_proceeding_file_id', employeeProceedingFileId)
+      .preload('proceedingFile', async (query) => {
+        await query.preload('proceedingFileType')
+      })
       .first()
     return employeeProceedingFile ? employeeProceedingFile : null
   }
@@ -99,6 +104,32 @@ export default class EmployeeProceedingFileService {
         type: 'warning',
         title: 'The relation employee-proceedingfile already exists',
         message: `The relation employee-proceedingfile resource cannot be ${action} because the relation is already assigned`,
+        data: { ...employeeProceedingFile },
+      }
+    }
+    const existPilotProceedingFile = await PilotProceedingFile.query()
+      .whereNull('pilot_proceeding_file_deleted_at')
+      .where('proceeding_file_id', employeeProceedingFile.proceedingFileId)
+      .first()
+    if (existPilotProceedingFile) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The proceeding file was assigned in pilot proceeding files',
+        message: `The relation employee-proceedingfile resource cannot be ${action} because the proceeding file id was assigned in pilot proceeding files`,
+        data: { ...employeeProceedingFile },
+      }
+    }
+    const existFlightAttendantProceedingFile = await FlightAttendantProceedingFile.query()
+      .whereNull('flight_attendant_proceeding_file_deleted_at')
+      .where('proceeding_file_id', employeeProceedingFile.proceedingFileId)
+      .first()
+    if (existFlightAttendantProceedingFile) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The proceeding file was assigned in flight attendant proceeding files',
+        message: `The relation employee-proceedingfile resource cannot be ${action} because the proceeding file id was assigned in flight attendant proceeding files`,
         data: { ...employeeProceedingFile },
       }
     }
