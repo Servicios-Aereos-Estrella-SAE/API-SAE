@@ -165,6 +165,8 @@ export default class AirportController {
    *                 type: number
    *               airportElevationFt:
    *                 type: number
+   *               airportIcaoCode:
+   *                 type: string
    *     responses:
    *       '201':
    *         description: Airport created successfully
@@ -343,6 +345,19 @@ export default class AirportController {
    *                 type: number
    *               airportElevationFt:
    *                 type: number
+   *               airportDisplayLocationName:
+   *                 type: string
+   *               airportIsoCountry:
+   *                 type: string
+   *               airportIsoRegion:
+   *                 type: string
+   *               airportActive:
+   *                 type: integer
+   *                 enum: [0, 1]
+   *               airportIcaoCode:
+   *                 type: string
+   *               airportIataCode:
+   *                 type: string
    *     responses:
    *       '200':
    *         description: Airport updated successfully
@@ -372,6 +387,18 @@ export default class AirportController {
    *                       type: number
    *                     airportElevationFt:
    *                       type: number
+   *                     airportDisplayLocationName:
+   *                       type: string
+   *                     airportIsoCountry:
+   *                       type: string
+   *                     airportIsoRegion:
+   *                       type: string
+   *                     airportActive:
+   *                       type: integer
+   *                     airportIcaoCode:
+   *                       type: string
+   *                     airportIataCode:
+   *                       type: string
    *       '400':
    *         description: Invalid input, validation error
    *         content:
@@ -409,6 +436,7 @@ export default class AirportController {
    *                     message:
    *                       type: string
    */
+
   async update({ params, request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(updateAirportValidator)
