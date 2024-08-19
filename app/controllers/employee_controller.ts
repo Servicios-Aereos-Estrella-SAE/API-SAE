@@ -596,6 +596,16 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
+      const verifyInfo = await employeeService.verifyInfo(employee)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
       const newEmployee = await employeeService.create(employee)
       if (newEmployee) {
         response.status(201)

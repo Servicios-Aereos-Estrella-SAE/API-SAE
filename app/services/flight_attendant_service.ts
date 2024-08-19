@@ -4,6 +4,7 @@ import Employee from '#models/employee'
 import FlightAttendantsProceedingFile from '#models/flight_attendant_proceeding_file'
 import { FlightAttendantFilterSearchInterface } from '../interfaces/flight_attendant_filter_search_interface.js'
 import Pilot from '#models/pilot'
+import Customer from '#models/customer'
 
 export default class FlightAttendantService {
   async index(filters: FlightAttendantFilterSearchInterface) {
@@ -135,6 +136,20 @@ export default class FlightAttendantService {
           type: 'warning',
           title: 'The person id exists for another pilot',
           message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another pilot`,
+          data: { ...flightAttendant },
+        }
+      }
+
+      const existCustomerPersonId = await Customer.query()
+        .whereNull('customer_deleted_at')
+        .where('person_id', flightAttendant.personId)
+        .first()
+      if (existCustomerPersonId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The person id exists for another customer',
+          message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another customer`,
           data: { ...flightAttendant },
         }
       }

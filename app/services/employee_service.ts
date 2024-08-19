@@ -15,6 +15,7 @@ import PositionService from './position_service.js'
 import VacationSetting from '#models/vacation_setting'
 import Pilot from '#models/pilot'
 import FlightAttendant from '#models/flight_attendant'
+import Customer from '#models/customer'
 
 export default class EmployeeService {
   async syncCreate(
@@ -289,7 +290,6 @@ export default class EmployeeService {
         .whereNull('employee_deleted_at')
         .where('person_id', employee.personId)
         .first()
-
       if (existPersonId && employee.personId) {
         return {
           status: 400,
@@ -322,6 +322,19 @@ export default class EmployeeService {
           type: 'warning',
           title: 'The person id exists for another flight attendant',
           message: `The employee resource cannot be ${action} because the person id is already assigned to another flight attendant`,
+          data: { ...employee },
+        }
+      }
+      const existCustomerPersonId = await Customer.query()
+        .whereNull('customer_deleted_at')
+        .where('person_id', employee.personId)
+        .first()
+      if (existCustomerPersonId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The person id exists for another customer',
+          message: `The employee resource cannot be ${action} because the person id is already assigned to another customer`,
           data: { ...employee },
         }
       }
