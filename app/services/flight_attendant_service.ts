@@ -13,7 +13,14 @@ export default class FlightAttendantService {
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery.whereHas('person', (personQuery) => {
-            personQuery.whereRaw(
+            personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+            personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            personQuery.orWhereRaw(
               'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
               [`%${filters.search.toUpperCase()}%`]
             )
