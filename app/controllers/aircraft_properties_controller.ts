@@ -132,6 +132,7 @@ export default class AircraftPropertiesController {
    *                 type: number
    *               aircraftPropertyOvernightStayInternational:
    *                 type: number
+   *
    *     responses:
    *       '201':
    *         description: Aircraft property created successfully
@@ -352,6 +353,8 @@ export default class AircraftPropertiesController {
       }
       aircraftProperty.merge(filteredData)
       await aircraftProperty.save()
+      // Asegúrate de cargar la relación `aircraftClass` antes de responder
+      await aircraftProperty.load('aircraftClass')
       return response
         .status(200)
         .json(
@@ -370,7 +373,7 @@ export default class AircraftPropertiesController {
           formatResponse(
             'error',
             'Validation error',
-            'Invalid input, validation error 400 ',
+            'Invalid input, validation error 400',
             error.messages || error
           )
         )
