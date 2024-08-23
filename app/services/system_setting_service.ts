@@ -76,4 +76,58 @@ export default class SystemSettingService {
       data: { ...systemSetting },
     }
   }
+
+  async verifyActiveStore(systemSetting: SystemSetting) {
+    const action = systemSetting.systemSettingId > 0 ? 'updated' : 'created'
+    if (systemSetting.systemSettingActive) {
+      const activeItem = await SystemSetting.query()
+        .where('system_setting_active', 1)
+        .whereNull('system_setting_deleted_at')
+        .first()
+      if (activeItem) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The system setting status',
+          message: `The system setting resource cannot be ${action} because only one record can be active`,
+          data: { ...systemSetting },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifiy successfully',
+      data: { ...systemSetting },
+    }
+  }
+
+  async verifyActiveUpdate(systemSetting: SystemSetting, currentSystemSetting: SystemSetting) {
+    const action = systemSetting.systemSettingId > 0 ? 'updated' : 'created'
+    if (systemSetting.systemSettingId > 0) {
+      if (systemSetting.systemSettingActive && !currentSystemSetting.systemSettingActive) {
+        const activeItem = await SystemSetting.query()
+          .where('system_setting_active', 1)
+          .whereNull('system_setting_deleted_at')
+          .first()
+        if (activeItem && activeItem.systemSettingId !== currentSystemSetting.systemSettingId) {
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'The system setting status',
+            message: `The system setting resource cannot be ${action} because only one record can be active`,
+            data: { ...systemSetting },
+          }
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifiy successfully',
+      data: { ...systemSetting },
+    }
+  }
 }

@@ -293,13 +293,23 @@ export default class SystemSettingController {
           data: { ...data },
         }
       }
+      const validActive = await systemSettingService.verifyActiveStore(systemSetting)
+      if (validActive.status !== 200) {
+        response.status(validActive.status)
+        return {
+          type: validActive.type,
+          title: validActive.title,
+          message: validActive.message,
+          data: { ...data },
+        }
+      }
       const validationOptions = {
         types: ['image'],
         size: '',
       }
       const photo = request.file('logo', validationOptions)
       if (photo) {
-        const allowedExtensions = ['jpeg', 'jpg', 'png', 'webp']
+        const allowedExtensions = ['svg', 'png', 'webp']
         if (!allowedExtensions.includes(photo.extname ? photo.extname : '')) {
           response.status(400)
           return {
@@ -509,6 +519,19 @@ export default class SystemSettingController {
           data: { ...systemSetting },
         }
       }
+      const validActive = await systemSettingService.verifyActiveUpdate(
+        systemSetting,
+        currentSystemSetting
+      )
+      if (validActive.status !== 200) {
+        response.status(validActive.status)
+        return {
+          type: validActive.type,
+          title: validActive.title,
+          message: validActive.message,
+          data: { ...systemSetting },
+        }
+      }
       const validationOptions = {
         types: ['image'],
         size: '',
@@ -516,7 +539,7 @@ export default class SystemSettingController {
       const photo = request.file('logo', validationOptions)
       systemSetting.systemSettingLogo = currentSystemSetting.systemSettingLogo
       if (photo) {
-        const allowedExtensions = ['jpeg', 'jpg', 'png', 'webp']
+        const allowedExtensions = ['svg', 'png', 'webp']
         if (!allowedExtensions.includes(photo.extname ? photo.extname : '')) {
           response.status(400)
           return {
