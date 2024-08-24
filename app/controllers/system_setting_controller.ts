@@ -354,7 +354,7 @@ export default class SystemSettingController {
    *       - bearerAuth: []
    *     tags:
    *       - System Settings
-   *     summary: update systemSetting
+   *     summary: update system setting
    *     produces:
    *       - application/json
    *     parameters:
@@ -592,7 +592,7 @@ export default class SystemSettingController {
    *       - bearerAuth: []
    *     tags:
    *       - System Settings
-   *     summary: delete systemSetting
+   *     summary: delete system setting
    *     produces:
    *       - application/json
    *     parameters:
@@ -740,7 +740,7 @@ export default class SystemSettingController {
    *       - bearerAuth: []
    *     tags:
    *       - System Settings
-   *     summary: get systemSetting by id
+   *     summary: get system setting by id
    *     produces:
    *       - application/json
    *     parameters:
@@ -861,6 +861,120 @@ export default class SystemSettingController {
           message: 'The system setting was found successfully',
           data: { systemSetting: showSystemSetting },
         }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/system-settings/get-active:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - System Settings
+   *     summary: get system setting active
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getActive({ response }: HttpContext) {
+    try {
+      const systemSettingService = new SystemSettingService()
+      const showSystemSetting = await systemSettingService.getActive()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'System settings',
+        message: 'The system setting active was found successfully',
+        data: { systemSetting: showSystemSetting },
       }
     } catch (error) {
       response.status(500)

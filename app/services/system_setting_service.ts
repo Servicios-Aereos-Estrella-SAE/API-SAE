@@ -49,6 +49,14 @@ export default class SystemSettingService {
     return systemSetting ? systemSetting : null
   }
 
+  async getActive() {
+    const systemSetting = await SystemSetting.query()
+      .whereNull('system_setting_deleted_at')
+      .where('system_setting_active', 1)
+      .first()
+    return systemSetting
+  }
+
   async verifyInfo(systemSetting: SystemSetting) {
     const action = systemSetting.systemSettingId > 0 ? 'updated' : 'created'
     const existTradeName = await SystemSetting.query()
