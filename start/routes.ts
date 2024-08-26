@@ -32,6 +32,8 @@ import './routes/employee_proceeding_file_routes.js'
 import './routes/proceeding_file_type_routes.js'
 import './routes/aircraft_property_routes.js'
 import './routes/airport.js'
+import './routes/aircraft_routes.js'
+
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
   return view.render('swagger', { specUrl })
