@@ -1,7 +1,9 @@
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
+import SystemPermission from './system_permission.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 /**
  * @swagger
@@ -46,4 +48,14 @@ export default class RoleSystemPermission extends compose(BaseModel, SoftDeletes
 
   @column.dateTime({ columnName: 'role_system_permission_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => SystemPermission, {
+    foreignKey: 'systemPermissionId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('systemModule')
+      }
+    },
+  })
+  declare systemPermissions: BelongsTo<typeof SystemPermission>
 }

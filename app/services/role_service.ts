@@ -7,6 +7,7 @@ export default class RoleService {
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(role_name) LIKE ?', [`%${filters.search.toUpperCase()}%`])
       })
+      .preload('roleSystemPermissions')
       .orderBy('role_id')
       .paginate(filters.page, filters.limit)
     return roles
