@@ -9,49 +9,43 @@ import Person from './person.js'
  * @swagger
  * components:
  *   schemas:
- *      Pilot:
+ *      Customer:
  *        type: object
  *        properties:
- *          pilotId:
+ *          customerId:
  *            type: number
- *            description: Pilot Id
- *          pilotHireDate:
- *            type: date
- *            description: Pilot hire date
- *          pilotPhoto:
+ *            description: Customer Id
+ *          customerUuid:
  *            type: string
- *            description: Pilot photo
+ *            description: Customer uuid
  *          personId:
  *            type: number
  *            description: Person id
- *          pilotCreatedAt:
+ *          customerCreatedAt:
  *            type: string
- *          pilotUpdatedAt:
+ *          customerUpdatedAt:
  *            type: string
- *          pilotDeletedAt:
+ *          customerDeletedAt:
  *            type: string
  *
  */
-export default class Pilot extends compose(BaseModel, SoftDeletes) {
+export default class Customer extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare pilotId: number
-
-  @column.date()
-  declare pilotHireDate: DateTime
+  declare customerId: number
 
   @column()
-  declare pilotPhoto: string
+  declare customerUuid: string
 
   @column()
   declare personId: number
 
   @column.dateTime({ autoCreate: true })
-  declare pilotCreatedAt: DateTime
+  declare customerCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare pilotUpdatedAt: DateTime
+  declare customerUpdatedAt: DateTime
 
-  @column.dateTime({ columnName: 'pilot_deleted_at' })
+  @column.dateTime({ columnName: 'customer_deleted_at' })
   declare deletedAt: DateTime | null
 
   @belongsTo(() => Person, {
