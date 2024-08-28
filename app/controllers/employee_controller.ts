@@ -583,6 +583,7 @@ export default class EmployeeController {
         positionId: positionId,
         personId: personId,
         employeeWorkSchedule: workSchedule,
+        employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
@@ -808,6 +809,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         employeeWorkSchedule: employeeWorkSchedule,
+        employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
       if (!employeeId) {
         response.status(400)
