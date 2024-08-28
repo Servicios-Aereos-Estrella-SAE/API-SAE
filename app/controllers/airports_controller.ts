@@ -165,8 +165,21 @@ export default class AirportController {
    *                 type: number
    *               airportElevationFt:
    *                 type: number
+   *               airportDisplayLocationName:
+   *                 type: string
+   *               airportIsoCountry:
+   *                 type: string
+   *               airportIsoRegion:
+   *                 type: string
+   *               airportActive:
+   *                 type: integer
+   *                 description: 1 for active, 0 for inactive
    *               airportIcaoCode:
    *                 type: string
+   *               airportIataCode:
+   *                 type: string
+   *                 nullable: true
+
    *     responses:
    *       '201':
    *         description: Airport created successfully
@@ -196,6 +209,29 @@ export default class AirportController {
    *                       type: number
    *                     airportElevationFt:
    *                       type: number
+   *                     airportDisplayLocationName:
+   *                       type: string
+   *                     airportIsoCountry:
+   *                       type: string
+   *                     airportIsoRegion:
+   *                       type: string
+   *                     airportActive:
+   *                       type: integer
+   *                     airportIcaoCode:
+   *                       type: string
+   *                     airportIataCode:
+   *                       type: string
+   *                       nullable: true
+   *                     airportCreatedAt:
+   *                       type: string
+   *                       format: date-time
+   *                     airportUpdatedAt:
+   *                       type: string
+   *                       format: date-time
+   *                     airportDeletedAt:
+   *                       type: string
+   *                       format: date-time
+   *                       nullable: true
    *       '400':
    *         description: Invalid input, validation error
    *         content:
