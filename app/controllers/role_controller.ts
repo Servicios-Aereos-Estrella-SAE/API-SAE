@@ -261,7 +261,7 @@ export default class RoleController {
   async assign({ request, response }: HttpContext) {
     try {
       const roleId = request.param('roleId')
-      const permissions = request.input('permissions')
+      const data = request.all()
       const role = await Role.query().whereNull('role_deleted_at').where('role_id', roleId).first()
       if (!role) {
         response.status(404)
@@ -278,10 +278,10 @@ export default class RoleController {
           await item.delete()
         })
       }
-      for (let index = 0; index < Object.keys(permissions).length; index++) {
+      for await (const permissionId of data.permissions) {
         const newPermission = new RoleSystemPermission()
         newPermission.roleId = roleId
-        newPermission.roleSystemPermissionId = permissions[index]
+        newPermission.systemPermissionId = permissionId
         await newPermission.save()
       }
       response.status(201)

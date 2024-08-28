@@ -7,6 +7,7 @@ export default class SystemModuleService {
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(system_module_name) LIKE ?', [`%${filters.search.toUpperCase()}%`])
       })
+      .preload('systemPermissions')
       .orderBy('system_module_id')
       .paginate(filters.page, filters.limit)
     return roles
