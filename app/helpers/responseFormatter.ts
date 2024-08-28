@@ -1,29 +1,15 @@
 /* eslint-disable unicorn/filename-case */
-interface Meta {
-  total: number
-  per_page: number
-  current_page: number
-  last_page: number
-  first_page: number
-}
 
-interface ResponseData {
-  type: string
-  title: string
-  message: string
-  data: {
-    meta?: Meta
-    data: any
-  }
-}
+import { ResponseDataInterface } from '../interfaces/response_data_interface.js'
+import { ResponseDataMetaInterface } from '../interfaces/response_data_meta_interface.js'
 
 export function formatResponse(
   type: string,
   title: string,
   message: string,
   data: any,
-  meta?: Meta
-): ResponseData {
+  meta?: ResponseDataMetaInterface
+): ResponseDataInterface {
   return {
     type,
     title,

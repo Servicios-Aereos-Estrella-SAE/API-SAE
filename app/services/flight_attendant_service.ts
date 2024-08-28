@@ -4,6 +4,7 @@ import Employee from '#models/employee'
 import FlightAttendantsProceedingFile from '#models/flight_attendant_proceeding_file'
 import { FlightAttendantFilterSearchInterface } from '../interfaces/flight_attendant_filter_search_interface.js'
 import Pilot from '#models/pilot'
+import Customer from '#models/customer'
 
 export default class FlightAttendantService {
   async index(filters: FlightAttendantFilterSearchInterface) {
@@ -12,7 +13,14 @@ export default class FlightAttendantService {
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery.whereHas('person', (personQuery) => {
-            personQuery.whereRaw(
+            personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+            personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            personQuery.orWhereRaw(
               'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
               [`%${filters.search.toUpperCase()}%`]
             )
@@ -135,6 +143,20 @@ export default class FlightAttendantService {
           type: 'warning',
           title: 'The person id exists for another pilot',
           message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another pilot`,
+          data: { ...flightAttendant },
+        }
+      }
+
+      const existCustomerPersonId = await Customer.query()
+        .whereNull('customer_deleted_at')
+        .where('person_id', flightAttendant.personId)
+        .first()
+      if (existCustomerPersonId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The person id exists for another customer',
+          message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another customer`,
           data: { ...flightAttendant },
         }
       }

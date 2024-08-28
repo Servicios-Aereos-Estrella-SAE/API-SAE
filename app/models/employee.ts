@@ -54,6 +54,12 @@ import ShiftException from './shift_exception.js'
  *          personId:
  *            type: number
  *            description: Person id
+ *          businessUnitId:
+ *            type: number
+ *            description: business id from the employee business unit
+ *          employeeAssistDiscriminator:
+ *            type: number
+ *            description: Flag to identify discrimination on assist
  *          employeeLastSynchronizationAt:
  *            type: string
  *            description: Last synchronization date
@@ -110,6 +116,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare personId: number
+
+  @column()
+  declare businessUnitId: number
+
+  @column()
+  declare employeeAssistDiscriminator: number
 
   @column()
   declare employeeLastSynchronizationAt: Date

@@ -165,6 +165,21 @@ export default class AirportController {
    *                 type: number
    *               airportElevationFt:
    *                 type: number
+   *               airportDisplayLocationName:
+   *                 type: string
+   *               airportIsoCountry:
+   *                 type: string
+   *               airportIsoRegion:
+   *                 type: string
+   *               airportActive:
+   *                 type: integer
+   *                 description: 1 for active, 0 for inactive
+   *               airportIcaoCode:
+   *                 type: string
+   *               airportIataCode:
+   *                 type: string
+   *                 nullable: true
+
    *     responses:
    *       '201':
    *         description: Airport created successfully
@@ -194,6 +209,29 @@ export default class AirportController {
    *                       type: number
    *                     airportElevationFt:
    *                       type: number
+   *                     airportDisplayLocationName:
+   *                       type: string
+   *                     airportIsoCountry:
+   *                       type: string
+   *                     airportIsoRegion:
+   *                       type: string
+   *                     airportActive:
+   *                       type: integer
+   *                     airportIcaoCode:
+   *                       type: string
+   *                     airportIataCode:
+   *                       type: string
+   *                       nullable: true
+   *                     airportCreatedAt:
+   *                       type: string
+   *                       format: date-time
+   *                     airportUpdatedAt:
+   *                       type: string
+   *                       format: date-time
+   *                     airportDeletedAt:
+   *                       type: string
+   *                       format: date-time
+   *                       nullable: true
    *       '400':
    *         description: Invalid input, validation error
    *         content:
@@ -343,6 +381,19 @@ export default class AirportController {
    *                 type: number
    *               airportElevationFt:
    *                 type: number
+   *               airportDisplayLocationName:
+   *                 type: string
+   *               airportIsoCountry:
+   *                 type: string
+   *               airportIsoRegion:
+   *                 type: string
+   *               airportActive:
+   *                 type: integer
+   *                 enum: [0, 1]
+   *               airportIcaoCode:
+   *                 type: string
+   *               airportIataCode:
+   *                 type: string
    *     responses:
    *       '200':
    *         description: Airport updated successfully
@@ -372,6 +423,18 @@ export default class AirportController {
    *                       type: number
    *                     airportElevationFt:
    *                       type: number
+   *                     airportDisplayLocationName:
+   *                       type: string
+   *                     airportIsoCountry:
+   *                       type: string
+   *                     airportIsoRegion:
+   *                       type: string
+   *                     airportActive:
+   *                       type: integer
+   *                     airportIcaoCode:
+   *                       type: string
+   *                     airportIataCode:
+   *                       type: string
    *       '400':
    *         description: Invalid input, validation error
    *         content:
@@ -409,6 +472,7 @@ export default class AirportController {
    *                     message:
    *                       type: string
    */
+
   async update({ params, request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(updateAirportValidator)

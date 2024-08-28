@@ -473,6 +473,16 @@ export default class EmployeeController {
    *                 description: Person id
    *                 required: true
    *                 default: 0
+   *               businessUnitId:
+   *                 type: integer
+   *                 description: Business unit id
+   *                 required: true
+   *                 default: 1
+   *               employeeAssistDiscriminator:
+   *                 type: boolean
+   *                 description: If true, the employee is not considered on attendance monitor
+   *                 required: true
+   *                 default: 0
    *               employeeWorkSchedule:
    *                 type: string
    *                 description: Work Schedule Onsite or Remote
@@ -582,7 +592,9 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         personId: personId,
+        businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: workSchedule,
+        employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
@@ -593,6 +605,16 @@ export default class EmployeeController {
           type: exist.type,
           title: exist.title,
           message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await employeeService.verifyInfo(employee)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
           data: { ...data },
         }
       }
@@ -687,6 +709,16 @@ export default class EmployeeController {
    *               positionId:
    *                 type: integer
    *                 description: Position id
+   *                 required: true
+   *                 default: 0
+   *               businessUnitId:
+   *                 type: integer
+   *                 description: Business unit id
+   *                 required: true
+   *                 default: 1
+   *               employeeAssistDiscriminator:
+   *                 type: boolean
+   *                 description: If true, the employee is not considered on attendance monitor
    *                 required: true
    *                 default: 0
    *               employeeWorkSchedule:
@@ -797,7 +829,9 @@ export default class EmployeeController {
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
+        businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: employeeWorkSchedule,
+        employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
       if (!employeeId) {
         response.status(400)
