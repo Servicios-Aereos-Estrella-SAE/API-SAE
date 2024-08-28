@@ -156,6 +156,7 @@ export default class EmployeeService {
     newEmployee.departmentId = await employee.departmentId
     newEmployee.positionId = await employee.positionId
     newEmployee.personId = await employee.personId
+    newEmployee.businessUnitId = await employee.businessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     await newEmployee.save()
@@ -171,6 +172,7 @@ export default class EmployeeService {
     currentEmployee.companyId = employee.companyId
     currentEmployee.departmentId = await employee.departmentId
     currentEmployee.positionId = await employee.positionId
+    currentEmployee.businessUnitId = employee.businessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     await currentEmployee.save()
