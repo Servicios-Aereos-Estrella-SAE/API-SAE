@@ -16,6 +16,8 @@ import VacationSetting from '#models/vacation_setting'
 import Pilot from '#models/pilot'
 import FlightAttendant from '#models/flight_attendant'
 import Customer from '#models/customer'
+import env from '#start/env'
+import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeService {
   async syncCreate(
@@ -91,8 +93,16 @@ export default class EmployeeService {
   }
 
   async index(filters: EmployeeFilterSearchInterface) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
     const employees = await Employee.query()
       .whereNull('employee_deleted_at')
+      .whereIn('businessUnitId', businessUnitsList)
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery

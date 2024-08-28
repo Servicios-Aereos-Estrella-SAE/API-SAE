@@ -9,6 +9,7 @@ import DepartmentPosition from '#models/department_position'
 import DepartmentPositionService from '#services/department_position_service'
 import { createDepartmentValidator, updateDepartmentValidator } from '#validators/department'
 import { DepartmentShiftFilterInterface } from '../interfaces/department_shift_filter_interface.js'
+import BusinessUnit from '#models/business_unit'
 
 export default class DepartmentController {
   /**
@@ -435,6 +436,7 @@ export default class DepartmentController {
   async getPositions({ request, response }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
+
       if (!departmentId) {
         response.status(400)
         return {
@@ -444,7 +446,22 @@ export default class DepartmentController {
           data: {},
         }
       }
-      const department = await Department.query().where('department_id', departmentId).first()
+
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      const department = await Department.query()
+        .where('department_id', departmentId)
+        .whereHas('employees', (query) => {
+          query.whereIn('businessUnitId', businessUnitsList)
+        })
+        .first()
+
       if (!department) {
         response.status(404)
         return {
@@ -454,10 +471,21 @@ export default class DepartmentController {
           data: { department_id: departmentId },
         }
       }
+
       const positions = await DepartmentPosition.query()
         .where('department_id', departmentId)
-        .preload('position')
+        .whereHas('position', (queryPosition) => {
+          queryPosition.whereHas('employees', (query) => {
+            query.whereIn('businessUnitId', businessUnitsList)
+          })
+        })
+        .preload('position', (queryPosition) => {
+          queryPosition.whereHas('employees', (query) => {
+            query.whereIn('businessUnitId', businessUnitsList)
+          })
+        })
         .orderBy('position_id')
+
       response.status(200)
       return {
         type: 'successi',
@@ -628,9 +656,8 @@ export default class DepartmentController {
    */
   async getAll({ response }: HttpContext) {
     try {
-      const departments = await Department.query()
-        .has('departmentsPositions')
-        .orderBy('department_id')
+      const departments = await new DepartmentService().index()
+
       response.status(200)
       return {
         type: 'success',
