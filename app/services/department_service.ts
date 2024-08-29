@@ -10,8 +10,34 @@ import EmployeeShiftService from './employee_shift_service.js'
 import EmployeeService from './employee_service.js'
 import { DepartmentShiftEmployeeWarningInterface } from '../interfaces/department_shift_employee_warning_interface.js'
 import EmployeeShift from '#models/employee_shift'
+import env from '#start/env'
+import BusinessUnit from '#models/business_unit'
 
 export default class DepartmentService {
+  async index() {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+    const departments = await Department.query()
+      .has('departmentsPositions')
+      .whereHas('employees', (query) => {
+        query.whereIn('businessUnitId', businessUnitsList)
+      })
+      .preload('employees', (query) => {
+        query.whereIn('businessUnitId', businessUnitsList)
+      })
+      .orderBy('department_id', 'asc')
+
+    const list = departments.filter((department) => department.employees.length > 0)
+
+    return list
+  }
+
   async syncCreate(department: BiometricDepartmentInterface) {
     const newDepartment = new Department()
     newDepartment.departmentSyncId = department.id
