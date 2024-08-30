@@ -578,14 +578,14 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-      dateAssistItem = await this.isHoliday(dateAssistItem)
-      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
-      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dateAssistItem = this.checkInStatus(dateAssistItem)
       dateAssistItem = this.checkOutStatus(dateAssistItem)
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
       dateAssistItem = this.isRestDay(dateAssistItem)
+      dateAssistItem = await this.isHoliday(dateAssistItem)
+      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
+      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
@@ -922,6 +922,11 @@ export default class SyncAssistsService {
 
       if (absentException) {
         checkAssistCopy.assist.isVacationDate = true
+
+        if (!checkAssistCopy.assist.checkIn) {
+          checkAssistCopy.assist.checkInStatus = ''
+          checkAssistCopy.assist.checkOutStatus = ''
+        }
       }
     }
 
