@@ -7,6 +7,7 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
 import Person from './person.js'
 import ShiftException from './shift_exception.js'
+import BusinessUnit from './business_unit.js'
 
 /**
  * @swagger
@@ -149,6 +150,11 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'personId',
   })
   declare person: BelongsTo<typeof Person>
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'businessUnitId',
+  })
+  declare businessUnit: BelongsTo<typeof BusinessUnit>
 
   @hasMany(() => ShiftException, {
     foreignKey: 'employeeId',
