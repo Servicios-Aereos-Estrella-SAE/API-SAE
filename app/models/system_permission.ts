@@ -18,6 +18,9 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *          systemPermissionName:
  *            type: string
  *            description: System permission name
+ *          systemPermissionSlug:
+ *            type: string
+ *            description: System permission slug
  *          systemModuleId:
  *            type: number
  *            description: System module id
@@ -36,6 +39,9 @@ export default class SystemPermission extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare systemPermissionName: string
+
+  @column()
+  declare systemPermissionSlug: string
 
   @column()
   declare systemModuleId: number

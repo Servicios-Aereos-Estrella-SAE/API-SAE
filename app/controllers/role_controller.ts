@@ -2,7 +2,6 @@ import { HttpContext } from '@adonisjs/core/http'
 import RoleService from '#services/role_service'
 import { RoleFilterSearchInterface } from '../interfaces/role_filter_search_interface.js'
 import Role from '#models/role'
-import RoleSystemPermission from '#models/role_system_permission'
 
 export default class RoleController {
   /**
@@ -272,24 +271,14 @@ export default class RoleController {
           data: { ...request.all() },
         }
       }
-      const rolePermission = await RoleSystemPermission.query().where('role_id', roleId)
-      if (rolePermission) {
-        rolePermission.forEach(async (item) => {
-          await item.delete()
-        })
-      }
-      for await (const permissionId of data.permissions) {
-        const newPermission = new RoleSystemPermission()
-        newPermission.roleId = roleId
-        newPermission.systemPermissionId = permissionId
-        await newPermission.save()
-      }
+      const roleService = new RoleService()
+      const roleSystemPermissions = await roleService.assignPermissions(roleId, data.permissions)
       response.status(201)
       return {
         type: 'success',
         title: 'Role Permissions',
         message: 'The role permissions were assigned successfully',
-        data: { role: role },
+        data: { roleSystemPermissions: roleSystemPermissions },
       }
     } catch (error) {
       const messageError =
@@ -300,6 +289,461 @@ export default class RoleController {
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/roles/{roleId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: get role by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: roleId
+   *         schema:
+   *           type: number
+   *         description: Role id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const roleId = request.param('roleId')
+      if (!roleId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The role Id was not found',
+          message: 'Missing data to process',
+          data: { roleId },
+        }
+      }
+      const roleService = new RoleService()
+      const showRole = await roleService.show(roleId)
+      if (!showRole) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The role was not found',
+          message: 'The role was not found with the entered ID',
+          data: { roleId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Roles',
+          message: 'The role was found successfully',
+          data: { role: showRole },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/roles/has-access/{roleId}/{systemModuleSlug}/{systemPermissionSlug}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: get role has access by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: roleId
+   *         schema:
+   *           type: number
+   *         description: Role id
+   *         required: true
+   *       - in: path
+   *         name: systemModuleSlug
+   *         schema:
+   *           type: string
+   *         description: System module slug
+   *         required: true
+   *       - in: path
+   *         name: systemPermissionSlug
+   *         schema:
+   *           type: string
+   *         description: System permission slug
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async hasAccess({ request, response }: HttpContext) {
+    try {
+      const roleId = request.param('roleId')
+      if (!roleId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The role Id was not found',
+          message: 'Missing data to process',
+          data: { roleId },
+        }
+      }
+      const systemModuleSlug = request.param('systemModuleSlug')
+      if (!systemModuleSlug) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The system module slug was not found',
+          data: { systemModuleSlug },
+        }
+      }
+      const systemPermissionSlug = request.param('systemPermissionSlug')
+      if (!systemPermissionSlug) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The system permission slug was not found',
+          data: { systemPermissionSlug },
+        }
+      }
+      const roleService = new RoleService()
+      const roleHasAccess = await roleService.hasAccess(
+        roleId,
+        systemModuleSlug,
+        systemPermissionSlug
+      )
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Roles',
+        message: 'The role was found successfully',
+        data: { roleHasAccess: roleHasAccess },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/roles/get-access/{roleId}/{systemModuleSlug}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: get role has access by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: roleId
+   *         schema:
+   *           type: number
+   *         description: Role id
+   *         required: true
+   *       - in: path
+   *         name: systemModuleSlug
+   *         schema:
+   *           type: string
+   *         description: System module slug
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getAccess({ request, response }: HttpContext) {
+    try {
+      const roleId = request.param('roleId')
+      if (!roleId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The role Id was not found',
+          message: 'Missing data to process',
+          data: { roleId },
+        }
+      }
+      const systemModuleSlug = request.param('systemModuleSlug')
+      if (!systemModuleSlug) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The system module slug was not found',
+          data: { systemModuleSlug },
+        }
+      }
+      const roleService = new RoleService()
+      const roleGetAccess = await roleService.getAccess(roleId, systemModuleSlug)
+      response.status(roleGetAccess.status)
+      return {
+        type: roleGetAccess.type,
+        title: roleGetAccess.title,
+        message: roleGetAccess.message,
+        data: { permissions: roleGetAccess.data },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
       }
     }
   }

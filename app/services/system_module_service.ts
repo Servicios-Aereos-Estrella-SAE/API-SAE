@@ -12,4 +12,13 @@ export default class SystemModuleService {
       .paginate(filters.page, filters.limit)
     return roles
   }
+
+  async show(systemModuleSlug: string) {
+    const systemModule = await SystemModule.query()
+      .whereNull('system_module_deleted_at')
+      .where('system_module_slug', systemModuleSlug)
+      .preload('systemPermissions')
+      .first()
+    return systemModule ? systemModule : null
+  }
 }
