@@ -140,6 +140,7 @@ export default class EmployeeService {
       .preload('department')
       .preload('position')
       .preload('person')
+      .preload('businessUnit')
       .orderBy('employee_id')
       .paginate(filters.page, filters.limit)
     return employees
