@@ -12,7 +12,7 @@ import Person from './person.js'
  *      FlightAttendant:
  *        type: object
  *        properties:
- *          flightAttendantd:
+ *          flightAttendantId:
  *            type: number
  *            description: FlightAttendant Id
  *          flightAttendantHireDate:

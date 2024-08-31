@@ -4,6 +4,7 @@ import { PilotFilterSearchInterface } from '../interfaces/pilot_filter_search_in
 import Employee from '#models/employee'
 import PilotProceedingFile from '#models/pilot_proceeding_file'
 import FlightAttendant from '#models/flight_attendant'
+import Customer from '#models/customer'
 
 export default class PilotService {
   async index(filters: PilotFilterSearchInterface) {
@@ -12,7 +13,14 @@ export default class PilotService {
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery.whereHas('person', (personQuery) => {
-            personQuery.whereRaw(
+            personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+            personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            personQuery.orWhereRaw(
               'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
               [`%${filters.search.toUpperCase()}%`]
             )
@@ -135,6 +143,19 @@ export default class PilotService {
           type: 'warning',
           title: 'The person id exists for another flight attendant',
           message: `The pilot resource cannot be ${action} because the person id is already assigned to another flight attendant`,
+          data: { ...pilot },
+        }
+      }
+      const existCustomerPersonId = await Customer.query()
+        .whereNull('customer_deleted_at')
+        .where('person_id', pilot.personId)
+        .first()
+      if (existCustomerPersonId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The person id exists for another customer',
+          message: `The pilot resource cannot be ${action} because the person id is already assigned to another customer`,
           data: { ...pilot },
         }
       }

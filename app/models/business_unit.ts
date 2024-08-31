@@ -55,6 +55,6 @@ export default class BusinessUnit extends compose(BaseModel, SoftDeletes) {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare businessUnitUpdatedAt: DateTime | null
 
-  @column.dateTime()
-  declare businessUnitDeletedAt: DateTime | null
+  @column.dateTime({ columnName: 'business_unit_deleted_at' })
+  declare deletedAt: DateTime | null
 }

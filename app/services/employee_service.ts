@@ -15,6 +15,9 @@ import PositionService from './position_service.js'
 import VacationSetting from '#models/vacation_setting'
 import Pilot from '#models/pilot'
 import FlightAttendant from '#models/flight_attendant'
+import Customer from '#models/customer'
+import env from '#start/env'
+import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeService {
   async syncCreate(
@@ -90,8 +93,16 @@ export default class EmployeeService {
   }
 
   async index(filters: EmployeeFilterSearchInterface) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
     const employees = await Employee.query()
       .whereNull('employee_deleted_at')
+      .whereIn('businessUnitId', businessUnitsList)
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery
@@ -99,6 +110,17 @@ export default class EmployeeService {
               `%${filters.search.toUpperCase()}%`,
             ])
             .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+            .orWhereHas('person', (personQuery) => {
+              personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+            })
         })
       })
       .if(filters.employeeWorkSchedule, (query) => {
@@ -118,6 +140,7 @@ export default class EmployeeService {
       .preload('department')
       .preload('position')
       .preload('person')
+      .preload('businessUnit')
       .orderBy('employee_id')
       .paginate(filters.page, filters.limit)
     return employees
@@ -134,7 +157,9 @@ export default class EmployeeService {
     newEmployee.departmentId = await employee.departmentId
     newEmployee.positionId = await employee.positionId
     newEmployee.personId = await employee.personId
+    newEmployee.businessUnitId = await employee.businessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
+    newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     await newEmployee.save()
     return newEmployee
   }
@@ -148,7 +173,9 @@ export default class EmployeeService {
     currentEmployee.companyId = employee.companyId
     currentEmployee.departmentId = await employee.departmentId
     currentEmployee.positionId = await employee.positionId
+    currentEmployee.businessUnitId = employee.businessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
+    currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     await currentEmployee.save()
     return currentEmployee
   }
@@ -289,7 +316,6 @@ export default class EmployeeService {
         .whereNull('employee_deleted_at')
         .where('person_id', employee.personId)
         .first()
-
       if (existPersonId && employee.personId) {
         return {
           status: 400,
@@ -322,6 +348,19 @@ export default class EmployeeService {
           type: 'warning',
           title: 'The person id exists for another flight attendant',
           message: `The employee resource cannot be ${action} because the person id is already assigned to another flight attendant`,
+          data: { ...employee },
+        }
+      }
+      const existCustomerPersonId = await Customer.query()
+        .whereNull('customer_deleted_at')
+        .where('person_id', employee.personId)
+        .first()
+      if (existCustomerPersonId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The person id exists for another customer',
+          message: `The employee resource cannot be ${action} because the person id is already assigned to another customer`,
           data: { ...employee },
         }
       }

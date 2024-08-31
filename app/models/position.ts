@@ -3,6 +3,7 @@ import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import Employee from './employee.js'
 
 /**
  * @swagger
@@ -114,4 +115,9 @@ export default class Position extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'parentPositionSyncId',
   })
   declare subSyncPositions: HasMany<typeof Position>
+
+  @hasMany(() => Employee, {
+    foreignKey: 'positionId',
+  })
+  declare employees: HasMany<typeof Employee>
 }

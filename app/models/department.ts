@@ -4,6 +4,7 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import DepartmentPosition from './department_position.js'
+import Employee from './employee.js'
 
 /**
  * @swagger
@@ -110,4 +111,9 @@ export default class Department extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'departmentId',
   })
   declare departmentsPositions: HasMany<typeof DepartmentPosition>
+
+  @hasMany(() => Employee, {
+    foreignKey: 'departmentId',
+  })
+  declare employees: HasMany<typeof Employee>
 }

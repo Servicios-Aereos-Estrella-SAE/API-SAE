@@ -7,6 +7,7 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
 import Person from './person.js'
 import ShiftException from './shift_exception.js'
+import BusinessUnit from './business_unit.js'
 
 /**
  * @swagger
@@ -54,6 +55,12 @@ import ShiftException from './shift_exception.js'
  *          personId:
  *            type: number
  *            description: Person id
+ *          businessUnitId:
+ *            type: number
+ *            description: business id from the employee business unit
+ *          employeeAssistDiscriminator:
+ *            type: number
+ *            description: Flag to identify discrimination on assist
  *          employeeLastSynchronizationAt:
  *            type: string
  *            description: Last synchronization date
@@ -112,6 +119,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
   declare personId: number
 
   @column()
+  declare businessUnitId: number
+
+  @column()
+  declare employeeAssistDiscriminator: number
+
+  @column()
   declare employeeLastSynchronizationAt: Date
 
   @column.dateTime({ autoCreate: true })
@@ -137,6 +150,11 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'personId',
   })
   declare person: BelongsTo<typeof Person>
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'businessUnitId',
+  })
+  declare businessUnit: BelongsTo<typeof BusinessUnit>
 
   @hasMany(() => ShiftException, {
     foreignKey: 'employeeId',

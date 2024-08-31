@@ -1,3 +1,4 @@
+import CustomerProceedingFile from '#models/customer_proceeding_file'
 import Employee from '#models/employee'
 import EmployeeProceedingFile from '#models/employee_proceeding_file'
 import FlightAttendantProceedingFile from '#models/flight_attendant_proceeding_file'
@@ -130,6 +131,19 @@ export default class EmployeeProceedingFileService {
         type: 'warning',
         title: 'The proceeding file was assigned in flight attendant proceeding files',
         message: `The relation employee-proceedingfile resource cannot be ${action} because the proceeding file id was assigned in flight attendant proceeding files`,
+        data: { ...employeeProceedingFile },
+      }
+    }
+    const existCustomerProceedingFile = await CustomerProceedingFile.query()
+      .whereNull('customer_proceeding_file_deleted_at')
+      .where('proceeding_file_id', employeeProceedingFile.proceedingFileId)
+      .first()
+    if (existCustomerProceedingFile) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The proceeding file was assigned in customer proceeding files',
+        message: `The relation employee-proceedingfile resource cannot be ${action} because the proceeding file id was assigned in customer proceeding files`,
         data: { ...employeeProceedingFile },
       }
     }
