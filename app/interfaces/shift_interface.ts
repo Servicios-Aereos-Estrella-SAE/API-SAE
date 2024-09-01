@@ -3,6 +3,7 @@ import { DateTime } from 'luxon'
 interface ShiftInterface {
   shiftId: number | null
   shiftName: string
+  shiftCalculateFlag?: string | null
   shiftDayStart: number
   shiftTimeStart: string
   shiftActiveHours: number

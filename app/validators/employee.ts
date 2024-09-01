@@ -18,7 +18,7 @@ export const createEmployeeValidator = vine.compile(
       }),
     employeeFirstName: vine.string().trim().minLength(0).maxLength(25).optional(),
     employeeLastName: vine.string().trim().minLength(0).maxLength(25).optional(),
-    employeePayrollNum: vine.string().trim().minLength(1).maxLength(50),
+    // employeePayrollNum: vine.string().trim().minLength(1).maxLength(50),
     // employeeHireDate: vine.date({
     //   formats: ['YYYY-MM-DD', 'x'],
     // }),

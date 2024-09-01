@@ -12,6 +12,8 @@ interface AssistDayInterface {
     checkEatIn: AssistInterface | null
     checkEatOut: AssistInterface | null
     dateShift: ShiftInterface | null
+    dateShiftApplySince: string | Date | null
+    shiftCalculateFlag: string
     checkInDateTime: Date | DateTime | null
     checkOutDateTime: Date | DateTime | null
     checkInStatus: string
@@ -24,6 +26,7 @@ interface AssistDayInterface {
     holiday: HolidayInterface | null
     hasExceptions: boolean
     exceptions: ShiftExceptionInterface[]
+    assitFlatList?: AssistInterface[]
   }
 }
 

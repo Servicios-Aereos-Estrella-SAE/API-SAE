@@ -17,6 +17,10 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           type: string
  *           description: Name of the shift
  *           nullable: false
+ *         shiftCalculateFlag:
+ *           type: string
+ *           description: Name of the shift that apply to generate dynamic calendar ex. 24x48
+ *           nullable: false
  *         shiftDayStart:
  *           type: number
  *           description: Day the shift starts
@@ -64,6 +68,9 @@ export default class Shift extends BaseModel {
 
   @column()
   declare shiftName: string
+
+  @column()
+  declare shiftCalculateFlag: string
 
   @column()
   declare shiftDayStart: number
