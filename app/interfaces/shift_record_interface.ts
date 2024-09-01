@@ -6,6 +6,7 @@ interface ShiftRecordInterface {
   shiftDate: DateTime
   employeeShiftId: number
   employeShiftsApplySince: Date | string
+  shiftCalculateFlag: string
   employeeId: number
   shift: ShiftInterface
 }

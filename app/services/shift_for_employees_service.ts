@@ -17,7 +17,7 @@ export default class ShiftForEmployeeService {
       DateTime.fromISO(onliDateEnd, { setZone: true }).setZone('America/Mexico_City') || ''
 
     const page = nPage || 1
-    const limit = limitPage || 10
+    const limit = limitPage || 999999
 
     if (startDate >= endDate) {
       return {
@@ -78,6 +78,7 @@ export default class ShiftForEmployeeService {
           shiftId: record.shiftId,
           employeShiftsApplySince: record.employeShiftsApplySince,
           shiftDate: record.employeShiftsCreatedAt,
+          shiftCalculateFlag: record.shift.shiftCalculateFlag,
           shift: {
             shiftId: record.shift.shiftId,
             shiftName: record.shift.shiftName,
