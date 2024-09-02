@@ -1,7 +1,9 @@
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
+import SystemPermission from './system_permission.js'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 
 /**
  * @swagger
@@ -82,4 +84,9 @@ export default class SystemModule extends compose(BaseModel, SoftDeletes) {
 
   @column.dateTime({ columnName: 'system_module_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @hasMany(() => SystemPermission, {
+    foreignKey: 'systemModuleId',
+  })
+  declare systemPermissions: HasMany<typeof SystemPermission>
 }
