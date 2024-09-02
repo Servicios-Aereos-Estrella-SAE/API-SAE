@@ -448,6 +448,8 @@ export default class SyncAssistsService {
             checkEatOut: this.getCheckEatOutDate(dayAssist),
             checkOut: this.getCheckOutDate(dayAssist),
             dateShift: dateShift ? dateShift.shift : null,
+            dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+            shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
             checkInDateTime: null,
             checkOutDateTime: null,
             checkInStatus: '',
@@ -460,6 +462,7 @@ export default class SyncAssistsService {
             holiday: null,
             hasExceptions: false,
             exceptions: [],
+            assitFlatList: dayAssist,
           },
         })
       }
@@ -496,7 +499,7 @@ export default class SyncAssistsService {
         'America/Mexico_City'
       )
 
-      if (checkTime > shiftDate) {
+      if (checkTime >= shiftDate) {
         return shiftDate
       }
     })
@@ -555,6 +558,8 @@ export default class SyncAssistsService {
           checkEatIn: null,
           checkEatOut: null,
           dateShift: dateShift ? dateShift.shift : null,
+          dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+          shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
           checkInDateTime: null,
           checkOutDateTime: null,
           checkInStatus: '',
@@ -567,6 +572,7 @@ export default class SyncAssistsService {
           holiday: null,
           hasExceptions: false,
           exceptions: [],
+          assitFlatList: [],
         },
       }
 
@@ -578,14 +584,26 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-      dateAssistItem = await this.isHoliday(dateAssistItem)
-      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
-      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dateAssistItem = this.checkInStatus(dateAssistItem)
       dateAssistItem = this.checkOutStatus(dateAssistItem)
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
       dateAssistItem = this.isRestDay(dateAssistItem)
+      dateAssistItem = await this.isHoliday(dateAssistItem)
+      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
+      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
+      dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
+
+      if (dateAssistItem?.assist?.dateShift) {
+        if (dateAssistItem.assist.shiftCalculateFlag === '24x48') {
+          dateAssistItem = await this.calendar24x48(dateAssistItem)
+        }
+
+        if (dateAssistItem.assist.shiftCalculateFlag === '12x36') {
+          dateAssistItem = await this.calendar12x36(dateAssistItem)
+        }
+      }
+
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
@@ -605,9 +623,9 @@ export default class SyncAssistsService {
     const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
     const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
     const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true })
+      .setZone('America/Mexico_City')
+      .plus({ minutes: 1 })
 
     checkAssistCopy.assist.checkInDateTime = timeToStart
 
@@ -698,9 +716,10 @@ export default class SyncAssistsService {
     const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
     const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
     const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
     const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
       .setZone('America/Mexico_City')
-      .plus({ hours: checkAssist.assist.dateShift.shiftActiveHours })
+      .plus({ minutes: timeToAdd })
 
     checkAssistCopy.assist.checkOutDateTime = timeToEnd
 
@@ -922,7 +941,59 @@ export default class SyncAssistsService {
 
       if (absentException) {
         checkAssistCopy.assist.isVacationDate = true
+
+        if (!checkAssistCopy.assist.checkIn) {
+          checkAssistCopy.assist.checkInStatus = ''
+          checkAssistCopy.assist.checkOutStatus = ''
+        }
       }
+    }
+
+    return checkAssistCopy
+  }
+
+  private async hasSomeException(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+    if (!employeeID) {
+      return checkAssist
+    }
+
+    const employee = await Employee.query()
+      .where('employee_id', employeeID || 0)
+      .first()
+
+    if (!employee) {
+      return checkAssist
+    }
+
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const assignedShift = checkAssist.assist.dateShift
+
+    if (!assignedShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = assignedShift.shiftTimeStart
+    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+
+    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
+    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
+
+    await employee.load('shift_exceptions', (query) => {
+      query.where('shiftExceptionsDate', '>=', startDate)
+      query.where('shiftExceptionsDate', '<=', endDate)
+    })
+
+    if (employee.shift_exceptions.length > 0) {
+      checkAssistCopy.assist.checkInStatus = 'exception'
+      checkAssistCopy.assist.checkOutStatus = 'exception'
     }
 
     return checkAssistCopy
@@ -981,5 +1052,132 @@ export default class SyncAssistsService {
     }
 
     return assist
+  }
+
+  private calendar24x48(dateAssistItem: AssistDayInterface) {
+    const startDay24x48 = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
+    ).setZone('America/Mexico_City')
+
+    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
+      'America/Mexico_City'
+    )
+
+    const daysBettweenStart = evaluatedDay.diff(startDay24x48, 'days').days
+    const isStartWorkday = !!(daysBettweenStart % 3 === 0)
+    const isEndWorkday = !!(daysBettweenStart % 3 === 1)
+    const isRestWorkday = !!(daysBettweenStart % 3 === 2)
+
+    if (isStartWorkday) {
+      if (dateAssistItem.assist.checkOut) {
+        dateAssistItem.assist.checkOutStatus = 'working'
+
+        if (dateAssistItem.assist.assitFlatList) {
+          if (dateAssistItem.assist.assitFlatList.length < 3) {
+            dateAssistItem.assist.checkEatIn = null
+            dateAssistItem.assist.checkEatOut = null
+          }
+
+          if (dateAssistItem.assist.assitFlatList.length === 3) {
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkOut
+          }
+        }
+
+        dateAssistItem.assist.checkOut = null
+      }
+    }
+
+    if (isEndWorkday) {
+      if (dateAssistItem.assist.checkIn) {
+        dateAssistItem.assist.checkInStatus = 'working'
+        dateAssistItem.assist.checkOutStatus = 'ontime'
+        dateAssistItem.assist.checkIn = null
+
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+
+        if (dateAssistItem.assist.assitFlatList) {
+          if (dateAssistItem.assist.assitFlatList.length === 2) {
+            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+            dateAssistItem.assist.checkOut = null
+          }
+          if (dateAssistItem.assist.assitFlatList.length >= 3) {
+            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+          }
+        }
+      } else {
+        dateAssistItem.assist.checkInStatus = ''
+        dateAssistItem.assist.checkOutStatus = ''
+      }
+    }
+
+    if (isRestWorkday) {
+      dateAssistItem.assist.isRestDay = true
+    }
+
+    dateAssistItem.assist.checkOutStatus = ''
+
+    return dateAssistItem
+  }
+
+  private calendar12x36(dateAssistItem: AssistDayInterface) {
+    const startDay12X36 = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
+    ).setZone('America/Mexico_City')
+
+    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
+      'America/Mexico_City'
+    )
+
+    const nowDateTime = DateTime.now().setZone('America/Mexico_City')
+
+    const checkOutDateTime = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.checkOutDateTime}`)
+    ).setZone('America/Mexico_City')
+
+    const checkInDateTime = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.checkInDateTime}`)
+    ).setZone('America/Mexico_City')
+
+    const diffNowOut = nowDateTime.diff(checkOutDateTime, 'milliseconds').milliseconds
+    const daysBettweenStart = evaluatedDay.diff(startDay12X36, 'days').days
+    const isStartWorkday = !!(daysBettweenStart % 2 === 0)
+    const isRestWorkday = !!(daysBettweenStart % 2 === 1)
+
+    if (isStartWorkday) {
+      if (checkOutDateTime.toFormat('yyyy-LL-dd') === checkInDateTime.toFormat('yyyy-LL-dd')) {
+        if (diffNowOut < 0) {
+          dateAssistItem.assist.checkOut = null
+          dateAssistItem.assist.checkOutStatus = 'working'
+        }
+      }
+
+      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+        if (dateAssistItem.assist.checkOut) {
+          dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkOut
+          dateAssistItem.assist.checkOut = null
+          dateAssistItem.assist.checkOutStatus = 'working'
+        }
+      }
+    }
+
+    if (isRestWorkday) {
+      dateAssistItem.assist.isRestDay = true
+
+      if (dateAssistItem.assist.checkIn) {
+        dateAssistItem.assist.checkIn = null
+        dateAssistItem.assist.checkInStatus = 'working'
+      }
+
+      if (!dateAssistItem.assist.checkOut) {
+        dateAssistItem.assist.checkOutStatus = ''
+      }
+    }
+
+    dateAssistItem.assist.checkOutStatus = ''
+
+    return dateAssistItem
   }
 }

@@ -29,13 +29,7 @@ export const createAircraftValidator = vine.compile(
 
 export const updateAircraftValidator = vine.compile(
   vine.object({
-    aircraftRegistrationNumber: vine.string().unique(async (_db: any, value: any) => {
-      const existingAircraft = await Aircraft.query()
-        .where('aircraft_registration_number', value)
-        .first()
-
-      return !existingAircraft
-    }),
+    aircraftRegistrationNumber: vine.string().optional(),
     aircraftSerialNumber: vine.string().optional(),
     airportId: vine.number().exists(async (_db: any, value: any) => {
       const airportExists = await _db.query().from('airports').where('airport_id', value).first()
