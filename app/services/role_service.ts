@@ -94,7 +94,42 @@ export default class RoleService {
     return true
   }
 
-  async getAccess(roleId: number, systemModuleSlug: string) {
+  async getAccess(roleId: number) {
+    const role = await Role.query().whereNull('role_deleted_at').where('role_id', roleId).first()
+    if (!role) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The role was not found',
+        message: 'The role was not found with the entered ID',
+        data: { roleId },
+      }
+    }
+
+    const systemPermissions = await SystemPermission.query()
+      .whereNull('system_permission_deleted_at')
+      .orderBy('system_permission_id')
+    const permissionsIds = []
+    for await (const systemPermission of systemPermissions) {
+      permissionsIds.push(systemPermission.systemPermissionId)
+    }
+
+    const roleSystemPermissions = await RoleSystemPermission.query()
+      .whereNull('role_system_permission_deleted_at')
+      .where('role_id', roleId)
+      .whereIn('system_permission_id', permissionsIds)
+      .preload('systemPermissions')
+      .orderBy('role_system_permission_id')
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Role system permissions',
+      message: 'The system permissions were found successfully',
+      data: roleSystemPermissions,
+    }
+  }
+
+  async getAccessByModule(roleId: number, systemModuleSlug: string) {
     const role = await Role.query().whereNull('role_deleted_at').where('role_id', roleId).first()
     if (!role) {
       return {
