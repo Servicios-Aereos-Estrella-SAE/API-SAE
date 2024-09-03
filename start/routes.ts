@@ -41,6 +41,7 @@ import './routes/customer_proceeding_file_routes.js'
 import './routes/system_setting_routes.js'
 import './routes/aircraft_routes.js'
 import './routes/system_module_routes.js'
+import './routes/gallery_routes.js'
 import './routes/business_unit_routes.js'
 
 router.get('/', async ({ view }) => {
