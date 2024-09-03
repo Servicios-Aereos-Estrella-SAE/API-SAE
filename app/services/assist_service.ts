@@ -99,6 +99,7 @@ export default class AssistsService {
         employeeWorkSchedule: '',
         page: page,
         limit: limit,
+        ignoreDiscriminated: 1,
       })
       const dataEmployes: any = resultEmployes
       const syncAssistsService = new SyncAssistsService()
@@ -186,6 +187,7 @@ export default class AssistsService {
           employeeWorkSchedule: '',
           page: page,
           limit: limit,
+          ignoreDiscriminated: 1,
         })
         const dataEmployes: any = resultEmployes
         for await (const employee of dataEmployes) {
@@ -276,6 +278,7 @@ export default class AssistsService {
             page: page,
             limit: limit,
             employeeWorkSchedule: '',
+            ignoreDiscriminated: 1,
           })
           const dataEmployes: any = resultEmployes
           for await (const employee of dataEmployes) {
