@@ -41,7 +41,9 @@ export default class UploadService {
       const timestamp = new Date().getTime()
       const randomValue = Math.random().toFixed(10).toString().replace('.', '')
       const fileNameGenerated = fileName || `T${timestamp}R${randomValue}.${file.extname}`
-
+      if (file.subtype === 'svg') {
+        file.subtype = 'svg+xml'
+      }
       const uploadParams = {
         Bucket: this.BUCKET_NAME,
         Key: `${this.APP_NAME}${folderName || 'files'}/${fileNameGenerated}`,
@@ -49,7 +51,6 @@ export default class UploadService {
         ACL: permission,
         ContentType: `${file.type}/${file.subtype}`,
       } as S3.Types.PutObjectRequest
-
       const response = await s3.upload(uploadParams).promise()
       return response.Location
     } catch (err) {
