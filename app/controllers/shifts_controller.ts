@@ -230,7 +230,7 @@ export default class ShiftController {
         query.where('shiftActiveHours', shiftActiveHours)
       }
 
-      const shifts = await query.paginate(page, limit)
+      const shifts = await query.orderBy('shiftName', 'asc').paginate(page, limit)
 
       return response.status(200).json({
         type: 'success',

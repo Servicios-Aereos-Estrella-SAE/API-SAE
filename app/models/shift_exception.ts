@@ -25,7 +25,7 @@ import { compose } from '@adonisjs/core/helpers'
  *           description: ID of the exception type associated with the shift exception
  *         shiftExceptionDate:
  *           type: string
- *           format: date-time
+ *           format: date
  *           description: Date of the shift exception
  *         shiftExceptionDescription:
  *           type: string
@@ -53,7 +53,7 @@ import { compose } from '@adonisjs/core/helpers'
  *         shiftExceptionId: 1
  *         employeeId: 1
  *         exceptionTypeId: 1
- *         shiftExceptionsDate: '2024-06-20T12:00:00Z'
+ *         shiftExceptionsDate: '2024-06-20'
  *         shiftExceptionsDescription: "Employee was absent from work"
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'

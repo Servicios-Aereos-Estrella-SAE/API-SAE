@@ -33,6 +33,7 @@ export default class ShiftForEmployeeService {
       .preload('employee')
       .preload('shift')
       .whereNull('employeShiftsDeletedAt')
+      .orderBy('employeShiftsApplySince', 'asc')
 
     if (filters.employeeId) {
       query = query.where('employeeId', filters.employeeId)
