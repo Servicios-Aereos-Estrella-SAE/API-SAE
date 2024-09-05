@@ -63,15 +63,16 @@ export default class ShiftExceptionService {
   }
 
   getDateAndTime(shiftExceptionsDate: string) {
-    const dateAndTime = shiftExceptionsDate.toString()
-    if (dateAndTime.toString().includes('T')) {
-      let [date, horaConZona] = dateAndTime.split('T')
-      const time = horaConZona.replaceAll('"', '').substring(0, 8)
-      return `${date.replaceAll('"', '')} ${time}`
-    } else {
-      let [date, horaConZona] = dateAndTime.split(' ')
-      const time = horaConZona.replaceAll('"', '').substring(0, 8)
-      return `${date.replaceAll('"', '')} ${time}`
-    }
+    // const dateAndTime = shiftExceptionsDate.toString()
+    // if (dateAndTime.toString().includes('T')) {
+    //   let [date, horaConZona] = dateAndTime.split('T')
+    //   const time = horaConZona.replaceAll('"', '').substring(0, 8)
+    //   return `${date.replaceAll('"', '')} ${time}`
+    // } else {
+    //   let [date, horaConZona] = dateAndTime.split(' ')
+    //   const time = horaConZona.replaceAll('"', '').substring(0, 8)
+    //   return `${date.replaceAll('"', '')} ${time}`
+    // }
+    return `${shiftExceptionsDate}T00:00:00.000-06:00`
   }
 }

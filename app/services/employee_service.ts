@@ -137,6 +137,9 @@ export default class EmployeeService {
         query.where('department_id', filters.departmentId)
         query.where('position_id', filters.positionId)
       })
+      .if(filters.ignoreDiscriminated === 1, (query) => {
+        query.where('employeeAssistDiscriminator', 0)
+      })
       .preload('department')
       .preload('position')
       .preload('person')

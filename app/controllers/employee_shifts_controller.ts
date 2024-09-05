@@ -153,16 +153,16 @@ export default class EmployeeShiftController {
           data: { ...employeeShift },
         }
       }
-      const existingShifts = await EmployeeShift.query()
-        .where('employeeId', employeeId)
-        .whereNull('employeShiftsDeletedAt')
+      // const existingShifts = await EmployeeShift.query()
+      //   .where('employeeId', employeeId)
+      //   .whereNull('employeShiftsDeletedAt')
 
-      if (existingShifts.length > 0) {
-        await EmployeeShift.query()
-          .where('employeeId', employeeId)
-          .whereNull('employeShiftsDeletedAt')
-          .update({ employeShiftsDeletedAt: new Date() })
-      }
+      // if (existingShifts.length > 0) {
+      //   await EmployeeShift.query()
+      //     .where('employeeId', employeeId)
+      //     .whereNull('employeShiftsDeletedAt')
+      //     .update({ employeShiftsDeletedAt: new Date() })
+      // }
       const newEmployeeShift = await EmployeeShift.create(employeeShift)
       return response.status(201).json({
         type: 'success',

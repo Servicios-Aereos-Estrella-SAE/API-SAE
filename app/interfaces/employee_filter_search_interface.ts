@@ -5,6 +5,7 @@ interface EmployeeFilterSearchInterface {
   departmentId: number
   positionId: number
   employeeWorkSchedule: string
+  ignoreDiscriminated?: number
 }
 
 export type { EmployeeFilterSearchInterface }
