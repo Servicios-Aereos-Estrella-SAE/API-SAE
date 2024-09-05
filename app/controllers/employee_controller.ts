@@ -1360,8 +1360,6 @@ export default class EmployeeController {
       .first()
     if (!existEmployee) {
       await employeeService.syncCreate(employee, departmentService, positionService)
-    } else {
-      employeeService.syncUpdate(employee, existEmployee, departmentService, positionService)
     }
   }
 

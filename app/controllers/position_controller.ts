@@ -1169,8 +1169,6 @@ export default class PositionController {
     const existPosition = await Position.query().where('position_sync_id', position.id).first()
     if (!existPosition) {
       await positionService.syncCreate(position)
-    } else {
-      positionService.syncUpdate(position, existPosition)
     }
   }
 }
