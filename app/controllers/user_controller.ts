@@ -270,7 +270,11 @@ export default class UserController {
     const userData = await auth.authenticateUsing(['api'])
     await auth.use('api').authenticate()
 
-    const user = await User.query().where('user_id', userData.userId).preload('person').first()
+    const user = await User.query()
+      .where('user_id', userData.userId)
+      .preload('person')
+      .preload('role')
+      .first()
 
     response.status(200)
     return response.send(user)

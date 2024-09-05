@@ -21,4 +21,12 @@ export default class SystemModuleService {
       .first()
     return systemModule ? systemModule : null
   }
+
+  async getGroups() {
+    const groups = await SystemModule.query()
+      .select('system_module_group')
+      .distinct('system_module_group')
+      .orderBy('system_module_group')
+    return groups
+  }
 }
