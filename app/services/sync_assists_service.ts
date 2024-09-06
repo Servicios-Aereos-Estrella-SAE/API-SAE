@@ -494,7 +494,7 @@ export default class SyncAssistsService {
     const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
     const checkTime = DayTime.setZone('America/Mexico_City')
 
-    const availableShifts = dailyShifs.filter((shift) => {
+    let availableShifts = dailyShifs.filter((shift) => {
       const shiftDate = DateTime.fromJSDate(new Date(shift.employeShiftsApplySince)).setZone(
         'America/Mexico_City'
       )
@@ -504,24 +504,29 @@ export default class SyncAssistsService {
       }
     })
 
-    availableShifts.sort((a, b) => {
-      const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
-        setZone: true,
-      }).setZone('America/Mexico_City')
-      const shiftAssignedDateB = DateTime.fromISO(`${b.employeShiftsApplySince}`, {
-        setZone: true,
-      }).setZone('America/Mexico_City')
+    // availableShifts = availableShifts.sort((a, b) => {
+    //   const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
+    //     setZone: true,
+    //   }).setZone('America/Mexico_City')
 
-      if (shiftAssignedDateB < shiftAssignedDateA) {
-        return -1
-      }
+    //   const shiftAssignedDateB = DateTime.fromISO(`${b.employeShiftsApplySince}`, {
+    //     setZone: true,
+    //   }).setZone('America/Mexico_City')
 
-      if (shiftAssignedDateB > shiftAssignedDateA) {
-        return 1
-      }
+    //   if (shiftAssignedDateB < shiftAssignedDateA) {
+    //     return -1
+    //   }
 
-      return 0
-    })
+    //   if (shiftAssignedDateB > shiftAssignedDateA) {
+    //     return 1
+    //   }
+
+    //   return 0
+    // })
+
+    availableShifts = availableShifts.sort(
+      (a: any, b: any) => b.employeShiftsApplySince - a.employeShiftsApplySince
+    )
 
     const selectedShift = availableShifts[0]
     return selectedShift
@@ -537,9 +542,11 @@ export default class SyncAssistsService {
     const dateTimeStart = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone(
       'America/Mexico_City'
     )
+
     const dateTimeEnd = DateTime.fromISO(`${dateEnd}`, { setZone: true }).setZone(
       'America/Mexico_City'
     )
+
     const daysBetween = Math.floor(dateTimeEnd.diff(dateTimeStart, 'days').days) + 1
     const assistList = employeeAssist
     const dailyAssistList: AssistDayInterface[] = []
@@ -597,6 +604,10 @@ export default class SyncAssistsService {
       if (dateAssistItem?.assist?.dateShift) {
         if (dateAssistItem.assist.shiftCalculateFlag === '24x48') {
           dateAssistItem = await this.calendar24x48(dateAssistItem)
+        }
+
+        if (dateAssistItem.assist.shiftCalculateFlag === 'doble-12x48') {
+          dateAssistItem = await this.calendarDouble12x48(dateAssistItem)
         }
 
         if (dateAssistItem.assist.shiftCalculateFlag === '12x36') {
@@ -994,6 +1005,14 @@ export default class SyncAssistsService {
     if (employee.shift_exceptions.length > 0) {
       checkAssistCopy.assist.checkInStatus = 'exception'
       checkAssistCopy.assist.checkOutStatus = 'exception'
+
+      const restException = employee.shift_exceptions.find(
+        (ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day'
+      )
+
+      if (restException) {
+        checkAssistCopy.assist.isRestDay = true
+      }
     }
 
     return checkAssistCopy
@@ -1117,7 +1136,7 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isRestDay = true
     }
 
-    dateAssistItem.assist.checkOutStatus = ''
+    // dateAssistItem.assist.checkOutStatus = ''
 
     return dateAssistItem
   }
@@ -1173,6 +1192,104 @@ export default class SyncAssistsService {
 
       if (!dateAssistItem.assist.checkOut) {
         dateAssistItem.assist.checkOutStatus = ''
+      }
+    }
+
+    dateAssistItem.assist.checkOutStatus = ''
+
+    return dateAssistItem
+  }
+
+  private calendarDouble12x48(dateAssistItem: AssistDayInterface) {
+    const startDay = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
+    ).setZone('America/Mexico_City')
+
+    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
+      'America/Mexico_City'
+    )
+
+    const nowDateTime = DateTime.now().setZone('America/Mexico_City')
+
+    const checkOutDateTime = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.checkOutDateTime}`)
+    ).setZone('America/Mexico_City')
+
+    const checkInDateTime = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.checkInDateTime}`)
+    ).setZone('America/Mexico_City')
+
+    const diffNowOut = nowDateTime.diff(checkOutDateTime, 'milliseconds').milliseconds
+    const daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
+    const isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
+    const isEndWorkday = !!(daysBettweenStart % 4 === 1)
+    const isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
+
+    if (isStartWorkday) {
+      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+        if (dateAssistItem.assist.checkOut) {
+          if (dateAssistItem.assist.assitFlatList) {
+            if (dateAssistItem.assist.assitFlatList.length < 3) {
+              dateAssistItem.assist.checkEatIn = null
+              dateAssistItem.assist.checkEatOut = null
+              dateAssistItem.assist.checkOut = null
+
+              if (diffNowOut > 0 && !isEndWorkday) {
+                dateAssistItem.assist.checkOutStatus = 'working'
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (isEndWorkday) {
+      if (dateAssistItem.assist.checkOut) {
+        if (dateAssistItem.assist.assitFlatList) {
+          if (dateAssistItem.assist.assitFlatList.length >= 3) {
+            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+            dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[3]
+            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+          }
+
+          if (!isStartWorkday && dateAssistItem.assist.assitFlatList.length >= 4) {
+            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+            dateAssistItem.assist.checkIn = null
+            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+          }
+        }
+      }
+    }
+
+    if (isRestWorkday) {
+      dateAssistItem.assist.isRestDay = true
+
+      if (dateAssistItem.assist.checkIn) {
+        dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkEatIn
+        dateAssistItem.assist.checkEatIn = dateAssistItem.assist.checkIn
+        dateAssistItem.assist.checkIn = null
+        dateAssistItem.assist.checkInStatus = 'rest-working-out'
+      }
+    }
+
+    if (dateAssistItem.assist.isFutureDay && dateAssistItem.assist.checkOut) {
+      dateAssistItem.assist.isFutureDay = false
+      dateAssistItem.assist.checkIn = null
+      dateAssistItem.assist.checkInStatus = ''
+      dateAssistItem.assist.checkEatIn = null
+      dateAssistItem.assist.checkEatOut = null
+
+      if (dateAssistItem.assist.assitFlatList) {
+        if (dateAssistItem.assist.assitFlatList.length >= 2) {
+          dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+          dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+        }
+
+        if (dateAssistItem.assist.assitFlatList.length >= 3) {
+          dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+        }
       }
     }
 
