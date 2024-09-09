@@ -88,6 +88,7 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       // Añadir columnas de datos (encabezados)
@@ -200,6 +201,7 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -314,6 +316,7 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -433,6 +436,7 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
