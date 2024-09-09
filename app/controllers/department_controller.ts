@@ -1595,8 +1595,6 @@ export default class DepartmentController {
       .first()
     if (!existDepartment) {
       await departmentService.syncCreate(department)
-    } else {
-      departmentService.syncUpdate(department, existDepartment)
     }
   }
 
