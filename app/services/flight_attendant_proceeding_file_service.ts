@@ -4,6 +4,9 @@ import FlightAttendant from '#models/flight_attendant'
 import FlightAttendantProceedingFile from '#models/flight_attendant_proceeding_file'
 import PilotProceedingFile from '#models/pilot_proceeding_file'
 import ProceedingFile from '#models/proceeding_file'
+import ProceedingFileType from '#models/proceeding_file_type'
+import { DateTime } from 'luxon'
+import { FlightAttendantProceedingFileFilterInterface } from '../interfaces/flight_attendant_proceeding_file_filter_interface.js'
 
 export default class FlightAttendantProceedingFileService {
   async create(flightAttendantProceedingFile: FlightAttendantProceedingFile) {
@@ -158,6 +161,33 @@ export default class FlightAttendantProceedingFileService {
       title: 'Info verifiy successfully',
       message: 'Info verifiy successfully',
       data: { ...flightAttendantProceedingFile },
+    }
+  }
+
+  async getExpiredAndExpiring(filters: FlightAttendantProceedingFileFilterInterface) {
+    const proceedingFileTypes = await ProceedingFileType.query()
+      .whereNull('proceeding_file_type_deleted_at')
+      .where('proceeding_file_type_area_to_use', 'flight-attendant')
+      .orderBy('proceeding_file_type_id')
+      .select('proceeding_file_type_id')
+
+    const proceedingFileTypesIds = proceedingFileTypes.map((item) => item.proceedingFileTypeId)
+    const proceedingFilesExpired = await ProceedingFile.query()
+      .whereNull('proceeding_file_deleted_at')
+      .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
+      .whereBetween('proceeding_file_expiration_at', [filters.dateStart, filters.dateEnd])
+      .orderBy('proceeding_file_expiration_at')
+
+    const newDateEnd = DateTime.fromISO(filters.dateEnd).plus({ days: 30 }).toFormat('yyyy-MM-dd')
+    const proceedingFilesExpiring = await ProceedingFile.query()
+      .whereNull('proceeding_file_deleted_at')
+      .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
+      .whereBetween('proceeding_file_expiration_at', [filters.dateEnd, newDateEnd])
+      .orderBy('proceeding_file_expiration_at')
+
+    return {
+      proceedingFilesExpired: proceedingFilesExpired ? proceedingFilesExpired : [],
+      proceedingFilesExpiring: proceedingFilesExpiring ? proceedingFilesExpiring : [],
     }
   }
 }
