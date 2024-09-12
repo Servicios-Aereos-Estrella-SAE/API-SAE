@@ -12,6 +12,7 @@ import { AssistExcelRowInterface } from '../interfaces/assist_excel_row_interfac
 import { AssistExcelFilterInterface } from '../interfaces/assist_excel_filter_interface.js'
 import Department from '#models/department'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
+import axios from 'axios'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -39,27 +40,57 @@ export default class AssistsService {
         for await (const row of newRows) {
           rows.push(row)
         }
+        this.addRowExcelEmpty(rows)
+        this.addRowExcelEmptyWithCode(rows)
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
+      // Añadir columnas de datos (encabezados)
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
       await this.addRowToWorkSheet(rows, worksheet)
@@ -122,27 +153,55 @@ export default class AssistsService {
             rows.push(row)
           }
           this.addRowExcelEmpty(rows)
+          this.addRowExcelEmptyWithCode(rows)
         }
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -208,24 +267,26 @@ export default class AssistsService {
               rows.push(row)
             }
             this.addRowExcelEmpty(rows)
+            this.addRowExcelEmptyWithCode(rows)
           }
         }
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-      // const imageUrl = 'https://handlingsae.com/wp-content/uploads/2023/09/Logotipo-Servicios-Aereos-Estrella-SAE-Renta-Avion-Privado-FBO-Handling.webp'; // URL de la imagen
-      // const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-      // const imageBuffer = imageResponse.data;
-      // Agregar la imagen al archivo Excel
-      /* const imageId = workbook.addImage({
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
         buffer: imageBuffer,
-        extension: 'svg', // Cambia a jpg o el formato correcto si es necesario
-      }); */
-      // Insertar la imagen en la celda A1
-      // worksheet.addImage(imageId, 'A1:C5');
-      // Agregar título del reporte en negritas
-      worksheet.addRow(['']).height = 87
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
       let color = '244062'
@@ -255,6 +316,7 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -324,6 +386,7 @@ export default class AssistsService {
                 rows.push(row)
               }
               this.addRowExcelEmpty(rows)
+              this.addRowExcelEmptyWithCode(rows)
             }
           }
         }
@@ -331,22 +394,49 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -431,6 +521,30 @@ export default class AssistsService {
   private addRowExcelEmpty(rows: AssistExcelRowInterface[]) {
     rows.push({
       code: '',
+      name: '',
+      department: '',
+      position: '',
+      date: '',
+      shiftAssigned: '',
+      shiftStartDate: '',
+      shiftEndsDate: '',
+      checkInTime: '',
+      firstCheck: '',
+      lunchTime: '',
+      returnLunchTime: '',
+      checkOutTime: '',
+      lastCheck: '',
+      incidents: '',
+      notes: '',
+      sundayPremium: '',
+      checkOutStatus: '',
+      exceptions: [],
+    })
+  }
+
+  private addRowExcelEmptyWithCode(rows: AssistExcelRowInterface[]) {
+    rows.push({
+      code: '0',
       name: '',
       department: '',
       position: '',
@@ -590,12 +704,16 @@ export default class AssistsService {
     headerRow.font = { bold: true, color: { argb: fgColor } }
     const columnA = worksheet.getColumn(1)
     columnA.width = 20
+    columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
     columnB.width = 44
+    columnB.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnC = worksheet.getColumn(3)
     columnC.width = 44
+    columnC.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnD = worksheet.getColumn(4)
     columnD.width = 44
+    columnD.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnE = worksheet.getColumn(5)
     columnE.width = 25
     columnE.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -762,11 +880,12 @@ export default class AssistsService {
       if (rowData.incidents.toString().toUpperCase() === 'FAULT') {
         faultsTotal += 1
       }
-      let incidents = rowData.name
-        ? rowData.incidents
-        : faultsTotal.toString().padStart(2, '0') + ' TOTAL FAULTS'
+      let incidents =
+        !rowData.name && rowData.code !== '0'
+          ? faultsTotal.toString().padStart(2, '0') + ' TOTAL FAULTS'
+          : rowData.incidents
       worksheet.addRow([
-        rowData.code,
+        rowData.code !== '0' ? rowData.code : '',
         rowData.name,
         rowData.department,
         rowData.position,
@@ -790,10 +909,12 @@ export default class AssistsService {
       if (rowData.exceptions.length > 0) {
         await this.addExceptions(rowData, worksheet, rowCount)
       }
-      if (!rowData.name) {
+      if (!rowData.name && rowData.code !== '0') {
         const color = 'FDE9D9'
         for (let col = 1; col <= 16; col++) {
           const cell = worksheet.getCell(rowCount, col)
+          const row = worksheet.getRow(rowCount)
+          row.height = 21
           cell.fill = {
             type: 'pattern',
             pattern: 'solid',
