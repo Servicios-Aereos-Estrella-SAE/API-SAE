@@ -5,12 +5,12 @@ import ProceedingFileTypeService from '#services/proceeding_file_type_service'
 export default class ProceedingFileTypeController {
   /**
    * @swagger
-   * /api/proceeding-File-Types:
+   * /api/proceeding-file-types:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Proceeding file types
+   *       - Proceeding File Types
    *     summary: get all
    *     parameters:
    *       - name: search
@@ -140,6 +140,139 @@ export default class ProceedingFileTypeController {
       return {
         type: 'error',
         title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/proceeding-file-types/by-area/{areaToUse}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Proceeding File Types
+   *     summary: get proceeding file types by area to use
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: areaToUse
+   *         schema:
+   *           type: string
+   *         description: Proceeding file type area to use
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async indexByArea({ request, response }: HttpContext) {
+    try {
+      const areaToUse = request.param('areaToUse')
+      if (!areaToUse) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The proceeding file type area to use was not found',
+          data: { areaToUse },
+        }
+      }
+      const proceedingFileTypeService = new ProceedingFileTypeService()
+      const proceedingFileTypes = await proceedingFileTypeService.indexByArea(areaToUse)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Proceeding file types',
+        message: 'The proceeding file types were found successfully',
+        data: {
+          proceedingFileTypes,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }

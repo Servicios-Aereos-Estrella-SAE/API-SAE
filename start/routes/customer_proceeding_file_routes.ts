@@ -2,6 +2,10 @@ import router from '@adonisjs/core/services/router'
 
 router
   .group(() => {
+    router.get(
+      '/get-expired-and-expiring',
+      '#controllers/customer_proceeding_file_controller.getExpiresAndExpiring'
+    )
     router.get('/', '#controllers/customer_proceeding_file_controller.index')
     router.post('/', '#controllers/customer_proceeding_file_controller.store')
     router.put(
