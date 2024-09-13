@@ -180,11 +180,12 @@ export default class FlightAttendantProceedingFileService {
       .preload('flightAttendantProceedingFile')
       .orderBy('proceeding_file_expiration_at')
 
+    const newDateStart = DateTime.fromISO(filters.dateEnd).plus({ days: 1 }).toFormat('yyyy-MM-dd')
     const newDateEnd = DateTime.fromISO(filters.dateEnd).plus({ days: 30 }).toFormat('yyyy-MM-dd')
     const proceedingFilesExpiring = await ProceedingFile.query()
       .whereNull('proceeding_file_deleted_at')
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
-      .whereBetween('proceeding_file_expiration_at', [filters.dateEnd, newDateEnd])
+      .whereBetween('proceeding_file_expiration_at', [newDateStart, newDateEnd])
       .preload('proceedingFileType')
       .preload('flightAttendantProceedingFile')
       .orderBy('proceeding_file_expiration_at')
