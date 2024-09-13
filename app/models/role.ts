@@ -4,6 +4,7 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import RoleSystemPermission from './role_system_permission.js'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
+import RoleDepartment from './role_department.js'
 /**
  * @swagger
  * components:
@@ -73,4 +74,9 @@ export default class Role extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare roleSystemPermissions: HasMany<typeof RoleSystemPermission>
+
+  @hasMany(() => RoleDepartment, {
+    foreignKey: 'roleId',
+  })
+  declare roleDepartments: HasMany<typeof RoleDepartment>
 }

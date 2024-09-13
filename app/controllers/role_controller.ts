@@ -176,6 +176,11 @@ export default class RoleController {
    *                 description: Permissions
    *                 required: true
    *                 default: []
+   *               departments:
+   *                 type: array
+   *                 description: Departments
+   *                 required: true
+   *                 default: []
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -273,12 +278,13 @@ export default class RoleController {
       }
       const roleService = new RoleService()
       const roleSystemPermissions = await roleService.assignPermissions(roleId, data.permissions)
+      const roleDepartments = await roleService.assignDepartments(roleId, data.departments)
       response.status(201)
       return {
         type: 'success',
         title: 'Role Permissions',
         message: 'The role permissions were assigned successfully',
-        data: { roleSystemPermissions: roleSystemPermissions },
+        data: { roleSystemPermissions: roleSystemPermissions, roleDepartments: roleDepartments },
       }
     } catch (error) {
       const messageError =
