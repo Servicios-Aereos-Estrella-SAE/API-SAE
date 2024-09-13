@@ -4,6 +4,7 @@ import {
   createAircraftProceedingFileValidator,
   updateAircraftProceedingFileValidator,
 } from '../validators/create_aircraft_proceeding_file.js'
+import { formatResponse } from '../helpers/responseFormatter.js'
 
 export default class AircraftProceedingFileController {
   /**
@@ -207,5 +208,57 @@ export default class AircraftProceedingFileController {
       status: 'success',
       message: 'Aircraft proceeding file deleted successfully.',
     })
+  }
+
+  async getAircraftProceedingFiles({ request, response }: HttpContext) {
+    try {
+      const aircraftId = request.param('aircraftId')
+      if (!aircraftId) {
+        response.status(400)
+        return formatResponse('warning', 'Aircraft ID not found', 'Missing data to process', {
+          aircraftId,
+        })
+      }
+      const page = request.input('page', 1)
+      const limit = request.input('limit', 10)
+      const mainQuery = AircraftProceedingFile.query()
+        .whereNull('deletedAt')
+        .where('aircraftId', aircraftId)
+        .preload('proceedingFile', (fileQuery) => {
+          fileQuery.preload('proceedingFileType')
+        })
+        .orderBy('aircraftProceedingFileCreatedAt', 'desc')
+
+      const aircraftProceedingFiles = await mainQuery.paginate(page, limit)
+
+      if (aircraftProceedingFiles.total === 0) {
+        response.status(404)
+        return formatResponse(
+          'warning',
+          'No proceeding files found',
+          'No proceeding files found for the given aircraft ID',
+          { aircraftId }
+        )
+      }
+
+      return response
+        .status(200)
+        .json(
+          formatResponse(
+            'success',
+            'Proceeding files fetched successfully',
+            'The proceeding files for the aircraft were found successfully',
+            aircraftProceedingFiles.toJSON()
+          )
+        )
+    } catch (error) {
+      response.status(500)
+      return formatResponse(
+        'error',
+        'Server error',
+        'An unexpected error has occurred on the server',
+        { error: error.message }
+      )
+    }
   }
 }
