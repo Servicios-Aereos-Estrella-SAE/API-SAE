@@ -123,15 +123,18 @@ export default class AssistsService {
       const page = 1
       const limit = 999999999999999
       const employeeService = new EmployeeService()
-      const resultEmployes = await employeeService.index({
-        search: '',
-        departmentId: departmentId,
-        positionId: positionId,
-        employeeWorkSchedule: '',
-        page: page,
-        limit: limit,
-        ignoreDiscriminated: 1,
-      })
+      const resultEmployes = await employeeService.index(
+        {
+          search: '',
+          departmentId: departmentId,
+          positionId: positionId,
+          employeeWorkSchedule: '',
+          page: page,
+          limit: limit,
+          ignoreDiscriminated: 1,
+        },
+        [departmentId]
+      )
       const dataEmployes: any = resultEmployes
       const syncAssistsService = new SyncAssistsService()
       const rows = [] as AssistExcelRowInterface[]
@@ -239,15 +242,18 @@ export default class AssistsService {
       const rows = [] as AssistExcelRowInterface[]
       for await (const position of resultPositions) {
         const employeeService = new EmployeeService()
-        const resultEmployes = await employeeService.index({
-          search: '',
-          departmentId: departmentId,
-          positionId: position.positionId,
-          employeeWorkSchedule: '',
-          page: page,
-          limit: limit,
-          ignoreDiscriminated: 1,
-        })
+        const resultEmployes = await employeeService.index(
+          {
+            search: '',
+            departmentId: departmentId,
+            positionId: position.positionId,
+            employeeWorkSchedule: '',
+            page: page,
+            limit: limit,
+            ignoreDiscriminated: 1,
+          },
+          [departmentId]
+        )
         const dataEmployes: any = resultEmployes
         for await (const employee of dataEmployes) {
           const result = await syncAssistsService.index(
@@ -358,15 +364,18 @@ export default class AssistsService {
         const resultPositions = await departmentService.getPositions(departmentId)
         const syncAssistsService = new SyncAssistsService()
         for await (const position of resultPositions) {
-          const resultEmployes = await employeeService.index({
-            search: '',
-            departmentId: departmentId,
-            positionId: position.positionId,
-            page: page,
-            limit: limit,
-            employeeWorkSchedule: '',
-            ignoreDiscriminated: 1,
-          })
+          const resultEmployes = await employeeService.index(
+            {
+              search: '',
+              departmentId: departmentId,
+              positionId: position.positionId,
+              page: page,
+              limit: limit,
+              employeeWorkSchedule: '',
+              ignoreDiscriminated: 1,
+            },
+            [departmentId]
+          )
           const dataEmployes: any = resultEmployes
           for await (const employee of dataEmployes) {
             const result = await syncAssistsService.index(

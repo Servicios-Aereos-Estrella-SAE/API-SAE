@@ -92,7 +92,7 @@ export default class EmployeeService {
     return currentEmployee
   }
 
-  async index(filters: EmployeeFilterSearchInterface) {
+  async index(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()
@@ -140,6 +140,7 @@ export default class EmployeeService {
       .if(filters.ignoreDiscriminated === 1, (query) => {
         query.where('employeeAssistDiscriminator', 0)
       })
+      .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
       .preload('person')
