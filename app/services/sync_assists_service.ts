@@ -857,6 +857,11 @@ export default class SyncAssistsService {
         ? (service.holidays[0] as unknown as HolidayInterface)
         : null
 
+    if (checkAssistCopy.assist.isHoliday && !checkAssistCopy.assist.checkIn) {
+      checkAssistCopy.assist.checkInStatus = ''
+      checkAssistCopy.assist.checkOutStatus = ''
+    }
+
     return checkAssistCopy
   }
 
