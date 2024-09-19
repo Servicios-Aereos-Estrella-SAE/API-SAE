@@ -3,6 +3,7 @@ import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import Airport from './airport.js'
 import * as relations from '@adonisjs/lucid/types/relations'
 import AircraftProperty from './aircraft_property.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export default class Aircraft extends BaseModel {
   static table = 'aircrafts'
@@ -27,8 +28,10 @@ export default class Aircraft extends BaseModel {
   @belongsTo(() => Airport)
   airport!: relations.BelongsTo<typeof Airport>
 
-  @belongsTo(() => AircraftProperty)
-  aircraftProperty!: relations.BelongsTo<typeof AircraftProperty>
+  @belongsTo(() => AircraftProperty, {
+    foreignKey: 'aircraftPropertiesId',
+  })
+  declare aircraftProperty: BelongsTo<typeof AircraftProperty>
 
   @column.dateTime({ autoCreate: true })
   aircraftCreatedAt!: DateTime

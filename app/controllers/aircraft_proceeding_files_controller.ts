@@ -5,6 +5,9 @@ import {
   updateAircraftProceedingFileValidator,
 } from '../validators/create_aircraft_proceeding_file.js'
 import { formatResponse } from '../helpers/responseFormatter.js'
+import UserService from '#services/user_service'
+import AircraftProceedingFileService from '#services/aircraft_proceeding_file_service'
+import { AircraftProceedingFileFilterInterface } from '../interfaces/aircraft_proceeding_file_filter_interface.js'
 
 export default class AircraftProceedingFileController {
   /**
@@ -259,6 +262,151 @@ export default class AircraftProceedingFileController {
         'An unexpected error has occurred on the server',
         { error: error.message }
       )
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/aircrafts-proceeding-files/get-expired-and-expiring:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Aircrafts Proceeding Files
+   *     summary: get expired and expiring proceeding files by date
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: dateStart
+   *         in: query
+   *         required: false
+   *         description: Date start (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *       - name: dateEnd
+   *         in: query
+   *         required: false
+   *         description: Date end (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getExpiresAndExpiring({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+      const dateStart = request.input('dateStart')
+      const dateEnd = request.input('dateEnd')
+      const filters = {
+        dateStart: dateStart,
+        dateEnd: dateEnd,
+      } as AircraftProceedingFileFilterInterface
+      const aircraftProceddingFileService = new AircraftProceedingFileService()
+      const aircraftProceedingFiles =
+        await aircraftProceddingFileService.getExpiredAndExpiring(filters)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Aircraft proceeding files',
+        message: 'The aircraft proceeding files were found successfully',
+        data: {
+          aircraftProceedingFiles: aircraftProceedingFiles,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 }
