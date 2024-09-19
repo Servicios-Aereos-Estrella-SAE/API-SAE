@@ -3,6 +3,8 @@ import Person from '#models/person'
 import User from '#models/user'
 import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
 import ApiToken from '#models/api_token'
+import RoleDepartment from '#models/role_department'
+import Department from '#models/department'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
@@ -133,6 +135,31 @@ export default class UserService {
       title: 'Info verifiy successfully',
       message: 'Info verifiy successfully',
       data: { ...user },
+    }
+  }
+
+  async getRoleDepartments(userId: number) {
+    const user = await User.query()
+      .whereNull('user_deleted_at')
+      .where('user_id', userId)
+      .preload('role')
+      .first()
+    if (!user) {
+      return []
+    } else if (user.role.roleSlug === 'root') {
+      const departmentsList = await Department.query()
+        .whereNull('department_deleted_at')
+        .orderBy('departmentId')
+      const departments = departmentsList.map((department) => department.departmentId)
+      return departments
+    } else {
+      const roleDepartments = await RoleDepartment.query()
+        .whereNull('role_department_deleted_at')
+        .where('roleId', user.role?.roleId)
+        .distinct('departmentId')
+        .orderBy('departmentId')
+      const departments = roleDepartments.map((roleDepartment) => roleDepartment.departmentId)
+      return departments
     }
   }
 }

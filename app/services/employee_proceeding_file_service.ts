@@ -159,7 +159,10 @@ export default class EmployeeProceedingFileService {
     }
   }
 
-  async getExpiredAndExpiring(filters: EmployeeProceedingFileFilterInterface) {
+  async getExpiredAndExpiring(
+    filters: EmployeeProceedingFileFilterInterface,
+    departmentsList: Array<number>
+  ) {
     const proceedingFileTypes = await ProceedingFileType.query()
       .whereNull('proceeding_file_type_deleted_at')
       .where('proceeding_file_type_area_to_use', 'employee')
@@ -171,6 +174,11 @@ export default class EmployeeProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereBetween('proceeding_file_expiration_at', [filters.dateStart, filters.dateEnd])
+      .whereHas('employeeProceedingFile', (query) => {
+        query.whereHas('employee', (subQuery) => {
+          subQuery.whereIn('departmentId', departmentsList)
+        })
+      })
       .preload('proceedingFileType')
       .preload('employeeProceedingFile')
       .orderBy('proceeding_file_expiration_at')
@@ -180,6 +188,11 @@ export default class EmployeeProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereBetween('proceeding_file_expiration_at', [newDateStart, newDateEnd])
+      .whereHas('employeeProceedingFile', (query) => {
+        query.whereHas('employee', (subQuery) => {
+          subQuery.whereIn('departmentId', departmentsList)
+        })
+      })
       .preload('proceedingFileType')
       .preload('employeeProceedingFile')
       .orderBy('proceeding_file_expiration_at')

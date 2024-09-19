@@ -14,7 +14,7 @@ import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 
 export default class DepartmentService {
-  async index() {
+  async index(departmentsList: Array<number>) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()
@@ -31,7 +31,8 @@ export default class DepartmentService {
       .preload('employees', (query) => {
         query.whereIn('businessUnitId', businessUnitsList)
       })
-      .orderBy('department_id', 'asc')
+      .whereIn('departmentId', departmentsList)
+      .orderBy('departmentId', 'asc')
 
     const list = departments.filter((department) => department.employees.length > 0)
 
@@ -164,14 +165,17 @@ export default class DepartmentService {
       .orderBy('position_id')
     const warnings = [] as Array<DepartmentShiftEmployeeWarningInterface>
     for await (const position of departmentPositions) {
-      const resultEmployes = await employeeService.index({
-        search: '',
-        departmentId: departmentId,
-        positionId: position.positionId,
-        page: page,
-        limit: limit,
-        employeeWorkSchedule: '',
-      })
+      const resultEmployes = await employeeService.index(
+        {
+          search: '',
+          departmentId: departmentId,
+          positionId: position.positionId,
+          page: page,
+          limit: limit,
+          employeeWorkSchedule: '',
+        },
+        [departmentId]
+      )
       const dataEmployes: any = resultEmployes
       for await (const employee of dataEmployes) {
         const employeeShift = {
