@@ -347,11 +347,12 @@ export default class AssistsService {
     }
   }
 
-  async getExcelAll(filters: AssistExcelFilterInterface) {
+  async getExcelAll(filters: AssistExcelFilterInterface, departmentsList: Array<number>) {
     try {
       const departments = await Department.query()
         .whereNull('department_deleted_at')
-        .orderBy('department_id')
+        .whereIn('departmentId', departmentsList)
+        .orderBy('departmentId')
       const rows = [] as AssistExcelRowInterface[]
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd

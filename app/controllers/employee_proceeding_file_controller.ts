@@ -6,6 +6,7 @@ import {
 } from '#validators/employee_proceeding_file'
 import { HttpContext } from '@adonisjs/core/http'
 import { EmployeeProceedingFileFilterInterface } from '../interfaces/employee_proceeding_file_filter_interface.js'
+import UserService from '#services/user_service'
 
 export default class EmployeeProceedingFileController {
   /**
@@ -873,8 +874,15 @@ export default class EmployeeProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async getExpiresAndExpiring({ request, response }: HttpContext) {
+  async getExpiresAndExpiring({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
       const dateStart = request.input('dateStart')
       const dateEnd = request.input('dateEnd')
       const filters = {
@@ -882,8 +890,10 @@ export default class EmployeeProceedingFileController {
         dateEnd: dateEnd,
       } as EmployeeProceedingFileFilterInterface
       const employeeProceddingFileService = new EmployeeProceedingFileService()
-      const employeeProceedingFiles =
-        await employeeProceddingFileService.getExpiredAndExpiring(filters)
+      const employeeProceedingFiles = await employeeProceddingFileService.getExpiredAndExpiring(
+        filters,
+        departmentsList
+      )
       response.status(200)
       return {
         type: 'success',

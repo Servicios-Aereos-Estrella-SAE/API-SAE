@@ -1,3 +1,4 @@
+import Department from '#models/department'
 import Role from '#models/role'
 import RoleDepartment from '#models/role_department'
 import RoleSystemPermission from '#models/role_system_permission'
@@ -125,6 +126,31 @@ export default class RoleService {
       .where('system_permission_id', systemPermission.systemPermissionId)
       .first()
     if (!roleSystemPermissions) {
+      return false
+    }
+    return true
+  }
+
+  async hasAccessDepartment(roleId: number, departmentId: number) {
+    const role = await Role.query().whereNull('role_deleted_at').where('role_id', roleId).first()
+    if (!role) {
+      return false
+    }
+    const department = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', departmentId)
+      .first()
+
+    if (!department) {
+      return false
+    }
+
+    const roleDepartment = await RoleDepartment.query()
+      .whereNull('role_department_deleted_at')
+      .where('role_id', roleId)
+      .where('department_id', department.departmentId)
+      .first()
+    if (!roleDepartment) {
       return false
     }
     return true
