@@ -5,7 +5,6 @@ import {
   updateAircraftProceedingFileValidator,
 } from '../validators/create_aircraft_proceeding_file.js'
 import { formatResponse } from '../helpers/responseFormatter.js'
-import UserService from '#services/user_service'
 import AircraftProceedingFileService from '#services/aircraft_proceeding_file_service'
 import { AircraftProceedingFileFilterInterface } from '../interfaces/aircraft_proceeding_file_filter_interface.js'
 
@@ -372,15 +371,8 @@ export default class AircraftProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async getExpiresAndExpiring({ auth, request, response }: HttpContext) {
+  async getExpiresAndExpiring({ request, response }: HttpContext) {
     try {
-      await auth.check()
-      const user = auth.user
-      const userService = new UserService()
-      let departmentsList = [] as Array<number>
-      if (user) {
-        departmentsList = await userService.getRoleDepartments(user.userId)
-      }
       const dateStart = request.input('dateStart')
       const dateEnd = request.input('dateEnd')
       const filters = {
