@@ -10,6 +10,7 @@ import DepartmentPositionService from '#services/department_position_service'
 import { createDepartmentValidator, updateDepartmentValidator } from '#validators/department'
 import { DepartmentShiftFilterInterface } from '../interfaces/department_shift_filter_interface.js'
 import BusinessUnit from '#models/business_unit'
+import { DateTime } from 'luxon'
 
 export default class DepartmentController {
   /**
@@ -1229,7 +1230,116 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
+  // async delete({ request, response }: HttpContext) {
+  //   try {
+  //     const departmentId = request.param('departmentId')
+  //     if (!departmentId) {
+  //       response.status(400)
+  //       return {
+  //         type: 'warning',
+  //         title: 'The department Id was not found',
+  //         message: 'Missing data to process',
+  //         data: { departmentId },
+  //       }
+  //     }
+  //     const currentDepartment = await Department.query()
+  //       .whereNull('department_deleted_at')
+  //       .where('department_id', departmentId)
+  //       .first()
+  //     if (!currentDepartment) {
+  //       response.status(404)
+  //       return {
+  //         type: 'warning',
+  //         title: 'The department was not found',
+  //         message: 'The department was not found with the entered ID',
+  //         data: { departmentId },
+  //       }
+  //     }
+  //     const departmentService = new DepartmentService()
+  //     const deleteDepartment = await departmentService.delete(currentDepartment)
+  //     if (deleteDepartment) {
+  //       response.status(201)
+  //       return {
+  //         type: 'success',
+  //         title: 'Departments',
+  //         message: 'The department was deleted successfully',
+  //         data: { department: deleteDepartment },
+  //       }
+  //     }
+  //   } catch (error) {
+  //     response.status(500)
+  //     return {
+  //       type: 'error',
+  //       title: 'Server error',
+  //       message: 'An unexpected error has occurred on the server',
+  //       error: error.message,
+  //     }
+  //   }
+  // }
   async delete({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department Id was not found',
+          message: 'Missing data to process',
+          data: { departmentId },
+        }
+      }
+      const currentDepartment = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_id', departmentId)
+        .first()
+
+      if (!currentDepartment) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID',
+          data: { departmentId },
+        }
+      }
+      const relatedEmployeesCount = await currentDepartment
+        .related('employees')
+        .query()
+        .whereNull('employee_deleted_at')
+        .count('* as total')
+      const totalEmployees = relatedEmployeesCount[0].$extras.total
+      if (totalEmployees > 0) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Department has related employees',
+          message: 'The department cannot be deleted because it has related employees',
+          data: { departmentId, totalEmployees },
+        }
+      }
+      const departmentService = new DepartmentService()
+      const deleteDepartment = await departmentService.delete(currentDepartment)
+      if (deleteDepartment) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Departments',
+          message: 'The department was deleted successfully',
+          data: { department: deleteDepartment },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async forceDelete({ request, response }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
       if (!departmentId) {
@@ -1254,16 +1364,47 @@ export default class DepartmentController {
           data: { departmentId },
         }
       }
-      const departmentService = new DepartmentService()
-      const deleteDepartment = await departmentService.delete(currentDepartment)
-      if (deleteDepartment) {
-        response.status(201)
-        return {
-          type: 'success',
-          title: 'Departments',
-          message: 'The department was deleted successfully',
-          data: { department: deleteDepartment },
+      const employees = await currentDepartment
+        .related('employees')
+        .query()
+        .whereNull('employee_deleted_at')
+
+      if (employees.length > 0) {
+        const newDepartmentId = 999
+        for (const employee of employees) {
+          employee.departmentId = newDepartmentId
+          await employee.save()
+          const currentPositions = await DepartmentPosition.query().where(
+            'department_id',
+            departmentId
+          )
+          if (currentPositions.length > 0) {
+            for (const position of currentPositions) {
+              position.departmentId = newDepartmentId
+              await position.save()
+              const positionEmployees = await Employee.query()
+                .where('department_id', departmentId)
+                .andWhere('position_id', position.positionId)
+              if (positionEmployees.length > 0) {
+                for (const posEmployee of positionEmployees) {
+                  posEmployee.departmentId = newDepartmentId
+                  posEmployee.positionId = position.positionId
+                  await posEmployee.save()
+                }
+              }
+            }
+          }
         }
+      }
+      currentDepartment.deletedAt = DateTime.now()
+      await currentDepartment.save()
+      response.status(201)
+      return {
+        type: 'success',
+        title: 'Departments',
+        message:
+          'The department, its related positions, and employees were reassigned successfully and the department was soft deleted',
+        data: { department: currentDepartment },
       }
     } catch (error) {
       response.status(500)
