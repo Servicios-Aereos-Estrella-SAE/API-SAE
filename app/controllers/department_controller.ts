@@ -1309,7 +1309,7 @@ export default class DepartmentController {
         .count('* as total')
       const totalEmployees = relatedEmployeesCount[0].$extras.total
       if (totalEmployees > 0) {
-        response.status(400)
+        response.status(206)
         return {
           type: 'warning',
           title: 'Department has related employees',
