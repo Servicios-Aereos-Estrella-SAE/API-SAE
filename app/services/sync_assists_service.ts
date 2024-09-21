@@ -1112,6 +1112,8 @@ export default class SyncAssistsService {
     }
 
     if (isEndWorkday) {
+      dateAssistItem.assist.isRestDay = true
+
       if (dateAssistItem.assist.checkIn) {
         dateAssistItem.assist.checkInStatus = 'working'
         dateAssistItem.assist.checkOutStatus = 'ontime'
