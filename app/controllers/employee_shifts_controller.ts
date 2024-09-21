@@ -184,7 +184,7 @@ export default class EmployeeShiftController {
         type: 'error',
         title: 'Server error',
         message: 'An unexpected error occurred',
-        data: error,
+        data: error.message,
       })
     }
   }
