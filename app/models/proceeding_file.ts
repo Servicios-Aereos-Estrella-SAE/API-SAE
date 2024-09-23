@@ -1,9 +1,13 @@
 import { DateTime } from 'luxon'
-import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column, hasOne } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import ProceedingFileType from './proceeding_file_type.js'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
+import EmployeeProceedingFile from './employee_proceeding_file.js'
+import FlightAttendantProceedingFile from './flight_attendant_proceeding_file.js'
+import PilotProceedingFile from './pilot_proceeding_file.js'
+import CustomerProceedingFile from './customer_proceeding_file.js'
 /**
  * @swagger
  * components:
@@ -84,4 +88,48 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'proceedingFileTypeId',
   })
   declare proceedingFileType: BelongsTo<typeof ProceedingFileType>
+
+  @hasOne(() => EmployeeProceedingFile, {
+    foreignKey: 'proceedingFileId',
+    localKey: 'proceedingFileId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt').preload('employee', (subQuery) => {
+        subQuery.preload('person')
+      })
+    },
+  })
+  declare employeeProceedingFile: HasOne<typeof EmployeeProceedingFile>
+
+  @hasOne(() => FlightAttendantProceedingFile, {
+    foreignKey: 'proceedingFileId',
+    localKey: 'proceedingFileId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt').preload('flightAttendant', (subQuery) => {
+        subQuery.preload('person')
+      })
+    },
+  })
+  declare flightAttendantProceedingFile: HasOne<typeof FlightAttendantProceedingFile>
+
+  @hasOne(() => PilotProceedingFile, {
+    foreignKey: 'proceedingFileId',
+    localKey: 'proceedingFileId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt').preload('pilot', (subQuery) => {
+        subQuery.preload('person')
+      })
+    },
+  })
+  declare pilotProceedingFile: HasOne<typeof PilotProceedingFile>
+
+  @hasOne(() => CustomerProceedingFile, {
+    foreignKey: 'proceedingFileId',
+    localKey: 'proceedingFileId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt').preload('customer', (subQuery) => {
+        subQuery.preload('person')
+      })
+    },
+  })
+  declare customerProceedingFile: HasOne<typeof CustomerProceedingFile>
 }

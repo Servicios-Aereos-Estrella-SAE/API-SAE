@@ -11,6 +11,7 @@ import { updateEmployeeValidator } from '../validators/employee.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
 import { inject } from '@adonisjs/core'
 import UploadService from '#services/upload_service'
+import UserService from '#services/user_service'
 export default class EmployeeController {
   /**
    * @swagger
@@ -367,8 +368,15 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async index({ request, response }: HttpContext) {
+  async index({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
       const search = request.input('search')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -384,7 +392,7 @@ export default class EmployeeController {
         limit: limit,
       } as EmployeeFilterSearchInterface
       const employeeService = new EmployeeService()
-      const employees = await employeeService.index(filters)
+      const employees = await employeeService.index(filters, departmentsList)
       response.status(200)
       return {
         type: 'success',
@@ -1360,8 +1368,6 @@ export default class EmployeeController {
       .first()
     if (!existEmployee) {
       await employeeService.syncCreate(employee, departmentService, positionService)
-    } else {
-      employeeService.syncUpdate(employee, existEmployee, departmentService, positionService)
     }
   }
 

@@ -4,57 +4,51 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import ProceedingFile from './proceeding_file.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import Employee from './employee.js'
 
 /**
  * @swagger
  * components:
  *   schemas:
- *      EmployeeProceedingFile:
+ *      AircraftProceedingFile:
  *        type: object
  *        properties:
- *          employeeProceedingFileId:
+ *          aircraftProceedingFileId:
  *            type: number
- *            description: Employee proceeding file id
- *          employeeId:
+ *            description: Aircraft proceeding file id
+ *          aircraftId:
  *            type: number
- *            description: Employee id
+ *            description: Aircraft id
  *          proceedingFileId:
  *            type: number
  *            description: Proceeding file id
- *          employeeProceedingFileCreatedAt:
+ *          aircraftProceedingFileCreatedAt:
  *            type: string
- *          employeeProceedingFileUpdatedAt:
+ *          aircraftProceedingFileUpdatedAt:
  *            type: string
- *          employeeProceedingFileDeletedAt:
+ *          aircraftProceedingFileDeletedAt:
  *            type: string
  *
  */
-export default class EmployeeProceedingFile extends compose(BaseModel, SoftDeletes) {
-  static table = 'employee_proceeding_files'
+export default class AircraftProceedingFile extends compose(BaseModel, SoftDeletes) {
+  static table = 'aircraft_proceeding_files'
 
   @column({ isPrimary: true })
-  declare employeeProceedingFileId: number
+  declare aircraftProceedingFileId: number
 
   @column()
-  declare employeeId: number
+  declare aircraftId: number
 
   @column()
   declare proceedingFileId: number
 
   @column.dateTime({ autoCreate: true })
-  declare employeeProceedingFileCreatedAt: DateTime
+  declare aircraftProceedingFileCreatedAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare employeeProceedingFileUpdatedAt: DateTime
+  declare aircraftProceedingFileUpdatedAt: DateTime
 
-  @column.dateTime({ columnName: 'employee_proceeding_file_deleted_at' })
+  @column.dateTime({ columnName: 'aircraft_proceeding_file_deleted_at' })
   declare deletedAt: DateTime | null
-
-  @belongsTo(() => Employee, {
-    foreignKey: 'employeeId',
-  })
-  declare employee: BelongsTo<typeof Employee>
 
   @belongsTo(() => ProceedingFile, {
     foreignKey: 'proceedingFileId',

@@ -12,6 +12,7 @@ import { AssistExcelRowInterface } from '../interfaces/assist_excel_row_interfac
 import { AssistExcelFilterInterface } from '../interfaces/assist_excel_filter_interface.js'
 import Department from '#models/department'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
+import axios from 'axios'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -39,27 +40,57 @@ export default class AssistsService {
         for await (const row of newRows) {
           rows.push(row)
         }
+        this.addRowExcelEmpty(rows)
+        this.addRowExcelEmptyWithCode(rows)
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
+      // Añadir columnas de datos (encabezados)
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
       await this.addRowToWorkSheet(rows, worksheet)
@@ -92,15 +123,18 @@ export default class AssistsService {
       const page = 1
       const limit = 999999999999999
       const employeeService = new EmployeeService()
-      const resultEmployes = await employeeService.index({
-        search: '',
-        departmentId: departmentId,
-        positionId: positionId,
-        employeeWorkSchedule: '',
-        page: page,
-        limit: limit,
-        ignoreDiscriminated: 1,
-      })
+      const resultEmployes = await employeeService.index(
+        {
+          search: '',
+          departmentId: departmentId,
+          positionId: positionId,
+          employeeWorkSchedule: '',
+          page: page,
+          limit: limit,
+          ignoreDiscriminated: 1,
+        },
+        [departmentId]
+      )
       const dataEmployes: any = resultEmployes
       const syncAssistsService = new SyncAssistsService()
       const rows = [] as AssistExcelRowInterface[]
@@ -122,27 +156,55 @@ export default class AssistsService {
             rows.push(row)
           }
           this.addRowExcelEmpty(rows)
+          this.addRowExcelEmptyWithCode(rows)
         }
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -180,15 +242,18 @@ export default class AssistsService {
       const rows = [] as AssistExcelRowInterface[]
       for await (const position of resultPositions) {
         const employeeService = new EmployeeService()
-        const resultEmployes = await employeeService.index({
-          search: '',
-          departmentId: departmentId,
-          positionId: position.positionId,
-          employeeWorkSchedule: '',
-          page: page,
-          limit: limit,
-          ignoreDiscriminated: 1,
-        })
+        const resultEmployes = await employeeService.index(
+          {
+            search: '',
+            departmentId: departmentId,
+            positionId: position.positionId,
+            employeeWorkSchedule: '',
+            page: page,
+            limit: limit,
+            ignoreDiscriminated: 1,
+          },
+          [departmentId]
+        )
         const dataEmployes: any = resultEmployes
         for await (const employee of dataEmployes) {
           const result = await syncAssistsService.index(
@@ -208,28 +273,56 @@ export default class AssistsService {
               rows.push(row)
             }
             this.addRowExcelEmpty(rows)
+            this.addRowExcelEmptyWithCode(rows)
           }
         }
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -254,11 +347,12 @@ export default class AssistsService {
     }
   }
 
-  async getExcelAll(filters: AssistExcelFilterInterface) {
+  async getExcelAll(filters: AssistExcelFilterInterface, departmentsList: Array<number>) {
     try {
       const departments = await Department.query()
         .whereNull('department_deleted_at')
-        .orderBy('department_id')
+        .whereIn('departmentId', departmentsList)
+        .orderBy('departmentId')
       const rows = [] as AssistExcelRowInterface[]
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
@@ -271,15 +365,18 @@ export default class AssistsService {
         const resultPositions = await departmentService.getPositions(departmentId)
         const syncAssistsService = new SyncAssistsService()
         for await (const position of resultPositions) {
-          const resultEmployes = await employeeService.index({
-            search: '',
-            departmentId: departmentId,
-            positionId: position.positionId,
-            page: page,
-            limit: limit,
-            employeeWorkSchedule: '',
-            ignoreDiscriminated: 1,
-          })
+          const resultEmployes = await employeeService.index(
+            {
+              search: '',
+              departmentId: departmentId,
+              positionId: position.positionId,
+              page: page,
+              limit: limit,
+              employeeWorkSchedule: '',
+              ignoreDiscriminated: 1,
+            },
+            [departmentId]
+          )
           const dataEmployes: any = resultEmployes
           for await (const employee of dataEmployes) {
             const result = await syncAssistsService.index(
@@ -299,6 +396,7 @@ export default class AssistsService {
                 rows.push(row)
               }
               this.addRowExcelEmpty(rows)
+              this.addRowExcelEmptyWithCode(rows)
             }
           }
         }
@@ -306,22 +404,49 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Datos')
-
-      // Agregar título del reporte en negritas
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
+        ext: { width: 225, height: 80 },
+      })
+      worksheet.getRow(1).height = 87
+      worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
-      titleRow.font = { bold: true, size: 24 }
-      titleRow.height = 20
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A1:M1')
-
+      worksheet.mergeCells('A2:P2')
+      color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      periodRow.font = { size: 15 }
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+
+      worksheet.getCell('A' + 3).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      periodRow.height = 30
+      worksheet.mergeCells('A3:P3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
@@ -371,12 +496,12 @@ export default class AssistsService {
     } else if (value === 'TOLERANCE') {
       color = '3CB4E5'
     }
-    worksheet.getCell('M' + row).fill = {
+    worksheet.getCell('O' + row).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: color }, // Color de fondo rojo
     }
-    worksheet.getCell('M' + row).font = {
+    worksheet.getCell('O' + row).font = {
       color: { argb: fgColor }, // Color de fondo rojo
     }
   }
@@ -384,7 +509,7 @@ export default class AssistsService {
   private paintCheckOutStatus(worksheet: ExcelJS.Worksheet, row: number, value: string) {
     if (value.toString().toUpperCase() === 'DELAY') {
       const fgColor = 'FF993A'
-      worksheet.getCell('L' + row).font = {
+      worksheet.getCell('N' + row).font = {
         color: { argb: fgColor },
       }
     }
@@ -410,7 +535,33 @@ export default class AssistsService {
       department: '',
       position: '',
       date: '',
-      dayOfWeek: '',
+      shiftAssigned: '',
+      shiftStartDate: '',
+      shiftEndsDate: '',
+      checkInTime: '',
+      firstCheck: '',
+      lunchTime: '',
+      returnLunchTime: '',
+      checkOutTime: '',
+      lastCheck: '',
+      incidents: '',
+      notes: '',
+      sundayPremium: '',
+      checkOutStatus: '',
+      exceptions: [],
+    })
+  }
+
+  private addRowExcelEmptyWithCode(rows: AssistExcelRowInterface[]) {
+    rows.push({
+      code: '0',
+      name: '',
+      department: '',
+      position: '',
+      date: '',
+      shiftAssigned: '',
+      shiftStartDate: '',
+      shiftEndsDate: '',
       checkInTime: '',
       firstCheck: '',
       lunchTime: '',
@@ -450,12 +601,6 @@ export default class AssistsService {
 
     const dayTemp = Number.parseInt(`${day.split('-')[2]}`)
     return dayTemp
-  }
-
-  private weekDayName(dateYear: number, dateMonth: number, dateDay: number) {
-    const date = DateTime.local(dateYear, dateMonth, dateDay, 0)
-    const day = date.toFormat('cccc')
-    return day
   }
 
   private calendarDay(dateYear: number, dateMonth: number, dateDay: number) {
@@ -520,36 +665,70 @@ export default class AssistsService {
 
   addHeadRow(worksheet: ExcelJS.Worksheet) {
     const headerRow = worksheet.addRow([
-      'Código de empleado',
-      'Nombre',
-      'Departamento',
-      'Cargo',
-      'Fecha',
-      'Día de la semana',
-      'Hora de entrada',
+      'Employee ID',
+      'Employee Name',
+      'Department',
+      'Position',
+      'Date',
+      '',
+      'Shift Assigned',
+      'Shift Start Date',
+      'Shift Ends Date',
+      '',
       'Check-in',
-      'Hora de salida a comer',
-      'Hora de regreso de comer',
-      'Hora de salida',
+      'Check go Eat',
+      'Check back from Eat',
       'Check-out',
-      'Incidencias',
-      'Notas',
-      'Prima dominical',
+      'Status',
+      'Exception Notes',
     ])
-    headerRow.font = { bold: true }
+    let fgColor = 'FFFFFFF'
+    let color = '538DD5'
+    for (let col = 1; col <= 6; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    color = '16365C'
+    for (let col = 7; col <= 9; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    color = '538DD5'
+    for (let col = 10; col <= 16; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    headerRow.height = 30
+    headerRow.font = { bold: true, color: { argb: fgColor } }
     const columnA = worksheet.getColumn(1)
     columnA.width = 20
+    columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
     columnB.width = 44
+    columnB.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnC = worksheet.getColumn(3)
     columnC.width = 44
+    columnC.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnD = worksheet.getColumn(4)
     columnD.width = 44
+    columnD.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnE = worksheet.getColumn(5)
     columnE.width = 25
     columnE.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnF = worksheet.getColumn(6)
-    columnF.width = 25
+    columnF.width = 5
     columnF.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnG = worksheet.getColumn(7)
     columnG.width = 25
@@ -561,7 +740,7 @@ export default class AssistsService {
     columnI.width = 25
     columnI.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnJ = worksheet.getColumn(10)
-    columnJ.width = 25
+    columnJ.width = 5
     columnJ.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnK = worksheet.getColumn(11)
     columnK.width = 25
@@ -570,14 +749,20 @@ export default class AssistsService {
     columnL.width = 25
     columnL.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnM = worksheet.getColumn(13)
-    columnM.width = 30
+    columnM.width = 25
     columnM.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnN = worksheet.getColumn(14)
-    columnN.width = 30
+    columnN.width = 25
     columnN.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnO = worksheet.getColumn(15)
     columnO.width = 30
     columnO.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnP = worksheet.getColumn(16)
+    columnP.width = 30
+    columnP.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnQ = worksheet.getColumn(17)
+    columnQ.width = 30
+    columnQ.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 
   async addRowCalendar(employee: Employee, employeeCalendar: AssistDayInterface[]) {
@@ -593,7 +778,6 @@ export default class AssistsService {
       const month = this.dateMonth(calendar.day)
       const year = this.dateYear(calendar.day)
       const calendarDay = this.calendarDayMonth(year, month, day)
-      const weekDayName = this.weekDayName(year, month, day)
       const firstCheck = this.chekInTime(calendar)
       const lastCheck = this.chekOutTime(calendar)
       let status = calendar.assist.checkInStatus
@@ -618,13 +802,28 @@ export default class AssistsService {
       let position = employee.position.positionAlias ? employee.position.positionAlias : ''
       position =
         position === '' && employee.position?.positionName ? employee.position.positionName : ''
+      let shiftName = ''
+      let shiftStartDate = ''
+      let shiftEndsDate = ''
+      if (calendar && calendar.assist && calendar.assist.dateShift) {
+        shiftName = calendar.assist.dateShift.shiftName
+        shiftStartDate = calendar.assist.dateShift.shiftTimeStart
+        const hoursToAddParsed = Number.parseFloat(
+          calendar.assist.dateShift.shiftActiveHours.toString()
+        )
+        const time = DateTime.fromFormat(shiftStartDate, 'HH:mm:ss')
+        const newTime = time.plus({ hours: hoursToAddParsed })
+        shiftEndsDate = newTime.toFormat('HH:mm:ss')
+      }
       rows.push({
         code: employee.employeeCode.toString(),
         name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
         department: department,
         position: position,
         date: calendarDay,
-        dayOfWeek: weekDayName,
+        shiftAssigned: shiftName,
+        shiftStartDate: shiftStartDate,
+        shiftEndsDate: shiftEndsDate,
         checkInTime: calendar.assist.checkInDateTime
           ? DateTime.fromISO(calendar.assist.checkInDateTime.toString(), { setZone: true })
               .setZone('America/Mexico_City')
@@ -685,24 +884,33 @@ export default class AssistsService {
   }
 
   async addRowToWorkSheet(rows: AssistExcelRowInterface[], worksheet: ExcelJS.Worksheet) {
-    let rowCount = 4
+    let rowCount = 5
+    let faultsTotal = 0
     for await (const rowData of rows) {
+      if (rowData.incidents.toString().toUpperCase() === 'FAULT') {
+        faultsTotal += 1
+      }
+      let incidents =
+        !rowData.name && rowData.code !== '0'
+          ? faultsTotal.toString().padStart(2, '0') + ' TOTAL FAULTS'
+          : rowData.incidents
       worksheet.addRow([
-        rowData.code,
+        rowData.code !== '0' ? rowData.code : '',
         rowData.name,
         rowData.department,
         rowData.position,
         rowData.date,
-        rowData.dayOfWeek,
+        '',
+        rowData.shiftAssigned,
+        rowData.shiftStartDate,
+        rowData.shiftEndsDate,
+        '',
         rowData.checkInTime,
-        rowData.firstCheck,
         rowData.lunchTime,
         rowData.returnLunchTime,
         rowData.checkOutTime,
-        rowData.lastCheck,
-        rowData.incidents,
+        incidents,
         rowData.notes,
-        rowData.sundayPremium,
       ])
       if (rowData.name) {
         this.paintIncidents(worksheet, rowCount, rowData.incidents)
@@ -710,6 +918,20 @@ export default class AssistsService {
       }
       if (rowData.exceptions.length > 0) {
         await this.addExceptions(rowData, worksheet, rowCount)
+      }
+      if (!rowData.name && rowData.code !== '0') {
+        const color = 'FDE9D9'
+        for (let col = 1; col <= 16; col++) {
+          const cell = worksheet.getCell(rowCount, col)
+          const row = worksheet.getRow(rowCount)
+          row.height = 21
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: color },
+          }
+        }
+        faultsTotal = 0
       }
       rowCount += 1
     }

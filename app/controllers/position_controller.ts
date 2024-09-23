@@ -688,6 +688,52 @@ export default class PositionController {
    *                     error:
    *                       type: string
    */
+  // async delete({ request, response }: HttpContext) {
+  //   try {
+  //     const positionId = request.param('positionId')
+  //     if (!positionId) {
+  //       response.status(400)
+  //       return {
+  //         type: 'warning',
+  //         title: 'The position Id was not found',
+  //         message: 'Missing data to process',
+  //         data: { positionId },
+  //       }
+  //     }
+  //     const currentPosition = await Position.query()
+  //       .whereNull('position_deleted_at')
+  //       .where('position_id', positionId)
+  //       .first()
+  //     if (!currentPosition) {
+  //       response.status(404)
+  //       return {
+  //         type: 'warning',
+  //         title: 'The position was not found',
+  //         message: 'The position was not found with the entered ID',
+  //         data: { positionId },
+  //       }
+  //     }
+  //     const positionService = new PositionService()
+  //     const deletePosition = await positionService.delete(currentPosition)
+  //     if (deletePosition) {
+  //       response.status(201)
+  //       return {
+  //         type: 'success',
+  //         title: 'Positions',
+  //         message: 'The position was deleted successfully',
+  //         data: { position: deletePosition },
+  //       }
+  //     }
+  //   } catch (error) {
+  //     response.status(500)
+  //     return {
+  //       type: 'error',
+  //       title: 'Server error',
+  //       message: 'An unexpected error has occurred on the server',
+  //       error: error.message,
+  //     }
+  //   }
+  // }
   async delete({ request, response }: HttpContext) {
     try {
       const positionId = request.param('positionId')
@@ -700,10 +746,13 @@ export default class PositionController {
           data: { positionId },
         }
       }
+
+      // Buscar la posición actual
       const currentPosition = await Position.query()
         .whereNull('position_deleted_at')
         .where('position_id', positionId)
         .first()
+
       if (!currentPosition) {
         response.status(404)
         return {
@@ -713,6 +762,26 @@ export default class PositionController {
           data: { positionId },
         }
       }
+
+      // Verificar si la posición tiene empleados relacionados
+      const relatedEmployeesCount = await currentPosition
+        .related('employees')
+        .query()
+        .whereNull('employee_deleted_at')
+        .count('* as total')
+      const totalEmployees = relatedEmployeesCount[0].$extras.total
+
+      if (totalEmployees > 0) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Position has related employees',
+          message: 'The position cannot be deleted because it has related employees',
+          data: { positionId, totalEmployees },
+        }
+      }
+
+      // Si no tiene empleados, proceder con la eliminación
       const positionService = new PositionService()
       const deletePosition = await positionService.delete(currentPosition)
       if (deletePosition) {
@@ -734,7 +803,6 @@ export default class PositionController {
       }
     }
   }
-
   /**
    * @swagger
    * /api/positions/{positionId}:
@@ -1169,8 +1237,6 @@ export default class PositionController {
     const existPosition = await Position.query().where('position_sync_id', position.id).first()
     if (!existPosition) {
       await positionService.syncCreate(position)
-    } else {
-      positionService.syncUpdate(position, existPosition)
     }
   }
 }

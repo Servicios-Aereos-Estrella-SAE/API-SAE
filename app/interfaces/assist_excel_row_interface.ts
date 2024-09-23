@@ -6,7 +6,9 @@ interface AssistExcelRowInterface {
   department: string
   position: string
   date: string
-  dayOfWeek: string
+  shiftAssigned: string
+  shiftStartDate: string
+  shiftEndsDate: string
   checkInTime: string
   firstCheck: string
   lunchTime: string

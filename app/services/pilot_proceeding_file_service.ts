@@ -4,6 +4,9 @@ import FlightAttendantProceedingFile from '#models/flight_attendant_proceeding_f
 import Pilot from '#models/pilot'
 import PilotProceedingFile from '#models/pilot_proceeding_file'
 import ProceedingFile from '#models/proceeding_file'
+import ProceedingFileType from '#models/proceeding_file_type'
+import { DateTime } from 'luxon'
+import { PilotProceedingFileFilterInterface } from '../interfaces/pilot_proceeding_file_filter_interface.js'
 
 export default class PilotProceedingFileService {
   async create(pilotProceedingFile: PilotProceedingFile) {
@@ -150,6 +153,38 @@ export default class PilotProceedingFileService {
       title: 'Info verifiy successfully',
       message: 'Info verifiy successfully',
       data: { ...pilotProceedingFile },
+    }
+  }
+
+  async getExpiredAndExpiring(filters: PilotProceedingFileFilterInterface) {
+    const proceedingFileTypes = await ProceedingFileType.query()
+      .whereNull('proceeding_file_type_deleted_at')
+      .where('proceeding_file_type_area_to_use', 'pilot')
+      .orderBy('proceeding_file_type_id')
+      .select('proceeding_file_type_id')
+
+    const proceedingFileTypesIds = proceedingFileTypes.map((item) => item.proceedingFileTypeId)
+    const proceedingFilesExpired = await ProceedingFile.query()
+      .whereNull('proceeding_file_deleted_at')
+      .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
+      .whereBetween('proceeding_file_expiration_at', [filters.dateStart, filters.dateEnd])
+      .preload('proceedingFileType')
+      .preload('pilotProceedingFile')
+      .orderBy('proceeding_file_expiration_at')
+
+    const newDateStart = DateTime.fromISO(filters.dateEnd).plus({ days: 1 }).toFormat('yyyy-MM-dd')
+    const newDateEnd = DateTime.fromISO(filters.dateEnd).plus({ days: 30 }).toFormat('yyyy-MM-dd')
+    const proceedingFilesExpiring = await ProceedingFile.query()
+      .whereNull('proceeding_file_deleted_at')
+      .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
+      .whereBetween('proceeding_file_expiration_at', [newDateStart, newDateEnd])
+      .preload('proceedingFileType')
+      .preload('pilotProceedingFile')
+      .orderBy('proceeding_file_expiration_at')
+
+    return {
+      proceedingFilesExpired: proceedingFilesExpired ? proceedingFilesExpired : [],
+      proceedingFilesExpiring: proceedingFilesExpiring ? proceedingFilesExpiring : [],
     }
   }
 }
