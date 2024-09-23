@@ -13,7 +13,7 @@ router
     router.post('/', '#controllers/department_controller.store')
     router.put('/:departmentId', '#controllers/department_controller.update')
     router.delete('/:departmentId', '#controllers/department_controller.delete')
-    router.delete('/:departmentId/forceDelete', '#controllers/department_controller.forceDelete')
+    router.delete('/:departmentId/force-delete', '#controllers/department_controller.forceDelete')
     router.get('/:departmentId', '#controllers/department_controller.show')
   })
   .prefix('/api/departments')
