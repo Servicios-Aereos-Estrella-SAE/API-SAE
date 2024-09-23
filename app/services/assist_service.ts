@@ -479,6 +479,7 @@ export default class AssistsService {
       fgColor = 'FFFFFFF'
     } else if (value === 'ONTIME') {
       color = 'FF33D4AD'
+      fgColor = 'FFFFFFF'
     } else if (value === 'NEXT') {
       color = 'E4E4E4'
       fgColor = '000000'
@@ -632,7 +633,7 @@ export default class AssistsService {
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
       'America/Mexico_City'
     )
-    return timeCheckIn.toFormat('ff')
+    return timeCheckIn.toFormat('MMM d, yyyy, h:mm:ss a')
   }
 
   private chekOutTime(checkAssist: AssistDayInterface) {
@@ -660,7 +661,7 @@ export default class AssistsService {
       return ''
     }
 
-    return timeCheckOut.toFormat('ff')
+    return timeCheckOut.toFormat('MMM d, yyyy, h:mm:ss a')
   }
 
   addHeadRow(worksheet: ExcelJS.Worksheet) {
@@ -824,31 +825,33 @@ export default class AssistsService {
         shiftAssigned: shiftName,
         shiftStartDate: shiftStartDate,
         shiftEndsDate: shiftEndsDate,
-        checkInTime: calendar.assist.checkInDateTime
-          ? DateTime.fromISO(calendar.assist.checkInDateTime.toString(), { setZone: true })
-              .setZone('America/Mexico_City')
-              .toFormat('ff')
-          : '',
+        checkInTime:
+          calendar.assist.checkInDateTime && !calendar.assist.isFutureDay
+            ? DateTime.fromISO(calendar.assist.checkInDateTime.toString(), { setZone: true })
+                .setZone('America/Mexico_City')
+                .toFormat('ff')
+            : '',
         firstCheck: firstCheck,
         lunchTime: calendar.assist.checkEatIn
           ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
               setZone: true,
             })
-              .setZone('America/Mexico_City')
-              .toFormat('ff')
+              .setZone('UTC-5')
+              .toFormat('MMM d, yyyy, h:mm:ss a')
           : '',
         returnLunchTime: calendar.assist.checkEatOut
           ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
               setZone: true,
             })
-              .setZone('America/Mexico_City')
-              .toFormat('ff')
+              .setZone('UTC-5')
+              .toFormat('MMM d, yyyy, h:mm:ss a')
           : '',
-        checkOutTime: calendar.assist.checkOutDateTime
-          ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
-              .setZone('America/Mexico_City')
-              .toFormat('ff')
-          : '',
+        checkOutTime:
+          calendar.assist.checkOutDateTime && !calendar.assist.isFutureDay
+            ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
+                .setZone('America/Mexico_City')
+                .toFormat('ff')
+            : '',
         lastCheck: lastCheck,
         incidents: status,
         notes: '',
@@ -876,7 +879,7 @@ export default class AssistsService {
         { text: `\n${description}\n`, font: { italic: true, size: 10, color: { argb: '000000' } } }
       )
     }
-    const cell = worksheet.getCell('N' + rowCount)
+    const cell = worksheet.getCell('O' + rowCount)
     cell.value = {
       richText: richText,
     }
@@ -905,10 +908,10 @@ export default class AssistsService {
         rowData.shiftStartDate,
         rowData.shiftEndsDate,
         '',
-        rowData.checkInTime,
+        rowData.firstCheck,
         rowData.lunchTime,
         rowData.returnLunchTime,
-        rowData.checkOutTime,
+        rowData.lastCheck,
         incidents,
         rowData.notes,
       ])
