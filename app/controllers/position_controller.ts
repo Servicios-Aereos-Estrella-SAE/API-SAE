@@ -746,13 +746,11 @@ export default class PositionController {
           data: { positionId },
         }
       }
-
       // Buscar la posición actual
       const currentPosition = await Position.query()
         .whereNull('position_deleted_at')
         .where('position_id', positionId)
         .first()
-
       if (!currentPosition) {
         response.status(404)
         return {
@@ -762,7 +760,6 @@ export default class PositionController {
           data: { positionId },
         }
       }
-
       // Verificar si la posición tiene empleados relacionados
       const relatedEmployeesCount = await currentPosition
         .related('employees')
@@ -770,7 +767,6 @@ export default class PositionController {
         .whereNull('employee_deleted_at')
         .count('* as total')
       const totalEmployees = relatedEmployeesCount[0].$extras.total
-
       if (totalEmployees > 0) {
         response.status(400)
         return {
@@ -780,7 +776,6 @@ export default class PositionController {
           data: { positionId, totalEmployees },
         }
       }
-
       // Si no tiene empleados, proceder con la eliminación
       const positionService = new PositionService()
       const deletePosition = await positionService.delete(currentPosition)
