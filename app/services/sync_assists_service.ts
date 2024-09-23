@@ -857,6 +857,11 @@ export default class SyncAssistsService {
         ? (service.holidays[0] as unknown as HolidayInterface)
         : null
 
+    if (checkAssistCopy.assist.isHoliday && !checkAssistCopy.assist.checkIn) {
+      checkAssistCopy.assist.checkInStatus = ''
+      checkAssistCopy.assist.checkOutStatus = ''
+    }
+
     return checkAssistCopy
   }
 
@@ -1107,6 +1112,8 @@ export default class SyncAssistsService {
     }
 
     if (isEndWorkday) {
+      dateAssistItem.assist.isRestDay = true
+
       if (dateAssistItem.assist.checkIn) {
         dateAssistItem.assist.checkInStatus = 'working'
         dateAssistItem.assist.checkOutStatus = 'ontime'

@@ -176,6 +176,11 @@ export default class RoleController {
    *                 description: Permissions
    *                 required: true
    *                 default: []
+   *               departments:
+   *                 type: array
+   *                 description: Departments
+   *                 required: true
+   *                 default: []
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -273,12 +278,13 @@ export default class RoleController {
       }
       const roleService = new RoleService()
       const roleSystemPermissions = await roleService.assignPermissions(roleId, data.permissions)
+      const roleDepartments = await roleService.assignDepartments(roleId, data.departments)
       response.status(201)
       return {
         type: 'success',
         title: 'Role Permissions',
         message: 'The role permissions were assigned successfully',
-        data: { roleSystemPermissions: roleSystemPermissions },
+        data: { roleSystemPermissions: roleSystemPermissions, roleDepartments: roleDepartments },
       }
     } catch (error) {
       const messageError =
@@ -583,6 +589,153 @@ export default class RoleController {
         systemModuleSlug,
         systemPermissionSlug
       )
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Roles',
+        message: 'The role was found successfully',
+        data: { roleHasAccess: roleHasAccess },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/roles/has-access-department/{roleId}/{departmentId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: get role has access to department by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: roleId
+   *         schema:
+   *           type: number
+   *         description: Role id
+   *         required: true
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: DepartmentId
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async hasAccessDepartment({ request, response }: HttpContext) {
+    try {
+      const roleId = request.param('roleId')
+      if (!roleId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The role Id was not found',
+          message: 'Missing data to process',
+          data: { roleId },
+        }
+      }
+      const departmentId = request.param('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The department Id was not found',
+          message: 'Missing data to process',
+          data: { departmentId },
+        }
+      }
+      const roleService = new RoleService()
+      const roleHasAccess = await roleService.hasAccessDepartment(roleId, departmentId)
       response.status(200)
       return {
         type: 'success',

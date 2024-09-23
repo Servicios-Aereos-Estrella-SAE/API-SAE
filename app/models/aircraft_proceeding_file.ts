@@ -4,6 +4,7 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import ProceedingFile from './proceeding_file.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Aircraft from './aircraft.js'
 
 /**
  * @swagger
@@ -49,6 +50,11 @@ export default class AircraftProceedingFile extends compose(BaseModel, SoftDelet
 
   @column.dateTime({ columnName: 'aircraft_proceeding_file_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => Aircraft, {
+    foreignKey: 'aircraftId',
+  })
+  declare aircraft: BelongsTo<typeof Aircraft>
 
   @belongsTo(() => ProceedingFile, {
     foreignKey: 'proceedingFileId',

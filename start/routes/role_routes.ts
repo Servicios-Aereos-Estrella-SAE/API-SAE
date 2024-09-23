@@ -4,6 +4,10 @@ router
   .group(() => {
     router.post('/assign/:roleId', '#controllers/role_controller.assign')
     router.get(
+      '/has-access-department/:roleId/:departmentId',
+      '#controllers/role_controller.hasAccessDepartment'
+    )
+    router.get(
       '/has-access/:roleId/:systemModuleSlug/:systemPermissionSlug',
       '#controllers/role_controller.hasAccess'
     )

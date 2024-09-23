@@ -11,6 +11,7 @@ import { createDepartmentValidator, updateDepartmentValidator } from '#validator
 import { DepartmentShiftFilterInterface } from '../interfaces/department_shift_filter_interface.js'
 import BusinessUnit from '#models/business_unit'
 import { DateTime } from 'luxon'
+import UserService from '#services/user_service'
 
 export default class DepartmentController {
   /**
@@ -655,10 +656,16 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async getAll({ response }: HttpContext) {
+  async getAll({ auth, response }: HttpContext) {
     try {
-      const departments = await new DepartmentService().index()
-
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+      const departments = await new DepartmentService().index(departmentsList)
       response.status(200)
       return {
         type: 'success',
@@ -679,17 +686,24 @@ export default class DepartmentController {
     }
   }
 
-  async getSearch({ request, response }: HttpContext) {
+  async getSearch({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departments = [] as Array<number>
+      if (user) {
+        departments = await userService.getRoleDepartments(user.userId)
+      }
       const { departmentName, page = 1, limit = 50 } = request.qs()
-
       const query = Department.query().has('departmentsPositions').orderBy('department_id')
 
       if (departmentName) {
         query.where('departmentName', 'LIKE', `%${departmentName}%`)
       }
+      query.whereIn('departmentId', departments)
 
-      const departments = await query.paginate(page, limit)
+      const departmentsList = await query.paginate(page, limit)
 
       return response.status(200).json({
         type: 'success',
@@ -697,13 +711,13 @@ export default class DepartmentController {
         message: 'Resources fetched',
         data: {
           meta: {
-            total: departments.total,
-            per_page: departments.perPage,
-            current_page: departments.currentPage,
-            last_page: departments.lastPage,
+            total: departmentsList.total,
+            per_page: departmentsList.perPage,
+            current_page: departmentsList.currentPage,
+            last_page: departmentsList.lastPage,
             first_page: 1,
           },
-          data: departments.all().map((department) => department.toJSON()),
+          data: departmentsList.all().map((department) => department.toJSON()),
         },
       })
     } catch (error) {

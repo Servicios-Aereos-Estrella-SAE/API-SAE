@@ -8,6 +8,7 @@ import Position from '#models/position'
 import Department from '#models/department'
 import { AssistPositionExcelFilterInterface } from '../interfaces/assist_position_excel_filter_interface.js'
 import { AssistDepartmentExcelFilterInterface } from '../interfaces/assist_department_excel_filter_interface.js'
+import UserService from '#services/user_service'
 
 export default class AssistsController {
   /**
@@ -540,8 +541,15 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelAll({ request, response }: HttpContext) {
+  async getExcelAll({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
       const filters = {
@@ -549,7 +557,7 @@ export default class AssistsController {
         filterDateEnd: filterDateEnd,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
-      const buffer = await assistService.getExcelAll(filters)
+      const buffer = await assistService.getExcelAll(filters, departmentsList)
       if (buffer.status === 201) {
         response.header(
           'Content-Type',
