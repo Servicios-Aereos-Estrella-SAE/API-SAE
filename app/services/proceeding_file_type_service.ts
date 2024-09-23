@@ -35,6 +35,33 @@ export default class ProceedingFileTypeService {
     return newProceedingFileType
   }
 
+  async update(
+    currenProceedingFileType: ProceedingFileType,
+    proceedingFileType: ProceedingFileType
+  ) {
+    currenProceedingFileType.proceedingFileTypeName = proceedingFileType.proceedingFileTypeName
+    currenProceedingFileType.proceedingFileTypeIcon = proceedingFileType.proceedingFileTypeIcon
+    currenProceedingFileType.proceedingFileTypeSlug = proceedingFileType.proceedingFileTypeSlug
+    currenProceedingFileType.proceedingFileTypeAreaToUse =
+      proceedingFileType.proceedingFileTypeAreaToUse
+    currenProceedingFileType.proceedingFileTypeActive = proceedingFileType.proceedingFileTypeActive
+    await currenProceedingFileType.save()
+    return currenProceedingFileType
+  }
+
+  async delete(currenProceedingFileType: ProceedingFileType) {
+    await currenProceedingFileType.delete()
+    return currenProceedingFileType
+  }
+
+  async show(proceedingFileTypeId: number) {
+    const proceedingFileType = await ProceedingFileType.query()
+      .whereNull('proceeding_file_type_deleted_at')
+      .where('proceeding_file_type_id', proceedingFileTypeId)
+      .first()
+    return proceedingFileType ? proceedingFileType : null
+  }
+
   async verifyInfo(proceedingFileType: ProceedingFileType) {
     const action = proceedingFileType.proceedingFileTypeId > 0 ? 'updated' : 'created'
     if (!proceedingFileType.proceedingFileTypeId) {

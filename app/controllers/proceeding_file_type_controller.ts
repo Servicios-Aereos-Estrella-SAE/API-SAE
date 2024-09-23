@@ -451,4 +451,209 @@ export default class ProceedingFileTypeController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/proceeding-file-types/{proceedingFileTypeId}:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Proceeding File Types
+   *     summary: update proceeding file types
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: proceedingFileTypeId
+   *         schema:
+   *           type: number
+   *         description: roceeding file type id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *        multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               proceedingFileTypeName:
+   *                 type: string
+   *                 description: Proceeding file type name
+   *                 required: true
+   *                 default: ''
+   *               proceedingFileTypeIcon:
+   *                 type: string
+   *                 description: Proceeding file type icon
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileTypeSlug:
+   *                 type: string
+   *                 description: Proceeding file type slug
+   *                 required: true
+   *                 default: ''
+   *               proceedingFileTypeAreaToUse:
+   *                 type: string
+   *                 description: Proceeding file type area to use
+   *                 required: true
+   *                 default: ''
+   *                 enum: [employee, pilot, customer, aircraft, flight-attendant]
+   *               proceedingFileTypeActive:
+   *                 type: boolean
+   *                 description: Proceeding file type status
+   *                 required: true
+   *                 default: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ request, response }: HttpContext) {
+    try {
+      const proceedingFileTypeId = request.param('proceedingFileTypeId')
+      const proceedingFileTypeName = request.input('proceedingFileTypeName')
+      const proceedingFileTypeIcon = request.input('proceedingFileTypeIcon')
+      const proceedingFileTypeSlug = request.input('proceedingFileTypeSlug')
+      const proceedingFileTypeAreaToUse = request.input('proceedingFileTypeAreaToUse')
+      const proceedingFileTypeActive = request.input('proceedingFileTypeActive')
+      const proceedingFileType = {
+        proceedingFileTypeId: proceedingFileTypeId,
+        proceedingFileTypeName: proceedingFileTypeName,
+        proceedingFileTypeIcon: proceedingFileTypeIcon,
+        proceedingFileTypeSlug: proceedingFileTypeSlug,
+        proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
+        proceedingFileTypeActive: proceedingFileTypeActive,
+      } as ProceedingFileType
+      if (!proceedingFileTypeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The proceeding file type Id was not found',
+          data: { ...proceedingFileType },
+        }
+      }
+      const currentProceedingFileType = await ProceedingFileType.query()
+        .whereNull('proceeding_file_type_deleted_at')
+        .where('proceeding_file_type_id', proceedingFileTypeId)
+        .first()
+      if (!currentProceedingFileType) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The proceeding file type was not found',
+          message: 'The proceeding file type was not found with the entered ID',
+          data: { ...proceedingFileType },
+        }
+      }
+      const proceedingFileTypeService = new ProceedingFileTypeService()
+      const data = await request.validateUsing(createProceedingFileTypeValidator)
+      const valid = await proceedingFileTypeService.verifyInfo(proceedingFileType)
+      if (valid && valid.status !== 200) {
+        response.status(valid.status)
+        return {
+          type: valid.type,
+          title: valid.title,
+          message: valid.message,
+          data: { ...data },
+        }
+      }
+      const updateProceedingFileType = await proceedingFileTypeService.update(
+        currentProceedingFileType,
+        proceedingFileType
+      )
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Proceeding file types',
+        message: 'The proceeding file type was updated successfully',
+        data: { proceedingFileType: updateProceedingFileType },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
 }
