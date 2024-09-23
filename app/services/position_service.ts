@@ -85,14 +85,17 @@ export default class PositionService {
     const departmentId = filters.departmentId
     const page = 1
     const limit = 999999999999999
-    const resultEmployes = await employeeService.index({
-      search: '',
-      departmentId: departmentId,
-      positionId: filters.positionId,
-      page: page,
-      limit: limit,
-      employeeWorkSchedule: '',
-    })
+    const resultEmployes = await employeeService.index(
+      {
+        search: '',
+        departmentId: departmentId,
+        positionId: filters.positionId,
+        page: page,
+        limit: limit,
+        employeeWorkSchedule: '',
+      },
+      [departmentId]
+    )
     const dataEmployes: any = resultEmployes
     const warnings = [] as Array<PositionShiftEmployeeWarningInterface>
     for await (const employee of dataEmployes) {

@@ -1,4 +1,6 @@
+import Department from '#models/department'
 import Role from '#models/role'
+import RoleDepartment from '#models/role_department'
 import RoleSystemPermission from '#models/role_system_permission'
 import SystemModule from '#models/system_module'
 import SystemPermission from '#models/system_permission'
@@ -10,6 +12,7 @@ export default class RoleService {
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(role_name) LIKE ?', [`%${filters.search.toUpperCase()}%`])
       })
+      .preload('roleDepartments')
       .preload('roleSystemPermissions')
       .orderBy('role_id')
       .paginate(filters.page, filters.limit)
@@ -48,6 +51,40 @@ export default class RoleService {
       .whereNull('role_system_permission_deleted_at')
       .where('role_id', roleId)
     return rolePermissions
+  }
+
+  async assignDepartments(roleId: number, departments: Array<number>) {
+    let roleDepartments = await RoleDepartment.query()
+      .whereNull('role_department_deleted_at')
+      .where('role_id', roleId)
+    if (roleDepartments) {
+      if (departments === undefined) {
+        departments = []
+      }
+      for await (const item of roleDepartments) {
+        const existDepartment = departments.find(
+          (a: number) => Number.parseInt(a.toString()) === item.departmentId
+        )
+        if (!existDepartment) {
+          await item.delete()
+        }
+      }
+    }
+    for await (const departmentId of departments) {
+      const existRoleDepartment = roleDepartments.find(
+        (a) => a.departmentId === Number.parseInt(departmentId.toString())
+      )
+      if (!existRoleDepartment) {
+        const newRoleDepartment = new RoleDepartment()
+        newRoleDepartment.roleId = roleId
+        newRoleDepartment.departmentId = departmentId
+        await newRoleDepartment.save()
+      }
+    }
+    roleDepartments = await RoleDepartment.query()
+      .whereNull('role_department_deleted_at')
+      .where('role_id', roleId)
+    return roleDepartments
   }
 
   async show(roleId: number) {
@@ -89,6 +126,31 @@ export default class RoleService {
       .where('system_permission_id', systemPermission.systemPermissionId)
       .first()
     if (!roleSystemPermissions) {
+      return false
+    }
+    return true
+  }
+
+  async hasAccessDepartment(roleId: number, departmentId: number) {
+    const role = await Role.query().whereNull('role_deleted_at').where('role_id', roleId).first()
+    if (!role) {
+      return false
+    }
+    const department = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', departmentId)
+      .first()
+
+    if (!department) {
+      return false
+    }
+
+    const roleDepartment = await RoleDepartment.query()
+      .whereNull('role_department_deleted_at')
+      .where('role_id', roleId)
+      .where('department_id', department.departmentId)
+      .first()
+    if (!roleDepartment) {
       return false
     }
     return true
