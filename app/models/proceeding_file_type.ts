@@ -15,9 +15,6 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *         proceedingFileTypeName:
  *           type: string
  *           description: Proceeding file type name
- *         proceedingFileTypeIcon:
- *           type: string
- *           description: Proceeding file type icon
  *         proceedingFileTypeSlug:
  *           type: string
  *           description: Proceeding file type SLUG
@@ -44,9 +41,6 @@ export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) 
 
   @column()
   declare proceedingFileTypeName: string
-
-  @column()
-  declare proceedingFileTypeIcon: string
 
   @column()
   declare proceedingFileTypeSlug: string

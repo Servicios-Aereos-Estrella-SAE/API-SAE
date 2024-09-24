@@ -303,11 +303,6 @@ export default class ProceedingFileTypeController {
    *                 description: Proceeding file type name
    *                 required: true
    *                 default: ''
-   *               proceedingFileTypeIcon:
-   *                 type: string
-   *                 description: Proceeding file type icon
-   *                 required: false
-   *                 default: ''
    *               proceedingFileTypeSlug:
    *                 type: string
    *                 description: Proceeding file type slug
@@ -408,13 +403,11 @@ export default class ProceedingFileTypeController {
   async store({ request, response }: HttpContext) {
     try {
       const proceedingFileTypeName = request.input('proceedingFileTypeName')
-      const proceedingFileTypeIcon = request.input('proceedingFileTypeIcon')
       const proceedingFileTypeSlug = request.input('proceedingFileTypeSlug')
       const proceedingFileTypeAreaToUse = request.input('proceedingFileTypeAreaToUse')
       const proceedingFileTypeActive = request.input('proceedingFileTypeActive')
       const proceedingFileType = {
         proceedingFileTypeName: proceedingFileTypeName,
-        proceedingFileTypeIcon: proceedingFileTypeIcon,
         proceedingFileTypeSlug: proceedingFileTypeSlug,
         proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
         proceedingFileTypeActive:
@@ -484,11 +477,6 @@ export default class ProceedingFileTypeController {
    *                 type: string
    *                 description: Proceeding file type name
    *                 required: true
-   *                 default: ''
-   *               proceedingFileTypeIcon:
-   *                 type: string
-   *                 description: Proceeding file type icon
-   *                 required: false
    *                 default: ''
    *               proceedingFileTypeSlug:
    *                 type: string
@@ -591,14 +579,12 @@ export default class ProceedingFileTypeController {
     try {
       const proceedingFileTypeId = request.param('proceedingFileTypeId')
       const proceedingFileTypeName = request.input('proceedingFileTypeName')
-      const proceedingFileTypeIcon = request.input('proceedingFileTypeIcon')
       const proceedingFileTypeSlug = request.input('proceedingFileTypeSlug')
       const proceedingFileTypeAreaToUse = request.input('proceedingFileTypeAreaToUse')
       const proceedingFileTypeActive = request.input('proceedingFileTypeActive')
       const proceedingFileType = {
         proceedingFileTypeId: proceedingFileTypeId,
         proceedingFileTypeName: proceedingFileTypeName,
-        proceedingFileTypeIcon: proceedingFileTypeIcon,
         proceedingFileTypeSlug: proceedingFileTypeSlug,
         proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
         proceedingFileTypeActive:

@@ -26,7 +26,6 @@ export default class ProceedingFileTypeService {
   async store(proceedingFileType: ProceedingFileType) {
     const newProceedingFileType = new ProceedingFileType()
     newProceedingFileType.proceedingFileTypeName = proceedingFileType.proceedingFileTypeName
-    newProceedingFileType.proceedingFileTypeIcon = proceedingFileType.proceedingFileTypeIcon
     newProceedingFileType.proceedingFileTypeSlug = proceedingFileType.proceedingFileTypeSlug
     newProceedingFileType.proceedingFileTypeAreaToUse =
       proceedingFileType.proceedingFileTypeAreaToUse
@@ -40,7 +39,6 @@ export default class ProceedingFileTypeService {
     proceedingFileType: ProceedingFileType
   ) {
     currenProceedingFileType.proceedingFileTypeName = proceedingFileType.proceedingFileTypeName
-    currenProceedingFileType.proceedingFileTypeIcon = proceedingFileType.proceedingFileTypeIcon
     currenProceedingFileType.proceedingFileTypeSlug = proceedingFileType.proceedingFileTypeSlug
     currenProceedingFileType.proceedingFileTypeAreaToUse =
       proceedingFileType.proceedingFileTypeAreaToUse
