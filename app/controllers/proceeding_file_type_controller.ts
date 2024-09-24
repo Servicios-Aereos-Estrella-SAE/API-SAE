@@ -417,7 +417,11 @@ export default class ProceedingFileTypeController {
         proceedingFileTypeIcon: proceedingFileTypeIcon,
         proceedingFileTypeSlug: proceedingFileTypeSlug,
         proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
-        proceedingFileTypeActive: proceedingFileTypeActive,
+        proceedingFileTypeActive:
+          proceedingFileTypeActive &&
+          (proceedingFileTypeActive === 'true' || proceedingFileTypeActive === '1')
+            ? 1
+            : 0,
       } as ProceedingFileType
       const proceedingFileTypeService = new ProceedingFileTypeService()
       const data = await request.validateUsing(createProceedingFileTypeValidator)
@@ -468,7 +472,7 @@ export default class ProceedingFileTypeController {
    *         name: proceedingFileTypeId
    *         schema:
    *           type: number
-   *         description: roceeding file type id
+   *         description: proceeding file type id
    *         required: true
    *     requestBody:
    *       content:
@@ -597,7 +601,11 @@ export default class ProceedingFileTypeController {
         proceedingFileTypeIcon: proceedingFileTypeIcon,
         proceedingFileTypeSlug: proceedingFileTypeSlug,
         proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
-        proceedingFileTypeActive: proceedingFileTypeActive,
+        proceedingFileTypeActive:
+          proceedingFileTypeActive &&
+          (proceedingFileTypeActive === 'true' || proceedingFileTypeActive === '1')
+            ? 1
+            : 0,
       } as ProceedingFileType
       if (!proceedingFileTypeId) {
         response.status(400)
@@ -653,6 +661,296 @@ export default class ProceedingFileTypeController {
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/proceeding-file-types/{proceedingFileTypeId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Proceeding File Types
+   *     summary: delete proceeding file type
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: proceedingFileTypeId
+   *         schema:
+   *           type: number
+   *         description: proceeding file type id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async delete({ request, response }: HttpContext) {
+    try {
+      const proceedingFileTypeId = request.param('proceedingFileTypeId')
+      if (!proceedingFileTypeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The proceeding file type Id was not found',
+          data: { proceedingFileTypeId },
+        }
+      }
+      const currentProceedingFileType = await ProceedingFileType.query()
+        .whereNull('proceeding_file_type_deleted_at')
+        .where('proceeding_file_type_id', proceedingFileTypeId)
+        .first()
+      if (!currentProceedingFileType) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The proceeding file type was not found',
+          message: 'The proceeding file type was not found with the entered ID',
+          data: { proceedingFileTypeId },
+        }
+      }
+      const proceedingFileTypeService = new ProceedingFileTypeService()
+      const deleteProceedingFileType =
+        await proceedingFileTypeService.delete(currentProceedingFileType)
+      if (deleteProceedingFileType) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Proceeding file types',
+          message: 'The proceeding file type was deleted successfully',
+          data: { proceedingFileType: deleteProceedingFileType },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/proceeding-file-types/{proceedingFileTypeId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Proceeding File Types
+   *     summary: get proceeding file type by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: proceedingFileTypeId
+   *         schema:
+   *           type: number
+   *         description: proceeding file type id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const proceedingFileTypeId = request.param('proceedingFileTypeId')
+      if (!proceedingFileTypeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The proceeding file type Id was not found',
+          data: { proceedingFileTypeId },
+        }
+      }
+      const proceedingFileTypeService = new ProceedingFileTypeService()
+      const showProceedingFileType = await proceedingFileTypeService.show(proceedingFileTypeId)
+      if (!showProceedingFileType) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The proceeding file type was not found',
+          message: 'The proceeding file type was not found with the entered ID',
+          data: { proceedingFileTypeId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Proceeding file types',
+          message: 'The proceeding file type was found successfully',
+          data: { proceedingFileType: showProceedingFileType },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
       }
     }
   }
