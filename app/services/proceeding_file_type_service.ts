@@ -22,4 +22,46 @@ export default class ProceedingFileTypeService {
       .orderBy('proceeding_file_type_id')
     return proceedingFileTypes
   }
+
+  async store(proceedingFileType: ProceedingFileType) {
+    const newProceedingFileType = new ProceedingFileType()
+    newProceedingFileType.proceedingFileTypeName = proceedingFileType.proceedingFileTypeName
+    newProceedingFileType.proceedingFileTypeIcon = proceedingFileType.proceedingFileTypeIcon
+    newProceedingFileType.proceedingFileTypeSlug = proceedingFileType.proceedingFileTypeSlug
+    newProceedingFileType.proceedingFileTypeAreaToUse =
+      proceedingFileType.proceedingFileTypeAreaToUse
+    newProceedingFileType.proceedingFileTypeActive = proceedingFileType.proceedingFileTypeActive
+    await newProceedingFileType.save()
+    return newProceedingFileType
+  }
+
+  async verifyInfo(proceedingFileType: ProceedingFileType) {
+    const action = proceedingFileType.proceedingFileTypeId > 0 ? 'updated' : 'created'
+    if (!proceedingFileType.proceedingFileTypeId) {
+      const existPersonId = await ProceedingFileType.query()
+        .if(proceedingFileType.proceedingFileTypeId > 0, (query) => {
+          query.whereNot('proceedingFileTypeId', proceedingFileType.proceedingFileTypeId)
+        })
+        .whereNull('proceedingFileTypeDeletedAt')
+        .where('proceedingFileTypeName', proceedingFileType.proceedingFileTypeName)
+        .first()
+
+      if (existPersonId && proceedingFileType.proceedingFileTypeName) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The proceeding file type name exists for another proceeding file type',
+          message: `The proceeding file type resource cannot be ${action} because the person id is already assigned to another proceeding file type`,
+          data: { ...proceedingFileType },
+        }
+      }
+      return {
+        status: 200,
+        type: 'success',
+        title: 'Info verifiy successfully',
+        message: 'Info verifiy successfully',
+        data: { ...proceedingFileType },
+      }
+    }
+  }
 }
