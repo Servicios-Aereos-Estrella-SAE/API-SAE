@@ -412,7 +412,7 @@ export default class ProceedingFileTypeController {
         proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
         proceedingFileTypeActive:
           proceedingFileTypeActive &&
-          (proceedingFileTypeActive === 'true' || proceedingFileTypeActive === '1')
+          (proceedingFileTypeActive === 'true' || Number.parseInt(proceedingFileTypeActive) === 1)
             ? 1
             : 0,
       } as ProceedingFileType
@@ -589,7 +589,7 @@ export default class ProceedingFileTypeController {
         proceedingFileTypeAreaToUse: proceedingFileTypeAreaToUse,
         proceedingFileTypeActive:
           proceedingFileTypeActive &&
-          (proceedingFileTypeActive === 'true' || proceedingFileTypeActive === '1')
+          (proceedingFileTypeActive === 'true' || Number.parseInt(proceedingFileTypeActive) === 1)
             ? 1
             : 0,
       } as ProceedingFileType
