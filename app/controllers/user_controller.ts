@@ -530,7 +530,7 @@ export default class UserController {
             message
               .to(request.all().userEmail)
               .from(userEmail, 'SAE')
-              .subject('Recuperar Contraseña')
+              .subject('Recover password')
               .htmlView('emails/request_password', emailData)
           })
         }
@@ -806,7 +806,12 @@ export default class UserController {
           data: {},
         }
       }
-      user.userPassword = request.input('userPassword')
+      let userPassword = request.input('userPassword')
+      const passwordArray = Array.isArray(userPassword)
+      userPassword = passwordArray
+        ? userPassword.map((item: string) => item).join(',')
+        : userPassword
+      user.userPassword = userPassword
       user.userToken = ''
       user.save()
       response.status(200)
