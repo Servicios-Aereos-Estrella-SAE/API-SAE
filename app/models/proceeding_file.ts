@@ -40,6 +40,30 @@ import AircraftProceedingFile from './aircraft_proceeding_file.js'
  *         proceedingFileUuid:
  *           type: string
  *           description: Proceeding file uuid
+ *         proceedingFileObservations:
+ *           type: string
+ *           description: Proceeding file observations
+ *         proceedingFileAfacRights:
+ *           type: string
+ *           description: Proceeding file AFAC rights
+ *         proceedingFileSignatureDate:
+ *           type: string
+ *           description: Proceeding file signature date
+ *         proceedingFileEffectiveStartDate:
+ *           type: string
+ *           description: Proceeding file effective start date
+ *         proceedingFileEffectiveEndDate:
+ *           type: string
+ *           description: Proceeding file effective end date
+ *         proceedingFileInclusionInTheFilesDate:
+ *           type: string
+ *           description: Proceeding file inclusion in the files date
+ *         proceedingFileOperationCost:
+ *           type: string
+ *           description: Proceeding file operation Cost
+ *         proceedingFileCompleteProcess:
+ *           type: string
+ *           description: Proceeding file complete process
  *         proceedingFileCreatedAt:
  *           type: string
  *           format: date-time
@@ -75,6 +99,30 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare proceedingFileUuid: string
+
+  @column()
+  declare proceedingFileObservations: string
+
+  @column()
+  declare proceedingFileAfacRights: string
+
+  @column()
+  declare proceedingFileSignatureDate: Date
+
+  @column()
+  declare proceedingFileEffectiveStartDate: Date
+
+  @column()
+  declare proceedingFileEffectiveEndDate: Date
+
+  @column()
+  declare proceedingFileInclusionInTheFilesDate: Date
+
+  @column()
+  declare proceedingFileOperationCost: number
+
+  @column()
+  declare proceedingFileCompleteProcess: number
 
   @column.dateTime({ autoCreate: true })
   declare proceedingFileCreatedAt: DateTime
