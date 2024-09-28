@@ -10,6 +10,8 @@ import {
 } from '#validators/proceeding_file'
 import { cuid } from '@adonisjs/core/helpers'
 import path from 'node:path'
+import ProceedingFileHasStatus from '#models/proceeding_file_has_status'
+import ProceedingFileHasStatusService from '#services/proceeding_file_has_status_service'
 export default class ProceedingFileController {
   /**
    * @swagger
@@ -164,6 +166,55 @@ export default class ProceedingFileController {
    *                 description: Proceeding file identify
    *                 required: false
    *                 default: ''
+   *               proceedingFileObservations:
+   *                 type: string
+   *                 description: Proceeding file observations
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileAfacRights:
+   *                 type: string
+   *                 description: Proceeding file AFAC rights
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileSignatureDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file signature date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileEffectiveStartDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file effective start date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileEffectiveEndDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file effective end date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileInclusionInTheFilesDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file inclusion in the files date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileOperationCost:
+   *                 type: number
+   *                 description: Proceeding file operation cost
+   *                 required: false
+   *                 default: 0
+   *               proceedingFileCompleteProcess:
+   *                 type: number
+   *                 description: Proceeding file complete process
+   *                 required: false
+   *                 default: '0'
+   *               proceedingFileStatusId:
+   *                 type: number
+   *                 description: Proceeding file status id
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -296,6 +347,19 @@ export default class ProceedingFileController {
     }
     const proceedingFileActive = request.input('proceedingFileActive')
     const proceedingFileIdentify = request.input('proceedingFileIdentify')
+
+    const proceedingFileObservations = request.input('proceedingFileObservations')
+    const proceedingFileAfacRights = request.input('proceedingFileAfacRights')
+    const proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
+    const proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
+    const proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
+    const proceedingFileInclusionInTheFilesDate = request.input(
+      'proceedingFileInclusionInTheFilesDate'
+    )
+    const proceedingFileOperationCost = request.input('proceedingFileOperationCost')
+    const proceedingFileCompleteProcess = request.input('proceedingFileCompleteProcess')
+    const proceedingFileStatusId = request.input('proceedingFileStatusId')
+
     const proceedingFileUuid = cuid()
     const proceedingFile = {
       proceedingFileName: proceedingFileName,
@@ -308,6 +372,14 @@ export default class ProceedingFileController {
           : 0,
       proceedingFileIdentify: proceedingFileIdentify,
       proceedingFileUuid: proceedingFileUuid,
+      proceedingFileObservations: proceedingFileObservations,
+      proceedingFileAfacRights: proceedingFileAfacRights,
+      proceedingFileSignatureDate: proceedingFileSignatureDate,
+      proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate,
+      proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
+      proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
+      proceedingFileOperationCost: proceedingFileOperationCost,
+      proceedingFileCompleteProcess: proceedingFileCompleteProcess,
     } as ProceedingFile
     // get file name and extension
     const fileName = `${new Date().getTime()}_${file.clientName}`
@@ -331,6 +403,34 @@ export default class ProceedingFileController {
         proceedingFile.proceedingFileName = fileName
       }
       const newProceedingFile = await proceedingFileService.create(proceedingFile)
+      if (proceedingFileStatusId > 0) {
+        const proceedingFileHasStatus = {
+          proceedingFileId: newProceedingFile.proceedingFileId,
+          proceedingFileStatusId: proceedingFileStatusId,
+        } as ProceedingFileHasStatus
+        const proceedingFileHasStatusService = new ProceedingFileHasStatusService()
+        const exist = await proceedingFileHasStatusService.verifyInfoExist(proceedingFileHasStatus)
+        if (exist.status !== 200) {
+          response.status(exist.status)
+          return {
+            type: exist.type,
+            title: exist.title,
+            message: exist.message,
+            data: { ...proceedingFileHasStatus },
+          }
+        }
+        const verifyInfo = await proceedingFileHasStatusService.verifyInfo(proceedingFileHasStatus)
+        if (verifyInfo.status !== 200) {
+          response.status(verifyInfo.status)
+          return {
+            type: verifyInfo.type,
+            title: verifyInfo.title,
+            message: verifyInfo.message,
+            data: { ...proceedingFileHasStatus },
+          }
+        }
+        await proceedingFileHasStatusService.create(proceedingFileHasStatus)
+      }
       response.status(201)
       return {
         type: 'success',
@@ -399,6 +499,55 @@ export default class ProceedingFileController {
    *               proceedingFileIdentify:
    *                 type: string
    *                 description: Proceeding file identify
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileObservations:
+   *                 type: string
+   *                 description: Proceeding file observations
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileAfacRights:
+   *                 type: string
+   *                 description: Proceeding file AFAC rights
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileSignatureDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file signature date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileEffectiveStartDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file effective start date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileEffectiveEndDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file effective end date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileInclusionInTheFilesDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Proceeding file inclusion in the files date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
+   *               proceedingFileOperationCost:
+   *                 type: number
+   *                 description: Proceeding file operation cost
+   *                 required: false
+   *                 default: 0
+   *               proceedingFileCompleteProcess:
+   *                 type: number
+   *                 description: Proceeding file complete process
+   *                 required: false
+   *                 default: '0'
+   *               proceedingFileStatusId:
+   *                 type: number
+   *                 description: Proceeding file status id
    *                 required: false
    *                 default: ''
    *     responses:
@@ -526,6 +675,19 @@ export default class ProceedingFileController {
       if (proceedingFileIdentify === 'undefined' || proceedingFileIdentify === 'null') {
         proceedingFileIdentify = null
       }
+
+      const proceedingFileObservations = request.input('proceedingFileObservations')
+      const proceedingFileAfacRights = request.input('proceedingFileAfacRights')
+      const proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
+      const proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
+      const proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
+      const proceedingFileInclusionInTheFilesDate = request.input(
+        'proceedingFileInclusionInTheFilesDate'
+      )
+      const proceedingFileOperationCost = request.input('proceedingFileOperationCost')
+      const proceedingFileCompleteProcess = request.input('proceedingFileCompleteProcess')
+      const proceedingFileStatusId = request.input('proceedingFileStatusId')
+
       const proceedingFile = {
         proceedingFileId: proceedingFileId,
         proceedingFileName: proceedingFileName
@@ -547,6 +709,14 @@ export default class ProceedingFileController {
         proceedingFileIdentify: proceedingFileIdentify
           ? proceedingFileIdentify
           : currentProceedingFile.proceedingFileIdentify,
+        proceedingFileObservations: proceedingFileObservations,
+        proceedingFileAfacRights: proceedingFileAfacRights,
+        proceedingFileSignatureDate: proceedingFileSignatureDate,
+        proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate,
+        proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
+        proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
+        proceedingFileOperationCost: proceedingFileOperationCost,
+        proceedingFileCompleteProcess: proceedingFileCompleteProcess,
       } as ProceedingFile
       const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
       if (isValidInfo.status !== 200) {
@@ -600,6 +770,52 @@ export default class ProceedingFileController {
         currentProceedingFile,
         proceedingFile
       )
+      if (proceedingFileStatusId > 0) {
+        const existStatus = await ProceedingFileHasStatus.query()
+          .whereNull('proceeding_file_has_status_deleted_at')
+          .where('proceeding_file_id', proceedingFile.proceedingFileId)
+          .where('proceeding_file_status_id', proceedingFileStatusId)
+          .first()
+        if (!existStatus) {
+          const proceedingFileHasStatusAll = await ProceedingFileHasStatus.query()
+            .whereNull('proceeding_file_has_status_deleted_at')
+            .where('proceeding_file_id', proceedingFile.proceedingFileId)
+            .orderBy('proceeding_file_id')
+          for await (const status of proceedingFileHasStatusAll) {
+            // quitar el status anterior y borrar este comentario
+            await status.delete()
+          }
+          const proceedingFileHasStatus = {
+            proceedingFileId: proceedingFile.proceedingFileId,
+            proceedingFileStatusId: proceedingFileStatusId,
+          } as ProceedingFileHasStatus
+          const proceedingFileHasStatusService = new ProceedingFileHasStatusService()
+          const exist =
+            await proceedingFileHasStatusService.verifyInfoExist(proceedingFileHasStatus)
+          if (exist.status !== 200) {
+            response.status(exist.status)
+            return {
+              type: exist.type,
+              title: exist.title,
+              message: exist.message,
+              data: { ...proceedingFileHasStatus },
+            }
+          }
+          const verifyInfo =
+            await proceedingFileHasStatusService.verifyInfo(proceedingFileHasStatus)
+          if (verifyInfo.status !== 200) {
+            response.status(verifyInfo.status)
+            return {
+              type: verifyInfo.type,
+              title: verifyInfo.title,
+              message: verifyInfo.message,
+              data: { ...proceedingFileHasStatus },
+            }
+          }
+          await proceedingFileHasStatusService.create(proceedingFileHasStatus)
+        }
+      }
+
       response.status(200)
       return {
         type: 'success',

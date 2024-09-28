@@ -11,7 +11,18 @@ export default class ProceedingFileService {
     newProceedingFile.proceedingFileActive = proceedingFile.proceedingFileActive
     newProceedingFile.proceedingFileIdentify = proceedingFile.proceedingFileIdentify
     newProceedingFile.proceedingFileUuid = proceedingFile.proceedingFileUuid
+    newProceedingFile.proceedingFileObservations = proceedingFile.proceedingFileObservations
+    newProceedingFile.proceedingFileAfacRights = proceedingFile.proceedingFileAfacRights
+    newProceedingFile.proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
+    newProceedingFile.proceedingFileEffectiveStartDate =
+      proceedingFile.proceedingFileEffectiveStartDate
+    newProceedingFile.proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate
+    newProceedingFile.proceedingFileInclusionInTheFilesDate =
+      proceedingFile.proceedingFileInclusionInTheFilesDate
+    newProceedingFile.proceedingFileOperationCost = proceedingFile.proceedingFileOperationCost
+    newProceedingFile.proceedingFileCompleteProcess = proceedingFile.proceedingFileCompleteProcess
     await newProceedingFile.save()
+
     await newProceedingFile.load('proceedingFileType')
     return newProceedingFile
   }
@@ -24,6 +35,18 @@ export default class ProceedingFileService {
     currentProceedingFile.proceedingFileActive = proceedingFile.proceedingFileActive
     currentProceedingFile.proceedingFileIdentify = proceedingFile.proceedingFileIdentify
     currentProceedingFile.proceedingFileUuid = proceedingFile.proceedingFileUuid
+    currentProceedingFile.proceedingFileObservations = proceedingFile.proceedingFileObservations
+    currentProceedingFile.proceedingFileAfacRights = proceedingFile.proceedingFileAfacRights
+    currentProceedingFile.proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
+    currentProceedingFile.proceedingFileEffectiveStartDate =
+      proceedingFile.proceedingFileEffectiveStartDate
+    currentProceedingFile.proceedingFileEffectiveEndDate =
+      proceedingFile.proceedingFileEffectiveEndDate
+    currentProceedingFile.proceedingFileInclusionInTheFilesDate =
+      proceedingFile.proceedingFileInclusionInTheFilesDate
+    currentProceedingFile.proceedingFileOperationCost = proceedingFile.proceedingFileOperationCost
+    currentProceedingFile.proceedingFileCompleteProcess =
+      proceedingFile.proceedingFileCompleteProcess
     await currentProceedingFile.save()
     return currentProceedingFile
   }

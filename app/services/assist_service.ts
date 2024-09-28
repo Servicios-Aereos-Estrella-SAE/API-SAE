@@ -496,6 +496,8 @@ export default class AssistsService {
       color = 'FF993A'
     } else if (value === 'TOLERANCE') {
       color = '3CB4E5'
+    } else if (value === 'EXCEPTION') {
+      fgColor = '000000'
     }
     worksheet.getCell('O' + row).fill = {
       type: 'pattern',
@@ -879,7 +881,7 @@ export default class AssistsService {
         { text: `\n${description}\n`, font: { italic: true, size: 10, color: { argb: '000000' } } }
       )
     }
-    const cell = worksheet.getCell('O' + rowCount)
+    const cell = worksheet.getCell('P' + rowCount)
     cell.value = {
       richText: richText,
     }

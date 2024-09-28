@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 /**
  * @swagger
  * components:
@@ -13,9 +15,6 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *         proceedingFileTypeName:
  *           type: string
  *           description: Proceeding file type name
- *         proceedingFileTypeIcon:
- *           type: string
- *           description: Proceeding file type icon
  *         proceedingFileTypeSlug:
  *           type: string
  *           description: Proceeding file type SLUG
@@ -36,15 +35,12 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *           format: date-time
  *           nullable: true
  */
-export default class ProceedingFileType extends BaseModel {
+export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare proceedingFileTypeId: number
 
   @column()
   declare proceedingFileTypeName: string
-
-  @column()
-  declare proceedingFileTypeIcon: string
 
   @column()
   declare proceedingFileTypeSlug: string
@@ -61,6 +57,6 @@ export default class ProceedingFileType extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare proceedingFileTypeUpdatedAt: DateTime
 
-  @column.dateTime()
-  declare proceedingFileTypeDeletedAt: DateTime
+  @column.dateTime({ columnName: 'proceeding_file_type_deleted_at' })
+  declare deletedAt: DateTime | null
 }

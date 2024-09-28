@@ -7,7 +7,7 @@ export const createProceedingFileValidator = vine.compile(
     proceedingFileIdentify: vine.string().trim().minLength(0).maxLength(100).optional(),
     proceedingFileTypeId: vine.number().exists(async (_db, value) => {
       const proceedingFileType = await ProceedingFileType.query()
-        .whereNull('proceedingFileTypeDeletedAt')
+        .whereNull('deletedAt')
         .where('proceedingFileTypeId', value)
         .first()
       return !!proceedingFileType
@@ -21,7 +21,7 @@ export const updateProceedingFileValidator = vine.compile(
     proceedingFileIdentify: vine.string().trim().minLength(0).maxLength(100).optional(),
     proceedingFileTypeId: vine.number().exists(async (_db, value) => {
       const proceedingFileType = await ProceedingFileType.query()
-        .whereNull('proceedingFileTypeDeletedAt')
+        .whereNull('deletedAt')
         .where('proceedingFileTypeId', value)
         .first()
       return !!proceedingFileType
