@@ -165,6 +165,7 @@ export default class EmployeeService {
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     await newEmployee.save()
+    await newEmployee.load('businessUnit')
     return newEmployee
   }
 
@@ -181,6 +182,7 @@ export default class EmployeeService {
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     await currentEmployee.save()
+    await currentEmployee.load('businessUnit')
     return currentEmployee
   }
 
@@ -214,6 +216,7 @@ export default class EmployeeService {
       .preload('department')
       .preload('position')
       .preload('person')
+      .preload('businessUnit')
       .first()
     return employee ? employee : null
   }

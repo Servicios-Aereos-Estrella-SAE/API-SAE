@@ -1,4 +1,6 @@
 import { DateTime } from 'luxon'
+import { compose } from '@adonisjs/core/helpers'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import ShiftException from './shift_exception.js'
 import * as relations from '@adonisjs/lucid/types/relations'
@@ -50,7 +52,7 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         shiftExceptions:
  *           - # Example ShiftException object
  */
-export default class ExceptionType extends BaseModel {
+export default class ExceptionType extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare exceptionTypeId: number
 
@@ -69,8 +71,8 @@ export default class ExceptionType extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare exceptionTypeUpdatedAt: DateTime
 
-  @column.dateTime()
-  declare exceptionTypeDeletedAt: DateTime
+  @column.dateTime({ columnName: 'exception_type_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @hasMany(() => ShiftException)
   declare shiftExceptions: relations.HasMany<typeof ShiftException>
