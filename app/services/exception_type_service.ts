@@ -8,6 +8,7 @@ export default class ExceptionTypeService {
         query.whereRaw('UPPER(exception_type_type_name) LIKE ?', [
           `%${filters.search.toUpperCase()}%`,
         ])
+        query.orWhereRaw('UPPER(exception_type_slug) LIKE ?', [`%${filters.search.toUpperCase()}%`])
       })
       .orderBy('exception_type_id')
       .paginate(filters.page, filters.limit)
