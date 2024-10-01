@@ -67,13 +67,58 @@ export default class ProceedingFileService {
 
   async verifyInfo(proceedingFile: ProceedingFile) {
     const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
+    const proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate.toString()
+    const proceedingFileEffectiveStartDate =
+      proceedingFile.proceedingFileEffectiveStartDate.toString()
+    const proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate.toString()
+    const proceedingFileInclusionInTheFilesDate =
+      proceedingFile.proceedingFileInclusionInTheFilesDate.toString()
     if (proceedingFileExpirationAt && !this.isValidDate(proceedingFileExpirationAt)) {
       return {
         status: 400,
         type: 'error',
         title: 'Validation error',
-        message: 'Date is invalid',
+        message: 'Date expiration at is invalid',
         data: proceedingFileExpirationAt,
+      }
+    }
+    if (proceedingFileSignatureDate && !this.isValidDate(proceedingFileSignatureDate)) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date signature is invalid',
+        data: proceedingFileSignatureDate,
+      }
+    }
+    if (proceedingFileEffectiveStartDate && !this.isValidDate(proceedingFileEffectiveStartDate)) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date effective start is invalid',
+        data: proceedingFileEffectiveStartDate,
+      }
+    }
+    if (proceedingFileEffectiveEndDate && !this.isValidDate(proceedingFileEffectiveEndDate)) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date effective end is invalid',
+        data: proceedingFileEffectiveEndDate,
+      }
+    }
+    if (
+      proceedingFileInclusionInTheFilesDate &&
+      !this.isValidDate(proceedingFileInclusionInTheFilesDate)
+    ) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date inclusion in the files is invalid',
+        data: proceedingFileInclusionInTheFilesDate,
       }
     }
     return {

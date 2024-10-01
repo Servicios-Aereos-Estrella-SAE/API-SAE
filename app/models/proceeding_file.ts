@@ -59,10 +59,10 @@ import AircraftProceedingFile from './aircraft_proceeding_file.js'
  *           type: string
  *           description: Proceeding file inclusion in the files date
  *         proceedingFileOperationCost:
- *           type: string
+ *           type: number
  *           description: Proceeding file operation Cost
  *         proceedingFileCompleteProcess:
- *           type: string
+ *           type: number
  *           description: Proceeding file complete process
  *         proceedingFileCreatedAt:
  *           type: string

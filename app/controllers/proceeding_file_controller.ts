@@ -206,10 +206,10 @@ export default class ProceedingFileController {
    *                 required: false
    *                 default: 0
    *               proceedingFileCompleteProcess:
-   *                 type: number
+   *                 type: boolean
    *                 description: Proceeding file complete process
    *                 required: false
-   *                 default: '0'
+   *                 default: false
    *               proceedingFileStatusId:
    *                 type: number
    *                 description: Proceeding file status id
@@ -379,7 +379,11 @@ export default class ProceedingFileController {
       proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
       proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
       proceedingFileOperationCost: proceedingFileOperationCost,
-      proceedingFileCompleteProcess: proceedingFileCompleteProcess,
+      proceedingFileCompleteProcess:
+        proceedingFileCompleteProcess &&
+        (proceedingFileCompleteProcess === 'true' || proceedingFileCompleteProcess === '1')
+          ? 1
+          : 0,
     } as ProceedingFile
     // get file name and extension
     const fileName = `${new Date().getTime()}_${file.clientName}`
@@ -541,10 +545,10 @@ export default class ProceedingFileController {
    *                 required: false
    *                 default: 0
    *               proceedingFileCompleteProcess:
-   *                 type: number
+   *                 type: boolean
    *                 description: Proceeding file complete process
    *                 required: false
-   *                 default: '0'
+   *                 default: false
    *               proceedingFileStatusId:
    *                 type: number
    *                 description: Proceeding file status id
@@ -716,7 +720,11 @@ export default class ProceedingFileController {
         proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
         proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
         proceedingFileOperationCost: proceedingFileOperationCost,
-        proceedingFileCompleteProcess: proceedingFileCompleteProcess,
+        proceedingFileCompleteProcess:
+          proceedingFileCompleteProcess &&
+          (proceedingFileCompleteProcess === 'true' || proceedingFileCompleteProcess === '1')
+            ? 1
+            : 0,
       } as ProceedingFile
       const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
       if (isValidInfo.status !== 200) {
@@ -777,13 +785,13 @@ export default class ProceedingFileController {
           .where('proceeding_file_status_id', proceedingFileStatusId)
           .first()
         if (!existStatus) {
-          const proceedingFileHasStatusAll = await ProceedingFileHasStatus.query()
+          const existProceedingFileHasStatus = await ProceedingFileHasStatus.query()
             .whereNull('proceeding_file_has_status_deleted_at')
             .where('proceeding_file_id', proceedingFile.proceedingFileId)
             .orderBy('proceeding_file_id')
-          for await (const status of proceedingFileHasStatusAll) {
-            // quitar el status anterior y borrar este comentario
-            await status.delete()
+            .first()
+          if (existProceedingFileHasStatus) {
+            await existProceedingFileHasStatus.delete()
           }
           const proceedingFileHasStatus = {
             proceedingFileId: proceedingFile.proceedingFileId,
