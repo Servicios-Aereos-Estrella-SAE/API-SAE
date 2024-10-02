@@ -350,22 +350,46 @@ export default class ProceedingFileController {
 
     const proceedingFileObservations = request.input('proceedingFileObservations')
     const proceedingFileAfacRights = request.input('proceedingFileAfacRights')
-    const proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-    const proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-    const proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-    const proceedingFileInclusionInTheFilesDate = request.input(
-      'proceedingFileInclusionInTheFilesDate'
+    let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate', null)
+    if (proceedingFileSignatureDate === 'undefined' || proceedingFileSignatureDate === 'null') {
+      proceedingFileSignatureDate = null
+    }
+    let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate', null)
+    if (
+      proceedingFileEffectiveStartDate === 'undefined' ||
+      proceedingFileEffectiveStartDate === 'null'
+    ) {
+      proceedingFileEffectiveStartDate = null
+    }
+    let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate', null)
+    if (
+      proceedingFileEffectiveEndDate === 'undefined' ||
+      proceedingFileEffectiveEndDate === 'null'
+    ) {
+      proceedingFileEffectiveEndDate = null
+    }
+    let proceedingFileInclusionInTheFilesDate = request.input(
+      'proceedingFileInclusionInTheFilesDate',
+      null
     )
+    if (
+      proceedingFileInclusionInTheFilesDate === 'undefined' ||
+      proceedingFileInclusionInTheFilesDate === 'null'
+    ) {
+      proceedingFileInclusionInTheFilesDate = null
+    }
     const proceedingFileOperationCost = request.input('proceedingFileOperationCost')
     const proceedingFileCompleteProcess = request.input('proceedingFileCompleteProcess')
     const proceedingFileStatusId = request.input('proceedingFileStatusId')
-
+    const proceedingFileService = new ProceedingFileService()
     const proceedingFileUuid = cuid()
     const proceedingFile = {
       proceedingFileName: proceedingFileName,
       proceedingFilePath: '',
       proceedingFileTypeId: proceedingFileTypeId,
-      proceedingFileExpirationAt: proceedingFileExpirationAt ? proceedingFileExpirationAt : null,
+      proceedingFileExpirationAt: proceedingFileExpirationAt
+        ? proceedingFileService.formatDate(proceedingFileExpirationAt)
+        : null,
       proceedingFileActive:
         proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
           ? 1
@@ -374,10 +398,18 @@ export default class ProceedingFileController {
       proceedingFileUuid: proceedingFileUuid,
       proceedingFileObservations: proceedingFileObservations,
       proceedingFileAfacRights: proceedingFileAfacRights,
-      proceedingFileSignatureDate: proceedingFileSignatureDate,
-      proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate,
-      proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
-      proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
+      proceedingFileSignatureDate: proceedingFileSignatureDate
+        ? proceedingFileService.formatDate(proceedingFileSignatureDate)
+        : null,
+      proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate
+        ? proceedingFileService.formatDate(proceedingFileEffectiveStartDate)
+        : null,
+      proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate
+        ? proceedingFileService.formatDate(proceedingFileEffectiveEndDate)
+        : null,
+      proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate
+        ? proceedingFileService.formatDate(proceedingFileInclusionInTheFilesDate)
+        : null,
       proceedingFileOperationCost: proceedingFileOperationCost,
       proceedingFileCompleteProcess:
         proceedingFileCompleteProcess &&
@@ -388,7 +420,6 @@ export default class ProceedingFileController {
     // get file name and extension
     const fileName = `${new Date().getTime()}_${file.clientName}`
     const uploadService = new UploadService()
-    const proceedingFileService = new ProceedingFileService()
     const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
     if (isValidInfo.status !== 200) {
       response.status(isValidInfo.status)
@@ -682,12 +713,34 @@ export default class ProceedingFileController {
 
       const proceedingFileObservations = request.input('proceedingFileObservations')
       const proceedingFileAfacRights = request.input('proceedingFileAfacRights')
-      const proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-      const proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-      const proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-      const proceedingFileInclusionInTheFilesDate = request.input(
-        'proceedingFileInclusionInTheFilesDate'
+      let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate', null)
+      if (proceedingFileSignatureDate === 'undefined' || proceedingFileSignatureDate === 'null') {
+        proceedingFileSignatureDate = null
+      }
+      let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate', null)
+      if (
+        proceedingFileEffectiveStartDate === 'undefined' ||
+        proceedingFileEffectiveStartDate === 'null'
+      ) {
+        proceedingFileEffectiveStartDate = null
+      }
+      let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate', null)
+      if (
+        proceedingFileEffectiveEndDate === 'undefined' ||
+        proceedingFileEffectiveEndDate === 'null'
+      ) {
+        proceedingFileEffectiveEndDate = null
+      }
+      let proceedingFileInclusionInTheFilesDate = request.input(
+        'proceedingFileInclusionInTheFilesDate',
+        null
       )
+      if (
+        proceedingFileInclusionInTheFilesDate === 'undefined' ||
+        proceedingFileInclusionInTheFilesDate === 'null'
+      ) {
+        proceedingFileInclusionInTheFilesDate = null
+      }
       const proceedingFileOperationCost = request.input('proceedingFileOperationCost')
       const proceedingFileCompleteProcess = request.input('proceedingFileCompleteProcess')
       const proceedingFileStatusId = request.input('proceedingFileStatusId')
@@ -715,10 +768,18 @@ export default class ProceedingFileController {
           : currentProceedingFile.proceedingFileIdentify,
         proceedingFileObservations: proceedingFileObservations,
         proceedingFileAfacRights: proceedingFileAfacRights,
-        proceedingFileSignatureDate: proceedingFileSignatureDate,
-        proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate,
-        proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
-        proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
+        proceedingFileSignatureDate: proceedingFileSignatureDate
+          ? proceedingFileService.formatDate(proceedingFileSignatureDate)
+          : null,
+        proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate
+          ? proceedingFileService.formatDate(proceedingFileEffectiveStartDate)
+          : null,
+        proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate
+          ? proceedingFileService.formatDate(proceedingFileEffectiveEndDate)
+          : null,
+        proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate
+          ? proceedingFileService.formatDate(proceedingFileInclusionInTheFilesDate)
+          : null,
         proceedingFileOperationCost: proceedingFileOperationCost,
         proceedingFileCompleteProcess:
           proceedingFileCompleteProcess &&

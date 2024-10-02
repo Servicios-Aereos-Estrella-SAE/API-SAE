@@ -107,16 +107,16 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
   declare proceedingFileAfacRights: string
 
   @column()
-  declare proceedingFileSignatureDate: Date
+  declare proceedingFileSignatureDate: string
 
   @column()
-  declare proceedingFileEffectiveStartDate: Date
+  declare proceedingFileEffectiveStartDate: string
 
   @column()
-  declare proceedingFileEffectiveEndDate: Date
+  declare proceedingFileEffectiveEndDate: string
 
   @column()
-  declare proceedingFileInclusionInTheFilesDate: Date
+  declare proceedingFileInclusionInTheFilesDate: string
 
   @column()
   declare proceedingFileOperationCost: number
