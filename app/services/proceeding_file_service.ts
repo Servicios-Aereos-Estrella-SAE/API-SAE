@@ -68,7 +68,7 @@ export default class ProceedingFileService {
   }
 
   async verifyInfo(proceedingFile: ProceedingFile) {
-    const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
+    /* const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
     const proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
     const proceedingFileEffectiveStartDate = proceedingFile.proceedingFileEffectiveStartDate
     const proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate
@@ -127,7 +127,7 @@ export default class ProceedingFileService {
         message: 'Date inclusion in the files is invalid',
         data: proceedingFileInclusionInTheFilesDate,
       }
-    }
+    } */
     return {
       status: 200,
       type: 'success',
@@ -137,7 +137,7 @@ export default class ProceedingFileService {
     }
   }
 
-  private isValidDate(date: string) {
+  /* private isValidDate(date: string) {
     try {
       date = date.replaceAll('"', '')
       let dt = DateTime.fromISO(date)
@@ -151,7 +151,7 @@ export default class ProceedingFileService {
       }
     } catch (error) {}
     return false
-  }
+  } */
 
   formatDate(date: string) {
     const dateOrigin = new Date(date.toString())

@@ -3,7 +3,7 @@ import AircraftProceedingFile from '../models/aircraft_proceeding_file.js'
 import {
   createAircraftProceedingFileValidator,
   updateAircraftProceedingFileValidator,
-} from '../validators/create_aircraft_proceeding_file.js'
+} from '../validators/aircraft_proceeding_file.js'
 import { formatResponse } from '../helpers/responseFormatter.js'
 import AircraftProceedingFileService from '#services/aircraft_proceeding_file_service'
 import { AircraftProceedingFileFilterInterface } from '../interfaces/aircraft_proceeding_file_filter_interface.js'
@@ -74,18 +74,57 @@ export default class AircraftProceedingFileController {
    *                   $ref: '#/components/schemas/AircraftProceedingFile'
    */
   async store({ request, response }: HttpContext) {
-    const payload = await request.validateUsing(createAircraftProceedingFileValidator)
-
-    const newFile = await AircraftProceedingFile.create({
-      aircraftId: payload.aircraftId,
-      proceedingFileId: payload.proceedingFileId,
-    })
-
-    return response.json({
-      status: 'success',
-      message: 'Aircraft proceeding file created successfully.',
-      data: newFile,
-    })
+    try {
+      const data = await request.validateUsing(createAircraftProceedingFileValidator)
+      const aircraftId = request.input('aircraftId')
+      const proceedingFileId = request.input('proceedingFileId')
+      const aircraftProceedingFile = {
+        aircraftId: aircraftId,
+        proceedingFileId: proceedingFileId,
+      } as AircraftProceedingFile
+      const aircraftProceedingFileService = new AircraftProceedingFileService()
+      const exist = await aircraftProceedingFileService.verifyInfoExist(aircraftProceedingFile)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await aircraftProceedingFileService.verifyInfo(aircraftProceedingFile)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const newAircraftProceedingFile =
+        await aircraftProceedingFileService.create(aircraftProceedingFile)
+      if (newAircraftProceedingFile) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Aircraft proceeding files',
+          message: 'The relation aircraft-proceedingfile was created successfully',
+          data: { aircraftProceedingFile: newAircraftProceedingFile },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
   }
   /**
    * @swagger
@@ -115,11 +154,46 @@ export default class AircraftProceedingFileController {
    *                   $ref: '#/components/schemas/AircraftProceedingFile'
    */
   async show({ params, response }: HttpContext) {
-    const file = await AircraftProceedingFile.findOrFail(params.id)
-    return response.json({
-      status: 'success',
-      data: file,
-    })
+    try {
+      const aircraftProceedingFileId = params.id
+      if (!aircraftProceedingFileId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The relation aircraft-proceedingfile Id was not found',
+          message: 'Missing data to process',
+          data: { aircraftProceedingFileId },
+        }
+      }
+      const aircraftProceedingFileService = new AircraftProceedingFileService()
+      const showAircraftProceedingFile =
+        await aircraftProceedingFileService.show(aircraftProceedingFileId)
+      if (!showAircraftProceedingFile) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The relation aircraft-proceedingfile was not found',
+          message: 'The relation aircraft-proceedingfile was not found with the entered ID',
+          data: { aircraftProceedingFileId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Aircraft proceeding files',
+          message: 'The relation aircraft-proceedingfile was found successfully',
+          data: { aircraftProceedingFile: showAircraftProceedingFile },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
   }
   /**
    * @swagger
@@ -157,22 +231,84 @@ export default class AircraftProceedingFileController {
    *                 data:
    *                   $ref: '#/components/schemas/AircraftProceedingFile'
    */
-  async update({ params, request, response }: HttpContext) {
-    const payload = await request.validateUsing(updateAircraftProceedingFileValidator)
-    const file = await AircraftProceedingFile.findOrFail(params.id)
-
-    file.merge({
-      aircraftId: payload.aircraftId,
-      proceedingFileId: payload.proceedingFileId,
-    })
-
-    await file.save()
-
-    return response.json({
-      status: 'success',
-      message: 'Aircraft proceeding file updated successfully.',
-      data: file,
-    })
+  async update({ request, response }: HttpContext) {
+    try {
+      const aircraftProceedingFileId = request.input('aircraftProceedingFileId')
+      const aircraftId = request.input('aircraftId')
+      const proceedingFileId = request.input('proceedingFileId')
+      const aircraftProceedingFile = {
+        aircraftProceedingFileId: aircraftProceedingFileId,
+        aircraftId: aircraftId,
+        proceedingFileId: proceedingFileId,
+      } as AircraftProceedingFile
+      if (!aircraftProceedingFileId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The relation aircraft-proceedingfile Id was not found',
+          message: 'Missing data to process',
+          data: { ...aircraftProceedingFile },
+        }
+      }
+      const currentAircraftProceedingFile = await AircraftProceedingFile.query()
+        .whereNull('aircraft_proceeding_file_deleted_at')
+        .where('aircraft_proceeding_file_id', aircraftProceedingFileId)
+        .first()
+      if (!currentAircraftProceedingFile) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The relation aircraft-proceedingfile was not found',
+          message: 'The relation aircraft-proceedingfile was not found with the entered ID',
+          data: { ...aircraftProceedingFile },
+        }
+      }
+      const aircraftProceedingFileService = new AircraftProceedingFileService()
+      const data = await request.validateUsing(updateAircraftProceedingFileValidator)
+      const exist = await aircraftProceedingFileService.verifyInfoExist(aircraftProceedingFile)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await aircraftProceedingFileService.verifyInfo(aircraftProceedingFile)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const updateAircraftProceedingFile = await aircraftProceedingFileService.update(
+        currentAircraftProceedingFile,
+        aircraftProceedingFile
+      )
+      if (updateAircraftProceedingFile) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Aircraft proceeding files',
+          message: 'The relation aircraft-proceedingfile was updated successfully',
+          data: { aircraftProceedingFile: updateAircraftProceedingFile },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
   }
   /**
    * @swagger
@@ -228,12 +364,13 @@ export default class AircraftProceedingFileController {
         .where('aircraftId', aircraftId)
         .preload('proceedingFile', (fileQuery) => {
           fileQuery.preload('proceedingFileType')
+          fileQuery.preload('proceedingFileStatus')
         })
         .orderBy('aircraftProceedingFileCreatedAt', 'desc')
 
       const aircraftProceedingFiles = await mainQuery.paginate(page, limit)
 
-      if (aircraftProceedingFiles.total === 0) {
+      /* if (aircraftProceedingFiles.total === 0) {
         response.status(404)
         return formatResponse(
           'warning',
@@ -241,7 +378,7 @@ export default class AircraftProceedingFileController {
           'No proceeding files found for the given aircraft ID',
           { aircraftId }
         )
-      }
+      } */
 
       return response
         .status(200)

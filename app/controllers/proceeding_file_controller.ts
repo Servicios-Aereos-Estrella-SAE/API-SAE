@@ -12,6 +12,7 @@ import { cuid } from '@adonisjs/core/helpers'
 import path from 'node:path'
 import ProceedingFileHasStatus from '#models/proceeding_file_has_status'
 import ProceedingFileHasStatusService from '#services/proceeding_file_has_status_service'
+import { DateTime } from 'luxon'
 export default class ProceedingFileController {
   /**
    * @swagger
@@ -346,30 +347,32 @@ export default class ProceedingFileController {
     const proceedingFileTypeId = inputs['proceedingFileTypeId']
     let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
     proceedingFileExpirationAt = proceedingFileExpirationAt
-      ? new Date((proceedingFileExpirationAt.split('T')[0] + ' 00:000:00').replace('"', ''))
-      : ''
+      ? DateTime.fromJSDate(new Date(proceedingFileExpirationAt)).setZone('UTC').toJSDate()
+      : null
     const proceedingFileActive = inputs['proceedingFileActive']
     const proceedingFileIdentify = inputs['proceedingFileIdentify']
     const proceedingFileObservations = inputs['proceedingFileObservations']
     const proceedingFileAfacRights = inputs['proceedingFileAfacRights']
     let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-    proceedingFileSignatureDate = (
-      proceedingFileSignatureDate.split('T')[0] + ' 00:000:00'
-    ).replace('"', '')
+    proceedingFileSignatureDate = proceedingFileSignatureDate
+      ? DateTime.fromJSDate(new Date(proceedingFileSignatureDate)).setZone('UTC').toJSDate()
+      : null
     let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-    proceedingFileEffectiveStartDate = (
-      proceedingFileEffectiveStartDate.split('T')[0] + ' 00:000:00'
-    ).replace('"', '')
+    proceedingFileEffectiveStartDate = proceedingFileEffectiveStartDate
+      ? DateTime.fromJSDate(new Date(proceedingFileEffectiveStartDate)).setZone('UTC').toJSDate()
+      : null
     let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-    proceedingFileEffectiveEndDate = (
-      proceedingFileEffectiveEndDate.split('T')[0] + ' 00:000:00'
-    ).replace('"', '')
+    proceedingFileEffectiveEndDate = proceedingFileEffectiveEndDate
+      ? DateTime.fromJSDate(new Date(proceedingFileEffectiveEndDate)).setZone('UTC').toJSDate()
+      : null
     let proceedingFileInclusionInTheFilesDate = request.input(
       'proceedingFileInclusionInTheFilesDate'
     )
-    proceedingFileInclusionInTheFilesDate = (
-      proceedingFileInclusionInTheFilesDate.split('T')[0] + ' 00:000:00'
-    ).replace('"', '')
+    proceedingFileInclusionInTheFilesDate = proceedingFileInclusionInTheFilesDate
+      ? DateTime.fromJSDate(new Date(proceedingFileInclusionInTheFilesDate))
+          .setZone('UTC')
+          .toJSDate()
+      : null
     const proceedingFileOperationCost = inputs['proceedingFileOperationCost']
     const proceedingFileCompleteProcess = inputs['proceedingFileCompleteProcess']
     const proceedingFileStatusId = inputs['proceedingFileStatusId']
@@ -686,30 +689,32 @@ export default class ProceedingFileController {
       const proceedingFileTypeId = inputs['proceedingFileTypeId']
       let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
       proceedingFileExpirationAt = proceedingFileExpirationAt
-        ? new Date((proceedingFileExpirationAt.split('T')[0] + ' 00:000:00').replace('"', ''))
-        : ''
+        ? DateTime.fromJSDate(new Date(proceedingFileExpirationAt)).setZone('UTC').toJSDate()
+        : null
       const proceedingFileActive = inputs['proceedingFileActive']
       const proceedingFileIdentify = inputs['proceedingFileIdentify']
       const proceedingFileObservations = inputs['proceedingFileObservations']
       const proceedingFileAfacRights = inputs['proceedingFileAfacRights']
       let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-      proceedingFileSignatureDate = (
-        proceedingFileSignatureDate.split('T')[0] + ' 00:000:00'
-      ).replace('"', '')
+      proceedingFileSignatureDate = proceedingFileSignatureDate
+        ? DateTime.fromJSDate(new Date(proceedingFileSignatureDate)).setZone('UTC').toJSDate()
+        : null
       let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-      proceedingFileEffectiveStartDate = (
-        proceedingFileEffectiveStartDate.split('T')[0] + ' 00:000:00'
-      ).replace('"', '')
+      proceedingFileEffectiveStartDate = proceedingFileEffectiveStartDate
+        ? DateTime.fromJSDate(new Date(proceedingFileEffectiveStartDate)).setZone('UTC').toJSDate()
+        : null
       let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-      proceedingFileEffectiveEndDate = (
-        proceedingFileEffectiveEndDate.split('T')[0] + ' 00:000:00'
-      ).replace('"', '')
+      proceedingFileEffectiveEndDate = proceedingFileEffectiveEndDate
+        ? DateTime.fromJSDate(new Date(proceedingFileEffectiveEndDate)).setZone('UTC').toJSDate()
+        : null
       let proceedingFileInclusionInTheFilesDate = request.input(
         'proceedingFileInclusionInTheFilesDate'
       )
-      proceedingFileInclusionInTheFilesDate = (
-        proceedingFileInclusionInTheFilesDate.split('T')[0] + ' 00:000:00'
-      ).replace('"', '')
+      proceedingFileInclusionInTheFilesDate = proceedingFileInclusionInTheFilesDate
+        ? DateTime.fromJSDate(new Date(proceedingFileInclusionInTheFilesDate))
+            .setZone('UTC')
+            .toJSDate()
+        : null
       const proceedingFileOperationCost = inputs['proceedingFileOperationCost']
       const proceedingFileCompleteProcess = inputs['proceedingFileCompleteProcess']
       const proceedingFileStatusId = inputs['proceedingFileStatusId']

@@ -94,6 +94,7 @@ export default class CustomerService {
       .where('customer_id', employeeId)
       .preload('proceedingFile', (query) => {
         query.preload('proceedingFileType')
+        query.preload('proceedingFileStatus')
       })
       .orderBy('customer_id')
     return proceedingFiles ? proceedingFiles : []
