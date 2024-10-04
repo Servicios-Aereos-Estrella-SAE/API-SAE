@@ -41,7 +41,8 @@ export default class FlightAttendantProceedingFileService {
       .whereNull('flight_attendant_proceeding_file_deleted_at')
       .where('flight_attendant_proceeding_file_id', flightAttendantProceedingFileId)
       .preload('proceedingFile', async (query) => {
-        await query.preload('proceedingFileType')
+        query.preload('proceedingFileType')
+        query.preload('proceedingFileStatus')
       })
       .first()
     return flightAttendantProceedingFile ? flightAttendantProceedingFile : null
