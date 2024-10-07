@@ -686,6 +686,36 @@ export default class DepartmentController {
     }
   }
 
+  async getOrganization({ auth, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+      const departments = await new DepartmentService().buildOrganization(departmentsList)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Departments',
+        message: 'Departments were found successfully',
+        data: {
+          departments,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   async getSearch({ auth, request, response }: HttpContext) {
     try {
       await auth.check()

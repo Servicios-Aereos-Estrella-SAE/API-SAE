@@ -39,6 +39,32 @@ export default class DepartmentService {
     return list
   }
 
+  async buildOrganization(departmentsList: Array<number>) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+    const departments = await Department.query()
+      .has('departmentsPositions')
+      .whereHas('employees', (query) => {
+        query.whereIn('businessUnitId', businessUnitsList)
+      })
+      .preload('employees', (query) => {
+        query.whereIn('businessUnitId', businessUnitsList)
+        query.preload('position')
+      })
+      .whereIn('departmentId', departmentsList)
+      .orderBy('departmentId', 'asc')
+
+    const list = departments.filter((department) => department.employees.length > 0)
+
+    return list
+  }
+
   async syncCreate(department: BiometricDepartmentInterface) {
     const newDepartment = new Department()
     newDepartment.departmentSyncId = department.id
