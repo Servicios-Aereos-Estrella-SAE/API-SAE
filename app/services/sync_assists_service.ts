@@ -613,6 +613,10 @@ export default class SyncAssistsService {
         if (dateAssistItem.assist.shiftCalculateFlag === '12x36') {
           dateAssistItem = await this.calendar12x36(dateAssistItem)
         }
+
+        if (dateAssistItem.assist.shiftCalculateFlag === '24x24') {
+          dateAssistItem = await this.calendar24x24(dateAssistItem)
+        }
       }
 
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
@@ -624,6 +628,8 @@ export default class SyncAssistsService {
 
   private checkInStatus(checkAssist: AssistDayInterface) {
     const checkAssistCopy = checkAssist
+    const TOLERANCE_DELAY_MINUTES = 10
+    const TOLERANCE_FAULT_MINUTES = 30
 
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
@@ -680,7 +686,7 @@ export default class SyncAssistsService {
 
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
 
-    if (diffTime > 5 * 60) {
+    if (diffTime > TOLERANCE_FAULT_MINUTES) {
       if (checkAssist.assist) {
         checkAssistCopy.assist.checkOut = checkAssistCopy.assist.checkIn
         checkAssistCopy.assist.checkIn = null
@@ -700,11 +706,11 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
-    if (diffTime > 15) {
+    if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'delay'
     }
 
-    if (diffTime <= 15) {
+    if (diffTime <= TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'tolerance'
     }
 
@@ -1301,6 +1307,76 @@ export default class SyncAssistsService {
     }
 
     dateAssistItem.assist.checkOutStatus = ''
+
+    return dateAssistItem
+  }
+
+  private calendar24x24(dateAssistItem: AssistDayInterface) {
+    const startDay24x24 = DateTime.fromJSDate(
+      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
+    ).setZone('America/Mexico_City')
+
+    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
+      'America/Mexico_City'
+    )
+
+    const daysBettweenStart = Math.floor(evaluatedDay.diff(startDay24x24, 'days').days)
+    const isStartWorkday = !!(daysBettweenStart % 2 === 0)
+    const isEndWorkday = !!(daysBettweenStart % 2 === 1)
+    const isRestWorkday = !!(daysBettweenStart % 2 === 1)
+
+    if (isStartWorkday) {
+      if (dateAssistItem.assist.checkOut) {
+        dateAssistItem.assist.checkOutStatus = 'working'
+
+        if (dateAssistItem.assist.assitFlatList) {
+          if (dateAssistItem.assist.assitFlatList.length < 3) {
+            dateAssistItem.assist.checkEatIn = null
+            dateAssistItem.assist.checkEatOut = null
+          }
+
+          if (dateAssistItem.assist.assitFlatList.length === 3) {
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkOut
+          }
+        }
+
+        dateAssistItem.assist.checkOut = null
+      }
+    }
+
+    if (isEndWorkday) {
+      dateAssistItem.assist.isRestDay = true
+
+      if (dateAssistItem.assist.checkIn) {
+        dateAssistItem.assist.checkInStatus = 'working'
+        dateAssistItem.assist.checkOutStatus = 'ontime'
+        dateAssistItem.assist.checkIn = null
+
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+
+        if (dateAssistItem.assist.assitFlatList) {
+          if (dateAssistItem.assist.assitFlatList.length === 2) {
+            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+            dateAssistItem.assist.checkOut = null
+          }
+          if (dateAssistItem.assist.assitFlatList.length >= 3) {
+            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+          }
+        }
+      } else {
+        dateAssistItem.assist.checkInStatus = ''
+        dateAssistItem.assist.checkOutStatus = ''
+      }
+    }
+
+    if (isRestWorkday) {
+      dateAssistItem.assist.isRestDay = true
+    }
+
+    // dateAssistItem.assist.checkOutStatus = ''
 
     return dateAssistItem
   }
