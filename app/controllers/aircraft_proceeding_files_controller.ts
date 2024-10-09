@@ -211,7 +211,126 @@ export default class AircraftProceedingFileController {
       message: 'Aircraft proceeding file deleted successfully.',
     })
   }
-
+  /**
+   * @swagger
+   * /api/aircraft-proceeding-files/{aircraftId}:
+   *   get:
+   *     tags:
+   *       - Aircrafts Proceeding Files
+   *     summary: Obtener archivos de procedimiento de aeronave
+   *     parameters:
+   *       - in: path
+   *         name: aircraftId
+   *         required: true
+   *         description: ID de la aeronave para la que se desean obtener los archivos de procedimiento.
+   *         schema:
+   *           type: string
+   *           example: "12345"  # Reemplaza con un ID de aeronave de ejemplo
+   *       - in: query
+   *         name: page
+   *         required: false
+   *         description: Número de página para la paginación de resultados.
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *       - in: query
+   *         name: limit
+   *         required: false
+   *         description: Número de resultados por página.
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *     responses:
+   *       200:
+   *         description: Archivos de procedimiento de aeronave obtenidos exitosamente
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: success
+   *                 message:
+   *                   type: string
+   *                   example: Proceeding files fetched successfully.
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     total:
+   *                       type: integer
+   *                       example: 2
+   *                     per_page:
+   *                       type: integer
+   *                       example: 10
+   *                     current_page:
+   *                       type: integer
+   *                       example: 1
+   *                     last_page:
+   *                       type: integer
+   *                       example: 1
+   *                     data:
+   *                       type: array
+   *                       items:
+   *                         $ref: '#/components/schemas/AircraftProceedingFile'  # Asegúrate de definir este esquema en tu documentación
+   *       400:
+   *         description: Error de solicitud, ID de aeronave no proporcionado
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: warning
+   *                 message:
+   *                   type: string
+   *                   example: Aircraft ID not found
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     aircraftId:
+   *                       type: string
+   *                       example: null
+   *       404:
+   *         description: No se encontraron archivos de procedimiento
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: warning
+   *                 message:
+   *                   type: string
+   *                   example: No proceeding files found
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     aircraftId:
+   *                       type: string
+   *                       example: "12345"
+   *       500:
+   *         description: Error en el servidor
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: error
+   *                 message:
+   *                   type: string
+   *                   example: Server error
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     error:
+   *                       type: string
+   *                       example: Unexpected error occurred on the server.
+   */
   async getAircraftProceedingFiles({ request, response }: HttpContext) {
     try {
       const aircraftId = request.param('aircraftId')
