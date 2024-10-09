@@ -56,10 +56,10 @@ export default class AssistsService {
         extension: 'png',
       })
       worksheet.addImage(imageId, {
-        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
-        ext: { width: 225, height: 80 },
+        tl: { col: 0.28, row: 0.7 },
+        ext: { width: 139, height: 49 },
       })
-      worksheet.getRow(1).height = 87
+      worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
       let color = '244062'
@@ -195,10 +195,10 @@ export default class AssistsService {
         extension: 'png',
       })
       worksheet.addImage(imageId, {
-        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
-        ext: { width: 225, height: 80 },
+        tl: { col: 0.28, row: 0.7 },
+        ext: { width: 139, height: 49 },
       })
-      worksheet.getRow(1).height = 87
+      worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
       let color = '244062'
@@ -342,10 +342,10 @@ export default class AssistsService {
         extension: 'png',
       })
       worksheet.addImage(imageId, {
-        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
-        ext: { width: 225, height: 80 },
+        tl: { col: 0.28, row: 0.7 },
+        ext: { width: 139, height: 49 },
       })
-      worksheet.getRow(1).height = 87
+      worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
       let color = '244062'
@@ -517,10 +517,10 @@ export default class AssistsService {
         extension: 'png',
       })
       worksheet.addImage(imageId, {
-        tl: { col: 0, row: 0, nativeCol: 0, nativeColOff: 0, nativeRow: 0, nativeRowOff: 0 },
-        ext: { width: 225, height: 80 },
+        tl: { col: 0.28, row: 0.7 },
+        ext: { width: 139, height: 49 },
       })
-      worksheet.getRow(1).height = 87
+      worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
       let color = '244062'
@@ -1137,13 +1137,13 @@ export default class AssistsService {
     columnA.width = 23
     columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
-    columnB.width = 20
+    columnB.width = 16
     columnB.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnC = worksheet.getColumn(3)
     columnC.width = 32
     columnC.alignment = { vertical: 'middle', horizontal: 'left' }
     const columnD = worksheet.getColumn(4)
-    columnD.width = 44
+    columnD.width = 16
     columnD.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnE = worksheet.getColumn(5)
     columnE.width = 16
@@ -1306,7 +1306,7 @@ export default class AssistsService {
     let currentDepartment = ''
     let currentDepartmentRow = 5
     for await (const rowData of rows) {
-      if (rowData.employeeName !== 'empty') {
+      if (rowData.employeeName !== 'null') {
         if (currentDepartment !== rowData.department && rowData.department) {
           if (currentDepartment !== '') {
             worksheet.mergeCells(`A${currentDepartmentRow}:A${rowCount - 3}`)
@@ -1394,8 +1394,8 @@ export default class AssistsService {
     })
     // Agregar la imagen y centrarla en la celda
     worksheet.addImage(imageId, {
-      tl: { col: 0.1, row: 0.7 },
-      ext: { width: 170, height: 50 }, // Tamaño de la imagen
+      tl: { col: 0.28, row: 0.7 },
+      ext: { width: 139, height: 49 }, // Tamaño de la imagen
     })
     worksheet.getRow(1).height = 60
     const fgColor = '000000'
@@ -1417,7 +1417,6 @@ export default class AssistsService {
   ) {
     totalRowIncident.employeeId = ''
     totalRowIncident.employeeName = ''
-    totalRowIncident.daysWorked += row.daysWorked
     totalRowIncident.daysOnTime += row.daysOnTime
     totalRowIncident.tolerances += row.tolerances
     totalRowIncident.delays += row.delays
@@ -1438,7 +1437,6 @@ export default class AssistsService {
     totalRowIncident.employeeId = ''
     totalRowIncident.employeeName = ''
     totalRowIncident.department = 'TOTALS'
-    totalRowIncident.daysWorked += rowByDepartment.daysWorked
     totalRowIncident.daysOnTime += rowByDepartment.daysOnTime
     totalRowIncident.tolerances += rowByDepartment.tolerances
     totalRowIncident.delays += rowByDepartment.delays
@@ -1454,8 +1452,7 @@ export default class AssistsService {
 
   cleanTotalByDepartment(totalRowIncident: AssistIncidentExcelRowInterface) {
     totalRowIncident.employeeId = ''
-    totalRowIncident.employeeName = 'empty'
-    totalRowIncident.daysWorked = 0
+    totalRowIncident.employeeName = 'null'
     totalRowIncident.daysOnTime = 0
     totalRowIncident.tolerances = 0
     totalRowIncident.delays = 0
