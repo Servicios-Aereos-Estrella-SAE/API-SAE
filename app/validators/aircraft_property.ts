@@ -30,7 +30,7 @@ export const createAircraftPropertyValidator = vine.compile(
     aircraftPropertiesAutonomyHours: vine.number().min(0),
     aircraftPropertiesLandingCostNational: vine.number().min(0),
     aircraftPropertiesOvernightStayInternational: vine.number().min(0),
-
+    aircraftPropertiesBanner: vine.any().optional(),
     aircraftPropertiesHourlyRate: vine.number().optional(),
     aircraftPropertiesLandingCostBase: vine.number().optional(),
     aircraftPropertiesLandingCostInternational: vine.number().optional(),
@@ -59,7 +59,7 @@ export const updateAircraftPropertyValidator = vine.compile(
     aircraftPropertiesLandingCostNational: vine.number().optional(),
     aircraftPropertiesOvernightStayInternational: vine.number().optional(),
     aircraftPropertyBanner: vine.any().optional(),
-
+    aircraftPropertiesBanner: vine.any().optional(),
     aircraftPropertiesHourlyRate: vine.number().optional(),
     aircraftPropertiesLandingCostBase: vine.number().optional(),
     aircraftPropertiesLandingCostInternational: vine.number().optional(),

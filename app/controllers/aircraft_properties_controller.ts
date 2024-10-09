@@ -139,34 +139,76 @@ export default class AircraftPropertiesController {
    *       '400':
    *         description: Invalid input, validation error
    */
+  // async store({ request, response }: HttpContext) {
+  //   try {
+  //     const data = await request.validateUsing(createAircraftPropertyValidator)
+
+  //     const aircraftProperty = await AircraftProperty.create(data)
+
+  //     const bannerFile = request.file('aircraftPropertyBanner')
+  //     if (bannerFile) {
+  //       const bannerUrl = await this.fileUpload(bannerFile)
+  //       if (bannerUrl !== 'file_not_found' && bannerUrl !== 'S3Producer.fileUpload') {
+  //         await aircraftProperty.load('aircraftClass')
+  //         if (aircraftProperty.aircraftClass) {
+  //           aircraftProperty.aircraftClass.merge({ aircraftClassBanner: bannerUrl })
+  //           await aircraftProperty.aircraftClass.save()
+  //         } else {
+  //           return response
+  //             .status(404)
+  //             .json(formatResponse('error', 'Not found', 'Aircraft class not found', response))
+  //         }
+  //       } else {
+  //         return response
+  //           .status(500)
+  //           .json(formatResponse('error', 'Upload error', 'Failed to upload file to S3', bannerUrl))
+  //       }
+  //     }
+  //     await aircraftProperty.load('aircraftClass', (aircraftClassQuery) => {
+  //       aircraftClassQuery.select('aircraftClassBanner')
+  //     })
+  //     return response
+  //       .status(201)
+  //       .json(
+  //         formatResponse(
+  //           'success',
+  //           'Successfully action',
+  //           'Resource created',
+  //           aircraftProperty.toJSON()
+  //         )
+  //       )
+  //   } catch (error) {
+  //     return response
+  //       .status(400)
+  //       .json(
+  //         formatResponse('error', 'Validation error', 'Invalid input, validation error 400', error)
+  //       )
+  //   }
+  // }
   async store({ request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(createAircraftPropertyValidator)
 
-      const aircraftProperty = await AircraftProperty.create(data)
-
+      // Cargar el archivo del banner
       const bannerFile = request.file('aircraftPropertyBanner')
       if (bannerFile) {
         const bannerUrl = await this.fileUpload(bannerFile)
         if (bannerUrl !== 'file_not_found' && bannerUrl !== 'S3Producer.fileUpload') {
-          await aircraftProperty.load('aircraftClass')
-          if (aircraftProperty.aircraftClass) {
-            aircraftProperty.aircraftClass.merge({ aircraftClassBanner: bannerUrl })
-            await aircraftProperty.aircraftClass.save()
-          } else {
-            return response
-              .status(404)
-              .json(formatResponse('error', 'Not found', 'Aircraft class not found', response))
-          }
+          data.aircraftPropertiesBanner = bannerUrl // Guardar la URL en el atributo adecuado
         } else {
           return response
             .status(500)
             .json(formatResponse('error', 'Upload error', 'Failed to upload file to S3', bannerUrl))
         }
       }
+
+      // Crear el registro de aircraftProperty con el banner
+      const aircraftProperty = await AircraftProperty.create(data)
+
       await aircraftProperty.load('aircraftClass', (aircraftClassQuery) => {
         aircraftClassQuery.select('aircraftClassBanner')
       })
+
       return response
         .status(201)
         .json(
@@ -326,35 +368,87 @@ export default class AircraftPropertiesController {
   //       )
   //   }
   // }
+  // async update({ params, request, response }: HttpContext) {
+  //   try {
+  //     const data = await request.validateUsing(updateAircraftPropertyValidator)
+  //     const aircraftProperty = await AircraftProperty.findOrFail(params.id)
+  //     const { aircraftPropertyBanner, ...filteredData } = data
+  //     const bannerFile = request.file('aircraftPropertyBanner')
+  //     if (bannerFile) {
+  //       const bannerUrl = await this.fileUpload(bannerFile)
+  //       if (bannerUrl !== 'file_not_found' && bannerUrl !== 'S3Producer.fileUpload') {
+  //         // Cargar la clase de aeronave relacionada
+  //         await aircraftProperty.load('aircraftClass')
+  //         if (aircraftProperty.aircraftClass) {
+  //           aircraftProperty.aircraftClass.merge({ aircraftClassBanner: bannerUrl })
+  //           await aircraftProperty.aircraftClass.save()
+  //         } else {
+  //           return response
+  //             .status(404)
+  //             .json(formatResponse('error', 'Not found', 'Aircraft class not found', response))
+  //         }
+  //       } else {
+  //         return response
+  //           .status(500)
+  //           .json(formatResponse('error', 'Upload error', 'Failed to upload file to S3', bannerUrl))
+  //       }
+  //     }
+  //     aircraftProperty.merge(filteredData)
+  //     await aircraftProperty.save()
+  //     // Asegúrate de cargar la relación `aircraftClass` antes de responder
+  //     await aircraftProperty.load('aircraftClass')
+  //     return response
+  //       .status(200)
+  //       .json(
+  //         formatResponse(
+  //           'success',
+  //           'Successfully action',
+  //           'Resource updated',
+  //           aircraftProperty.toJSON()
+  //         )
+  //       )
+  //   } catch (error) {
+  //     console.error('Error updating aircraft property:', error)
+  //     return response
+  //       .status(400)
+  //       .json(
+  //         formatResponse(
+  //           'error',
+  //           'Validation error',
+  //           'Invalid input, validation error 400',
+  //           error.messages || error
+  //         )
+  //       )
+  //   }
+  // }
   async update({ params, request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(updateAircraftPropertyValidator)
       const aircraftProperty = await AircraftProperty.findOrFail(params.id)
+
+      // Extraer el banner del data y otros datos
       const { aircraftPropertyBanner, ...filteredData } = data
+
+      // Manejar la carga del banner
       const bannerFile = request.file('aircraftPropertyBanner')
       if (bannerFile) {
         const bannerUrl = await this.fileUpload(bannerFile)
         if (bannerUrl !== 'file_not_found' && bannerUrl !== 'S3Producer.fileUpload') {
-          // Cargar la clase de aeronave relacionada
-          await aircraftProperty.load('aircraftClass')
-          if (aircraftProperty.aircraftClass) {
-            aircraftProperty.aircraftClass.merge({ aircraftClassBanner: bannerUrl })
-            await aircraftProperty.aircraftClass.save()
-          } else {
-            return response
-              .status(404)
-              .json(formatResponse('error', 'Not found', 'Aircraft class not found', response))
-          }
+          // Guardar la URL del banner en el atributo aircraftPropertyBanner
+          aircraftProperty.aircraftPropertiesBanner = bannerUrl
         } else {
           return response
             .status(500)
             .json(formatResponse('error', 'Upload error', 'Failed to upload file to S3', bannerUrl))
         }
       }
+
+      // Mezclar los datos filtrados
       aircraftProperty.merge(filteredData)
+
+      // Guardar la propiedad de aeronave actualizada
       await aircraftProperty.save()
-      // Asegúrate de cargar la relación `aircraftClass` antes de responder
-      await aircraftProperty.load('aircraftClass')
+
       return response
         .status(200)
         .json(
@@ -379,6 +473,7 @@ export default class AircraftPropertiesController {
         )
     }
   }
+
   /**
    * @swagger
    * /api/aircraft-properties/{id}:
