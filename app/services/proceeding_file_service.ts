@@ -24,6 +24,7 @@ export default class ProceedingFileService {
     await newProceedingFile.save()
 
     await newProceedingFile.load('proceedingFileType')
+    await newProceedingFile.load('proceedingFileStatus')
     return newProceedingFile
   }
 
@@ -61,19 +62,19 @@ export default class ProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .where('proceeding_file_id', proceedingFileId)
       .preload('proceedingFileType')
+      .preload('proceedingFileStatus')
       .first()
     return proceedingFile ? proceedingFile : null
   }
 
   async verifyInfo(proceedingFile: ProceedingFile) {
-    const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
-    const proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate.toString()
-    const proceedingFileEffectiveStartDate =
-      proceedingFile.proceedingFileEffectiveStartDate.toString()
-    const proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate.toString()
+    /* const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
+    const proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
+    const proceedingFileEffectiveStartDate = proceedingFile.proceedingFileEffectiveStartDate
+    const proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate
     const proceedingFileInclusionInTheFilesDate =
-      proceedingFile.proceedingFileInclusionInTheFilesDate.toString()
-    if (proceedingFileExpirationAt && !this.isValidDate(proceedingFileExpirationAt)) {
+      proceedingFile.proceedingFileInclusionInTheFilesDate
+    if (proceedingFileExpirationAt && !this.isValidDate(proceedingFileExpirationAt.toString())) {
       return {
         status: 400,
         type: 'error',
@@ -82,7 +83,7 @@ export default class ProceedingFileService {
         data: proceedingFileExpirationAt,
       }
     }
-    if (proceedingFileSignatureDate && !this.isValidDate(proceedingFileSignatureDate)) {
+    if (proceedingFileSignatureDate && !this.isValidDate(proceedingFileSignatureDate.toString())) {
       return {
         status: 400,
         type: 'error',
@@ -91,7 +92,10 @@ export default class ProceedingFileService {
         data: proceedingFileSignatureDate,
       }
     }
-    if (proceedingFileEffectiveStartDate && !this.isValidDate(proceedingFileEffectiveStartDate)) {
+    if (
+      proceedingFileEffectiveStartDate &&
+      !this.isValidDate(proceedingFileEffectiveStartDate.toString())
+    ) {
       return {
         status: 400,
         type: 'error',
@@ -100,7 +104,10 @@ export default class ProceedingFileService {
         data: proceedingFileEffectiveStartDate,
       }
     }
-    if (proceedingFileEffectiveEndDate && !this.isValidDate(proceedingFileEffectiveEndDate)) {
+    if (
+      proceedingFileEffectiveEndDate &&
+      !this.isValidDate(proceedingFileEffectiveEndDate.toString())
+    ) {
       return {
         status: 400,
         type: 'error',
@@ -111,7 +118,7 @@ export default class ProceedingFileService {
     }
     if (
       proceedingFileInclusionInTheFilesDate &&
-      !this.isValidDate(proceedingFileInclusionInTheFilesDate)
+      !this.isValidDate(proceedingFileInclusionInTheFilesDate.toString())
     ) {
       return {
         status: 400,
@@ -120,7 +127,7 @@ export default class ProceedingFileService {
         message: 'Date inclusion in the files is invalid',
         data: proceedingFileInclusionInTheFilesDate,
       }
-    }
+    } */
     return {
       status: 200,
       type: 'success',
@@ -130,7 +137,7 @@ export default class ProceedingFileService {
     }
   }
 
-  private isValidDate(date: string) {
+  /* private isValidDate(date: string) {
     try {
       date = date.replaceAll('"', '')
       let dt = DateTime.fromISO(date)
@@ -144,12 +151,22 @@ export default class ProceedingFileService {
       }
     } catch (error) {}
     return false
-  }
+  } */
 
   formatDate(date: string) {
     const dateOrigin = new Date(date.toString())
     const dateNew = DateTime.fromJSDate(dateOrigin)
     const dateFormated = dateNew.toFormat('yyyy-MM-dd')
+    //aqui zona horaria cambiar
     return dateFormated
+  }
+
+  sanitizeInput(input: { [key: string]: string | null }) {
+    for (let key in input) {
+      if (input[key] === 'null' || input[key] === 'undefined') {
+        input[key] = null
+      }
+    }
+    return input
   }
 }

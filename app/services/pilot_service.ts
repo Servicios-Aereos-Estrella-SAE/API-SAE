@@ -95,6 +95,7 @@ export default class PilotService {
       .where('pilot_id', employeeId)
       .preload('proceedingFile', (query) => {
         query.preload('proceedingFileType')
+        query.preload('proceedingFileStatus')
       })
       .orderBy('pilot_id')
     return proceedingFiles ? proceedingFiles : []
