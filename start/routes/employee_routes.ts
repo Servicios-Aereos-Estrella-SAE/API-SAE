@@ -22,5 +22,6 @@ router
       '/:employeeId/get-vacations-corresponding',
       '#controllers/employee_controller.getVacationsCorresponding'
     )
+    router.get('/:employeeId/get-years-worked', '#controllers/employee_controller.getYearsWorked')
   })
   .prefix('/api/employees')

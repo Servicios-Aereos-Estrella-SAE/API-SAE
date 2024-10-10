@@ -69,6 +69,7 @@ export default class ShiftExceptionController {
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
       const shiftExceptionsDate = request.input('shiftExceptionsDate')
       const exceptionTypeId = request.input('exceptionTypeId')
+      const vacationSettingId = request.input('vacationSettingId')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       if (!shiftExceptionService.isValidDate(shiftExceptionsDate)) {
@@ -84,10 +85,12 @@ export default class ShiftExceptionController {
         shiftExceptionsDescription: shiftExceptionsDescription,
         shiftExceptionsDate: shiftExceptionService.getDateAndTime(shiftExceptionsDate),
         exceptionTypeId: exceptionTypeId,
+        vacationSettingId: vacationSettingId ? vacationSettingId : null,
       } as ShiftException
       const newShiftException = await shiftExceptionService.create(shiftException)
       if (newShiftException) {
         await newShiftException.load('exceptionType')
+        await newShiftException.load('vacationSetting')
         response.status(201)
         return {
           type: 'success',
@@ -185,6 +188,7 @@ export default class ShiftExceptionController {
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
       const shiftExceptionsDate = request.input('shiftExceptionsDate')
       const exceptionTypeId = request.input('exceptionTypeId')
+      const vacationSettingId = request.input('vacationSettingId')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       if (!shiftExceptionService.isValidDate(shiftExceptionsDate)) {
@@ -201,6 +205,7 @@ export default class ShiftExceptionController {
         shiftExceptionsDescription: shiftExceptionsDescription,
         shiftExceptionsDate: shiftExceptionService.getDateAndTime(shiftExceptionsDate),
         exceptionTypeId: exceptionTypeId,
+        vacationSettingId: vacationSettingId ? vacationSettingId : null,
       } as ShiftException
       const updateShiftException = await shiftExceptionService.update(
         currentShiftException,
@@ -208,6 +213,7 @@ export default class ShiftExceptionController {
       )
       if (updateShiftException) {
         await updateShiftException.load('exceptionType')
+        await updateShiftException.load('vacationSetting')
         response.status(201)
         return {
           type: 'success',

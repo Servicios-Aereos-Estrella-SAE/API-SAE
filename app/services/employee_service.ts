@@ -542,4 +542,39 @@ export default class EmployeeService {
       .where('position_id', positionId)
     return employees.length > 0
   }
+
+  async getYearsWorked(employee: Employee) {
+    if (employee.employeeHireDate) {
+      const start = DateTime.fromISO(employee.employeeHireDate.toString())
+      const currentYear = DateTime.now().year
+      const month = start.month
+      const day = start.day
+      const yearsWroked = []
+      for (let year = start.year; year <= currentYear; year++) {
+        const yearsPassed = year - start.year
+        const vacationSetting = await VacationSetting.query()
+          .whereNull('vacation_setting_deleted_at')
+          .where('vacation_setting_years_of_service', yearsPassed)
+          .where('vacation_setting_apply_since', '<=', `${year}/${month}/${day}`)
+          .orderBy('vacation_setting_apply_since', 'asc')
+          .first()
+        yearsWroked.push({ year, yearsPassed, vacationSetting })
+      }
+      return {
+        status: 200,
+        type: 'success',
+        title: 'Info get successfully',
+        message: 'Info get successfully',
+        data: yearsWroked,
+      }
+    } else {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee hire date was not found',
+        message: 'The employee hire date was not found ',
+        data: {},
+      }
+    }
+  }
 }
