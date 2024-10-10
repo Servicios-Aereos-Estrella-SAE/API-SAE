@@ -628,7 +628,7 @@ export default class SyncAssistsService {
 
   private checkInStatus(checkAssist: AssistDayInterface) {
     const checkAssistCopy = checkAssist
-    const TOLERANCE_DELAY_MINUTES = 10
+    const TOLERANCE_DELAY_MINUTES = 1
     const TOLERANCE_FAULT_MINUTES = 30
 
     if (!checkAssist?.assist?.dateShift) {
@@ -669,7 +669,7 @@ export default class SyncAssistsService {
     const checkTime = DayTime.setZone('UTC-5')
 
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
+    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
       'America/Mexico_City'
     )
