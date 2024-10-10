@@ -2043,6 +2043,12 @@ export default class EmployeeController {
    *           type: number
    *         description: Employee id
    *         required: true
+   *       - name: year
+   *         in: query
+   *         required: false
+   *         description: Year
+   *         schema:
+   *           type: integer
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -2127,6 +2133,7 @@ export default class EmployeeController {
   async getYearsWorked({ request, response }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
+      const year = request.input('year')
       if (!employeeId) {
         response.status(400)
         return {
@@ -2147,7 +2154,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const yearsWorked = await employeeService.getYearsWorked(employee)
+      const yearsWorked = await employeeService.getYearsWorked(employee, year)
       if (yearsWorked.status === 200) {
         response.status(yearsWorked.status)
         return {

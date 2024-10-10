@@ -44,6 +44,7 @@ export default class ShiftExceptionService {
         query.where('shift_exceptions_date', '<=', filterEndDate)
       })
       .preload('exceptionType')
+      .preload('vacationSetting')
       .orderBy('shift_exceptions_date')
     return shiftExceptions
   }

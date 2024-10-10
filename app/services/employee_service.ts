@@ -543,15 +543,37 @@ export default class EmployeeService {
     return employees.length > 0
   }
 
-  async getYearsWorked(employee: Employee) {
+  async getYearsWorked(employee: Employee, yearTemp: number) {
+    if (yearTemp) {
+      if (yearTemp > 3000) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The year is incorrect',
+          message: 'the year must be less than 3000',
+          data: { yearTemp: yearTemp },
+        }
+      }
+    }
     if (employee.employeeHireDate) {
       const start = DateTime.fromISO(employee.employeeHireDate.toString())
-      const currentYear = DateTime.now().year
+      const startYear = yearTemp ? yearTemp : start.year
+      const currentYear = yearTemp ? yearTemp : DateTime.now().year + 1
+      let yearsPassed = startYear - start.year
+      if (yearsPassed < 0) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The year is incorrect',
+          message: 'The year is not valid ',
+          data: { startYear: startYear },
+        }
+      }
       const month = start.month
       const day = start.day
       const yearsWroked = []
-      for (let year = start.year; year <= currentYear; year++) {
-        const yearsPassed = year - start.year
+      for (let year = startYear; year <= currentYear; year++) {
+        yearsPassed = year - start.year
         const vacationSetting = await VacationSetting.query()
           .whereNull('vacation_setting_deleted_at')
           .where('vacation_setting_years_of_service', yearsPassed)
