@@ -18,6 +18,19 @@ import HolidayService from './holiday_service.js'
 import { HolidayInterface } from '../interfaces/holiday_interface.js'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 
+interface Tolerance {
+  toleranceId: number
+  toleranceName: string
+  toleranceMinutes: number
+  toleranceCreatedAt: string
+  toleranceUpdatedAt: string
+  deletedAt: string | null
+}
+
+interface ToleranceResponse {
+  data: Tolerance[]
+}
+
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -591,7 +604,7 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-      dateAssistItem = this.checkInStatus(dateAssistItem)
+      dateAssistItem = await this.checkInStatus(dateAssistItem)
       dateAssistItem = this.checkOutStatus(dateAssistItem)
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
@@ -626,11 +639,11 @@ export default class SyncAssistsService {
     return dailyAssistList
   }
 
-  private checkInStatus(checkAssist: AssistDayInterface) {
+  private async checkInStatus(checkAssist: AssistDayInterface) {
     const checkAssistCopy = checkAssist
-    const TOLERANCE_DELAY_MINUTES = 1
-    const TOLERANCE_FAULT_MINUTES = 30
-
+    const { delayTolerance, faultTolerance } = await this.getTolerances()
+    const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
+    const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
     }
@@ -705,7 +718,6 @@ export default class SyncAssistsService {
 
       return checkAssistCopy
     }
-
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'delay'
     }
@@ -719,6 +731,26 @@ export default class SyncAssistsService {
     }
 
     return checkAssistCopy
+  }
+  private async getTolerances(): Promise<{ delayTolerance: Tolerance; faultTolerance: Tolerance }> {
+    try {
+      let apiUrl = `http://${env.get('HOST')}:${env.get('PORT')}/api/tolerances`
+      const response = await fetch(apiUrl)
+
+      if (!response.ok) {
+        throw new Error(`Error en la solicitud: ${response.statusText}`)
+      }
+      const { data } = (await response.json()) as ToleranceResponse
+      const delayTolerance = data.find((t: Tolerance) => t.toleranceName === 'Delay')
+      const faultTolerance = data.find((t: Tolerance) => t.toleranceName === 'Fault')
+      if (!delayTolerance || !faultTolerance) {
+        throw new Error('No se encontraron tolerancias para Delay o Fault')
+      }
+      return { delayTolerance, faultTolerance }
+    } catch (error) {
+      console.error('Error al obtener las tolerancias:', error)
+      throw error
+    }
   }
 
   private checkOutStatus(checkAssist: AssistDayInterface) {
