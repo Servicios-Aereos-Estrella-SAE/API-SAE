@@ -580,7 +580,15 @@ export default class EmployeeService {
           .where('vacation_setting_apply_since', '<=', `${year}/${month}/${day}`)
           .orderBy('vacation_setting_apply_since', 'asc')
           .first()
-        yearsWroked.push({ year, yearsPassed, vacationSetting })
+        let vacationsUsedList = [] as Array<ShiftException>
+        if (vacationSetting) {
+          vacationsUsedList = await ShiftException.query()
+            .whereNull('shift_exceptions_deleted_at')
+            .where('vacation_setting_id', vacationSetting.vacationSettingId)
+            .where('employee_id', employee.employeeId)
+            .orderBy('shift_exceptions_date', 'asc')
+        }
+        yearsWroked.push({ year, yearsPassed, vacationSetting, vacationsUsedList })
       }
       return {
         status: 200,
@@ -598,5 +606,15 @@ export default class EmployeeService {
         data: {},
       }
     }
+  }
+
+  async getVacationsByPeriod(employeeId: number, vacationSettingId: number) {
+    const vacations = await ShiftException.query()
+      .whereNull('shift_exceptions_deleted_at')
+      .where('vacation_setting_id', vacationSettingId)
+      .where('employee_id', employeeId)
+      .orderBy('shift_exceptions_date', 'asc')
+
+    return vacations ? vacations : []
   }
 }
