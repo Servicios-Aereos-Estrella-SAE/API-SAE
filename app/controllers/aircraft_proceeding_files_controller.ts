@@ -347,9 +347,10 @@ export default class AircraftProceedingFileController {
       message: 'Aircraft proceeding file deleted successfully.',
     })
   }
+
   /**
    * @swagger
-   * /api/aircraft-proceeding-files/{aircraftId}:
+   * /api/aircraft-proceeding-files/{aircraftId}/proceeding-files:
    *   get:
    *     tags:
    *       - Aircrafts Proceeding Files
@@ -376,6 +377,12 @@ export default class AircraftProceedingFileController {
    *         schema:
    *           type: integer
    *           default: 10
+   *       - in: query
+   *         name: type
+   *         required: false
+   *         description: Proceeding file type id to show only files with the type
+   *         schema:
+   *           type: integer
    *     responses:
    *       200:
    *         description: Archivos de procedimiento de aeronave obtenidos exitosamente
@@ -470,34 +477,36 @@ export default class AircraftProceedingFileController {
   async getAircraftProceedingFiles({ request, response }: HttpContext) {
     try {
       const aircraftId = request.param('aircraftId')
+      const fileType = request.input('type')
+
       if (!aircraftId) {
         response.status(400)
         return formatResponse('warning', 'Aircraft ID not found', 'Missing data to process', {
           aircraftId,
         })
       }
+
       const page = request.input('page', 1)
       const limit = request.input('limit', 10)
+
       const mainQuery = AircraftProceedingFile.query()
         .whereNull('deletedAt')
         .where('aircraftId', aircraftId)
+        .whereHas('proceedingFile', (fileQuery) => {
+          fileQuery.if(fileType, (query) => {
+            query.where('proceedingFileTypeId', fileType)
+          })
+        })
         .preload('proceedingFile', (fileQuery) => {
           fileQuery.preload('proceedingFileType')
           fileQuery.preload('proceedingFileStatus')
+          fileQuery.if(fileType, (query) => {
+            query.where('proceedingFileTypeId', fileType)
+          })
         })
         .orderBy('aircraftProceedingFileCreatedAt', 'desc')
 
       const aircraftProceedingFiles = await mainQuery.paginate(page, limit)
-
-      /* if (aircraftProceedingFiles.total === 0) {
-        response.status(404)
-        return formatResponse(
-          'warning',
-          'No proceeding files found',
-          'No proceeding files found for the given aircraft ID',
-          { aircraftId }
-        )
-      } */
 
       return response
         .status(200)
