@@ -13,6 +13,7 @@ router
     router.get('/', '#controllers/assists_controller.index')//.use(middleware.auth({ guards: ['api'] }))
     router.get('/status', '#controllers/assists_controller.getStatusSync')
     router.post('/synchronize', '#controllers/assists_controller.synchronize')
+    router.post('/employee-synchronize', '#controllers/assists_controller.employeeSynchronize')
   })
   .use(middleware.auth())
   .prefix('/api/v1/assists')

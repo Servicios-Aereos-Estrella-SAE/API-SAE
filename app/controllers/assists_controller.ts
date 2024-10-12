@@ -66,6 +66,79 @@ export default class AssistsController {
       return response.status(400).json({ message: error.message })
     }
   }
+
+  /**
+   * @swagger
+   * /api/v1/assists/employee-synchronize:
+   *   post:
+   *     summary: Synchronize assists
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Assists]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               startDate:
+   *                 type: string
+   *                 required: true
+   *                 format: date
+   *                 example: "2024-10-07"
+   *               endDate:
+   *                 type: string
+   *                 required: true
+   *                 format: date
+   *                 example: "2024-10-13"
+   *               empCode:
+   *                 type: string
+   *                 example: "1"
+   *     responses:
+   *       200:
+   *         description: Synchronization started
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Proceso de sincronización iniciado
+   *       400:
+   *         description: Synchronization in progress or other error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Ya se encuentra un proceso en sincronización, por favor espere
+   */
+  @inject()
+  async employeeSynchronize(
+    { request, response }: HttpContext,
+    syncAssistsService: SyncAssistsService
+  ) {
+    const startDate = request.input('startDate')
+    const endDate = request.input('endDate')
+    const empCode = request.input('empCode')
+    const page = request.input('page')
+
+    try {
+      const result = await syncAssistsService.synchronizeByEmployee(
+        startDate,
+        endDate,
+        empCode,
+        page
+      )
+      return response.status(200).json(result)
+    } catch (error) {
+      return response.status(400).json({ message: error.message })
+    }
+  }
   /**
    * @swagger
    * /api/v1/assists/status:
