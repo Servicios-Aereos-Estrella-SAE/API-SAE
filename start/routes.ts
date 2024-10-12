@@ -45,6 +45,7 @@ import './routes/gallery_routes.js'
 import './routes/business_unit_routes.js'
 import './routes/aircraft_proceeding_file_routes.js'
 import './routes/proceeding_file_status_routes.js'
+import './routes/tolerance_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
