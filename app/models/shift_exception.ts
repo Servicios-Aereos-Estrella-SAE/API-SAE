@@ -5,6 +5,7 @@ import ExceptionType from './exception_type.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
+import VacationSetting from './vacation_setting.js'
 /**
  * @swagger
  * components:
@@ -30,6 +31,10 @@ import { compose } from '@adonisjs/core/helpers'
  *         shiftExceptionDescription:
  *           type: string
  *           description: Description of the shift exception
+ *         vacationSettingId:
+ *           type: number
+ *           nullable: true
+ *           description: ID of the vacation setting associated with the shift exception
  *         shiftExceptionCreatedAt:
  *           type: string
  *           format: date-time
@@ -53,6 +58,7 @@ import { compose } from '@adonisjs/core/helpers'
  *         shiftExceptionId: 1
  *         employeeId: 1
  *         exceptionTypeId: 1
+ *         vacationSettingId: 1
  *         shiftExceptionsDate: '2024-06-20'
  *         shiftExceptionsDescription: "Employee was absent from work"
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
@@ -61,6 +67,8 @@ import { compose } from '@adonisjs/core/helpers'
  *         employee:
  *           # Example Employee object
  *         exceptionType:
+ *           # Example ExceptionType object
+ *         vacattionSetting:
  *           # Example ExceptionType object
  */
 export default class ShiftException extends compose(BaseModel, SoftDeletes) {
@@ -85,6 +93,9 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare shiftExceptionsUpdatedAt: DateTime
 
+  @column()
+  declare vacationSettingId: number
+
   @column.dateTime({ columnName: 'shift_exceptions_deleted_at' })
   declare deletedAt: DateTime | null
 
@@ -97,4 +108,9 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'exceptionTypeId',
   })
   declare exceptionType: BelongsTo<typeof ExceptionType>
+
+  @belongsTo(() => VacationSetting, {
+    foreignKey: 'vacationSettingId',
+  })
+  declare vacationSetting: BelongsTo<typeof VacationSetting>
 }
