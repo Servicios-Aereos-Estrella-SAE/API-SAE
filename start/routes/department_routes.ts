@@ -9,6 +9,7 @@ router
       '#controllers/department_controller.getSearchPositions'
     )
     router.get('/', '#controllers/department_controller.getAll')
+    router.get('/organization', '#controllers/department_controller.getOrganization')
     router.get('/search', '#controllers/department_controller.getSearch')
     router.post('/', '#controllers/department_controller.store')
     router.put('/:departmentId', '#controllers/department_controller.update')

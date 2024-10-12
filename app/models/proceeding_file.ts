@@ -9,6 +9,7 @@ import FlightAttendantProceedingFile from './flight_attendant_proceeding_file.js
 import PilotProceedingFile from './pilot_proceeding_file.js'
 import CustomerProceedingFile from './customer_proceeding_file.js'
 import AircraftProceedingFile from './aircraft_proceeding_file.js'
+import ProceedingFileHasStatus from './proceeding_file_has_status.js'
 /**
  * @swagger
  * components:
@@ -59,10 +60,10 @@ import AircraftProceedingFile from './aircraft_proceeding_file.js'
  *           type: string
  *           description: Proceeding file inclusion in the files date
  *         proceedingFileOperationCost:
- *           type: string
+ *           type: number
  *           description: Proceeding file operation Cost
  *         proceedingFileCompleteProcess:
- *           type: string
+ *           type: number
  *           description: Proceeding file complete process
  *         proceedingFileCreatedAt:
  *           type: string
@@ -89,7 +90,7 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
   declare proceedingFileTypeId: number
 
   @column()
-  declare proceedingFileExpirationAt: string
+  declare proceedingFileExpirationAt: Date
 
   @column()
   declare proceedingFileActive: number
@@ -137,6 +138,15 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'proceedingFileTypeId',
   })
   declare proceedingFileType: BelongsTo<typeof ProceedingFileType>
+
+  @hasOne(() => ProceedingFileHasStatus, {
+    foreignKey: 'proceedingFileId',
+    localKey: 'proceedingFileId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt')
+    },
+  })
+  declare proceedingFileStatus: HasOne<typeof ProceedingFileHasStatus>
 
   @hasOne(() => AircraftProceedingFile, {
     foreignKey: 'proceedingFileId',

@@ -18,6 +18,19 @@ import HolidayService from './holiday_service.js'
 import { HolidayInterface } from '../interfaces/holiday_interface.js'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 
+interface Tolerance {
+  toleranceId: number
+  toleranceName: string
+  toleranceMinutes: number
+  toleranceCreatedAt: string
+  toleranceUpdatedAt: string
+  deletedAt: string | null
+}
+
+interface ToleranceResponse {
+  data: Tolerance[]
+}
+
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -89,6 +102,28 @@ export default class SyncAssistsService {
       apiPageSize: limit,
     }
     return result2
+  }
+
+  async synchronizeByEmployee(
+    startDate: string,
+    endDate: string,
+    empCode: string,
+    page: number = 1,
+    limit: number = 5000
+  ) {
+    const dateParam = new Date(startDate)
+    const dateEndParam = new Date(endDate)
+    page = 1
+    let response = await this.fetchExternalDataEmployee(
+      dateParam,
+      dateEndParam,
+      empCode,
+      page,
+      limit
+    )
+
+    await this.saveAssistDataEmployee(response)
+    return response
   }
 
   async handleSyncAssists(
@@ -178,6 +213,29 @@ export default class SyncAssistsService {
     return responseDataDto
   }
 
+  async fetchExternalDataEmployee(
+    startDate: Date,
+    endDate: Date,
+    empCode: string,
+    page: number,
+    limit: number = 50
+  ): Promise<ResponseApiAssistsDto> {
+    logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
+    // Aquí harías la petición a la API externa
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-by-employee-async`
+    apiUrl = `${apiUrl}?page=${page || ''}`
+    apiUrl = `${apiUrl}&limit=${limit || ''}`
+    apiUrl = `${apiUrl}&assistStartDate=${startDate.toISOString() || ''}`
+    apiUrl = `${apiUrl}&assistEndDate=${endDate.toISOString() || ''}`
+    apiUrl = `${apiUrl}&empCode=${empCode || ''}`
+    logger.info(`API URL: ${apiUrl}`)
+    const apiResponse = await axios.get(apiUrl)
+    let responseDataDto: ResponseApiAssistsDto
+    responseDataDto = apiResponse.data
+    responseDataDto.pagination = apiResponse.data.pagination
+    return responseDataDto
+  }
+
   async updateLocalData(externalData: ResponseApiAssistsDto) {
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
@@ -200,6 +258,30 @@ export default class SyncAssistsService {
           })
           .save()
       } else {
+        const newAssist = new Assist()
+        newAssist.assistEmpCode = item.emp_code
+        newAssist.assistTerminalSn = item.terminal_sn
+        newAssist.assistTerminalAlias = item.terminal_alias
+        newAssist.assistAreaAlias = item.area_alias
+        newAssist.assistLongitude = item.longitude
+        newAssist.assistLatitude = item.latitude
+        newAssist.assistUploadTime = DateTime.fromISO(item.upload_time.toString())
+        newAssist.assistEmpId = item.emp_id
+        newAssist.assistTerminalId = item.terminal_id
+        newAssist.assistPunchTime = DateTime.fromISO(item.punch_time_local.toString())
+        newAssist.assistPunchTimeUtc = DateTime.fromISO(item.punch_time.toString())
+        newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
+        newAssist.assistSyncId = item.id
+        await newAssist.save()
+      }
+    }
+  }
+
+  async saveAssistDataEmployee(externalData: ResponseApiAssistsDto) {
+    for await (const item of externalData.data) {
+      const existingAssist = await Assist.findBy('assist_sync_id', item.id)
+      // convert objetct to string
+      if (!existingAssist) {
         const newAssist = new Assist()
         newAssist.assistEmpCode = item.emp_code
         newAssist.assistTerminalSn = item.terminal_sn
@@ -591,7 +673,7 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-      dateAssistItem = this.checkInStatus(dateAssistItem)
+      dateAssistItem = await this.checkInStatus(dateAssistItem)
       dateAssistItem = this.checkOutStatus(dateAssistItem)
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
@@ -626,11 +708,11 @@ export default class SyncAssistsService {
     return dailyAssistList
   }
 
-  private checkInStatus(checkAssist: AssistDayInterface) {
+  private async checkInStatus(checkAssist: AssistDayInterface) {
     const checkAssistCopy = checkAssist
-    const TOLERANCE_DELAY_MINUTES = 10
-    const TOLERANCE_FAULT_MINUTES = 30
-
+    const { delayTolerance, faultTolerance } = await this.getTolerances()
+    const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
+    const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
     }
@@ -669,7 +751,7 @@ export default class SyncAssistsService {
     const checkTime = DayTime.setZone('UTC-5')
 
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
+    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
       'America/Mexico_City'
     )
@@ -705,7 +787,6 @@ export default class SyncAssistsService {
 
       return checkAssistCopy
     }
-
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'delay'
     }
@@ -719,6 +800,26 @@ export default class SyncAssistsService {
     }
 
     return checkAssistCopy
+  }
+  private async getTolerances(): Promise<{ delayTolerance: Tolerance; faultTolerance: Tolerance }> {
+    try {
+      let apiUrl = `http://${env.get('HOST')}:${env.get('PORT')}/api/tolerances`
+      const response = await fetch(apiUrl)
+
+      if (!response.ok) {
+        throw new Error(`Error en la solicitud: ${response.statusText}`)
+      }
+      const { data } = (await response.json()) as ToleranceResponse
+      const delayTolerance = data.find((t: Tolerance) => t.toleranceName === 'Delay')
+      const faultTolerance = data.find((t: Tolerance) => t.toleranceName === 'Fault')
+      if (!delayTolerance || !faultTolerance) {
+        throw new Error('No se encontraron tolerancias para Delay o Fault')
+      }
+      return { delayTolerance, faultTolerance }
+    } catch (error) {
+      console.error('Error al obtener las tolerancias:', error)
+      throw error
+    }
   }
 
   private checkOutStatus(checkAssist: AssistDayInterface) {

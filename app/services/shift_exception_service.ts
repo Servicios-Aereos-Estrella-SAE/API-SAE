@@ -9,6 +9,7 @@ export default class ShiftExceptionService {
     newShiftException.shiftExceptionsDescription = shiftException.shiftExceptionsDescription
     newShiftException.shiftExceptionsDate = shiftException.shiftExceptionsDate
     newShiftException.exceptionTypeId = shiftException.exceptionTypeId
+    newShiftException.vacationSettingId = shiftException.vacationSettingId
     await newShiftException.save()
     return newShiftException
   }
@@ -18,6 +19,7 @@ export default class ShiftExceptionService {
     currentShiftException.shiftExceptionsDescription = shiftException.shiftExceptionsDescription
     currentShiftException.shiftExceptionsDate = shiftException.shiftExceptionsDate
     currentShiftException.exceptionTypeId = shiftException.exceptionTypeId
+    currentShiftException.vacationSettingId = shiftException.vacationSettingId
     await currentShiftException.save()
     return currentShiftException
   }
@@ -42,6 +44,7 @@ export default class ShiftExceptionService {
         query.where('shift_exceptions_date', '<=', filterEndDate)
       })
       .preload('exceptionType')
+      .preload('vacationSetting')
       .orderBy('shift_exceptions_date')
     return shiftExceptions
   }
@@ -74,5 +77,34 @@ export default class ShiftExceptionService {
     //   return `${date.replaceAll('"', '')} ${time}`
     // }
     return `${shiftExceptionsDate}T00:00:00.000-06:00`
+  }
+
+  async verifyInfo(shiftException: ShiftException) {
+    const action = shiftException.shiftExceptionId > 0 ? 'updated' : 'created'
+    const existDate = await ShiftException.query()
+      .if(shiftException.shiftExceptionId > 0, (query) => {
+        query.whereNot('shift_exception_id', shiftException.shiftExceptionId)
+      })
+      .whereNull('shift_exceptions_deleted_at')
+      .where('shift_exceptions_date', shiftException.shiftExceptionsDate)
+      .where('employee_id', shiftException.employeeId)
+      .first()
+
+    if (existDate) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The date exists in other exception',
+        message: `The shift exception resource cannot be ${action} because the date exists in other exception is already assigned to another shift exception.`,
+        data: { ...shiftException },
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifiy successfully',
+      data: { ...shiftException },
+    }
   }
 }

@@ -24,6 +24,7 @@ export default class ProceedingFileService {
     await newProceedingFile.save()
 
     await newProceedingFile.load('proceedingFileType')
+    await newProceedingFile.load('proceedingFileStatus')
     return newProceedingFile
   }
 
@@ -61,21 +62,72 @@ export default class ProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .where('proceeding_file_id', proceedingFileId)
       .preload('proceedingFileType')
+      .preload('proceedingFileStatus')
       .first()
     return proceedingFile ? proceedingFile : null
   }
 
   async verifyInfo(proceedingFile: ProceedingFile) {
-    const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
-    if (proceedingFileExpirationAt && !this.isValidDate(proceedingFileExpirationAt)) {
+    /* const proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
+    const proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
+    const proceedingFileEffectiveStartDate = proceedingFile.proceedingFileEffectiveStartDate
+    const proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate
+    const proceedingFileInclusionInTheFilesDate =
+      proceedingFile.proceedingFileInclusionInTheFilesDate
+    if (proceedingFileExpirationAt && !this.isValidDate(proceedingFileExpirationAt.toString())) {
       return {
         status: 400,
         type: 'error',
         title: 'Validation error',
-        message: 'Date is invalid',
+        message: 'Date expiration at is invalid',
         data: proceedingFileExpirationAt,
       }
     }
+    if (proceedingFileSignatureDate && !this.isValidDate(proceedingFileSignatureDate.toString())) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date signature is invalid',
+        data: proceedingFileSignatureDate,
+      }
+    }
+    if (
+      proceedingFileEffectiveStartDate &&
+      !this.isValidDate(proceedingFileEffectiveStartDate.toString())
+    ) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date effective start is invalid',
+        data: proceedingFileEffectiveStartDate,
+      }
+    }
+    if (
+      proceedingFileEffectiveEndDate &&
+      !this.isValidDate(proceedingFileEffectiveEndDate.toString())
+    ) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date effective end is invalid',
+        data: proceedingFileEffectiveEndDate,
+      }
+    }
+    if (
+      proceedingFileInclusionInTheFilesDate &&
+      !this.isValidDate(proceedingFileInclusionInTheFilesDate.toString())
+    ) {
+      return {
+        status: 400,
+        type: 'error',
+        title: 'Validation error',
+        message: 'Date inclusion in the files is invalid',
+        data: proceedingFileInclusionInTheFilesDate,
+      }
+    } */
     return {
       status: 200,
       type: 'success',
@@ -85,7 +137,7 @@ export default class ProceedingFileService {
     }
   }
 
-  private isValidDate(date: string) {
+  /* private isValidDate(date: string) {
     try {
       date = date.replaceAll('"', '')
       let dt = DateTime.fromISO(date)
@@ -99,12 +151,22 @@ export default class ProceedingFileService {
       }
     } catch (error) {}
     return false
-  }
+  } */
 
   formatDate(date: string) {
     const dateOrigin = new Date(date.toString())
     const dateNew = DateTime.fromJSDate(dateOrigin)
     const dateFormated = dateNew.toFormat('yyyy-MM-dd')
+    //aqui zona horaria cambiar
     return dateFormated
+  }
+
+  sanitizeInput(input: { [key: string]: string | null }) {
+    for (let key in input) {
+      if (input[key] === 'null' || input[key] === 'undefined') {
+        input[key] = null
+      }
+    }
+    return input
   }
 }

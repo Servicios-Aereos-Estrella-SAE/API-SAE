@@ -12,6 +12,7 @@ import { cuid } from '@adonisjs/core/helpers'
 import path from 'node:path'
 import ProceedingFileHasStatus from '#models/proceeding_file_has_status'
 import ProceedingFileHasStatusService from '#services/proceeding_file_has_status_service'
+import { DateTime } from 'luxon'
 export default class ProceedingFileController {
   /**
    * @swagger
@@ -206,10 +207,10 @@ export default class ProceedingFileController {
    *                 required: false
    *                 default: 0
    *               proceedingFileCompleteProcess:
-   *                 type: number
+   *                 type: boolean
    *                 description: Proceeding file complete process
    *                 required: false
-   *                 default: '0'
+   *                 default: false
    *               proceedingFileStatusId:
    *                 type: number
    *                 description: Proceeding file status id
@@ -298,6 +299,9 @@ export default class ProceedingFileController {
    */
   @inject()
   async store({ request, response }: HttpContext) {
+    const proceedingFileService = new ProceedingFileService()
+    let inputs = request.all()
+    inputs = proceedingFileService.sanitizeInput(inputs)
     await request.validateUsing(createProceedingFileValidator)
     const validationOptions = {
       types: ['image', 'document', 'text', 'application', 'archive'],
@@ -339,33 +343,45 @@ export default class ProceedingFileController {
         data: file,
       }
     }
-    const proceedingFileName = request.input('proceedingFileName')
-    const proceedingFileTypeId = request.input('proceedingFileTypeId')
-    let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt', null)
-    if (proceedingFileExpirationAt === 'undefined' || proceedingFileExpirationAt === 'null') {
-      proceedingFileExpirationAt = null
-    }
-    const proceedingFileActive = request.input('proceedingFileActive')
-    const proceedingFileIdentify = request.input('proceedingFileIdentify')
-
-    const proceedingFileObservations = request.input('proceedingFileObservations')
-    const proceedingFileAfacRights = request.input('proceedingFileAfacRights')
-    const proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-    const proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-    const proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-    const proceedingFileInclusionInTheFilesDate = request.input(
+    const proceedingFileName = inputs['proceedingFileName']
+    const proceedingFileTypeId = inputs['proceedingFileTypeId']
+    let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
+    proceedingFileExpirationAt = proceedingFileExpirationAt
+      ? DateTime.fromJSDate(new Date(proceedingFileExpirationAt)).setZone('UTC').toJSDate()
+      : null
+    const proceedingFileActive = inputs['proceedingFileActive']
+    const proceedingFileIdentify = inputs['proceedingFileIdentify']
+    const proceedingFileObservations = inputs['proceedingFileObservations']
+    const proceedingFileAfacRights = inputs['proceedingFileAfacRights']
+    let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
+    proceedingFileSignatureDate = proceedingFileSignatureDate
+      ? DateTime.fromJSDate(new Date(proceedingFileSignatureDate)).setZone('UTC').toJSDate()
+      : null
+    let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
+    proceedingFileEffectiveStartDate = proceedingFileEffectiveStartDate
+      ? DateTime.fromJSDate(new Date(proceedingFileEffectiveStartDate)).setZone('UTC').toJSDate()
+      : null
+    let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
+    proceedingFileEffectiveEndDate = proceedingFileEffectiveEndDate
+      ? DateTime.fromJSDate(new Date(proceedingFileEffectiveEndDate)).setZone('UTC').toJSDate()
+      : null
+    let proceedingFileInclusionInTheFilesDate = request.input(
       'proceedingFileInclusionInTheFilesDate'
     )
-    const proceedingFileOperationCost = request.input('proceedingFileOperationCost')
-    const proceedingFileCompleteProcess = request.input('proceedingFileCompleteProcess')
-    const proceedingFileStatusId = request.input('proceedingFileStatusId')
-
+    proceedingFileInclusionInTheFilesDate = proceedingFileInclusionInTheFilesDate
+      ? DateTime.fromJSDate(new Date(proceedingFileInclusionInTheFilesDate))
+          .setZone('UTC')
+          .toJSDate()
+      : null
+    const proceedingFileOperationCost = inputs['proceedingFileOperationCost']
+    const proceedingFileCompleteProcess = inputs['proceedingFileCompleteProcess']
+    const proceedingFileStatusId = inputs['proceedingFileStatusId']
     const proceedingFileUuid = cuid()
     const proceedingFile = {
       proceedingFileName: proceedingFileName,
       proceedingFilePath: '',
       proceedingFileTypeId: proceedingFileTypeId,
-      proceedingFileExpirationAt: proceedingFileExpirationAt ? proceedingFileExpirationAt : null,
+      proceedingFileExpirationAt: proceedingFileExpirationAt,
       proceedingFileActive:
         proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
           ? 1
@@ -379,12 +395,15 @@ export default class ProceedingFileController {
       proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
       proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
       proceedingFileOperationCost: proceedingFileOperationCost,
-      proceedingFileCompleteProcess: proceedingFileCompleteProcess,
+      proceedingFileCompleteProcess:
+        proceedingFileCompleteProcess &&
+        (proceedingFileCompleteProcess === 'true' || proceedingFileCompleteProcess === '1')
+          ? 1
+          : 0,
     } as ProceedingFile
     // get file name and extension
     const fileName = `${new Date().getTime()}_${file.clientName}`
     const uploadService = new UploadService()
-    const proceedingFileService = new ProceedingFileService()
     const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
     if (isValidInfo.status !== 200) {
       response.status(isValidInfo.status)
@@ -541,10 +560,10 @@ export default class ProceedingFileController {
    *                 required: false
    *                 default: 0
    *               proceedingFileCompleteProcess:
-   *                 type: number
+   *                 type: boolean
    *                 description: Proceeding file complete process
    *                 required: false
-   *                 default: '0'
+   *                 default: false
    *               proceedingFileStatusId:
    *                 type: number
    *                 description: Proceeding file status id
@@ -634,6 +653,9 @@ export default class ProceedingFileController {
   @inject()
   async update({ request, response }: HttpContext) {
     try {
+      const proceedingFileService = new ProceedingFileService()
+      let inputs = request.all()
+      inputs = proceedingFileService.sanitizeInput(inputs)
       await request.validateUsing(updateProceedingFileValidator)
       const validationOptions = {
         types: ['image', 'document', 'text', 'application', 'archive'],
@@ -663,31 +685,39 @@ export default class ProceedingFileController {
           data: { proceedingFileId },
         }
       }
-      const proceedingFileService = new ProceedingFileService()
-      const proceedingFileName = request.input('proceedingFileName')
-      const proceedingFileTypeId = request.input('proceedingFileTypeId')
-      let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt', null)
-      if (proceedingFileExpirationAt === 'undefined' || proceedingFileExpirationAt === 'null') {
-        proceedingFileExpirationAt = null
-      }
-      const proceedingFileActive = request.input('proceedingFileActive')
-      let proceedingFileIdentify = request.input('proceedingFileIdentify', null)
-      if (proceedingFileIdentify === 'undefined' || proceedingFileIdentify === 'null') {
-        proceedingFileIdentify = null
-      }
-
-      const proceedingFileObservations = request.input('proceedingFileObservations')
-      const proceedingFileAfacRights = request.input('proceedingFileAfacRights')
-      const proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-      const proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-      const proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-      const proceedingFileInclusionInTheFilesDate = request.input(
+      const proceedingFileName = inputs['proceedingFileName']
+      const proceedingFileTypeId = inputs['proceedingFileTypeId']
+      let proceedingFileExpirationAt = request.input('proceedingFileExpirationAt')
+      proceedingFileExpirationAt = proceedingFileExpirationAt
+        ? DateTime.fromJSDate(new Date(proceedingFileExpirationAt)).setZone('UTC').toJSDate()
+        : null
+      const proceedingFileActive = inputs['proceedingFileActive']
+      const proceedingFileIdentify = inputs['proceedingFileIdentify']
+      const proceedingFileObservations = inputs['proceedingFileObservations']
+      const proceedingFileAfacRights = inputs['proceedingFileAfacRights']
+      let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
+      proceedingFileSignatureDate = proceedingFileSignatureDate
+        ? DateTime.fromJSDate(new Date(proceedingFileSignatureDate)).setZone('UTC').toJSDate()
+        : null
+      let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
+      proceedingFileEffectiveStartDate = proceedingFileEffectiveStartDate
+        ? DateTime.fromJSDate(new Date(proceedingFileEffectiveStartDate)).setZone('UTC').toJSDate()
+        : null
+      let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
+      proceedingFileEffectiveEndDate = proceedingFileEffectiveEndDate
+        ? DateTime.fromJSDate(new Date(proceedingFileEffectiveEndDate)).setZone('UTC').toJSDate()
+        : null
+      let proceedingFileInclusionInTheFilesDate = request.input(
         'proceedingFileInclusionInTheFilesDate'
       )
-      const proceedingFileOperationCost = request.input('proceedingFileOperationCost')
-      const proceedingFileCompleteProcess = request.input('proceedingFileCompleteProcess')
-      const proceedingFileStatusId = request.input('proceedingFileStatusId')
-
+      proceedingFileInclusionInTheFilesDate = proceedingFileInclusionInTheFilesDate
+        ? DateTime.fromJSDate(new Date(proceedingFileInclusionInTheFilesDate))
+            .setZone('UTC')
+            .toJSDate()
+        : null
+      const proceedingFileOperationCost = inputs['proceedingFileOperationCost']
+      const proceedingFileCompleteProcess = inputs['proceedingFileCompleteProcess']
+      const proceedingFileStatusId = inputs['proceedingFileStatusId']
       const proceedingFile = {
         proceedingFileId: proceedingFileId,
         proceedingFileName: proceedingFileName
@@ -699,9 +729,7 @@ export default class ProceedingFileController {
         proceedingFileTypeId: proceedingFileTypeId
           ? proceedingFileTypeId
           : currentProceedingFile.proceedingFileTypeId,
-        proceedingFileExpirationAt: proceedingFileExpirationAt
-          ? proceedingFileService.formatDate(proceedingFileExpirationAt)
-          : null,
+        proceedingFileExpirationAt: proceedingFileExpirationAt,
         proceedingFileActive:
           proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
             ? 1
@@ -716,7 +744,11 @@ export default class ProceedingFileController {
         proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
         proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
         proceedingFileOperationCost: proceedingFileOperationCost,
-        proceedingFileCompleteProcess: proceedingFileCompleteProcess,
+        proceedingFileCompleteProcess:
+          proceedingFileCompleteProcess &&
+          (proceedingFileCompleteProcess === 'true' || proceedingFileCompleteProcess === '1')
+            ? 1
+            : 0,
       } as ProceedingFile
       const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
       if (isValidInfo.status !== 200) {
@@ -777,13 +809,13 @@ export default class ProceedingFileController {
           .where('proceeding_file_status_id', proceedingFileStatusId)
           .first()
         if (!existStatus) {
-          const proceedingFileHasStatusAll = await ProceedingFileHasStatus.query()
+          const existProceedingFileHasStatus = await ProceedingFileHasStatus.query()
             .whereNull('proceeding_file_has_status_deleted_at')
             .where('proceeding_file_id', proceedingFile.proceedingFileId)
             .orderBy('proceeding_file_id')
-          for await (const status of proceedingFileHasStatusAll) {
-            // quitar el status anterior y borrar este comentario
-            await status.delete()
+            .first()
+          if (existProceedingFileHasStatus) {
+            await existProceedingFileHasStatus.delete()
           }
           const proceedingFileHasStatus = {
             proceedingFileId: proceedingFile.proceedingFileId,

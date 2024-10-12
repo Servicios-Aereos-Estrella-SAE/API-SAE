@@ -52,6 +52,9 @@ export default class AircraftProperty extends BaseModel {
   @column()
   aircraftPropertiesDescription!: string | null
 
+  @column()
+  aircraftPropertiesBanner!: string
+
   @column.dateTime({ autoCreate: true })
   aircraftPropertiesCreatedAt!: DateTime
 

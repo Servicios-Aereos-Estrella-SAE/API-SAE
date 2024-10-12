@@ -16,6 +16,9 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *          vacationSettingVacationDays:
  *            type: number
  *            description: Vacation setting vacation days
+ *          vacationSettingApplySince:
+ *            type: date
+ *            description: Vacation setting apply since date
  *          vacationSettingCreatedAt:
  *            type: string
  *          vacationSettingUpdatedAt:
@@ -27,13 +30,16 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class VacationSetting extends BaseModel {
   @column({ isPrimary: true })
-  vacationSettingId!: number
+  declare vacationSettingId: number
 
   @column()
   vacationSettingYearsOfService!: number
 
   @column()
   vacationSettingVacationDays!: number
+
+  @column()
+  vacationSettingApplySince!: Date | string
 
   @column.dateTime({ autoCreate: true })
   vacationSettingCreatedAt!: DateTime
