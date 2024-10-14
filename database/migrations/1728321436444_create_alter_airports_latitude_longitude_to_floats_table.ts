@@ -5,8 +5,8 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.float('airport_latitude_deg').alter()
-      table.float('airport_longitude_deg').alter()
+      table.string('airport_latitude_deg').alter()
+      table.string('airport_longitude_deg').alter()
     })
   }
 
