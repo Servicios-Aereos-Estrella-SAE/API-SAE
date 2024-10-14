@@ -574,10 +574,15 @@ export default class EmployeeService {
       const yearsWroked = []
       for (let year = startYear; year <= currentYear; year++) {
         yearsPassed = year - start.year
+        const formattedDate = DateTime.fromObject({
+          year: year,
+          month: month,
+          day: day,
+        }).toISO()
         const vacationSetting = await VacationSetting.query()
           .whereNull('vacation_setting_deleted_at')
           .where('vacation_setting_years_of_service', yearsPassed)
-          .where('vacation_setting_apply_since', '<=', `${year}/${month}/${day}`)
+          .where('vacation_setting_apply_since', '<=', formattedDate ? formattedDate : '')
           .orderBy('vacation_setting_apply_since', 'asc')
           .first()
         let vacationsUsedList = [] as Array<ShiftException>
