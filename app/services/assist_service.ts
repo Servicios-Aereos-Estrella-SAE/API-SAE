@@ -1212,8 +1212,8 @@ export default class AssistsService {
         }
         const firstCheck = this.chekInTime(calendar)
         if (calendar.assist.dateShift) {
-          if (calendar.assist.checkIn && calendar.assist.checkInStatus !== 'fault') {
-            daysWorked += 1
+          daysWorked += 1
+          if (calendar.assist.checkInStatus !== 'fault') {
             if (calendar.assist.checkInStatus === 'ontime') {
               daysOnTime += 1
             } else if (calendar.assist.checkInStatus === 'tolerance') {
