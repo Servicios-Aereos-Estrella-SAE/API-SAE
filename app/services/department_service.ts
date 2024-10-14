@@ -34,9 +34,7 @@ export default class DepartmentService {
       .whereIn('departmentId', departmentsList)
       .orderBy('departmentId', 'asc')
 
-    const list = departments.filter((department) => department.employees.length > 0)
-
-    return list
+    return departments
   }
 
   async buildOrganization(departmentsList: Array<number>) {
