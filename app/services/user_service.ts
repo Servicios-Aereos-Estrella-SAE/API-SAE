@@ -5,8 +5,8 @@ import { UserFilterSearchInterface } from '../interfaces/user_filter_search_inte
 import ApiToken from '#models/api_token'
 import RoleDepartment from '#models/role_department'
 import Department from '#models/department'
-import env from '#start/env'
-import BusinessUnit from '#models/business_unit'
+// import env from '#start/env'
+// import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
