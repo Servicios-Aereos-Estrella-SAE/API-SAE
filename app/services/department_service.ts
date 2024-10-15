@@ -24,13 +24,7 @@ export default class DepartmentService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const departments = await Department.query()
-      .has('departmentsPositions')
-      .whereHas('employees', (query) => {
-        query.whereIn('businessUnitId', businessUnitsList)
-      })
-      .preload('employees', (query) => {
-        query.whereIn('businessUnitId', businessUnitsList)
-      })
+      .whereIn('businessUnitId', businessUnitsList)
       .whereIn('departmentId', departmentsList)
       .orderBy('departmentId', 'asc')
 
@@ -47,20 +41,14 @@ export default class DepartmentService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const departments = await Department.query()
-      .has('departmentsPositions')
-      .whereHas('employees', (query) => {
-        query.whereIn('businessUnitId', businessUnitsList)
-      })
-      .preload('employees', (query) => {
-        query.whereIn('businessUnitId', businessUnitsList)
-        query.preload('position')
-      })
+      .whereIn('businessUnitId', businessUnitsList)
       .whereIn('departmentId', departmentsList)
       .orderBy('departmentId', 'asc')
+      .preload('departmentsPositions', (deptQuery) => {
+        deptQuery.preload('position')
+      })
 
-    const list = departments.filter((department) => department.employees.length > 0)
-
-    return list
+    return departments
   }
 
   async syncCreate(department: BiometricDepartmentInterface) {
