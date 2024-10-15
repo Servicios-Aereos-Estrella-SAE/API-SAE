@@ -578,12 +578,11 @@ export default class EmployeeService {
           year: year,
           month: month,
           day: day,
-        }).toISO()
+        }).toFormat('yyyy-MM-dd')
         const vacationSetting = await VacationSetting.query()
           .whereNull('vacation_setting_deleted_at')
           .where('vacation_setting_years_of_service', yearsPassed)
           .where('vacation_setting_apply_since', '<=', formattedDate ? formattedDate : '')
-          .orderBy('vacation_setting_apply_since', 'asc')
           .first()
         let vacationsUsedList = [] as Array<ShiftException>
         if (vacationSetting) {
