@@ -531,7 +531,7 @@ export default class AircraftProceedingFileController {
 
   /**
    * @swagger
-   * /api/aircrafts-proceeding-files/get-expired-and-expiring:
+   * /api/aircraft-proceeding-files/get-expired-and-expiring:
    *   get:
    *     security:
    *       - bearerAuth: []
