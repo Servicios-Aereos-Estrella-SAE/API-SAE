@@ -5,6 +5,8 @@ import { UserFilterSearchInterface } from '../interfaces/user_filter_search_inte
 import ApiToken from '#models/api_token'
 import RoleDepartment from '#models/role_department'
 import Department from '#models/department'
+import env from '#start/env'
+import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
@@ -144,22 +146,27 @@ export default class UserService {
       .where('user_id', userId)
       .preload('role')
       .first()
+
     if (!user) {
       return []
-    } else if (user.role.roleSlug === 'root') {
+    }
+
+    if (user.role.roleSlug === 'root') {
       const departmentsList = await Department.query()
         .whereNull('department_deleted_at')
         .orderBy('departmentId')
+
       const departments = departmentsList.map((department) => department.departmentId)
       return departments
-    } else {
-      const roleDepartments = await RoleDepartment.query()
-        .whereNull('role_department_deleted_at')
-        .where('roleId', user.role?.roleId)
-        .distinct('departmentId')
-        .orderBy('departmentId')
-      const departments = roleDepartments.map((roleDepartment) => roleDepartment.departmentId)
-      return departments
     }
+
+    const roleDepartments = await RoleDepartment.query()
+      .whereNull('role_department_deleted_at')
+      .where('roleId', user.role?.roleId)
+      .distinct('departmentId')
+      .orderBy('departmentId')
+
+    const departments = roleDepartments.map((roleDepartment) => roleDepartment.departmentId)
+    return departments
   }
 }
