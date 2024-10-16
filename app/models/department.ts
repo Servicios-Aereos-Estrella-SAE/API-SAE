@@ -43,6 +43,9 @@ import Employee from './employee.js'
  *          companyId:
  *            type: number
  *            description: Company id
+ *          businessUnitId:
+ *            type: number
+ *            description: Id from the business unit, default SAE
  *          departmentLastSynchronizationAt:
  *            type: string
  *            description: Last synchronization date
@@ -84,6 +87,9 @@ export default class Department extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare companyId: number
+
+  @column()
+  declare businessUnitId: number
 
   @column()
   declare departmentLastSynchronizationAt: Date
