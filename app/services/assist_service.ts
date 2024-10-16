@@ -14,6 +14,7 @@ import Department from '#models/department'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 import axios from 'axios'
 import { AssistIncidentExcelRowInterface } from '../interfaces/assist_incident_excel_row_interface.js'
+import Assist from '#models/assist'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -1476,5 +1477,24 @@ export default class AssistsService {
   getFaultsFromDelays(delays: number) {
     const faults = Math.floor(delays / 3) // Cada 3 retardos es 1 falta
     return faults
+  }
+
+  async store(assist: Assist) {
+    const newAssist = new Assist()
+    newAssist.assistEmpCode = assist.assistEmpCode
+    newAssist.assistTerminalSn = assist.assistTerminalSn
+    newAssist.assistTerminalAlias = assist.assistTerminalAlias
+    newAssist.assistAreaAlias = assist.assistAreaAlias
+    newAssist.assistLongitude = assist.assistLongitude
+    newAssist.assistLatitude = assist.assistLatitude
+    newAssist.assistUploadTime = assist.assistUploadTime
+    newAssist.assistEmpId = assist.assistEmpId
+    newAssist.assistTerminalId = assist.assistTerminalId
+    newAssist.assistSyncId = assist.assistSyncId
+    newAssist.assistPunchTime = assist.assistPunchTime
+    newAssist.assistPunchTimeUtc = assist.assistPunchTimeUtc
+    newAssist.assistPunchTimeOrigin = assist.assistPunchTimeOrigin
+    await newAssist.save()
+    return newAssist
   }
 }
