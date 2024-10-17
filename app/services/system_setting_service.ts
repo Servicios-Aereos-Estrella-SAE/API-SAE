@@ -45,6 +45,7 @@ export default class SystemSettingService {
     const systemSetting = await SystemSetting.query()
       .whereNull('system_setting_deleted_at')
       .where('system_setting_id', systemSettingId)
+      .preload('systemSettingSystemModules')
       .first()
     return systemSetting ? systemSetting : null
   }
