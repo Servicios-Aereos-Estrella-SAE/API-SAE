@@ -10,6 +10,7 @@ import { AssistPositionExcelFilterInterface } from '../interfaces/assist_positio
 import { AssistDepartmentExcelFilterInterface } from '../interfaces/assist_department_excel_filter_interface.js'
 import UserService from '#services/user_service'
 import Assist from '#models/assist'
+import { DateTime } from 'luxon'
 
 export default class AssistsController {
   /**
@@ -662,7 +663,7 @@ export default class AssistsController {
 
   /**
    * @swagger
-   * /api/assists:
+   * /api/v1/assists:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -782,9 +783,9 @@ export default class AssistsController {
   async store({ request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
-      /*   const assistPunchTime = request.input('assistPunchTime')
+      let assistPunchTime = request.input('assistPunchTime')
       const assistLongitude = request.input('assistLongitude')
-      const assistLatitude = request.input('assistLatitude') */
+      const assistLatitude = request.input('assistLatitude')
       const employee = await Employee.query()
         .whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
@@ -801,11 +802,11 @@ export default class AssistsController {
         }
       }
       const assist = {
-        /*  assistId: null,
-        assistEmpCode: employee.employeeCode,
-        assistTerminalSn: null,
-        assistTerminalAlias: null
-        assistAreaAlias: null,
+        assistId: 1,
+        assistEmpCode: employee.employeeCode ? employee.employeeCode : '',
+        assistTerminalSn: '',
+        assistTerminalAlias: '',
+        assistAreaAlias: '',
         assistLongitude: assistLongitude,
         assistLatitude: assistLatitude,
         assistUploadTime: assistPunchTime,
@@ -814,9 +815,23 @@ export default class AssistsController {
         assistSyncId: 0,
         assistPunchTime: assistPunchTime,
         assistPunchTimeUtc: assistPunchTime,
-        assistPunchTimeOrigin: assistPunchTime, */
+        assistPunchTimeOrigin: assistPunchTime,
+        deletedAt: null,
       } as Assist
       const assistsService = new AssistsService()
+      const verifyInfo = await assistsService.verifyInfo(assist)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...assist },
+        }
+      }
+      assistPunchTime = assistPunchTime
+        ? DateTime.fromJSDate(new Date(assistPunchTime)).setZone('UTC').toJSDate()
+        : null
       const newAssist = await assistsService.store(assist)
       if (newAssist) {
         response.status(201)

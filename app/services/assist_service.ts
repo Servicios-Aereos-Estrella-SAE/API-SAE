@@ -1497,4 +1497,43 @@ export default class AssistsService {
     await newAssist.save()
     return newAssist
   }
+
+  async verifyInfo(assist: Assist) {
+    const action = 'created'
+    const punchTime = DateTime.fromJSDate(new Date(assist.assistPunchTime.toString()))
+    const sqlPunchTime = punchTime.isValid ? punchTime.toSQL() : null
+    if (!sqlPunchTime) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The assistPunchTime is not valid',
+        message: `The assist resource cannot be ${action} because the assistPunchTime is not valid `,
+        data: { ...assist },
+      }
+    }
+    if (punchTime) {
+      const existDate = await Assist.query()
+        .where('assist_emp_id', assist.assistEmpId)
+        .whereNull('assist_deleted_at')
+        .where('assist_punch_time', sqlPunchTime)
+        .first()
+
+      if (existDate) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The assistPunchTime already exists for another assist',
+          message: `The assist resource cannot be ${action} because the assistPunchTime is already assigned to another assist`,
+          data: { ...assist },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifiy successfully',
+      data: { ...assist },
+    }
+  }
 }
