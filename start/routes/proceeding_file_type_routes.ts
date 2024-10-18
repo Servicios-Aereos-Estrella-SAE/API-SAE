@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -10,3 +11,4 @@ router
     router.get('/:proceedingFileTypeId', '#controllers/proceeding_file_type_controller.show')
   })
   .prefix('/api/proceeding-file-types')
+  .use(middleware.auth())

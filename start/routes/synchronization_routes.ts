@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -8,3 +9,4 @@ router
     router.post('/shift', '#controllers/shifts_controller.synchronization')
   })
   .prefix('/api/synchronization')
+  .use(middleware.auth())

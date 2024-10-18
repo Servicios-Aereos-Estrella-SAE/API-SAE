@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -23,3 +24,4 @@ router
     router.post('/assign-shift/:departmentId', '#controllers/department_controller.assignShift')
   })
   .prefix('/api/department')
+  .use(middleware.auth())

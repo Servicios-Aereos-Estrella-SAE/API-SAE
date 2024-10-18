@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -9,3 +10,4 @@ router
     router.get('/:vacationSettingId', '#controllers/vacation_settings_controller.show')
   })
   .prefix('/api/vacations')
+  .use(middleware.auth())

@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -10,3 +11,4 @@ router
     router.get('/icons', '#controllers/icons_controller.index')
   })
   .prefix('/api')
+  .use(middleware.auth())
