@@ -9,7 +9,7 @@ export default class ProceedingFileTypeService {
           `%${filters.search.toUpperCase()}%`,
         ])
       })
-      .orderBy('proceeding_file_type_area_to_use')
+      .orderBy('proceeding_file_type_name', 'asc')
       .paginate(filters.page, filters.limit)
     return proceedingFileTypes
   }
@@ -19,7 +19,7 @@ export default class ProceedingFileTypeService {
       .if(areaToUse, (query) => {
         query.where('proceeding_file_type_area_to_use', areaToUse)
       })
-      .orderBy('proceeding_file_type_id')
+      .orderBy('proceeding_file_type_name', 'asc')
     return proceedingFileTypes
   }
 

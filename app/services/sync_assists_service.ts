@@ -104,6 +104,28 @@ export default class SyncAssistsService {
     return result2
   }
 
+  async synchronizeByEmployee(
+    startDate: string,
+    endDate: string,
+    empCode: string,
+    page: number = 1,
+    limit: number = 5000
+  ) {
+    const dateParam = new Date(startDate)
+    const dateEndParam = new Date(endDate)
+    page = 1
+    let response = await this.fetchExternalDataEmployee(
+      dateParam,
+      dateEndParam,
+      empCode,
+      page,
+      limit
+    )
+
+    await this.saveAssistDataEmployee(response)
+    return response
+  }
+
   async handleSyncAssists(
     statusSync: AssistStatusSync,
     dateParam: Date,
@@ -191,6 +213,29 @@ export default class SyncAssistsService {
     return responseDataDto
   }
 
+  async fetchExternalDataEmployee(
+    startDate: Date,
+    endDate: Date,
+    empCode: string,
+    page: number,
+    limit: number = 50
+  ): Promise<ResponseApiAssistsDto> {
+    logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
+    // Aquí harías la petición a la API externa
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-by-employee-async`
+    apiUrl = `${apiUrl}?page=${page || ''}`
+    apiUrl = `${apiUrl}&limit=${limit || ''}`
+    apiUrl = `${apiUrl}&assistStartDate=${startDate.toISOString() || ''}`
+    apiUrl = `${apiUrl}&assistEndDate=${endDate.toISOString() || ''}`
+    apiUrl = `${apiUrl}&empCode=${empCode || ''}`
+    logger.info(`API URL: ${apiUrl}`)
+    const apiResponse = await axios.get(apiUrl)
+    let responseDataDto: ResponseApiAssistsDto
+    responseDataDto = apiResponse.data
+    responseDataDto.pagination = apiResponse.data.pagination
+    return responseDataDto
+  }
+
   async updateLocalData(externalData: ResponseApiAssistsDto) {
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
@@ -213,6 +258,30 @@ export default class SyncAssistsService {
           })
           .save()
       } else {
+        const newAssist = new Assist()
+        newAssist.assistEmpCode = item.emp_code
+        newAssist.assistTerminalSn = item.terminal_sn
+        newAssist.assistTerminalAlias = item.terminal_alias
+        newAssist.assistAreaAlias = item.area_alias
+        newAssist.assistLongitude = item.longitude
+        newAssist.assistLatitude = item.latitude
+        newAssist.assistUploadTime = DateTime.fromISO(item.upload_time.toString())
+        newAssist.assistEmpId = item.emp_id
+        newAssist.assistTerminalId = item.terminal_id
+        newAssist.assistPunchTime = DateTime.fromISO(item.punch_time_local.toString())
+        newAssist.assistPunchTimeUtc = DateTime.fromISO(item.punch_time.toString())
+        newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
+        newAssist.assistSyncId = item.id
+        await newAssist.save()
+      }
+    }
+  }
+
+  async saveAssistDataEmployee(externalData: ResponseApiAssistsDto) {
+    for await (const item of externalData.data) {
+      const existingAssist = await Assist.findBy('assist_sync_id', item.id)
+      // convert objetct to string
+      if (!existingAssist) {
         const newAssist = new Assist()
         newAssist.assistEmpCode = item.emp_code
         newAssist.assistTerminalSn = item.terminal_sn

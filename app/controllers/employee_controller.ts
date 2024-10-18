@@ -12,6 +12,7 @@ import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_sea
 import { inject } from '@adonisjs/core'
 import UploadService from '#services/upload_service'
 import UserService from '#services/user_service'
+import VacationSetting from '#models/vacation_setting'
 export default class EmployeeController {
   /**
    * @swagger
@@ -2013,6 +2014,336 @@ export default class EmployeeController {
           message: vacations.message,
           data: { vacations: 0 },
         }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/get-years-worked:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get years workedin by employee id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *       - name: year
+   *         in: query
+   *         required: false
+   *         description: Year
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getYearsWorked({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      const year = request.input('year')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee Id was not found',
+          message: 'Missing data to process',
+          data: { employeeId },
+        }
+      }
+      const employeeService = new EmployeeService()
+      const employee = await employeeService.show(employeeId)
+      if (!employee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const yearsWorked = await employeeService.getYearsWorked(employee, year)
+      if (yearsWorked.status === 200) {
+        response.status(yearsWorked.status)
+        return {
+          type: 'success',
+          title: 'Employees',
+          message: 'The years worked were found successfully',
+          data: { yearsWorked: yearsWorked.data },
+        }
+      } else {
+        response.status(yearsWorked.status)
+        return {
+          type: yearsWorked.type,
+          title: yearsWorked.title,
+          message: yearsWorked.message,
+          data: { yearsWorked: 0 },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/get-vacations-by-period:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get years workedin by employee id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *       - name: vacationSettingId
+   *         in: query
+   *         required: true
+   *         description: Vacation Setting Id
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getVacationsByPeriod({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      const vacationSettingId = request.input('vacationSettingId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { employeeId },
+        }
+      }
+      const employeeService = new EmployeeService()
+      const employee = await employeeService.show(employeeId)
+      if (!employee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      if (!vacationSettingId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The vacation setting id was not found',
+          data: { vacationSettingId },
+        }
+      }
+      const vacationSetting = await VacationSetting.query()
+        .where('vacation_setting_id', vacationSettingId)
+        .whereNull('vacation_setting_deleted_at')
+      if (!vacationSetting) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The vacation setting was not found',
+          message: 'The vacation setting was not found with the entered ID',
+          data: { vacationSettingId },
+        }
+      }
+      const vacations = await employeeService.getVacationsByPeriod(
+        employee.employeeId,
+        vacationSettingId
+      )
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The vacations were found successfully',
+        data: { vacations: vacations },
       }
     } catch (error) {
       response.status(500)

@@ -1199,41 +1199,48 @@ export default class AssistsService {
     let delayFaults = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
-      if (calendar.assist.exceptions.length > 0) {
-        for await (const exception of calendar.assist.exceptions) {
-          exceptions.push(exception)
-        }
-      }
-      const firstCheck = this.chekInTime(calendar)
-      if (calendar.assist.dateShift) {
-        if (calendar.assist.checkIn && calendar.assist.checkInStatus !== 'fault') {
-          daysWorked += 1
-          if (calendar.assist.checkInStatus === 'ontime') {
-            daysOnTime += 1
-          } else if (calendar.assist.checkInStatus === 'tolerance') {
-            tolerances += 1
-          } else if (calendar.assist.checkInStatus === 'delay') {
-            delays += 1
+      if (!calendar.assist.isFutureDay) {
+        if (calendar.assist.exceptions.length > 0) {
+          for await (const exception of calendar.assist.exceptions) {
+            if (exception.exceptionType) {
+              const exceptionTypeSlug = exception.exceptionType.exceptionTypeSlug
+              if (exceptionTypeSlug !== 'rest-day' && exceptionTypeSlug !== 'vacation') {
+                exceptions.push(exception)
+              }
+            }
           }
         }
-        if (
-          calendar.assist.isSundayBonus &&
-          (calendar.assist.checkIn || calendar.assist.checkOut)
-        ) {
-          sundayBonus += 1
+        const firstCheck = this.chekInTime(calendar)
+        if (calendar.assist.dateShift) {
+          daysWorked += 1
+          if (calendar.assist.checkInStatus !== 'fault') {
+            if (calendar.assist.checkInStatus === 'ontime') {
+              daysOnTime += 1
+            } else if (calendar.assist.checkInStatus === 'tolerance') {
+              tolerances += 1
+            } else if (calendar.assist.checkInStatus === 'delay') {
+              delays += 1
+            }
+          }
+          if (
+            calendar.assist.isSundayBonus &&
+            (calendar.assist.checkIn || calendar.assist.checkOut)
+          ) {
+            sundayBonus += 1
+          }
+          if (calendar.assist.isRestDay && !firstCheck) {
+            rests += 1
+          }
+          if (calendar.assist.isVacationDate) {
+            vacations += 1
+          }
+          if (calendar.assist.checkInStatus === 'fault' && !calendar.assist.isRestDay) {
+            faults += 1
+          }
         }
-        if (calendar.assist.isRestDay && !firstCheck) {
-          rests += 1
+        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
+          holidaysWorked += 1
         }
-        if (calendar.assist.isVacationDate) {
-          vacations += 1
-        }
-        if (calendar.assist.checkInStatus === 'fault' && !calendar.assist.isRestDay) {
-          faults += 1
-        }
-      }
-      if (calendar.assist.isHoliday && calendar.assist.checkIn) {
-        holidaysWorked += 1
       }
     }
     delayFaults = this.getFaultsFromDelays(delays)

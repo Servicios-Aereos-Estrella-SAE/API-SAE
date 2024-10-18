@@ -106,6 +106,12 @@ export default class VacationSettingController {
    *                 type: number
    *               vacationSettingVacationDays:
    *                 type: number
+   *               vacationSettingApplySince:
+   *                 type: string
+   *                 format: date
+   *                 description: Apply since (YYYY-MM-DD)
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Vacation setting created successfully
@@ -129,6 +135,8 @@ export default class VacationSettingController {
    *                       type: number
    *                     vacationSettingVacationDays:
    *                       type: number
+   *                     vacationSettingApplySince:
+   *                       type: string
    *       '400':
    *         description: Invalid input, validation error
    *         content:
@@ -151,6 +159,9 @@ export default class VacationSettingController {
   async store({ request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(createVacationSettingValidator)
+      data.vacationSettingApplySince = data.vacationSettingApplySince
+        ? DateTime.fromJSDate(new Date(data.vacationSettingApplySince)).setZone('UTC').toJSDate()
+        : data.vacationSettingApplySince
       const vacationSetting = await VacationSetting.create(data)
       return response
         .status(201)
@@ -270,6 +281,12 @@ export default class VacationSettingController {
    *                 type: number
    *               vacationSettingVacationDays:
    *                 type: number
+   *               vacationSettingApplySince:
+   *                 type: string
+   *                 format: date
+   *                 description: Apply since (YYYY-MM-DD)
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Vacation setting updated successfully
@@ -293,6 +310,8 @@ export default class VacationSettingController {
    *                       type: number
    *                     vacationSettingVacationDays:
    *                       type: number
+   *                     vacationSettingApplySince:
+   *                       type: string
    *       '400':
    *         description: Invalid input, validation error
    *         content:
@@ -332,7 +351,13 @@ export default class VacationSettingController {
    */
   async update({ params, request, response }: HttpContext) {
     try {
-      const data = await request.validateUsing(updateVacationSettingValidator)
+      const vacationSettingId = params.vacationSettingId
+      const requestData = request.all()
+      const mergedData = { ...requestData, vacationSettingId }
+      const data = await updateVacationSettingValidator.validate(mergedData)
+      data.vacationSettingApplySince = data.vacationSettingApplySince
+        ? DateTime.fromJSDate(new Date(data.vacationSettingApplySince)).setZone('UTC').toJSDate()
+        : data.vacationSettingApplySince
       const vacationSetting = await VacationSetting.findOrFail(params.vacationSettingId)
       vacationSetting.merge(data)
       await vacationSetting.save()

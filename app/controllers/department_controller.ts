@@ -722,15 +722,27 @@ export default class DepartmentController {
       const user = auth.user
       const userService = new UserService()
       let departments = [] as Array<number>
+
       if (user) {
         departments = await userService.getRoleDepartments(user.userId)
       }
+
       const { departmentName, page = 1, limit = 50 } = request.qs()
-      const query = Department.query().has('departmentsPositions').orderBy('department_id')
+      const query = Department.query().orderBy('department_id')
 
       if (departmentName) {
         query.where('departmentName', 'LIKE', `%${departmentName}%`)
       }
+
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      query.whereIn('businessUnitId', businessUnitsList)
       query.whereIn('departmentId', departments)
 
       const departmentsList = await query.paginate(page, limit)
