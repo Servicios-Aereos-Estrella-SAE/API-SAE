@@ -62,6 +62,11 @@ export default class SystemSetting extends compose(BaseModel, SoftDeletes) {
 
   @hasMany(() => SystemSettingSystemModule, {
     foreignKey: 'systemSettingId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('systemModule')
+      }
+    },
   })
   declare systemSettingSystemModules: HasMany<typeof SystemSettingSystemModule>
 }
