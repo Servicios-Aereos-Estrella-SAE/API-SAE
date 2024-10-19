@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 /**
  * @swagger
  * components:
@@ -22,8 +23,11 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *           type: string
  *           description: Proceeding file type area to use
  *         proceedingFileTypeActive:
- *           type: string
+ *           type: number
  *           description: Proceeding file type status
+ *         parentId:
+ *           type: number
+ *           description: Recursive id, dependence by other proceeding file type (Same area to use)
  *         proceedingFileTypeCreatedAt:
  *           type: string
  *           format: date-time
@@ -51,6 +55,9 @@ export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) 
   @column()
   declare proceedingFileTypeActive: number
 
+  @column()
+  declare parentId: number
+
   @column.dateTime({ autoCreate: true })
   declare proceedingFileTypeCreatedAt: DateTime
 
@@ -59,4 +66,9 @@ export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) 
 
   @column.dateTime({ columnName: 'proceeding_file_type_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @hasMany(() => ProceedingFileType, {
+    foreignKey: 'parentId',
+  })
+  declare children: HasMany<typeof ProceedingFileType>
 }

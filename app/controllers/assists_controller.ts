@@ -9,6 +9,8 @@ import Department from '#models/department'
 import { AssistPositionExcelFilterInterface } from '../interfaces/assist_position_excel_filter_interface.js'
 import { AssistDepartmentExcelFilterInterface } from '../interfaces/assist_department_excel_filter_interface.js'
 import UserService from '#services/user_service'
+import Assist from '#models/assist'
+import { DateTime } from 'luxon'
 
 export default class AssistsController {
   /**
@@ -655,6 +657,200 @@ export default class AssistsController {
         title: 'Server Error',
         message: 'An unexpected error has occurred on the server',
         error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/v1/assists:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Assists
+   *     summary: create new assist
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               employeeId:
+   *                 type: number
+   *                 description: Employee id
+   *                 required: true
+   *                 default: ''
+   *               assistPunchTime:
+   *                 type: string
+   *                 format: date
+   *                 description: Assist punch time (YYYY-MM-DD HH:mm:ss)
+   *                 required: true
+   *                 default: ''
+   *               assistLongitude:
+   *                 type: string
+   *                 description: Assist longitude
+   *                 required: false
+   *                 default: ''
+   *               assistLatitude:
+   *                 type: string
+   *                 description: Assist latitude
+   *                 required: false
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async store({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.input('employeeId')
+      let assistPunchTime = request.input('assistPunchTime')
+      const assistLongitude = request.input('assistLongitude')
+      const assistLatitude = request.input('assistLatitude')
+      const employee = await Employee.query()
+        .whereNull('employee_deleted_at')
+        .where('employee_id', employeeId)
+        .preload('position')
+        .preload('department')
+        .first()
+      if (!employee) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const assist = {
+        assistId: 1,
+        assistEmpCode: employee.employeeCode ? employee.employeeCode : '',
+        assistTerminalSn: '',
+        assistTerminalAlias: '',
+        assistAreaAlias: '',
+        assistLongitude: assistLongitude,
+        assistLatitude: assistLatitude,
+        assistUploadTime: assistPunchTime,
+        assistEmpId: employeeId,
+        assistTerminalId: null,
+        assistSyncId: 0,
+        assistPunchTime: assistPunchTime,
+        assistPunchTimeUtc: assistPunchTime,
+        assistPunchTimeOrigin: assistPunchTime,
+        deletedAt: null,
+      } as Assist
+      const assistsService = new AssistsService()
+      const verifyInfo = await assistsService.verifyInfo(assist)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...assist },
+        }
+      }
+      assistPunchTime = assistPunchTime
+        ? DateTime.fromJSDate(new Date(assistPunchTime)).setZone('UTC').toJSDate()
+        : null
+      const newAssist = await assistsService.store(assist)
+      if (newAssist) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Assists',
+          message: 'The assist was created successfully',
+          data: { assist: newAssist },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
       }
     }
   }

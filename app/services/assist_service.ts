@@ -14,6 +14,7 @@ import Department from '#models/department'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 import axios from 'axios'
 import { AssistIncidentExcelRowInterface } from '../interfaces/assist_incident_excel_row_interface.js'
+import Assist from '#models/assist'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -1476,5 +1477,63 @@ export default class AssistsService {
   getFaultsFromDelays(delays: number) {
     const faults = Math.floor(delays / 3) // Cada 3 retardos es 1 falta
     return faults
+  }
+
+  async store(assist: Assist) {
+    const newAssist = new Assist()
+    newAssist.assistEmpCode = assist.assistEmpCode
+    newAssist.assistTerminalSn = assist.assistTerminalSn
+    newAssist.assistTerminalAlias = assist.assistTerminalAlias
+    newAssist.assistAreaAlias = assist.assistAreaAlias
+    newAssist.assistLongitude = assist.assistLongitude
+    newAssist.assistLatitude = assist.assistLatitude
+    newAssist.assistUploadTime = assist.assistUploadTime
+    newAssist.assistEmpId = assist.assistEmpId
+    newAssist.assistTerminalId = assist.assistTerminalId
+    newAssist.assistSyncId = assist.assistSyncId
+    newAssist.assistPunchTime = assist.assistPunchTime
+    newAssist.assistPunchTimeUtc = assist.assistPunchTimeUtc
+    newAssist.assistPunchTimeOrigin = assist.assistPunchTimeOrigin
+    await newAssist.save()
+    return newAssist
+  }
+
+  async verifyInfo(assist: Assist) {
+    const action = 'created'
+    const punchTime = DateTime.fromJSDate(new Date(assist.assistPunchTime.toString()))
+    const sqlPunchTime = punchTime.isValid ? punchTime.toSQL() : null
+    if (!sqlPunchTime) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The assistPunchTime is not valid',
+        message: `The assist resource cannot be ${action} because the assistPunchTime is not valid `,
+        data: { ...assist },
+      }
+    }
+    if (punchTime) {
+      const existDate = await Assist.query()
+        .where('assist_emp_id', assist.assistEmpId)
+        .whereNull('assist_deleted_at')
+        .where('assist_punch_time', sqlPunchTime)
+        .first()
+
+      if (existDate) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The assistPunchTime already exists for another assist',
+          message: `The assist resource cannot be ${action} because the assistPunchTime is already assigned to another assist`,
+          data: { ...assist },
+        }
+      }
+    }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifiy successfully',
+      data: { ...assist },
+    }
   }
 }
