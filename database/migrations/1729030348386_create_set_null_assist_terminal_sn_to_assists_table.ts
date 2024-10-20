@@ -1,19 +1,17 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'airports'
+  protected tableName = 'assists'
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.float('airport_latitude_deg').alter()
-      table.float('airport_longitude_deg').alter()
+      table.string('assist_terminal_sn').nullable().alter()
     })
   }
 
   async down() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.decimal('airport_latitude_deg', 24, 12).alter()
-      table.decimal('airport_longitude_deg', 24, 12).alter()
+      table.string('assist_terminal_sn').notNullable()
     })
   }
 }

@@ -46,6 +46,8 @@ import './routes/business_unit_routes.js'
 import './routes/aircraft_proceeding_file_routes.js'
 import './routes/proceeding_file_status_routes.js'
 import './routes/tolerance_routes.js'
+import './routes/send_expiring_routes.js'
+import './routes/system_setting_system_module_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'

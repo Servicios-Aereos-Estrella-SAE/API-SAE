@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import { compose } from '@adonisjs/core/helpers'
 /**
  * @swagger
  * components:
@@ -47,8 +49,11 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *        assistUpdatedAt:
  *          type: string
  *          format: date-time
+ *        assistDeleteAt:
+ *          type: string
+ *          format: date-time
  */
-export default class Assist extends BaseModel {
+export default class Assist extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   declare assistId: number
 
@@ -77,7 +82,7 @@ export default class Assist extends BaseModel {
   declare assistEmpId: number
 
   @column()
-  declare assistTerminalId: number
+  declare assistTerminalId: number | null
 
   @column()
   declare assistSyncId: number
@@ -96,4 +101,7 @@ export default class Assist extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare assistUpdatedAt: DateTime
+
+  @column.dateTime({ columnName: 'assist_deleted_at' })
+  declare deletedAt: DateTime | null
 }

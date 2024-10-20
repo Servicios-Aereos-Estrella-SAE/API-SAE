@@ -175,8 +175,18 @@ export default class AircraftProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereBetween('proceeding_file_expiration_at', [filters.dateStart, filters.dateEnd])
+      .whereHas('aircraftProceedingFile', (query) => {
+        query.whereNull('aircraft_proceeding_file_deleted_at')
+        query.whereHas('aircraft', (aircraftQuery) => {
+          aircraftQuery.whereNull('aircraft_deleted_at')
+        })
+      })
       .preload('proceedingFileType')
-      .preload('aircraftProceedingFile')
+      .preload('aircraftProceedingFile', (query) => {
+        query.preload('aircraft', (aircraftQuery) => {
+          aircraftQuery.whereNull('aircraft_deleted_at')
+        })
+      })
       .orderBy('proceeding_file_expiration_at')
 
     const newDateStart = DateTime.fromISO(filters.dateEnd).plus({ days: 1 }).toFormat('yyyy-MM-dd')
@@ -186,8 +196,13 @@ export default class AircraftProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereBetween('proceeding_file_expiration_at', [newDateStart, newDateEnd])
+      .whereHas('aircraftProceedingFile', (query) => {
+        query.whereNull('aircraft_proceeding_file_deleted_at')
+      })
       .preload('proceedingFileType')
-      .preload('aircraftProceedingFile')
+      .preload('aircraftProceedingFile', (query) => {
+        query.preload('aircraft')
+      })
       .orderBy('proceeding_file_expiration_at')
 
     return {
