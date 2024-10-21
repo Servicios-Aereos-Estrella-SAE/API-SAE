@@ -69,6 +69,11 @@ export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) 
 
   @hasMany(() => ProceedingFileType, {
     foreignKey: 'parentId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('children')
+      }
+    },
   })
   declare children: HasMany<typeof ProceedingFileType>
 }
