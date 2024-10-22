@@ -21,9 +21,7 @@ export default class ProceedingFileTypeService {
         query.where('proceeding_file_type_area_to_use', areaToUse)
       })
       .whereNull('parent_id')
-      .preload('children', (childQuery) => {
-        childQuery.preload('children')
-      })
+      .preload('children')
       .orderBy('proceeding_file_type_name', 'asc')
     return proceedingFileTypes
   }
@@ -61,7 +59,6 @@ export default class ProceedingFileTypeService {
     const proceedingFileType = await ProceedingFileType.query()
       .whereNull('proceeding_file_type_deleted_at')
       .where('proceeding_file_type_id', proceedingFileTypeId)
-      .whereNull('parent_id')
       .preload('children')
       .first()
     return proceedingFileType ? proceedingFileType : null
