@@ -3,6 +3,7 @@ import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
+import ProceedingFileTypeEmail from './proceeding_file_type_email.js'
 /**
  * @swagger
  * components:
@@ -71,4 +72,9 @@ export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) 
     foreignKey: 'parentId',
   })
   declare children: HasMany<typeof ProceedingFileType>
+
+  @hasMany(() => ProceedingFileTypeEmail, {
+    foreignKey: 'proceedingFileTypeId',
+  })
+  declare emails: HasMany<typeof ProceedingFileTypeEmail>
 }
