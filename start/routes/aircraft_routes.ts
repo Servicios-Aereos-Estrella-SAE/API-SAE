@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -9,3 +10,4 @@ router
     router.get('/:id', '#controllers/aircrafts_controller.show')
   })
   .prefix('/api/aircraft')
+  .use(middleware.auth())

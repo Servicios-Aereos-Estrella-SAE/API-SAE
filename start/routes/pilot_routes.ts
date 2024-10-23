@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -10,3 +11,4 @@ router
     router.get('/:pilotId/proceeding-files', '#controllers/pilot_controller.getProceedingFiles')
   })
   .prefix('/api/pilots')
+  .use(middleware.auth())

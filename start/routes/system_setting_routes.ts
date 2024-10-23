@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -14,3 +15,4 @@ router
     router.get('/:systemSettingId', '#controllers/system_setting_controller.show')
   })
   .prefix('/api/system-settings')
+  .use(middleware.auth())
