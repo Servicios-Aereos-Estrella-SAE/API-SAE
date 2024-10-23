@@ -940,4 +940,136 @@ export default class ProceedingFileTypeController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/proceeding-file-types/{proceedingFileTypeId}/get-legacy-emails:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Proceeding File Types
+   *     summary: get legacy emails to proceeding file type by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: proceedingFileTypeId
+   *         schema:
+   *           type: number
+   *         description: proceeding file type id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getLegacyEmails({ request, response }: HttpContext) {
+    try {
+      const proceedingFileTypeId = request.param('proceedingFileTypeId')
+      if (!proceedingFileTypeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The proceeding file type Id was not found',
+          data: { proceedingFileTypeId },
+        }
+      }
+      const proceedingFileTypeService = new ProceedingFileTypeService()
+      const proceedingFileTypeEmails =
+        await proceedingFileTypeService.getLegacyEmails(proceedingFileTypeId)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Proceeding file types',
+        message: 'The proceeding file type email were found successfully',
+        data: { proceedingFileTypeEmails: proceedingFileTypeEmails },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

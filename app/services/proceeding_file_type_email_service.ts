@@ -1,5 +1,6 @@
 import ProceedingFileType from '#models/proceeding_file_type'
 import ProceedingFileTypeEmail from '#models/proceeding_file_type_email'
+import ProceedingFileTypeService from './proceeding_file_type_service.js'
 
 export default class ProceedingFileTypeEmailService {
   async create(proceedingFileTypeEmail: ProceedingFileTypeEmail) {
@@ -89,6 +90,22 @@ export default class ProceedingFileTypeEmailService {
         type: 'warning',
         title: 'The proceeding file type email already exists',
         message: `The proceeding file type email resource cannot be ${action} because the relation is already assigned`,
+        data: { ...proceedingFileTypeEmail },
+      }
+    }
+    const proceedingFileTypeService = new ProceedingFileTypeService()
+    const legacyEmails = await proceedingFileTypeService.getAllEmailParents(
+      proceedingFileTypeEmail.proceedingFileTypeId
+    )
+    const existLegacyEmail = legacyEmails.find(
+      (a) => a.proceedingFileTypeEmailEmail === proceedingFileTypeEmail.proceedingFileTypeEmailEmail
+    )
+    if (existLegacyEmail) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The proceeding file type email already exists',
+        message: `The proceeding file type email resource cannot be ${action} because the email is already assigned in parent`,
         data: { ...proceedingFileTypeEmail },
       }
     }
