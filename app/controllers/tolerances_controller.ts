@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Tolerance from '../models/tolerance.js'
+import ToleranceService from '#services/tolerance_service'
 
 export default class TolerancesController {
   /**
@@ -23,7 +24,7 @@ export default class TolerancesController {
    *                     $ref: '#/components/schemas/Tolerance'
    */
   async index({ response }: HttpContext) {
-    const tolerances = await Tolerance.all()
+    const tolerances = await new ToleranceService().index()
     return response.ok({ data: tolerances })
   }
 

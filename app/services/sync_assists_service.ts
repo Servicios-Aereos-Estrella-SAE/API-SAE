@@ -17,6 +17,7 @@ import type { ShiftRecordInterface } from '../interfaces/shift_record_interface.
 import HolidayService from './holiday_service.js'
 import { HolidayInterface } from '../interfaces/holiday_interface.js'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
+import ToleranceService from './tolerance_service.js'
 
 interface Tolerance {
   toleranceId: number
@@ -801,17 +802,12 @@ export default class SyncAssistsService {
 
     return checkAssistCopy
   }
-  private async getTolerances(): Promise<{ delayTolerance: Tolerance; faultTolerance: Tolerance }> {
+  private async getTolerances() {
     try {
-      let apiUrl = `http://${env.get('HOST')}:${env.get('PORT')}/api/tolerances`
-      const response = await fetch(apiUrl)
+      const data = await new ToleranceService().index()
 
-      if (!response.ok) {
-        throw new Error(`Error en la solicitud: ${response.statusText}`)
-      }
-      const { data } = (await response.json()) as ToleranceResponse
-      const delayTolerance = data.find((t: Tolerance) => t.toleranceName === 'Delay')
-      const faultTolerance = data.find((t: Tolerance) => t.toleranceName === 'Fault')
+      const delayTolerance = data.find((t) => t.toleranceName === 'Delay')
+      const faultTolerance = data.find((t) => t.toleranceName === 'Fault')
       if (!delayTolerance || !faultTolerance) {
         throw new Error('No se encontraron tolerancias para Delay o Fault')
       }
