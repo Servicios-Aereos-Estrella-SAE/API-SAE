@@ -60,8 +60,31 @@ export default class ProceedingFileTypeService {
       .whereNull('proceeding_file_type_deleted_at')
       .where('proceeding_file_type_id', proceedingFileTypeId)
       .preload('children')
+      .preload('emails')
       .first()
     return proceedingFileType ? proceedingFileType : null
+  }
+
+  async getLegacyEmails(proceedingFileTypeId: number) {
+    const emails = await this.getAllEmailParents(proceedingFileTypeId)
+    return emails
+  }
+
+  async getAllEmailParents(proceedingFileTypeId: number) {
+    const emails = []
+    let currentRecord = await ProceedingFileType.find(proceedingFileTypeId)
+    while (currentRecord && currentRecord.parentId) {
+      const parent = await currentRecord.related('parent').query().preload('emails').first()
+      if (parent) {
+        for await (const email of parent.emails) {
+          emails.push(email)
+        }
+        currentRecord = parent
+      } else {
+        break
+      }
+    }
+    return emails
   }
 
   async verifyInfo(proceedingFileType: ProceedingFileType) {
