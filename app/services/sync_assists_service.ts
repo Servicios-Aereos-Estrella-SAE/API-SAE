@@ -18,20 +18,6 @@ import HolidayService from './holiday_service.js'
 import { HolidayInterface } from '../interfaces/holiday_interface.js'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 import ToleranceService from './tolerance_service.js'
-
-interface Tolerance {
-  toleranceId: number
-  toleranceName: string
-  toleranceMinutes: number
-  toleranceCreatedAt: string
-  toleranceUpdatedAt: string
-  deletedAt: string | null
-}
-
-interface ToleranceResponse {
-  data: Tolerance[]
-}
-
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
