@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,13 +11,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae_jpg.jpeg" rel="stylesheet">
 </head>
-<body style="background-color: #f5f5fa; padding: 0rem; padding-top: 1rem; padding-bottom: 1rem; color: #303e67; font-family: 'Tajawal', sans-serif;">
-  <div class="email" style="width: 100%; max-width: 600px; background-color: #fefefe; min-height: 10rem; border-radius: 0.3rem; margin: auto; box-shadow: 0.1rem 0.1rem 0.2rem #f1f5f9; padding: 1.5rem; box-sizing: border-box;">
+
+<body
+  style="background-color: #f5f5fa; padding: 0rem; padding-top: 1rem; padding-bottom: 1rem; color: #303e67; font-family: 'Tajawal', sans-serif;">
+  <div class="email"
+    style="width: 100%; max-width: 600px; background-color: #fefefe; min-height: 10rem; border-radius: 0.3rem; margin: auto; box-shadow: 0.1rem 0.1rem 0.2rem #f1f5f9; padding: 1.5rem; box-sizing: border-box;">
     <div class="head" style="background-color: white;">
       <img src="https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.webp" style="width: 7rem;">
     </div>
     <div class="banner">
-      <img src="https://www.shutterstock.com/image-vector/vector-illustration-suitcase-stop-sign-600nw-2297051113.jpg" style="width: 100%; border-radius: 0.3rem; height: 20rem; object-fit: cover; margin-top: 0rem; background-color: #f1f5f9;">
+      <img src="https://www.shutterstock.com/image-vector/vector-illustration-suitcase-stop-sign-600nw-2297051113.jpg"
+        style="width: 100%; border-radius: 0.3rem; height: 20rem; object-fit: cover; margin-top: 0rem; background-color: #f1f5f9;">
     </div>
     <div class="welcome" style="margin-top: 0rem; text-align: left;">
       <h2 style="font-size: 1.25rem; text-transform: capitalize; margin-bottom: 0; text-align: center;">
@@ -24,35 +29,43 @@
       </h2>
       <h3 style="font-size: 1rem; text-align: left;">Aircraft Files</h3>
       <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
+      @if(expiredFiles && expiredFiles.length > 0)
+
       <ul style="list-style-type: none; padding-left: 0;">
         @each(file in expiredFiles)
-          <li style="margin: 0.5rem 0;">{{ file.proceedingFileName }} - Expired on {{ file.proceedingFileExpirationAt }}</li>
-        @endeach
-      </ul>
-
-      <h2 style="font-size: 1rem; text-align: left;">Employee Files</h2>
-            <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
-      @if(expiredFilesEmployee && expiredFilesEmployee.length > 0)
-      <ul style="list-style-type: none; padding-left: 0;">
-        @each(file in expiredFilesEmployee)
-          <li style="margin: 0.5rem 0;">{{ file.proceedingFileName }} - Expired on {{ file.proceedingFileExpirationAt }}</li>
+        <li style="margin: 0.5rem 0;">{{ file.proceedingFileName }} - Expired on {{ file.proceedingFileExpirationAt }}
+        </li>
         @endeach
       </ul>
       @else
-        <p>No expired employee files found.</p>
+      <p>No expired aircrafts files found.</p>
+      @endif
+      <h2 style="font-size: 1rem; text-align: left;">Employee Files</h2>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
+      @if(expiredFilesEmployee && expiredFilesEmployee.length > 0)
+      <ul style="list-style-type: none; padding-left: 0;">
+        @each(file in expiredFilesEmployee)
+        <li style="margin: 0.5rem 0;">{{ file.proceedingFileName }} - Expired on {{ file.proceedingFileExpirationAt }}
+        </li>
+        @endeach
+      </ul>
+      @else
+      <p>No expired employee files found.</p>
       @endif
       <h2 style="font-size: 1rem; text-align: left;">Pilots Files</h2>
       <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
       @if(expiredFilesPilots && expiredFilesPilots.length > 0)
-        <ul style="list-style-type: none; padding-left: 0;">
-          @each(file in expiredFilesPilots)
-            <li style="margin: 0.5rem 0;">{{ file.proceedingFileType.proceedingFileTypeName }} - Expired on {{ file.proceedingFileExpirationAt }}</li>
-          @endeach
-        </ul>
+      <ul style="list-style-type: none; padding-left: 0;">
+        @each(file in expiredFilesPilots)
+        <li style="margin: 0.5rem 0;">{{ file.proceedingFileType.proceedingFileTypeName }} - Expired on {{
+          file.proceedingFileExpirationAt }}</li>
+        @endeach
+      </ul>
       @else
-        <p>No expired pilot files found.</p>
+      <p>No expired pilot files found.</p>
       @endif
-      <div style="border: 1px dashed #e3ebf6; padding: 1.5rem; border-radius: 0.3rem; text-align: left; font-size: 0.9rem; text-wrap: pretty;">
+      <div
+        style="border: 1px dashed #e3ebf6; padding: 1.5rem; border-radius: 0.3rem; text-align: left; font-size: 0.9rem; text-wrap: pretty;">
         This report is generated to keep you informed about your files.
         <br>
         <br>
@@ -61,4 +74,5 @@
     </div>
   </div>
 </body>
+
 </html>

@@ -1,5 +1,11 @@
+import mail from '@adonisjs/mail/services/main'
+import env from '#start/env'
 import ProceedingFile from '#models/proceeding_file'
 import { DateTime } from 'luxon'
+import { ProceedingFileExpiredFilterInterface } from '../interfaces/proceeding_file_expired_filter_interface.js'
+import ProceedingFileTypeEmail from '#models/proceeding_file_type_email'
+import ProceedingFileType from '#models/proceeding_file_type'
+import { ProceedingFileTypeEmailExpiredInterface } from '../interfaces/proceeding_file_type_email_expired_interface.js'
 
 export default class ProceedingFileService {
   async create(proceedingFile: ProceedingFile) {
@@ -168,5 +174,112 @@ export default class ProceedingFileService {
       }
     }
     return input
+  }
+
+  async sendFilesExpiresToEmail(filters: ProceedingFileExpiredFilterInterface) {
+    const proceedingFileTypeEmail = await ProceedingFileTypeEmail.query()
+      .whereNull('proceeding_file_type_email_deleted_at')
+      .orderBy('proceeding_file_type_email_email')
+      .distinct('proceeding_file_type_email_email')
+      .select('proceeding_file_type_email_email')
+    const emails = [] as Array<ProceedingFileTypeEmailExpiredInterface>
+    for await (const item of proceedingFileTypeEmail) {
+      const newEmail = {
+        email: item.proceedingFileTypeEmailEmail,
+        employeesProceedingFilesExpired: [],
+        pilotsProceedingFilesExpired: [],
+        aircraftsProceedingFilesExpired: [],
+      } as ProceedingFileTypeEmailExpiredInterface
+      emails.push(newEmail)
+    }
+
+    const employeesProceedingFilesExpired = await this.getExpiredAndExpiring(filters, 'employees')
+    for await (const proceedingFile of employeesProceedingFilesExpired) {
+      for await (const email of proceedingFile.proceedingFileType.emails) {
+        const existEmail = emails.find((a) => a.email === email.proceedingFileTypeEmailEmail)
+        if (existEmail) {
+          const existFile = existEmail.employeesProceedingFilesExpired.find(
+            (a) => a.proceedingFileId === proceedingFile.proceedingFileId
+          )
+          if (!existFile) {
+            existEmail.employeesProceedingFilesExpired.push(proceedingFile)
+          }
+        }
+      }
+    }
+
+    const pilotsProceedingFilesExpired = await this.getExpiredAndExpiring(filters, 'pilots')
+    for await (const proceedingFile of pilotsProceedingFilesExpired) {
+      for await (const email of proceedingFile.proceedingFileType.emails) {
+        const existEmail = emails.find((a) => a.email === email.proceedingFileTypeEmailEmail)
+        if (existEmail) {
+          const existFile = existEmail.pilotsProceedingFilesExpired.find(
+            (a) => a.proceedingFileId === proceedingFile.proceedingFileId
+          )
+          if (!existFile) {
+            existEmail.pilotsProceedingFilesExpired.push(proceedingFile)
+          }
+        }
+      }
+    }
+
+    const aircraftProceedingFilesExpired = await this.getExpiredAndExpiring(filters, 'aircraft')
+    for await (const proceedingFile of aircraftProceedingFilesExpired) {
+      for await (const email of proceedingFile.proceedingFileType.emails) {
+        const existEmail = emails.find((a) => a.email === email.proceedingFileTypeEmailEmail)
+        if (existEmail) {
+          const existFile = existEmail.aircraftsProceedingFilesExpired.find(
+            (a) => a.proceedingFileId === proceedingFile.proceedingFileId
+          )
+          if (!existFile) {
+            existEmail.aircraftsProceedingFilesExpired.push(proceedingFile)
+          }
+        }
+      }
+    }
+
+    const userEmail = env.get('SMTP_USERNAME')
+    if (userEmail) {
+      for await (const email of emails) {
+        if (
+          email.employeesProceedingFilesExpired.length > 0 ||
+          email.pilotsProceedingFilesExpired.length > 0 ||
+          email.aircraftsProceedingFilesExpired.length > 0
+        ) {
+          await mail.send((message) => {
+            message
+              .to(email.email)
+              .from(userEmail, 'SAE')
+              .subject('Expiring and Expired Proceeding Files Report')
+              .htmlView('emails/proceeding_files_report', {
+                expiredFiles: email.aircraftsProceedingFilesExpired.length || [],
+                expiredFilesEmployee: email.employeesProceedingFilesExpired || [],
+                expiredFilesPilots: email.pilotsProceedingFilesExpired.length || [],
+              })
+          })
+        }
+      }
+    }
+    return emails
+  }
+
+  async getExpiredAndExpiring(filters: ProceedingFileExpiredFilterInterface, areaToUse: string) {
+    const proceedingFileTypes = await ProceedingFileType.query()
+      .whereNull('proceeding_file_type_deleted_at')
+      .where('proceeding_file_type_area_to_use', areaToUse)
+      .orderBy('proceeding_file_type_id')
+      .select('proceeding_file_type_id')
+
+    const proceedingFileTypesIds = proceedingFileTypes.map((item) => item.proceedingFileTypeId)
+    const proceedingFilesExpired = await ProceedingFile.query()
+      .whereNull('proceeding_file_deleted_at')
+      .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
+      .whereBetween('proceeding_file_expiration_at', [filters.dateStart, filters.dateEnd])
+      .preload('proceedingFileType', (query) => {
+        query.preload('emails')
+      })
+      .orderBy('proceeding_file_expiration_at')
+
+    return proceedingFilesExpired
   }
 }
