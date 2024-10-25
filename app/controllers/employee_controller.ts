@@ -1,3 +1,4 @@
+import Department from '#models/department'
 import Employee from '#models/employee'
 import EmployeeService from '#services/employee_service'
 import env from '#start/env'
@@ -13,6 +14,9 @@ import { inject } from '@adonisjs/core'
 import UploadService from '#services/upload_service'
 import UserService from '#services/user_service'
 import VacationSetting from '#models/vacation_setting'
+import { DateTime } from 'luxon'
+import ExcelJS from 'exceljs'
+
 export default class EmployeeController {
   /**
    * @swagger
@@ -2354,5 +2358,243 @@ export default class EmployeeController {
         error: error.message,
       }
     }
+  }
+  /**
+   * @swagger
+   * /api/employees/employee-generate-excel:
+   *   get:
+   *     tags:
+   *       - Employees
+   *     summary: Generate an Excel report of employees
+   *     parameters:
+   *       - in: query
+   *         name: departmentId
+   *         schema:
+   *           type: integer
+   *         description: ID of the department to filter
+   *       - in: query
+   *         name: employeeId
+   *         schema:
+   *           type: integer
+   *         description: ID of the employee to filter
+   *       - in: query
+   *         name: startDate
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: Start date for filtering
+   *       - in: query
+   *         name: endDate
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: End date for filtering
+   *     responses:
+   *       200:
+   *         description: Excel file generated successfully
+   *       404:
+   *         description: No employees found
+   *       500:
+   *         description: Error generating Excel file
+   */
+  async getExcel({ request, response }: HttpContext) {
+    try {
+      const filterDepartmentId = request.qs().departmentId
+      const filterEmployeeId = request.qs().employeeId
+      const filterStartDate = request.qs().startDate
+      const filterEndDate = request.qs().endDate
+
+      let query = Employee.query().whereNull('employee_deleted_at')
+
+      if (filterDepartmentId) {
+        query = query.where('departmentId', filterDepartmentId)
+      }
+
+      if (filterEmployeeId) {
+        query = query.where('employeeId', filterEmployeeId)
+      }
+
+      if (filterStartDate && filterEndDate) {
+        const startDate = DateTime.fromISO(filterStartDate)
+        const endDate = DateTime.fromISO(filterEndDate)
+        const startDateSQL = startDate?.toSQLDate()
+        const endDateSQL = endDate?.toSQLDate()
+
+        if (startDateSQL && endDateSQL) {
+          query = query.whereBetween('employeeHireDate', [startDateSQL, endDateSQL])
+        }
+      }
+
+      const employees = await query
+        .preload('department')
+        .preload('position')
+        .preload('person')
+        .exec()
+      if (employees.length === 0) {
+        return response.status(404).send({
+          message: 'No employees found',
+        })
+      }
+      // Crear un nuevo libro de Excel
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Employee Report')
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0 },
+        ext: { width: 139, height: 49 },
+      })
+      worksheet.getRow(1).height = 60
+      worksheet.mergeCells('A1:F1')
+
+      // Agregar título
+      const titleRow = worksheet.addRow(['Employee Report'])
+      let titleColor = '244062'
+      let titleFgColor = 'FFFFFFFF'
+      titleRow.font = { bold: true, size: 24, color: { argb: titleFgColor } }
+      titleRow.height = 42
+      titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.mergeCells('A2:M2')
+      worksheet.getCell('A2').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: titleColor },
+      }
+      // Agregar fila de periodos
+      const periodRow = worksheet.addRow([
+        `Period: ${filterStartDate || 'Inicio 00/00/00'} to ${filterEndDate || '99/99/9999'}`,
+      ])
+      periodRow.font = { size: 15, color: { argb: titleFgColor } }
+      periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.mergeCells('A3:M3')
+      let periodColor = '366092'
+      worksheet.getCell('A3').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: periodColor },
+      }
+      this.addHeadRow(worksheet, employees)
+
+      for (const employee of employees) {
+        const department = await Department.find(employee.departmentId)
+        const departmentName = department?.departmentName || 'N/A'
+        const hireDate = employee.employeeHireDate.toFormat('yyyy-MM-dd')
+        worksheet.addRow({
+          employeeId: employee.employeeId,
+          employeeFirstName: employee.employeeFirstName,
+          employeeLastName: employee.employeeLastName,
+          departmentName,
+          positionName: employee.positionId,
+          employeeHireDate: hireDate,
+        })
+      }
+      this.addRowExcelEmpty(worksheet)
+
+      const buffer = await workbook.xlsx.writeBuffer()
+
+      response.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      response.header('Content-Disposition', 'attachment; filename=employees.xlsx')
+      response.status(201).send(buffer)
+    } catch (error) {
+      response.status(500).send({
+        message: 'Error generating Excel file',
+        error: error.message,
+      })
+    }
+  }
+
+  // Método para agregar fila de encabezado
+  addHeadRow(worksheet: ExcelJS.Worksheet, employees: any[]) {
+    const headerRow = worksheet.addRow([
+      'Employee Code',
+      'Employee Name',
+      'Department',
+      'Position',
+      'Hire Date',
+      '',
+      'Work Modality',
+      'Phone',
+      'Gender',
+      '',
+      'CURP',
+      'RFC',
+      'Employee NSS',
+    ])
+
+    let fgColor = 'FFFFFFF'
+    let color = '538DD5'
+    for (let col = 1; col <= 6; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    color = '16365C'
+    for (let col = 7; col <= 9; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    color = '538DD5'
+    for (let col = 10; col <= 13; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    headerRow.height = 30
+    headerRow.font = { bold: true, color: { argb: fgColor } }
+
+    this.adjustColumnWidths(worksheet)
+
+    employees.forEach((employee) => {
+      worksheet.addRow([
+        employee.employeeCode,
+        `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        employee.department?.departmentName || 'no data',
+        employee.position?.positionName || 'no data',
+        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : 'no data',
+        '',
+        employee.employeeWorkSchedule || 'no data',
+        employee.person?.personPhone || 'no data',
+        employee.person?.personGender || 'no data',
+        '',
+        employee.person?.personCurp || 'no data',
+        employee.person?.personRfc || 'no data',
+        employee.person?.personImssNss || 'no data',
+      ])
+    })
+  }
+
+  adjustColumnWidths(worksheet: ExcelJS.Worksheet) {
+    const widths = [20, 44, 44, 44, 25, 5, 25, 25, 25, 5, 25, 25, 25, 25, 30, 30, 30]
+    widths.forEach((width, index) => {
+      const column = worksheet.getColumn(index + 1)
+      column.width = width
+      column.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+  }
+
+  addRowExcelEmpty(worksheet: ExcelJS.Worksheet) {
+    worksheet.addRow([])
   }
 }
