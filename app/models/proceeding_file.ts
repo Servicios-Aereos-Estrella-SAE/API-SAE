@@ -90,7 +90,7 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
   declare proceedingFileTypeId: number
 
   @column()
-  declare proceedingFileExpirationAt: Date
+  declare proceedingFileExpirationAt: Date | string
 
   @column()
   declare proceedingFileActive: number

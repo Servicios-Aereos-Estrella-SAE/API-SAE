@@ -5,7 +5,9 @@ import { DateTime } from 'luxon'
 import { ProceedingFileExpiredFilterInterface } from '../interfaces/proceeding_file_expired_filter_interface.js'
 import ProceedingFileTypeEmail from '#models/proceeding_file_type_email'
 import ProceedingFileType from '#models/proceeding_file_type'
-import { ProceedingFileTypeEmailExpiredInterface } from '../interfaces/proceeding_file_type_email_expired_interface.js'
+import ProceedingFileTypeService from './proceeding_file_type_service.js'
+import { ProceedingFileTypeEmailExpiredAndExpiringInterface } from '../interfaces/proceeding_file_type_email_expired_and_expiring_interface.js'
+import { SetProceedingFileToEmailInterface } from '../interfaces/set_proceeding_file_to_email_interface.js'
 
 export default class ProceedingFileService {
   async create(proceedingFile: ProceedingFile) {
@@ -182,60 +184,80 @@ export default class ProceedingFileService {
       .orderBy('proceeding_file_type_email_email')
       .distinct('proceeding_file_type_email_email')
       .select('proceeding_file_type_email_email')
-    const emails = [] as Array<ProceedingFileTypeEmailExpiredInterface>
+    const emails = [] as Array<ProceedingFileTypeEmailExpiredAndExpiringInterface>
     for await (const item of proceedingFileTypeEmail) {
       const newEmail = {
         email: item.proceedingFileTypeEmailEmail,
         employeesProceedingFilesExpired: [],
+        employeesProceedingFilesExpiring: [],
         pilotsProceedingFilesExpired: [],
+        pilotsProceedingFilesExpiring: [],
         aircraftsProceedingFilesExpired: [],
-      } as ProceedingFileTypeEmailExpiredInterface
+        aircraftsProceedingFilesExpiring: [],
+      } as ProceedingFileTypeEmailExpiredAndExpiringInterface
       emails.push(newEmail)
     }
 
-    const employeesProceedingFilesExpired = await this.getExpiredAndExpiring(filters, 'employees')
-    for await (const proceedingFile of employeesProceedingFilesExpired) {
-      for await (const email of proceedingFile.proceedingFileType.emails) {
-        const existEmail = emails.find((a) => a.email === email.proceedingFileTypeEmailEmail)
-        if (existEmail) {
-          const existFile = existEmail.employeesProceedingFilesExpired.find(
-            (a) => a.proceedingFileId === proceedingFile.proceedingFileId
-          )
-          if (!existFile) {
-            existEmail.employeesProceedingFilesExpired.push(proceedingFile)
-          }
-        }
-      }
+    const employeesProceedingFiles = await this.getExpiredAndExpiring(filters, 'employee')
+    for await (const proceedingFile of employeesProceedingFiles.proceedingFilesExpired) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'employee',
+        type: 'expired',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
     }
 
-    const pilotsProceedingFilesExpired = await this.getExpiredAndExpiring(filters, 'pilots')
-    for await (const proceedingFile of pilotsProceedingFilesExpired) {
-      for await (const email of proceedingFile.proceedingFileType.emails) {
-        const existEmail = emails.find((a) => a.email === email.proceedingFileTypeEmailEmail)
-        if (existEmail) {
-          const existFile = existEmail.pilotsProceedingFilesExpired.find(
-            (a) => a.proceedingFileId === proceedingFile.proceedingFileId
-          )
-          if (!existFile) {
-            existEmail.pilotsProceedingFilesExpired.push(proceedingFile)
-          }
-        }
-      }
+    for await (const proceedingFile of employeesProceedingFiles.proceedingFilesExpiring) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'employee',
+        type: 'expiring',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
     }
 
-    const aircraftProceedingFilesExpired = await this.getExpiredAndExpiring(filters, 'aircraft')
-    for await (const proceedingFile of aircraftProceedingFilesExpired) {
-      for await (const email of proceedingFile.proceedingFileType.emails) {
-        const existEmail = emails.find((a) => a.email === email.proceedingFileTypeEmailEmail)
-        if (existEmail) {
-          const existFile = existEmail.aircraftsProceedingFilesExpired.find(
-            (a) => a.proceedingFileId === proceedingFile.proceedingFileId
-          )
-          if (!existFile) {
-            existEmail.aircraftsProceedingFilesExpired.push(proceedingFile)
-          }
-        }
-      }
+    const pilotsProceedingFiles = await this.getExpiredAndExpiring(filters, 'pilot')
+    for await (const proceedingFile of pilotsProceedingFiles.proceedingFilesExpired) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'pilot',
+        type: 'expired',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+
+    for await (const proceedingFile of pilotsProceedingFiles.proceedingFilesExpiring) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'pilot',
+        type: 'expiring',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+
+    const aircraftProceedingFiles = await this.getExpiredAndExpiring(filters, 'aircraft')
+    for await (const proceedingFile of aircraftProceedingFiles.proceedingFilesExpired) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'aircraft',
+        type: 'expired',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+    for await (const proceedingFile of aircraftProceedingFiles.proceedingFilesExpiring) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'aircraft',
+        type: 'expiring',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
     }
 
     const userEmail = env.get('SMTP_USERNAME')
@@ -244,7 +266,10 @@ export default class ProceedingFileService {
         if (
           email.employeesProceedingFilesExpired.length > 0 ||
           email.pilotsProceedingFilesExpired.length > 0 ||
-          email.aircraftsProceedingFilesExpired.length > 0
+          email.aircraftsProceedingFilesExpired.length > 0 ||
+          email.employeesProceedingFilesExpiring.length > 0 ||
+          email.pilotsProceedingFilesExpiring.length > 0 ||
+          email.aircraftsProceedingFilesExpiring.length > 0
         ) {
           await mail.send((message) => {
             message
@@ -252,15 +277,102 @@ export default class ProceedingFileService {
               .from(userEmail, 'SAE')
               .subject('Expiring and Expired Proceeding Files Report')
               .htmlView('emails/proceeding_files_report', {
-                expiredFiles: email.aircraftsProceedingFilesExpired.length || [],
-                expiredFilesEmployee: email.employeesProceedingFilesExpired || [],
-                expiredFilesPilots: email.pilotsProceedingFilesExpired.length || [],
+                employeesProceedingFilesExpired: email.employeesProceedingFilesExpired || [],
+                pilotsProceedingFilesExpired: email.pilotsProceedingFilesExpired || [],
+                aircraftsProceedingFilesExpired: email.aircraftsProceedingFilesExpired || [],
+                employeesProceedingFilesExpiring: email.employeesProceedingFilesExpiring || [],
+                pilotsProceedingFilesExpiring: email.pilotsProceedingFilesExpiring || [],
+                aircraftsProceedingFilesExpiring: email.aircraftsProceedingFilesExpiring || [],
               })
           })
         }
       }
     }
     return emails
+  }
+
+  async setProceedingFileToEmail(filtersToSetEmail: SetProceedingFileToEmailInterface) {
+    const proceedingFileTypeService = new ProceedingFileTypeService()
+    const dateExpired = DateTime.fromJSDate(
+      new Date(filtersToSetEmail.proceedingFile.proceedingFileExpirationAt)
+    )
+    filtersToSetEmail.proceedingFile.proceedingFileExpirationAt = dateExpired
+      .setLocale('es')
+      .toFormat(`cccc, dd \'de\' LLLL \'de\' yyyy`)
+    const proceedingFileTypeEmails = await proceedingFileTypeService.getAllEmailParents(
+      filtersToSetEmail.proceedingFile.proceedingFileType.proceedingFileTypeId
+    )
+    if (filtersToSetEmail.proceedingFile.proceedingFileType.emails.length > 0) {
+      for await (const email of filtersToSetEmail.proceedingFile.proceedingFileType.emails) {
+        proceedingFileTypeEmails.push(email)
+      }
+    }
+    for await (const email of proceedingFileTypeEmails) {
+      const existEmail = filtersToSetEmail.emails.find(
+        (a) => a.email === email.proceedingFileTypeEmailEmail
+      )
+      if (existEmail) {
+        if (filtersToSetEmail.type === 'expired') {
+          switch (filtersToSetEmail.areaToUse) {
+            case 'employee':
+              await this.savingProceedingFileInEmail(
+                existEmail.employeesProceedingFilesExpired,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'pilot':
+              await this.savingProceedingFileInEmail(
+                existEmail.pilotsProceedingFilesExpired,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'aircraft':
+              await this.savingProceedingFileInEmail(
+                existEmail.aircraftsProceedingFilesExpired,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            default:
+              break
+          }
+        } else if (filtersToSetEmail.type === 'expiring') {
+          switch (filtersToSetEmail.areaToUse) {
+            case 'employee':
+              await this.savingProceedingFileInEmail(
+                existEmail.employeesProceedingFilesExpiring,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'pilot':
+              await this.savingProceedingFileInEmail(
+                existEmail.pilotsProceedingFilesExpiring,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'aircraft':
+              await this.savingProceedingFileInEmail(
+                existEmail.aircraftsProceedingFilesExpiring,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            default:
+              break
+          }
+        }
+      }
+    }
+  }
+
+  savingProceedingFileInEmail(
+    proceedingFiles: Array<ProceedingFile>,
+    proceedingFile: ProceedingFile
+  ) {
+    const existFile = proceedingFiles.find(
+      (a: { proceedingFileId: number }) => a.proceedingFileId === proceedingFile.proceedingFileId
+    )
+    if (!existFile) {
+      proceedingFiles.push(proceedingFile)
+    }
   }
 
   async getExpiredAndExpiring(filters: ProceedingFileExpiredFilterInterface, areaToUse: string) {
@@ -278,8 +390,44 @@ export default class ProceedingFileService {
       .preload('proceedingFileType', (query) => {
         query.preload('emails')
       })
+      .preload('employeeProceedingFile', (query) => {
+        query.preload('employee')
+      })
+      .preload('pilotProceedingFile', (query) => {
+        query.preload('pilot', (queryPilot) => {
+          queryPilot.preload('person')
+        })
+      })
+      .preload('aircraftProceedingFile', (query) => {
+        query.preload('aircraft')
+      })
       .orderBy('proceeding_file_expiration_at')
 
-    return proceedingFilesExpired
+    const newDateStart = DateTime.fromISO(filters.dateEnd).plus({ days: 1 }).toFormat('yyyy-MM-dd')
+    const newDateEnd = DateTime.fromISO(filters.dateEnd).plus({ days: 30 }).toFormat('yyyy-MM-dd')
+    const proceedingFilesExpiring = await ProceedingFile.query()
+      .whereNull('proceeding_file_deleted_at')
+      .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
+      .whereBetween('proceeding_file_expiration_at', [newDateStart, newDateEnd])
+      .preload('proceedingFileType', (query) => {
+        query.preload('emails')
+      })
+      .preload('employeeProceedingFile', (query) => {
+        query.preload('employee')
+      })
+      .preload('pilotProceedingFile', (query) => {
+        query.preload('pilot', (queryPilot) => {
+          queryPilot.preload('person')
+        })
+      })
+      .preload('aircraftProceedingFile', (query) => {
+        query.preload('aircraft')
+      })
+      .orderBy('proceeding_file_expiration_at')
+
+    return {
+      proceedingFilesExpired: proceedingFilesExpired ? proceedingFilesExpired : [],
+      proceedingFilesExpiring: proceedingFilesExpiring ? proceedingFilesExpiring : [],
+    }
   }
 }
