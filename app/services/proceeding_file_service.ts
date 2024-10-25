@@ -194,6 +194,10 @@ export default class ProceedingFileService {
         pilotsProceedingFilesExpiring: [],
         aircraftsProceedingFilesExpired: [],
         aircraftsProceedingFilesExpiring: [],
+        customersProceedingFilesExpired: [],
+        customersProceedingFilesExpiring: [],
+        flightAttendantsProceedingFilesExpired: [],
+        flightAttendantsProceedingFilesExpiring: [],
       } as ProceedingFileTypeEmailExpiredAndExpiringInterface
       emails.push(newEmail)
     }
@@ -260,6 +264,49 @@ export default class ProceedingFileService {
       await this.setProceedingFileToEmail(filtersToSetEmail)
     }
 
+    const customersProceedingFiles = await this.getExpiredAndExpiring(filters, 'customer')
+    for await (const proceedingFile of customersProceedingFiles.proceedingFilesExpired) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'customer',
+        type: 'expired',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+
+    for await (const proceedingFile of customersProceedingFiles.proceedingFilesExpiring) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'customer',
+        type: 'expiring',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+    const flightAttendantsProceedingFiles = await this.getExpiredAndExpiring(
+      filters,
+      'flight-attendant'
+    )
+    for await (const proceedingFile of flightAttendantsProceedingFiles.proceedingFilesExpired) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'flight-attendant',
+        type: 'expired',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+    for await (const proceedingFile of flightAttendantsProceedingFiles.proceedingFilesExpiring) {
+      const filtersToSetEmail = {
+        emails: emails,
+        proceedingFile: proceedingFile,
+        areaToUse: 'flight-attendant',
+        type: 'expiring',
+      } as SetProceedingFileToEmailInterface
+      await this.setProceedingFileToEmail(filtersToSetEmail)
+    }
+
     const userEmail = env.get('SMTP_USERNAME')
     if (userEmail) {
       for await (const email of emails) {
@@ -267,22 +314,33 @@ export default class ProceedingFileService {
           email.employeesProceedingFilesExpired.length > 0 ||
           email.pilotsProceedingFilesExpired.length > 0 ||
           email.aircraftsProceedingFilesExpired.length > 0 ||
+          email.customersProceedingFilesExpired.length > 0 ||
+          email.flightAttendantsProceedingFilesExpired.length > 0 ||
           email.employeesProceedingFilesExpiring.length > 0 ||
           email.pilotsProceedingFilesExpiring.length > 0 ||
-          email.aircraftsProceedingFilesExpiring.length > 0
+          email.aircraftsProceedingFilesExpiring.length > 0 ||
+          email.customersProceedingFilesExpiring.length > 0 ||
+          email.flightAttendantsProceedingFilesExpiring.length > 0
         ) {
+          const dateNow = Math.round(DateTime.now().toSeconds())
           await mail.send((message) => {
             message
               .to(email.email)
               .from(userEmail, 'SAE')
-              .subject('Expiring and Expired Proceeding Files Report')
+              .subject(`Matrix Expiration Alert -  ${dateNow}`)
               .htmlView('emails/proceeding_files_report', {
                 employeesProceedingFilesExpired: email.employeesProceedingFilesExpired || [],
-                pilotsProceedingFilesExpired: email.pilotsProceedingFilesExpired || [],
-                aircraftsProceedingFilesExpired: email.aircraftsProceedingFilesExpired || [],
                 employeesProceedingFilesExpiring: email.employeesProceedingFilesExpiring || [],
+                pilotsProceedingFilesExpired: email.pilotsProceedingFilesExpired || [],
                 pilotsProceedingFilesExpiring: email.pilotsProceedingFilesExpiring || [],
+                aircraftsProceedingFilesExpired: email.aircraftsProceedingFilesExpired || [],
                 aircraftsProceedingFilesExpiring: email.aircraftsProceedingFilesExpiring || [],
+                customersProceedingFilesExpired: email.customersProceedingFilesExpired || [],
+                customersProceedingFilesExpiring: email.customersProceedingFilesExpiring || [],
+                flightAttendantsProceedingFilesExpired:
+                  email.flightAttendantsProceedingFilesExpired || [],
+                flightAttendantsProceedingFilesExpiring:
+                  email.flightAttendantsProceedingFilesExpiring || [],
               })
           })
         }
@@ -297,8 +355,8 @@ export default class ProceedingFileService {
       new Date(filtersToSetEmail.proceedingFile.proceedingFileExpirationAt)
     )
     filtersToSetEmail.proceedingFile.proceedingFileExpirationAt = dateExpired
-      .setLocale('es')
-      .toFormat(`cccc, dd \'de\' LLLL \'de\' yyyy`)
+      .setLocale('en')
+      .toFormat(`cccc, dd LLLL yyyy`)
     const proceedingFileTypeEmails = await proceedingFileTypeService.getAllEmailParents(
       filtersToSetEmail.proceedingFile.proceedingFileType.proceedingFileTypeId
     )
@@ -332,6 +390,18 @@ export default class ProceedingFileService {
                 filtersToSetEmail.proceedingFile
               )
               break
+            case 'customer':
+              await this.savingProceedingFileInEmail(
+                existEmail.customersProceedingFilesExpired,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'flight-attendant':
+              await this.savingProceedingFileInEmail(
+                existEmail.flightAttendantsProceedingFilesExpired,
+                filtersToSetEmail.proceedingFile
+              )
+              break
             default:
               break
           }
@@ -352,6 +422,18 @@ export default class ProceedingFileService {
             case 'aircraft':
               await this.savingProceedingFileInEmail(
                 existEmail.aircraftsProceedingFilesExpiring,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'customer':
+              await this.savingProceedingFileInEmail(
+                existEmail.customersProceedingFilesExpiring,
+                filtersToSetEmail.proceedingFile
+              )
+              break
+            case 'flight-attendant':
+              await this.savingProceedingFileInEmail(
+                existEmail.flightAttendantsProceedingFilesExpiring,
                 filtersToSetEmail.proceedingFile
               )
               break
@@ -401,6 +483,16 @@ export default class ProceedingFileService {
       .preload('aircraftProceedingFile', (query) => {
         query.preload('aircraft')
       })
+      .preload('customerProceedingFile', (query) => {
+        query.preload('customer', (queryCustomer) => {
+          queryCustomer.preload('person')
+        })
+      })
+      .preload('flightAttendantProceedingFile', (query) => {
+        query.preload('flightAttendant', (queryFlightAttendant) => {
+          queryFlightAttendant.preload('person')
+        })
+      })
       .orderBy('proceeding_file_expiration_at')
 
     const newDateStart = DateTime.fromISO(filters.dateEnd).plus({ days: 1 }).toFormat('yyyy-MM-dd')
@@ -422,6 +514,16 @@ export default class ProceedingFileService {
       })
       .preload('aircraftProceedingFile', (query) => {
         query.preload('aircraft')
+      })
+      .preload('customerProceedingFile', (query) => {
+        query.preload('customer', (queryCustomer) => {
+          queryCustomer.preload('person')
+        })
+      })
+      .preload('flightAttendantProceedingFile', (query) => {
+        query.preload('flightAttendant', (queryFlightAttendant) => {
+          queryFlightAttendant.preload('person')
+        })
       })
       .orderBy('proceeding_file_expiration_at')
 
