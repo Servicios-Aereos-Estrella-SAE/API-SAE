@@ -4,6 +4,7 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
+    router.get('/send-expired-to-email', '#controllers/proceeding_file_controller.sendFilesExpiresToEmail')
     router.get('/', '#controllers/proceeding_file_controller.index')
     router.post('/', '#controllers/proceeding_file_controller.store')
     router.put('/:proceedingFileId', '#controllers/proceeding_file_controller.update')

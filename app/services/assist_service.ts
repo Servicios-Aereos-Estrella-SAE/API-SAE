@@ -15,6 +15,7 @@ import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface
 import axios from 'axios'
 import { AssistIncidentExcelRowInterface } from '../interfaces/assist_incident_excel_row_interface.js'
 import Assist from '#models/assist'
+import Tolerance from '#models/tolerance'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -105,10 +106,21 @@ export default class AssistsService {
       await this.cleanTotalByDepartment(totalRowIncident)
       const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
       await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistIncidentExcelRowInterface[]
-        newRows = await this.addRowIncidentCalendar(employee, employeeCalendar)
+        newRows = await this.addRowIncidentCalendar(employee, employeeCalendar, tardies)
         for await (const row of newRows) {
           rowsIncident.push(row)
           await this.addTotalByDepartment(totalRowByDepartmentIncident, row)
@@ -240,6 +252,17 @@ export default class AssistsService {
       const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
       for await (const employee of dataEmployes) {
         const result = await syncAssistsService.index(
           {
@@ -253,7 +276,7 @@ export default class AssistsService {
         if (data) {
           const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
           let newRows = [] as AssistIncidentExcelRowInterface[]
-          newRows = await this.addRowIncidentCalendar(employee, employeeCalendar)
+          newRows = await this.addRowIncidentCalendar(employee, employeeCalendar, tardies)
           for await (const row of newRows) {
             rowsIncident.push(row)
           }
@@ -391,6 +414,17 @@ export default class AssistsService {
       await this.cleanTotalByDepartment(totalRowIncident)
       const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
       await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
       for await (const position of resultPositions) {
         const employeeService = new EmployeeService()
         const resultEmployes = await employeeService.index(
@@ -419,7 +453,7 @@ export default class AssistsService {
           if (data) {
             const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
             let newRows = [] as AssistIncidentExcelRowInterface[]
-            newRows = await this.addRowIncidentCalendar(employee, employeeCalendar)
+            newRows = await this.addRowIncidentCalendar(employee, employeeCalendar, tardies)
             for await (const row of newRows) {
               rowsIncident.push(row)
               await this.addTotalByDepartment(totalRowByDepartmentIncident, row)
@@ -564,6 +598,17 @@ export default class AssistsService {
       this.addHeadRowIncident(worksheet)
       const totalRowIncident = {} as AssistIncidentExcelRowInterface
       await this.cleanTotalByDepartment(totalRowIncident)
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
       for await (const departmentRow of departments) {
         const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
         await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
@@ -599,7 +644,7 @@ export default class AssistsService {
             if (data) {
               const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
               let newRows = [] as AssistIncidentExcelRowInterface[]
-              newRows = await this.addRowIncidentCalendar(employee, employeeCalendar)
+              newRows = await this.addRowIncidentCalendar(employee, employeeCalendar, tardies)
               for await (const row of newRows) {
                 await this.addTotalByDepartment(totalRowByDepartmentIncident, row)
                 rowsIncident.push(row)
@@ -1181,7 +1226,11 @@ export default class AssistsService {
     columnO.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 
-  async addRowIncidentCalendar(employee: Employee, employeeCalendar: AssistDayInterface[]) {
+  async addRowIncidentCalendar(
+    employee: Employee,
+    employeeCalendar: AssistDayInterface[],
+    tardies: number
+  ) {
     const rows = [] as AssistIncidentExcelRowInterface[]
     let department = employee.department.departmentAlias ? employee.department.departmentAlias : ''
     department =
@@ -1244,7 +1293,7 @@ export default class AssistsService {
         }
       }
     }
-    delayFaults = this.getFaultsFromDelays(delays)
+    delayFaults = this.getFaultsFromDelays(delays, tardies)
     rows.push({
       employeeId: employee.employeeCode.toString(),
       employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
@@ -1474,8 +1523,8 @@ export default class AssistsService {
     totalRowIncident.totalFaults = 0
   }
 
-  getFaultsFromDelays(delays: number) {
-    const faults = Math.floor(delays / 3) // Cada 3 retardos es 1 falta
+  getFaultsFromDelays(delays: number, tardies: number) {
+    const faults = Math.floor(delays / tardies) // Cada 3 retardos es 1 falta
     return faults
   }
 

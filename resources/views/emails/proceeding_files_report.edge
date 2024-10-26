@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,49 +11,313 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae_jpg.jpeg" rel="stylesheet">
 </head>
-<body style="background-color: #f5f5fa; padding: 0rem; padding-top: 1rem; padding-bottom: 1rem; color: #303e67; font-family: 'Tajawal', sans-serif;">
-  <div class="email" style="width: 100%; max-width: 600px; background-color: #fefefe; min-height: 10rem; border-radius: 0.3rem; margin: auto; box-shadow: 0.1rem 0.1rem 0.2rem #f1f5f9; padding: 1.5rem; box-sizing: border-box;">
+
+<body
+  style="background-color: #f5f5fa; padding: 0rem; padding-top: 1rem; padding-bottom: 1rem; color: #303e67; font-family: 'Tajawal', sans-serif;">
+  <div class="email"
+    style="width: 100%; max-width: 600px; background-color: #fefefe; min-height: 10rem; border-radius: 0.3rem; margin: auto; box-shadow: 0.1rem 0.1rem 0.2rem #f1f5f9; padding: 1.5rem; box-sizing: border-box;">
     <div class="head" style="background-color: white;">
       <img src="https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.webp" style="width: 7rem;">
     </div>
     <div class="banner">
-      <img src="https://www.shutterstock.com/image-vector/vector-illustration-suitcase-stop-sign-600nw-2297051113.jpg" style="width: 100%; border-radius: 0.3rem; height: 20rem; object-fit: cover; margin-top: 0rem; background-color: #f1f5f9;">
+      <img src="https://www.shutterstock.com/image-vector/vector-illustration-suitcase-stop-sign-600nw-2297051113.jpg"
+        style="width: 100%; border-radius: 0.3rem; height: 20rem; object-fit: cover; margin-top: 0rem; background-color: #f1f5f9;">
     </div>
     <div class="welcome" style="margin-top: 0rem; text-align: left;">
       <h2 style="font-size: 1.25rem; text-transform: capitalize; margin-bottom: 0; text-align: center;">
-        Expiring and Expired Proceeding Files Report
+        Matrix Expiration Alert
       </h2>
+      <br>
+      @if((aircraftsProceedingFilesExpired && aircraftsProceedingFilesExpired.length > 0) || (aircraftsProceedingFilesExpiring && aircraftsProceedingFilesExpiring.length > 0))
+      <div style="border: 1px solid #ccc;"></div>
       <h3 style="font-size: 1rem; text-align: left;">Aircraft Files</h3>
+      <div style="border: 1px solid #ccc;"></div>
       <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
-      <ul style="list-style-type: none; padding-left: 0;">
-        @each(file in expiredFiles)
-          <li style="margin: 0.5rem 0;">{{ file.proceedingFileName }} - Expired on {{ file.proceedingFileExpirationAt }}</li>
-        @endeach
-      </ul>
+      @if(aircraftsProceedingFilesExpired && aircraftsProceedingFilesExpired.length > 0)
+      @each(file in aircraftsProceedingFilesExpired)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.aircraftProceedingFile)
+        <span style="margin: 0.5rem 0;">Aircraft: {{
+          file.aircraftProceedingFile.aircraft.aircraftRegistrationNumber }}
+        </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expired on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
 
+      @endeach
+
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expired aircraft files found.</p>
+      </div>
+      @endif
+      <br>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expiring Files</h4>
+      @if(aircraftsProceedingFilesExpiring && aircraftsProceedingFilesExpiring.length > 0)
+      @each(file in aircraftsProceedingFilesExpiring)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.aircraftProceedingFile)
+        <span style="margin: 0.5rem 0;">Aircraft: {{
+          file.aircraftProceedingFile.aircraft.aircraftRegistrationNumber }}
+        </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expiring on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+
+      @endeach
+
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expiring aircraft files found.</p>
+      </div>
+      @endif
+      <br>
+      @endif
+
+      @if((employeesProceedingFilesExpired && employeesProceedingFilesExpired.length > 0) || (employeesProceedingFilesExpiring && employeesProceedingFilesExpiring.length > 0))
+      <div style="border: 1px solid #ccc;"></div>
       <h2 style="font-size: 1rem; text-align: left;">Employee Files</h2>
-            <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
-      @if(expiredFilesEmployee && expiredFilesEmployee.length > 0)
-      <ul style="list-style-type: none; padding-left: 0;">
-        @each(file in expiredFilesEmployee)
-          <li style="margin: 0.5rem 0;">{{ file.proceedingFileName }} - Expired on {{ file.proceedingFileExpirationAt }}</li>
-        @endeach
-      </ul>
-      @else
-        <p>No expired employee files found.</p>
-      @endif
-      <h2 style="font-size: 1rem; text-align: left;">Pilots Files</h2>
+      <div style="border: 1px solid #ccc;"></div>
       <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
-      @if(expiredFilesPilots && expiredFilesPilots.length > 0)
-        <ul style="list-style-type: none; padding-left: 0;">
-          @each(file in expiredFilesPilots)
-            <li style="margin: 0.5rem 0;">{{ file.proceedingFileType.proceedingFileTypeName }} - Expired on {{ file.proceedingFileExpirationAt }}</li>
-          @endeach
-        </ul>
+      @if(employeesProceedingFilesExpired && employeesProceedingFilesExpired.length > 0)
+      @each(file in employeesProceedingFilesExpired)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.employeeProceedingFile)
+        <span style="margin: 0.5rem 0;">Employee: {{
+          file.employeeProceedingFile.employee.employeeFirstName }} {{
+          file.employeeProceedingFile.employee.employeeLastName }}
+        </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expired on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+      @endeach
       @else
-        <p>No expired pilot files found.</p>
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expired employee files found.</p>
+      </div>
       @endif
-      <div style="border: 1px dashed #e3ebf6; padding: 1.5rem; border-radius: 0.3rem; text-align: left; font-size: 0.9rem; text-wrap: pretty;">
+      <br>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expiring Files</h4>
+      @if(employeesProceedingFilesExpiring && employeesProceedingFilesExpiring.length > 0)
+      @each(file in employeesProceedingFilesExpiring)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.employeeProceedingFile)
+        <span style="margin: 0.5rem 0;">Employee: {{
+          file.employeeProceedingFile.employee.employeeFirstName }} {{
+          file.employeeProceedingFile.employee.employeeLastName }}
+        </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expiring on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+      @endeach
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expiring employee files found.</p>
+      </div>
+      @endif
+      <br>
+      @endif
+      @if((pilotsProceedingFilesExpired && pilotsProceedingFilesExpired.length > 0) || (pilotsProceedingFilesExpiring && pilotsProceedingFilesExpiring.length > 0)) 
+      <div style="border: 1px solid #ccc;"></div>
+      <h2 style="font-size: 1rem; text-align: left;">Pilots Files</h2>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
+      @if(pilotsProceedingFilesExpired && pilotsProceedingFilesExpired.length > 0)
+      @each(file in pilotsProceedingFilesExpired)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.pilotProceedingFile)
+        @if(file.pilotProceedingFile.pilot.person)
+        <span style="margin: 0.5rem 0;">Pilot: {{
+          file.pilotProceedingFile.pilot.person.personFirstname }} {{
+          file.pilotProceedingFile.pilot.person.personLastname }} {{
+          file.pilotProceedingFile.pilot.person.personSecondLastname }}
+        </span><br>
+        @endif
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expired on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+      @endeach
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expired pilot files found.</p>
+      </div>
+      @endif
+      <br>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expiring Files</h4>
+      @if(pilotsProceedingFilesExpiring && pilotsProceedingFilesExpiring.length > 0)
+      @each(file in pilotsProceedingFilesExpiring)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.pilotProceedingFile)
+        @if(file.pilotProceedingFile.pilot.person)
+        <span style="margin: 0.5rem 0;">Pilot: {{
+          file.pilotProceedingFile.pilot.person.personFirstname }} {{
+          file.pilotProceedingFile.pilot.person.personLastname }} {{
+          file.pilotProceedingFile.pilot.person.personSecondLastname }}
+        </span><br>
+        @endif
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expiring on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+      @endeach
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expiring pilot files found.</p>
+      </div>
+      @endif
+      <br>
+      @endif
+
+      @if((customersProceedingFilesExpired && customersProceedingFilesExpired.length > 0) || (customersProceedingFilesExpiring && customersProceedingFilesExpiring.length > 0)) 
+      <div style="border: 1px solid #ccc;"></div>
+      <h3 style="font-size: 1rem; text-align: left;">Customer Files</h3>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
+      @if(customersProceedingFilesExpired && customersProceedingFilesExpired.length > 0)
+      @each(file in customersProceedingFilesExpired)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.customerProceedingFile)
+        <span style="margin: 0.5rem 0;">Customer: {{
+            file.customerProceedingFile.customer.person.personFirstname }} {{
+            file.customerProceedingFile.customer.person.personLastname }} {{
+            file.customerProceedingFile.customer.person.personSecondLastname }}
+        </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expired on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+      @endeach
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expired customer files found.</p>
+      </div>
+      @endif
+      <br>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expiring Files</h4>
+      @if(customersProceedingFilesExpiring && customersProceedingFilesExpiring.length > 0)
+      @each(file in customersProceedingFilesExpiring)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.customerProceedingFile)
+        <span style="margin: 0.5rem 0;">Customer: {{
+          file.customerProceedingFile.customer.person.personFirstname }} {{
+          file.customerProceedingFile.customer.person.personLastname }} {{
+          file.customerProceedingFile.customer.person.personSecondLastname }}
+      </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expiring on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+      @endeach
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expiring customer files found.</p>
+      </div>
+      @endif
+      <br>
+      @endif
+
+      @if((flightAttendantsProceedingFilesExpired && flightAttendantsProceedingFilesExpired.length > 0) || (flightAttendantsProceedingFilesExpiring && flightAttendantsProceedingFilesExpiring.length > 0)) 
+      <div style="border: 1px solid #ccc;"></div>
+      <h3 style="font-size: 1rem; text-align: left;">Flight Attendant Files</h3>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expired Files</h4>
+      @if(flightAttendantsProceedingFilesExpired && flightAttendantsProceedingFilesExpired.length > 0)
+      @each(file in flightAttendantsProceedingFilesExpired)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.flightAttendantProceedingFile)
+        <span style="margin: 0.5rem 0;">Flight Attendant: {{
+            file.flightAttendantProceedingFile.flightAttendant.person.personFirstname }} {{
+            file.flightAttendantProceedingFile.flightAttendant.person.personLastname }} {{
+            file.flightAttendantProceedingFile.flightAttendant.person.personSecondLastname }}
+        </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expired on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+
+      @endeach
+
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expired flight attendant files found.</p>
+      </div>
+      @endif
+      <br>
+      <div style="border: 1px solid #ccc;"></div>
+      <h4 style="font-size: 0.9rem; text-align: left;">Expiring Files</h4>
+      @if(flightAttendantsProceedingFilesExpiring && flightAttendantsProceedingFilesExpiring.length > 0)
+      @each(file in flightAttendantsProceedingFilesExpiring)
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        @if(file.flightAttendantProceedingFile)
+        <span style="margin: 0.5rem 0;">Flight Attendant: {{
+          file.flightAttendantProceedingFile.flightAttendant.person.personFirstname }} {{
+          file.flightAttendantProceedingFile.flightAttendant.person.personLastname }} {{
+          file.flightAttendantProceedingFile.flightAttendant.person.personSecondLastname }}
+      </span><br>
+        @endif
+        <span style="margin: 0.5rem 0;">File: {{ file.proceedingFileName }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Expiring on {{ file.proceedingFileExpirationAt }}
+        </span><br>
+        <span style="margin: 0.5rem 0;">Identifier: {{ file.proceedingFileIdentify }}
+        </span><br>
+      </div>
+
+      @endeach
+
+      @else
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 5px;">
+        <p>No expiring flight attendant files found.</p>
+      </div>
+      @endif
+      @endif
+      <div
+        style="border: 1px dashed #e3ebf6; padding: 1.5rem; border-radius: 0.3rem; text-align: left; font-size: 0.9rem; text-wrap: pretty;">
         This report is generated to keep you informed about your files.
         <br>
         <br>
@@ -61,4 +326,5 @@
     </div>
   </div>
 </body>
+
 </html>
