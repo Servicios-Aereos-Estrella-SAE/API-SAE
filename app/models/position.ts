@@ -109,6 +109,11 @@ export default class Position extends compose(BaseModel, SoftDeletes) {
 
   @hasMany(() => Position, {
     foreignKey: 'parentPositionId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('subPositions')
+      }
+    },
   })
   declare subPositions: HasMany<typeof Position>
 
