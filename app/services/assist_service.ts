@@ -791,7 +791,7 @@ export default class AssistsService {
     const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
     const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
     const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const timeCST = time.setZone('UTC-5')
+    const timeCST = time.setZone('America/Mexico_city')
     const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
@@ -813,7 +813,7 @@ export default class AssistsService {
     const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
     const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
     const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const timeCST = time.setZone('UTC-5')
+    const timeCST = time.setZone('America/Mexico_city')
     const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
     const timeCheckOut = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
@@ -1000,14 +1000,14 @@ export default class AssistsService {
           ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
               setZone: true,
             })
-              .setZone('UTC-5')
+              .setZone('America/Mexico_city')
               .toFormat('MMM d, yyyy, h:mm:ss a')
           : '',
         returnLunchTime: calendar.assist.checkEatOut
           ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
               setZone: true,
             })
-              .setZone('UTC-5')
+              .setZone('America/Mexico_city')
               .toFormat('MMM d, yyyy, h:mm:ss a')
           : '',
         checkOutTime:
