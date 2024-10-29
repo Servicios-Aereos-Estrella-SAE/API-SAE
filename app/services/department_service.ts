@@ -31,7 +31,7 @@ export default class DepartmentService {
     return departments
   }
 
-  async buildOrganization(departmentsList: Array<number>) {
+  async buildOrganization(departmentList: number[]) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()
@@ -42,10 +42,29 @@ export default class DepartmentService {
 
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
-      .whereIn('departmentId', departmentsList)
+      .whereIn('departmentId', departmentList)
+      .whereNull('parentDepartmentId')
       .orderBy('departmentId', 'asc')
+      .preload('subDepartments', (child) => {
+        child.whereIn('businessUnitId', businessUnitsList)
+        child.preload('departmentsPositions', (deptQuery) => {
+          deptQuery.whereHas('position', (position) => {
+            position.whereNull('parentPositionId')
+          })
+          deptQuery.preload('position', (position) => {
+            position.whereNull('parentPositionId')
+            position.preload('subPositions')
+          })
+        })
+      })
       .preload('departmentsPositions', (deptQuery) => {
-        deptQuery.preload('position')
+        deptQuery.whereHas('position', (position) => {
+          position.whereNull('parentPositionId')
+        })
+        deptQuery.preload('position', (position) => {
+          position.whereNull('parentPositionId')
+          position.preload('subPositions')
+        })
       })
 
     return departments

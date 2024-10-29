@@ -486,7 +486,7 @@ export default class SyncAssistsService {
       const assist = item as AssistInterface
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeOrigin}`, {
         setZone: true,
-      }).setZone('UTC-5')
+      }).setZone('America/Mexico_city')
 
       const existDay = assistDayCollection.find(
         (itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd')
@@ -496,7 +496,7 @@ export default class SyncAssistsService {
         let dayAssist: AssistInterface[] = []
         assistListFlat.forEach((dayItem: AssistInterface, index) => {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeOrigin}`, { setZone: true })
-            .setZone('UTC-5')
+            .setZone('America/Mexico_city')
             .toFormat('yyyy-LL-dd')
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
             dayAssist.push(assistListFlat[index])
@@ -735,7 +735,8 @@ export default class SyncAssistsService {
     const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeOrigin}`, {
       setZone: true,
     })
-    const checkTime = DayTime.setZone('UTC-5')
+
+    const checkTime = DayTime.setZone('America/Mexico_city')
 
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
@@ -788,6 +789,7 @@ export default class SyncAssistsService {
 
     return checkAssistCopy
   }
+
   private async getTolerances() {
     try {
       const data = await new ToleranceService().index()
@@ -832,7 +834,7 @@ export default class SyncAssistsService {
     const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
       setZone: true,
     })
-    const checkTime = DayTime.setZone('UTC-5')
+    const checkTime = DayTime.setZone('America/Mexico_city')
     const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
     const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
@@ -942,7 +944,7 @@ export default class SyncAssistsService {
       service.status === 200 && service.holidays && service.holidays.length > 0 ? true : false
 
     checkAssistCopy.assist.holiday =
-      200 && service.holidays && service.holidays.length > 0
+      service.status === 200 && service.holidays && service.holidays.length > 0
         ? (service.holidays[0] as unknown as HolidayInterface)
         : null
 

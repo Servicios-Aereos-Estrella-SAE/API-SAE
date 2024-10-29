@@ -110,6 +110,11 @@ export default class Department extends compose(BaseModel, SoftDeletes) {
 
   @hasMany(() => Department, {
     foreignKey: 'parentDepartmentId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('subDepartments')
+      }
+    },
   })
   declare subDepartments: HasMany<typeof Department>
 
