@@ -3,7 +3,7 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
-    router.get('/get-vacations-excel', '#controllers/employee_vacation_controller.getVacationExcel')
+    router.get('/get-excel', '#controllers/employee_vacation_controller.getExcel')
   })
-  .prefix('/api/employees')
+  .prefix('/api/employees-vacations')
   .use(middleware.auth())

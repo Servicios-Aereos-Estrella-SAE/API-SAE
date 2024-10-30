@@ -1,14 +1,16 @@
 import { HttpContext } from '@adonisjs/core/http'
+import { EmployeeVacationExcelFilterInterface } from '../interfaces/employee_vacation_excel_filter_interface.js'
+import EmployeeVacationService from '#services/employee_vacation_service'
 
 export default class EmployeeVacationController {
   /**
    * @swagger
-   * /api/v1/assists/get-excel:
+   * /api/employees-vacations/get-excel:
    *   get:
-   *     summary: get assists excel by position
+   *     summary: get vacations excel
    *     security:
    *       - bearerAuth: []
-   *     tags: [Assists]
+   *     tags: [Employees]
    *     parameters:
    *       - name: date
    *         in: query
@@ -53,8 +55,7 @@ export default class EmployeeVacationController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
-      return request
-      /*    const employeeId = request.input('employeeId')
+      const employeeId = request.input('employeeId')
       const departmentId = request.input('departmentId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
@@ -63,9 +64,9 @@ export default class EmployeeVacationController {
         departmentId: departmentId,
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
-      } as EmployeeVacationExcelFilterInterface */
-      /*  const emplpoyeeVacationService = new EmployeeVacationService()
-      const buffer = await emplpoyeeVacationService.getExcel(filters)
+      } as EmployeeVacationExcelFilterInterface
+      const emplpoyeeVacationService = new EmployeeVacationService()
+      const buffer = await emplpoyeeVacationService.getExcelAll(filters)
       if (buffer.status === 201) {
         response.header(
           'Content-Type',
@@ -82,7 +83,7 @@ export default class EmployeeVacationController {
           message: buffer.message,
           error: buffer.error,
         }
-      } */
+      }
     } catch (error) {
       response.status(500)
       return {
