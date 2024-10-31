@@ -4,10 +4,18 @@ import Employee from '#models/employee'
 import { EmployeeVacationExcelFilterInterface } from '../interfaces/employee_vacation_excel_filter_interface.js'
 import EmployeeService from './employee_service.js'
 import { EmployeeVacationExcelRowInterface } from '../interfaces/employee_vacation_excel_row_interface.js'
+import Env from '#start/env'
+import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeVacationService {
   async getExcelAll(filters: EmployeeVacationExcelFilterInterface) {
     try {
+      const businessConf = `${Env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
       const employees = await Employee.query()
         .whereNull('employee_deleted_at')
         .if(filters.departmentId > 0, (query) => {
@@ -16,71 +24,25 @@ export default class EmployeeVacationService {
         .if(filters.employeeId > 0, (query) => {
           query.where('employee_id', filters.employeeId)
         })
+        .whereIn('business_unit_id', businessUnitsList)
+        .preload('businessUnit')
+        .preload('department')
         .preload('position')
         .orderBy('employee_code')
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
-      /* let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageUrl =
-        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
-      const imageBuffer = imageResponse.data
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: 'png',
-      })
-      worksheet.addImage(imageId, {
-        tl: { col: 0.28, row: 0.7 },
-        ext: { width: 139, height: 49 },
-      })
-      worksheet.getRow(1).height = 60
-      worksheet.mergeCells('A1:P1')
-      const titleRow = worksheet.addRow(['Assistance Report'])
-      let color = '244062'
-      let fgColor = 'FFFFFFF'
-      worksheet.getCell('A' + 2).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
-      titleRow.height = 42
-      titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:P2')
-      color = '366092'
-      //const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
-      //periodRow.font = { size: 15, color: { argb: fgColor } }
-
-      worksheet.getCell('A' + 3).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-     /*  periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      periodRow.height = 30 */
-      /* worksheet.mergeCells('A3:P3')
-      worksheet.views = [
-        { state: 'frozen', ySplit: 1 }, // Fija la primera fila
-        { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
-        { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
-        { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
-      ] */
-      // Añadir columnas de datos (encabezados)
-      // this.addHeadRow(worksheet)
-      //await this.addRowToWorkSheet(rows, worksheet)
-      // hasta aquí era lo de asistencia
       const years = []
-      const start = DateTime.fromISO(filters.filterDate)
-      const end = DateTime.fromISO(filters.filterDateEnd)
+      const start = DateTime.fromISO(filters.filterStartDate)
+      const end = DateTime.fromISO(filters.filterEndDate)
       for (let year = start.year; year <= end.year; year++) {
         years.push(year)
       }
       for await (const year of years) {
         const sheet = workbook.addWorksheet(`${year}`)
-        // Agrega contenido de ejemplo a la hoja
         await this.addHeadRow(sheet)
         const rows = await this.addEmployees(employees, year)
         await this.addRowToWorkSheet(rows, sheet)
+        this.paintBorderAll(sheet, rows.length)
       }
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -102,11 +64,28 @@ export default class EmployeeVacationService {
     }
   }
 
+  paintBorderAll(worksheet: ExcelJS.Worksheet, rowCount: number) {
+    for (let rowIndex = 1; rowIndex <= rowCount + 1; rowIndex++) {
+      const row = worksheet.getRow(rowIndex)
+      for (let colNumber = 1; colNumber <= 25; colNumber++) {
+        const cell = row.getCell(colNumber)
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } },
+        }
+      }
+    }
+  }
+
   addHeadRow(worksheet: ExcelJS.Worksheet) {
+    let fgColor = 'FFFFFFF'
+    let color = '4EA72E'
     const headers = [
-      'Company',
       'ID',
       'Employee',
+      'Department',
       'Position',
       'Hire Date',
       'Employer Company',
@@ -120,8 +99,7 @@ export default class EmployeeVacationService {
     }
     // Agregar los encabezados al worksheet
     const headerRow = worksheet.addRow(headers)
-    let fgColor = 'FFFFFFF'
-    let color = '156082'
+    color = '156082'
     for (let col = 1; col <= 25; col++) {
       const cell = worksheet.getCell(1, col)
       cell.fill = {
@@ -133,13 +111,13 @@ export default class EmployeeVacationService {
     headerRow.height = 24
     headerRow.font = { bold: true, color: { argb: fgColor } }
     const columnA = worksheet.getColumn(1)
-    columnA.width = 16
+    columnA.width = 15
     columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
-    columnB.width = 15
-    columnB.alignment = { vertical: 'middle', horizontal: 'center' }
+    columnB.width = 40
+    columnB.alignment = { vertical: 'middle', horizontal: 'left' }
     const columnC = worksheet.getColumn(3)
-    columnC.width = 40
+    columnC.width = 64
     columnC.alignment = { vertical: 'middle', horizontal: 'left' }
     const columnD = worksheet.getColumn(4)
     columnD.width = 64
@@ -149,7 +127,7 @@ export default class EmployeeVacationService {
     columnE.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnF = worksheet.getColumn(6)
     columnF.width = 55
-    columnF.alignment = { vertical: 'middle', horizontal: 'center' }
+    columnF.alignment = { vertical: 'middle', horizontal: 'left' }
     const columnG = worksheet.getColumn(7)
     columnG.width = 15
     columnG.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -170,6 +148,10 @@ export default class EmployeeVacationService {
     worksheet.views = [
       { state: 'frozen', ySplit: 1 }, // Fija la primera fila
     ]
+    const row = worksheet.getRow(1)
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
   }
 
   async addEmployees(employees: Employee[], year: number) {
@@ -177,29 +159,36 @@ export default class EmployeeVacationService {
     const rows = [] as EmployeeVacationExcelRowInterface[]
     for await (const employee of employees) {
       const yearsWorked = await employeeService.getYearWorked(employee, year)
-      let yearsPassed = ''
+      let yearsPassed = 0
       let daysVacations = 0
       let daysUsed = 0
+      const vacationsUsed = [] as Array<string>
       if (yearsWorked.status === 200) {
-        yearsPassed = yearsWorked.data.yearsPassed ? yearsWorked.data.yearsPassed : ''
+        if (yearsWorked.data.vacationUsedList) {
+          for await (const shiftException of yearsWorked.data.vacationUsedList) {
+            vacationsUsed.push(this.getDateFromHttp(shiftException.shiftExceptionsDate.toString()))
+          }
+        }
+        yearsPassed = yearsWorked.data.yearsPassed ? yearsWorked.data.yearsPassed : 0
         daysVacations = yearsWorked.data.vacationSetting?.vacationSettingVacationDays
           ? yearsWorked.data.vacationSetting?.vacationSettingVacationDays
           : 0
         daysUsed = yearsWorked.data.vacationUsedList ? yearsWorked.data.vacationUsedList.length : 0
       }
       const newRow = {
-        company: '',
         employeeCode: employee.employeeCode.toString(),
         employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
-        position: employee.position.positionName,
+        department: employee.department ? employee.department.departmentName : '',
+        position: employee.position ? employee.position.positionName : '',
         employeeHireDate: employee.employeeHireDate
           ? this.getDate(employee.employeeHireDate.toString())
           : '',
-        employerCompany: '',
+        employerCompany: employee.businessUnit ? employee.businessUnit.businessUnitLegalName : '',
         years: yearsPassed,
         daysVacations: daysVacations,
         daysUsed: daysUsed,
         daysRest: daysVacations - daysUsed,
+        vacationsUsed: vacationsUsed,
       } as EmployeeVacationExcelRowInterface
       rows.push(newRow)
     }
@@ -207,12 +196,11 @@ export default class EmployeeVacationService {
   }
 
   async addRowToWorkSheet(rows: EmployeeVacationExcelRowInterface[], worksheet: ExcelJS.Worksheet) {
-    let rowCount = 5
     for await (const rowData of rows) {
-      worksheet.addRow([
-        rowData.company,
+      const row = [
         rowData.employeeCode,
         rowData.employeeName,
+        rowData.department,
         rowData.position,
         rowData.employeeHireDate,
         rowData.employerCompany,
@@ -220,11 +208,21 @@ export default class EmployeeVacationService {
         rowData.daysVacations,
         rowData.daysUsed,
         rowData.daysRest,
-      ])
-      rowCount += 1
+      ]
+      if (rowData.vacationsUsed.length > 0) {
+        for await (const vacation of rowData.vacationsUsed) {
+          row.push(vacation)
+        }
+      }
+      worksheet.addRow(row)
     }
   }
   getDate(date: string) {
     return DateTime.fromISO(date).toFormat('yyyy-MM-dd')
+  }
+
+  getDateFromHttp(date: string) {
+    const dateObject = new Date(date)
+    return DateTime.fromJSDate(dateObject).toFormat('yyyy-MM-dd')
   }
 }

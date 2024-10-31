@@ -627,7 +627,6 @@ export default class EmployeeService {
     if (employee.employeeHireDate) {
       const start = DateTime.fromISO(employee.employeeHireDate.toString())
       const startYear = yearTemp ? yearTemp : start.year
-      //const currentYear = yearTemp ? yearTemp : DateTime.now().year + 1
       const yearsPassed = startYear - start.year
       if (yearsPassed < 0) {
         return {
@@ -640,10 +639,7 @@ export default class EmployeeService {
       }
       const month = start.month
       const day = start.day
-      const startDate = DateTime.fromISO(employee.employeeHireDate.toString()).toFormat(
-        'yyyy-MM-dd'
-      )
-      const yearsPassedToEnd = this.getYearsBetweenDates(startDate, `${yearTemp}-12-31`)
+      const yearsPassedToEnd = yearTemp - start.year
       const formattedDate = DateTime.fromObject({
         year: yearTemp,
         month: month,

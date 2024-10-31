@@ -12,14 +12,14 @@ export default class EmployeeVacationController {
    *       - bearerAuth: []
    *     tags: [Employees]
    *     parameters:
-   *       - name: date
+   *       - name: startDate
    *         in: query
    *         required: true
    *         schema:
    *           type: string
    *         default: "2022-01-01"
    *         description: Date from get list
-   *       - name: date-end
+   *       - name: endDate
    *         in: query
    *         required: true
    *         schema:
@@ -57,13 +57,13 @@ export default class EmployeeVacationController {
     try {
       const employeeId = request.input('employeeId')
       const departmentId = request.input('departmentId')
-      const filterDate = request.input('date')
-      const filterDateEnd = request.input('date-end')
+      const filterStartDate = request.input('startDate')
+      const filterEndDate = request.input('endDate')
       const filters = {
         employeeId: employeeId,
         departmentId: departmentId,
-        filterDate: filterDate,
-        filterDateEnd: filterDateEnd,
+        filterStartDate: filterStartDate,
+        filterEndDate: filterEndDate,
       } as EmployeeVacationExcelFilterInterface
       const emplpoyeeVacationService = new EmployeeVacationService()
       const buffer = await emplpoyeeVacationService.getExcelAll(filters)

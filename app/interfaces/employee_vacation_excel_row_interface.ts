@@ -1,13 +1,14 @@
 interface EmployeeVacationExcelRowInterface {
-  company: string
   employeeCode: string
   employeeName: string
+  department: string
   position: string
   employeeHireDate: string
   employerCompany: string
-  years: string
+  years: number
   daysVacations: number
   daysUsed: number
   daysRest: number
+  vacationsUsed: Array<string>
 }
 export type { EmployeeVacationExcelRowInterface }

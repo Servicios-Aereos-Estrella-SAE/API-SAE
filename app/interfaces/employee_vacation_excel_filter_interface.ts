@@ -1,7 +1,7 @@
 interface EmployeeVacationExcelFilterInterface {
   employeeId: number
   departmentId: number
-  filterDate: string
-  filterDateEnd: string
+  filterStartDate: string
+  filterEndDate: string
 }
 export type { EmployeeVacationExcelFilterInterface }
