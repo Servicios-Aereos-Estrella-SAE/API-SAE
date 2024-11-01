@@ -6,6 +6,8 @@ import {
   storeExceptionRequestValidator,
   updateExceptionRequestValidator,
 } from '#validators/exception_request'
+import env from '#start/env'
+import mail from '@adonisjs/mail/services/main'
 
 export default class ExceptionRequestsController {
   /**
@@ -14,7 +16,102 @@ export default class ExceptionRequestsController {
    *   name: ExceptionRequests
    *   description: API for managing exception requests
    */
+  /**
+   * @swagger
+   * /api/exception-requests/{id}/status:
+   *   patch:
+   *     summary: Update the status of a specific exception request
+   *     tags: [ExceptionRequests]
+   *     parameters:
+   *       - name: id
+   *         in: path
+   *         required: true
+   *         description: ID of the exception request
+   *         schema:
+   *           type: integer
+   *       - name: status
+   *         in: body
+   *         required: true
+   *         description: The new status of the exception request
+   *         schema:
+   *           type: object
+   *           required:
+   *             - status
+   *           properties:
+   *             status:
+   *               type: string
+   *               enum: [accepted, refused]
+   *               example: accepted
+   *     responses:
+   *       200:
+   *         description: Status updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Status updated successfully
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: integer
+   *       400:
+   *         description: Invalid status
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 error:
+   *                   type: string
+   *                   example: Invalid status. Only "accepted" or "refused" are allowed.
+   *       404:
+   *         description: ExceptionRequest not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 error:
+   *                   type: string
+   *                   example: ExceptionRequest not found
+   */
+  async updateStatus({ request, params, response }: HttpContext) {
+    const { status } = request.only(['status'])
 
+    if (status !== 'accepted' && status !== 'refused') {
+      return response.status(400).json({
+        error: 'Invalid status. Only "accepted" or "refused" are allowed.',
+      })
+    }
+    const exceptionRequest = await ExceptionRequest.find(params.id)
+    if (!exceptionRequest) {
+      return response.status(404).json({
+        error: 'ExceptionRequest not found',
+      })
+    }
+    exceptionRequest.exceptionRequestStatus = status
+    await exceptionRequest.save()
+    const userEmail = env.get('SMTP_USERNAME')
+    if (userEmail) {
+      await mail.send((message) => {
+        message
+          .to('wramirez@siler-mx.com')
+          .from(userEmail, 'SAE')
+          .subject('Notification: Status of Exception Request Updated')
+          .htmlView('emails/update_status_mail', {
+            newStatus: status,
+          })
+      })
+    }
+    return response.status(200).json({
+      message: 'Status updated successfully',
+      data: exceptionRequest,
+    })
+  }
   /**
    * @swagger
    * /api/exception-requests:
