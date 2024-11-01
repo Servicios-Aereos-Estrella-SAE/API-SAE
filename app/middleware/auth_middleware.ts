@@ -2,7 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { Authenticators } from '@adonisjs/auth/types'
 import { DateTime } from 'luxon'
-import LogRequest from '#models/MongoDB/log_request'
+import { LogStore } from '#models/MongoDB/log_store'
+import { LogRequest } from '../interfaces/MongoDB/log_request.js'
 
 /**
  * Auth middleware is used authenticate HTTP requests and deny
@@ -31,14 +32,14 @@ export default class AuthMiddleware {
       const userId = ctx.auth.user?.userId
       const route = ctx.request.response.req.url
       if (userId && route) {
-        await LogRequest.save({
+        await LogStore.set('log_request', {
           user_id: userId,
           route: route,
           user_agent: userAgent,
           sec_ch_ua_platform: secChUaPlatform,
           sec_ch_ua: secChUa,
           date: date ? date : '',
-        })
+        } as LogRequest)
       }
     } catch (err) {}
     return next()

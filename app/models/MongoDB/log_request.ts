@@ -1,68 +1,61 @@
 import mongoose from 'mongoose'
 import Env from '#start/env'
 
-interface LogRequestModel {
-  user_id: number
-  route: string
-  user_agent: string | null
-  sec_ch_ua_platform: string | null
-  sec_ch_ua: string | null
-  date: string
-}
-
-export default class LogRequest {
+export class LogRequest {
   private static instance: LogRequest
-  private documentName = 'log_request' as const
-  private modelSchema: mongoose.Model<any>
-  private connection: any
-  constructor() {
-    this.modelSchema =
-      mongoose.models[this.documentName] ||
-      mongoose.model(
-        this.documentName,
-        new mongoose.Schema({
-          user_id: Number,
-          route: String,
-          user_agent: String,
-          sec_ch_ua_platform: String,
-          sec_ch_ua: String,
-          date: String,
-        })
-      )
-  }
+  private connections: { [key: string]: mongoose.Model<any> } = {}
+  isConnected = false
+  private retryTimeout = 10000
+  private isReconnecting = false
+  private connectionTimeout = 5000
 
   static getInstance(): LogRequest {
     if (!LogRequest.instance) {
       LogRequest.instance = new LogRequest()
     }
-
     return LogRequest.instance
   }
+  async dbConnect() {
+    if (this.isConnected) return
 
-  private async dbConnect() {
-    if (Env.get('MONGODB_USER')) {
-      this.connection = await mongoose.connect(
-        `mongodb://${Env.get('MONGODB_USER')}:${Env.get('MONGODB_PASSWORD')}@${Env.get('MONGODB_HOST')}:${Env.get('MONGODB_PORT')}/${Env.get('MONGODB_DB_NAME')}`
-      )
-    } else {
-      this.connection = await mongoose.connect(
-        `mongodb://${Env.get('MONGODB_HOST')}:${Env.get('MONGODB_PORT')}/${Env.get('MONGODB_DB_NAME')}`
-      )
+    const uri = Env.get('MONGODB_USER')
+      ? `mongodb://${Env.get('MONGODB_USER')}:${Env.get('MONGODB_PASSWORD')}@${Env.get('MONGODB_HOST')}:${Env.get('MONGODB_PORT')}/${Env.get('MONGODB_DB_NAME')}`
+      : `mongodb://${Env.get('MONGODB_HOST')}:${Env.get('MONGODB_PORT')}/${Env.get('MONGODB_DB_NAME')}`
+
+    try {
+      await Promise.race([
+        mongoose.connect(uri),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timed out')), this.connectionTimeout)
+        ),
+      ])
+      this.isConnected = true
+      //console.log("se pudo conectar a MongoDB")
+    } catch (error) {
+      //console.error("MongoDB conexion error:", error)
+      this.isConnected = false
+      this.isConnected = false
+      this.scheduleReconnect()
     }
   }
 
-  static async save(LogRequestModel: LogRequestModel) {
-    const schemaInstance = LogRequest.getInstance()
-    try {
-      await schemaInstance.dbConnect()
-      const req = schemaInstance.modelSchema
-      const request = new req(LogRequestModel)
-      const newLog = await request.save()
-      schemaInstance.connection.disconnect()
-      return newLog
-    } catch (error) {
-      schemaInstance.connection.disconnect()
-      return null
+  private scheduleReconnect() {
+    if (this.isReconnecting) return
+
+    this.isReconnecting = true
+    setTimeout(async () => {
+      // console.log("reconectando")
+      await this.dbConnect()
+      this.isReconnecting = false
+    }, this.retryTimeout)
+  }
+
+  getModel(collectionName: string): mongoose.Model<any> {
+    if (!this.connections[collectionName]) {
+      this.connections[collectionName] =
+        mongoose.models[collectionName] ||
+        mongoose.model(collectionName, new mongoose.Schema({}, { strict: false }))
     }
+    return this.connections[collectionName]
   }
 }
