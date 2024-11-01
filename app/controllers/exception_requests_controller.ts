@@ -1,4 +1,3 @@
-// import type { HttpContext } from '@adonisjs/core/http'
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionRequest from '../models/exception_request.js'
 import { formatResponse } from '../helpers/responseFormatter.js'
@@ -8,6 +7,8 @@ import {
 } from '#validators/exception_request'
 import env from '#start/env'
 import mail from '@adonisjs/mail/services/main'
+import Employee from '#models/employee'
+import ExceptionType from '#models/exception_type'
 
 export default class ExceptionRequestsController {
   /**
@@ -215,6 +216,9 @@ export default class ExceptionRequestsController {
    *               exceptionRequestDescription:
    *                 type: string
    *                 maxLength: 255
+   *               requestedDate:
+   *                 type: string
+   *                 example: "2024-11-15 14:00:00"
    *     responses:
    *       201:
    *         description: Exception request created successfully
@@ -242,6 +246,38 @@ export default class ExceptionRequestsController {
 
   async store({ request, response }: HttpContext) {
     const data = await request.validateUsing(storeExceptionRequestValidator)
+
+    const employee = await Employee.query()
+      .where('employeeId', data.employeeId)
+      .whereNull('deletedAt')
+      .first()
+    if (!employee) {
+      return response.status(404).json({
+        error: 'Employee not found or has been deleted',
+      })
+    }
+    const exceptionType = await ExceptionType.query()
+      .where('exceptionTypeId', data.exceptionTypeId)
+      .whereNull('deletedAt')
+      .first()
+
+    if (!exceptionType) {
+      return response.status(404).json({
+        error: 'Exception type not found or has been deleted',
+      })
+    }
+
+    const existingRequest = await ExceptionRequest.query()
+      .where('employee_id', data.employeeId)
+      .where('requested_date', data.requestedDate.toJSDate())
+      .whereNot('exception_request_status', 'refused')
+      .first()
+
+    if (existingRequest) {
+      return response.status(400).json({
+        error: 'An exception request for the same date and time already exists and is not refused',
+      })
+    }
     const exceptionRequest = await ExceptionRequest.create(data)
 
     return response
@@ -341,6 +377,9 @@ export default class ExceptionRequestsController {
    *               exceptionRequestDescription:
    *                 type: string
    *                 maxLength: 255
+   *               requestedDate:
+   *                 type: string
+   *                 example: "2024-11-15 14:00:00"
    *     responses:
    *       200:
    *         description: Exception request updated successfully

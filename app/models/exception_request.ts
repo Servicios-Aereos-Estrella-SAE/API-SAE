@@ -21,7 +21,8 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
 
   @column()
   exceptionRequestDescription?: string
-
+  @column.dateTime()
+  requestedDate!: DateTime
   @column.dateTime({ autoCreate: true })
   exceptionRequestCreatedAt!: DateTime
 
