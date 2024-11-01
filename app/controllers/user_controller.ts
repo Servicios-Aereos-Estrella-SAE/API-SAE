@@ -8,6 +8,8 @@ import env from '../../start/env.js'
 import UserService from '#services/user_service'
 import { createUserValidator, updateUserValidator } from '#validators/user'
 import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
+import { DateTime } from 'luxon'
+import LogAuthentication from '#models/MongoDB/log_authentication'
 
 export default class UserController {
   /**
@@ -144,6 +146,10 @@ export default class UserController {
       const token = await User.accessTokens.create(user)
 
       if (userVerify && token) {
+        const date = DateTime.local().setZone('utc').toISO()
+        try {
+          await LogAuthentication.save({ user_id: user.userId, date: date ? date : '' })
+        } catch (err) {}
         response.status(200)
         return {
           type: 'success',
