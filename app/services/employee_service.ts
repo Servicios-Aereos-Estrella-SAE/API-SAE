@@ -612,6 +612,82 @@ export default class EmployeeService {
     }
   }
 
+  async getYearWorked(employee: Employee, yearTemp: number) {
+    if (yearTemp) {
+      if (yearTemp > 3000) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The year is incorrect',
+          message: 'the year must be less than 3000',
+          data: { yearTemp: yearTemp },
+        }
+      }
+    }
+    if (employee.employeeHireDate) {
+      const start = DateTime.fromISO(employee.employeeHireDate.toString())
+      const startYear = yearTemp ? yearTemp : start.year
+      const yearsPassed = startYear - start.year
+      if (yearsPassed < 0) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The year is incorrect',
+          message: 'The year is not valid ',
+          data: { startYear: startYear },
+        }
+      }
+      const month = start.month
+      const day = start.day
+      const yearsPassedToEnd = yearTemp - start.year
+      const formattedDate = DateTime.fromObject({
+        year: yearTemp,
+        month: month,
+        day: day,
+      }).toFormat('yyyy-MM-dd')
+      const vacationSetting = await VacationSetting.query()
+        .whereNull('vacation_setting_deleted_at')
+        .where('vacation_setting_years_of_service', yearsPassed)
+        .where('vacation_setting_apply_since', '<=', formattedDate ? formattedDate : '')
+        .first()
+      let vacationsUsedList = [] as Array<ShiftException>
+      if (vacationSetting) {
+        vacationsUsedList = await ShiftException.query()
+          .whereNull('shift_exceptions_deleted_at')
+          .where('vacation_setting_id', vacationSetting.vacationSettingId)
+          .where('employee_id', employee.employeeId)
+          .orderBy('shift_exceptions_date', 'asc')
+      }
+      return {
+        status: 200,
+        type: 'success',
+        title: 'Info get successfully',
+        message: 'Info get successfully',
+        data: {
+          year: yearTemp,
+          yearsPassed: yearsPassedToEnd,
+          vacationSetting: vacationSetting,
+          vacationUsedList: vacationsUsedList,
+        },
+      }
+    } else {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee hire date was not found',
+        message: 'The employee hire date was not found ',
+        data: {},
+      }
+    }
+  }
+
+  getYearsBetweenDates(startDate: string, endDate: string) {
+    const start = DateTime.fromISO(startDate)
+    const end = DateTime.fromISO(endDate)
+    const yearsDifference = end.diff(start, 'years').years
+    return yearsDifference.toFixed(2)
+  }
+
   async getVacationsByPeriod(employeeId: number, vacationSettingId: number) {
     const vacations = await ShiftException.query()
       .whereNull('shift_exceptions_deleted_at')
