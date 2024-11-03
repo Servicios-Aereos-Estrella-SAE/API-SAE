@@ -909,8 +909,10 @@ export default class PositionController {
           data: { positionId },
         }
       }
+
       const positionService = new PositionService()
       const showPosition = await positionService.show(positionId)
+
       if (!showPosition) {
         response.status(404)
         return {

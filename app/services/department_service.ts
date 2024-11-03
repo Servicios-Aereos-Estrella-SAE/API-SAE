@@ -12,9 +12,10 @@ import { DepartmentShiftEmployeeWarningInterface } from '../interfaces/departmen
 import EmployeeShift from '#models/employee_shift'
 import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
+import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
 
 export default class DepartmentService {
-  async index(departmentsList: Array<number>) {
+  async index(departmentsList: Array<number>, filters?: DepartmentIndexFilterInterface) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()
@@ -26,6 +27,12 @@ export default class DepartmentService {
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
       .whereIn('departmentId', departmentsList)
+      .if(filters?.departmentName, (query) => {
+        query.whereILike('departmentName', `%${filters?.departmentName}%`)
+      })
+      .if(filters?.onlyParents, (query) => {
+        query.whereNull('parentDepartmentId')
+      })
       .orderBy('departmentId', 'asc')
 
     return departments
@@ -171,7 +178,9 @@ export default class DepartmentService {
     const department = await Department.query()
       .whereNull('department_deleted_at')
       .where('department_id', departmentId)
+      .preload('subDepartments')
       .first()
+
     return department ? department : null
   }
 
