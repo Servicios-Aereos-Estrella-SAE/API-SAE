@@ -20,7 +20,7 @@ export default class ExceptionRequestsController {
   /**
    * @swagger
    * /api/exception-requests/{id}/status:
-   *   patch:
+   *   post:
    *     summary: Update the status of a specific exception request
    *     tags: [ExceptionRequests]
    *     parameters:
