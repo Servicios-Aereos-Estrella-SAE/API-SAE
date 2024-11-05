@@ -30,21 +30,21 @@ export class LogRequest {
         ),
       ])
       this.isConnected = true
-      //console.log("se pudo conectar a MongoDB")
+      // console.log("se pudo conectar a MongoDB")
     } catch (error) {
       //console.error("MongoDB conexion error:", error)
-      this.isConnected = false
       this.isConnected = false
       this.scheduleReconnect()
     }
   }
 
-  private scheduleReconnect() {
+  scheduleReconnect() {
+    // console.log('isReconnecting:' , this.isReconnecting)
     if (this.isReconnecting) return
 
     this.isReconnecting = true
     setTimeout(async () => {
-      // console.log("reconectando")
+      //console.log("reconectando")
       await this.dbConnect()
       this.isReconnecting = false
     }, this.retryTimeout)

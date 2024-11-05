@@ -1,6 +1,8 @@
 import EmployeeShift from '#models/employee_shift'
 import { DateTime } from 'luxon'
 import { EmployeeShiftFilterInterface } from '../interfaces/employee_shift_filter_interface.js'
+import { LogStore } from '#models/MongoDB/log_store'
+import { LogEmployeeShift } from '../interfaces/MongoDB/log_employee_shift.js'
 
 export default class EmployeeShiftService {
   async verifyInfo(employeeShift: EmployeeShift) {
@@ -127,5 +129,16 @@ export default class EmployeeShiftService {
       const time = horaConZona.replaceAll('"', '').substring(0, 8)
       return `${date.replaceAll('"', '')} ${time}`
     }
+  }
+
+  async saveActionOnLog(logEmployeeShift: LogEmployeeShift) {
+    try {
+      await LogStore.set('log_employee_shifts', logEmployeeShift)
+    } catch (err) {}
+  }
+
+  getHeaderValue(headers: Array<string>, headerName: string) {
+    const index = headers.indexOf(headerName)
+    return index !== -1 ? headers[index + 1] : null
   }
 }
