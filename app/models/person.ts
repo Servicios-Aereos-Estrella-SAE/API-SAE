@@ -1,8 +1,10 @@
 /* eslint-disable max-len */
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, hasOne } from '@adonisjs/lucid/orm'
+import type { HasOne } from '@adonisjs/lucid/types/relations'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
+import Employee from './employee.js'
 /**
  * @swagger
  * components:
@@ -88,4 +90,13 @@ export default class Person extends compose(BaseModel, SoftDeletes) {
 
   @column.dateTime({ columnName: 'person_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @hasOne(() => Employee, {
+    foreignKey: 'personId',
+    localKey: 'personId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt')
+    },
+  })
+  declare employee: HasOne<typeof Employee>
 }
