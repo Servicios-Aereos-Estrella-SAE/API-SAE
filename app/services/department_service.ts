@@ -27,6 +27,7 @@ export default class DepartmentService {
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
       .whereIn('departmentId', departmentsList)
+      .where('departmentId', '<>', 999)
       .if(filters?.departmentName, (query) => {
         query.whereILike('departmentName', `%${filters?.departmentName}%`)
       })
@@ -50,6 +51,7 @@ export default class DepartmentService {
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
       .whereIn('departmentId', departmentList)
+      .where('departmentId', '<>', 999)
       .whereNull('parentDepartmentId')
       .orderBy('departmentId', 'asc')
       .preload('subDepartments', (child) => {
