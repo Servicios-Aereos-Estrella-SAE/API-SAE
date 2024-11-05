@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 // const ShiftController = () => import('#controllers/shifts_controller')
 
@@ -18,3 +19,4 @@ router
     router.delete('/shift/:id', '#controllers/shifts_controller.destroy')
   })
   .prefix('/api')
+  .use(middleware.auth())

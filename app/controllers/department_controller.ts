@@ -12,6 +12,7 @@ import { DepartmentShiftFilterInterface } from '../interfaces/department_shift_f
 import BusinessUnit from '#models/business_unit'
 import { DateTime } from 'luxon'
 import UserService from '#services/user_service'
+import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
 
 export default class DepartmentController {
   /**
@@ -459,9 +460,7 @@ export default class DepartmentController {
 
       const department = await Department.query()
         .where('department_id', departmentId)
-        .whereHas('employees', (query) => {
-          query.whereIn('businessUnitId', businessUnitsList)
-        })
+        .whereIn('businessUnitId', businessUnitsList)
         .first()
 
       if (!department) {
@@ -477,78 +476,16 @@ export default class DepartmentController {
       const positions = await DepartmentPosition.query()
         .where('department_id', departmentId)
         .whereHas('position', (queryPosition) => {
-          queryPosition.whereHas('employees', (query) => {
-            query.whereIn('businessUnitId', businessUnitsList)
-          })
+          queryPosition.whereIn('businessUnitId', businessUnitsList)
         })
         .preload('position', (queryPosition) => {
-          queryPosition.whereHas('employees', (query) => {
-            query.whereIn('businessUnitId', businessUnitsList)
-          })
+          queryPosition.whereIn('businessUnitId', businessUnitsList)
         })
         .orderBy('position_id')
 
       response.status(200)
       return {
         type: 'successi',
-        title: 'Positions by department',
-        message: 'The positions by department have been found successfully',
-        data: {
-          positions,
-        },
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  async getSearchPositions({ request, response }: HttpContext) {
-    try {
-      const departmentId = request.param('departmentId')
-      const positionName = request.input('positionName') || null
-
-      if (!departmentId) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'Positions by department',
-          message: 'Missing data to process',
-          data: {},
-        }
-      }
-
-      const department = await Department.query().where('department_id', departmentId).first()
-      if (!department) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'Positions by department',
-          message: 'Department not found',
-          data: { department_id: departmentId },
-        }
-      }
-
-      const positionsQuery = DepartmentPosition.query()
-        .where('department_id', departmentId)
-        .preload('position')
-
-      if (positionName) {
-        positionsQuery.whereHas('position', (query) => {
-          query.where('positionName', 'LIKE', `%${positionName}%`)
-        })
-      }
-
-      const positions = await positionsQuery.orderBy('position_id')
-
-      response.status(200)
-      return {
-        type: 'success',
         title: 'Positions by department',
         message: 'The positions by department have been found successfully',
         data: {
@@ -656,16 +593,23 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async getAll({ auth, response }: HttpContext) {
+  async getAll({ auth, request, response }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
       const userService = new UserService()
+      const departmentName = request.input('department-name')
+      const onlyParents = request.input('only-parents')
+
       let departmentsList = [] as Array<number>
+
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
-      const departments = await new DepartmentService().index(departmentsList)
+
+      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents }
+      const departments = await new DepartmentService().index(departmentsList, filters)
+
       response.status(200)
       return {
         type: 'success',
@@ -686,17 +630,97 @@ export default class DepartmentController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/departments/organization:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get all departments with family structure (childrens and parents and position levels)
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   */
   async getOrganization({ auth, response }: HttpContext) {
     try {
       await auth.check()
+
       const user = auth.user
       const userService = new UserService()
       let departmentsList = [] as Array<number>
+
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
+
       const departments = await new DepartmentService().buildOrganization(departmentsList)
+
       response.status(200)
+
       return {
         type: 'success',
         title: 'Departments',
@@ -713,62 +737,6 @@ export default class DepartmentController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
-    }
-  }
-
-  async getSearch({ auth, request, response }: HttpContext) {
-    try {
-      await auth.check()
-      const user = auth.user
-      const userService = new UserService()
-      let departments = [] as Array<number>
-
-      if (user) {
-        departments = await userService.getRoleDepartments(user.userId)
-      }
-
-      const { departmentName, page = 1, limit = 50 } = request.qs()
-      const query = Department.query().orderBy('department_id')
-
-      if (departmentName) {
-        query.where('departmentName', 'LIKE', `%${departmentName}%`)
-      }
-
-      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
-      const businessList = businessConf.split(',')
-      const businessUnits = await BusinessUnit.query()
-        .where('business_unit_active', 1)
-        .whereIn('business_unit_slug', businessList)
-
-      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-
-      query.whereIn('businessUnitId', businessUnitsList)
-      query.whereIn('departmentId', departments)
-
-      const departmentsList = await query.paginate(page, limit)
-
-      return response.status(200).json({
-        type: 'success',
-        title: 'Successfully action',
-        message: 'Resources fetched',
-        data: {
-          meta: {
-            total: departmentsList.total,
-            per_page: departmentsList.perPage,
-            current_page: departmentsList.currentPage,
-            last_page: departmentsList.lastPage,
-            first_page: 1,
-          },
-          data: departmentsList.all().map((department) => department.toJSON()),
-        },
-      })
-    } catch (error) {
-      return response.status(500).json({
-        type: 'error',
-        title: 'Server error',
-        message: error.message,
-        data: null,
-      })
     }
   }
 
@@ -1187,151 +1155,6 @@ export default class DepartmentController {
     }
   }
 
-  /**
-   * @swagger
-   * /api/departments/{departmentId}:
-   *   delete:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Departments
-   *     summary: delete department
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - in: path
-   *         name: departmentId
-   *         schema:
-   *           type: number
-   *         description: Department id
-   *         required: true
-   *     responses:
-   *       '201':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  // async delete({ request, response }: HttpContext) {
-  //   try {
-  //     const departmentId = request.param('departmentId')
-  //     if (!departmentId) {
-  //       response.status(400)
-  //       return {
-  //         type: 'warning',
-  //         title: 'The department Id was not found',
-  //         message: 'Missing data to process',
-  //         data: { departmentId },
-  //       }
-  //     }
-  //     const currentDepartment = await Department.query()
-  //       .whereNull('department_deleted_at')
-  //       .where('department_id', departmentId)
-  //       .first()
-  //     if (!currentDepartment) {
-  //       response.status(404)
-  //       return {
-  //         type: 'warning',
-  //         title: 'The department was not found',
-  //         message: 'The department was not found with the entered ID',
-  //         data: { departmentId },
-  //       }
-  //     }
-  //     const departmentService = new DepartmentService()
-  //     const deleteDepartment = await departmentService.delete(currentDepartment)
-  //     if (deleteDepartment) {
-  //       response.status(201)
-  //       return {
-  //         type: 'success',
-  //         title: 'Departments',
-  //         message: 'The department was deleted successfully',
-  //         data: { department: deleteDepartment },
-  //       }
-  //     }
-  //   } catch (error) {
-  //     response.status(500)
-  //     return {
-  //       type: 'error',
-  //       title: 'Server error',
-  //       message: 'An unexpected error has occurred on the server',
-  //       error: error.message,
-  //     }
-  //   }
-  // }
   async delete({ request, response }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
@@ -1572,9 +1395,15 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async show({ request, response }: HttpContext) {
+  async show({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
       const departmentId = request.param('departmentId')
+
+      let departmentsList = [] as Array<number>
+
       if (!departmentId) {
         response.status(400)
         return {
@@ -1584,8 +1413,14 @@ export default class DepartmentController {
           data: { departmentId },
         }
       }
+
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+
       const departmentService = new DepartmentService()
       const showDepartment = await departmentService.show(departmentId)
+
       if (!showDepartment) {
         response.status(404)
         return {
@@ -1594,14 +1429,26 @@ export default class DepartmentController {
           message: 'The department was not found with the entered ID',
           data: { departmentId },
         }
-      } else {
-        response.status(200)
+      }
+
+      const validAccess = departmentsList.find((id) => showDepartment.departmentId === id)
+
+      if (!validAccess) {
+        response.status(403)
         return {
-          type: 'success',
-          title: 'Departments',
-          message: 'The department was found successfully',
-          data: { department: showDepartment },
+          type: 'warning',
+          title: 'The department was not found',
+          message: 'The department was not found with the entered ID - not access',
+          data: { departmentId },
         }
+      }
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Departments',
+        message: 'The department was found successfully',
+        data: { department: showDepartment },
       }
     } catch (error) {
       response.status(500)

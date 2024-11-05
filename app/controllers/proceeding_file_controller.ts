@@ -13,6 +13,7 @@ import path from 'node:path'
 import ProceedingFileHasStatus from '#models/proceeding_file_has_status'
 import ProceedingFileHasStatusService from '#services/proceeding_file_has_status_service'
 import { DateTime } from 'luxon'
+import { ProceedingFileExpiredFilterInterface } from '../interfaces/proceeding_file_expired_filter_interface.js'
 export default class ProceedingFileController {
   /**
    * @swagger
@@ -1143,6 +1144,143 @@ export default class ProceedingFileController {
           message: 'The proceeding file was found successfully',
           data: { showProceedingFile: showProceedingFile },
         }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/proceeding-files/send-expired-to-email:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Proceeding Files
+   *     summary: get expired proceeding files by date and send to email
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: dateStart
+   *         in: query
+   *         required: false
+   *         description: Date start (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *       - name: dateEnd
+   *         in: query
+   *         required: false
+   *         description: Date end (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async sendFilesExpiresToEmail({ request, response }: HttpContext) {
+    try {
+      const dateStart = request.input('dateStart')
+      const dateEnd = request.input('dateEnd')
+      const filters = {
+        dateStart: dateStart,
+        dateEnd: dateEnd,
+      } as ProceedingFileExpiredFilterInterface
+      const proceddingFileExpiredService = new ProceedingFileService()
+      const proceedingFiles = await proceddingFileExpiredService.sendFilesExpiresToEmail(filters)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Proceeding files expires',
+        message: 'The proceeding files expires were send successfully',
+        data: {
+          proceedingFiles: proceedingFiles,
+        },
       }
     } catch (error) {
       response.status(500)

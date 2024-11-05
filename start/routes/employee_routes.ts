@@ -1,7 +1,10 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
+    router.get('/employee-generate-excel', '#controllers/employee_controller.getExcel')
+
     router.get('/get-work-schedules', '#controllers/employee_controller.getWorkSchedules')
     router.get('/without-user', '#controllers/employee_controller.indexWithOutUser')
     router.get('/', '#controllers/employee_controller.index')
@@ -29,3 +32,4 @@ router
     )
   })
   .prefix('/api/employees')
+  .use(middleware.auth())

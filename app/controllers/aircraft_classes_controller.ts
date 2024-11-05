@@ -25,6 +25,8 @@ export default class AircraftClassController {
    *     tags:
    *       - Aircraft Classes
    *     summary: Get all aircraft classes
+   *     security:
+   *      - bearerAuth: []
    *     responses:
    *       '200':
    *         description: Aircraft classes fetched successfully

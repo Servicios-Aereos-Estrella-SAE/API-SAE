@@ -17,20 +17,7 @@ import type { ShiftRecordInterface } from '../interfaces/shift_record_interface.
 import HolidayService from './holiday_service.js'
 import { HolidayInterface } from '../interfaces/holiday_interface.js'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
-
-interface Tolerance {
-  toleranceId: number
-  toleranceName: string
-  toleranceMinutes: number
-  toleranceCreatedAt: string
-  toleranceUpdatedAt: string
-  deletedAt: string | null
-}
-
-interface ToleranceResponse {
-  data: Tolerance[]
-}
-
+import ToleranceService from './tolerance_service.js'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -803,17 +790,12 @@ export default class SyncAssistsService {
     return checkAssistCopy
   }
 
-  private async getTolerances(): Promise<{ delayTolerance: Tolerance; faultTolerance: Tolerance }> {
+  private async getTolerances() {
     try {
-      let apiUrl = `http://${env.get('HOST')}:${env.get('PORT')}/api/tolerances`
-      const response = await fetch(apiUrl)
+      const data = await new ToleranceService().index()
 
-      if (!response.ok) {
-        throw new Error(`Error en la solicitud: ${response.statusText}`)
-      }
-      const { data } = (await response.json()) as ToleranceResponse
-      const delayTolerance = data.find((t: Tolerance) => t.toleranceName === 'Delay')
-      const faultTolerance = data.find((t: Tolerance) => t.toleranceName === 'Fault')
+      const delayTolerance = data.find((t) => t.toleranceName === 'Delay')
+      const faultTolerance = data.find((t) => t.toleranceName === 'Fault')
       if (!delayTolerance || !faultTolerance) {
         throw new Error('No se encontraron tolerancias para Delay o Fault')
       }
@@ -962,7 +944,7 @@ export default class SyncAssistsService {
       service.status === 200 && service.holidays && service.holidays.length > 0 ? true : false
 
     checkAssistCopy.assist.holiday =
-      200 && service.holidays && service.holidays.length > 0
+      service.status === 200 && service.holidays && service.holidays.length > 0
         ? (service.holidays[0] as unknown as HolidayInterface)
         : null
 

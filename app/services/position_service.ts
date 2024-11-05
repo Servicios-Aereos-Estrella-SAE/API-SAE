@@ -1,7 +1,9 @@
+import BusinessUnit from '#models/business_unit'
 import Department from '#models/department'
 import EmployeeShift from '#models/employee_shift'
 import Position from '#models/position'
 import Shift from '#models/shift'
+import env from '#start/env'
 import BiometricPositionInterface from '../interfaces/biometric_position_interface.js'
 import { PositionShiftEmployeeWarningInterface } from '../interfaces/position_shift_employee_warning_interface.js'
 import { PositionShiftFilterInterface } from '../interfaces/position_shift_filter_interface.js'
@@ -50,6 +52,9 @@ export default class PositionService {
     newPosition.parentPositionId = position.parentPositionId
     newPosition.companyId = position.companyId
     await newPosition.save()
+    await newPosition.load('parentPosition')
+    await newPosition.load('subPositions')
+
     return newPosition
   }
 
@@ -62,6 +67,9 @@ export default class PositionService {
     currentPosition.parentPositionId = position.parentPositionId
     currentPosition.companyId = position.companyId
     await currentPosition.save()
+    await currentPosition.load('parentPosition')
+    await currentPosition.load('subPositions')
+
     return currentPosition
   }
 
@@ -145,10 +153,22 @@ export default class PositionService {
   }
 
   async show(positionId: number) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
     const position = await Position.query()
+      .whereIn('businessUnitId', businessUnitsList)
       .whereNull('position_deleted_at')
       .where('position_id', positionId)
+      .preload('parentPosition')
+      .preload('subPositions')
       .first()
+
     return position ? position : null
   }
 

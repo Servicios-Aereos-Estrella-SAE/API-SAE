@@ -1,25 +1,23 @@
+/* eslint-disable prettier/prettier */
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
-router
-  .group(() => {
-    router.post('/sync-positions', '#controllers/department_controller.syncPositions')
-    router.get('/:departmentId/positions', '#controllers/department_controller.getPositions')
-    router.get(
-      '/search/:departmentId/positions',
-      '#controllers/department_controller.getSearchPositions'
-    )
-    router.get('/', '#controllers/department_controller.getAll')
-    router.get('/organization', '#controllers/department_controller.getOrganization')
-    router.get('/search', '#controllers/department_controller.getSearch')
-    router.post('/', '#controllers/department_controller.store')
-    router.put('/:departmentId', '#controllers/department_controller.update')
-    router.delete('/:departmentId', '#controllers/department_controller.delete')
-    router.delete('/:departmentId/force-delete', '#controllers/department_controller.forceDelete')
-    router.get('/:departmentId', '#controllers/department_controller.show')
-  })
-  .prefix('/api/departments')
-router
-  .group(() => {
-    router.post('/assign-shift/:departmentId', '#controllers/department_controller.assignShift')
-  })
-  .prefix('/api/department')
+router.group(() => {
+  router.get('/', '#controllers/department_controller.getAll')
+  router.get('/organization', '#controllers/department_controller.getOrganization')
+  router.get('/search', '#controllers/department_controller.getSearch')
+  router.get('/:departmentId', '#controllers/department_controller.show')
+  router.get('/:departmentId/positions', '#controllers/department_controller.getPositions')
+  router.post('/', '#controllers/department_controller.store')
+  router.post('/sync-positions', '#controllers/department_controller.syncPositions')
+  router.put('/:departmentId', '#controllers/department_controller.update')
+  router.delete('/:departmentId', '#controllers/department_controller.delete')
+  router.delete('/:departmentId/force-delete', '#controllers/department_controller.forceDelete')
+})
+.prefix('/api/departments').use(middleware.auth())
+
+router.group(() => {
+  router.post('/assign-shift/:departmentId', '#controllers/department_controller.assignShift')
+})
+.prefix('/api/department')
+.use(middleware.auth())

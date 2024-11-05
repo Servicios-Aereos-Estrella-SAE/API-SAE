@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -12,3 +13,4 @@ router
     router.get('/:departmentPositionId', '#controllers/department_position_controller.show')
   })
   .prefix('/api/departments-positions')
+  .use(middleware.auth())

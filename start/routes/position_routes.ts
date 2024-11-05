@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 router
   .group(() => {
@@ -14,3 +15,4 @@ router
     router.post('/assign-shift/:positionId', '#controllers/position_controller.assignShift')
   })
   .prefix('/api/position')
+  .use(middleware.auth())
