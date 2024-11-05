@@ -282,7 +282,9 @@ export default class UserController {
 
     const user = await User.query()
       .where('user_id', userData.userId)
-      .preload('person')
+      .preload('person', (query) => {
+        query.preload('employee')
+      })
       .preload('role')
       .first()
 
