@@ -36,6 +36,14 @@ export default class LogController {
    *           type: string
    *           format: date
    *         description: End date for filtering
+   *       - in: query
+   *         name: otherFilters
+   *         style: deepObject
+   *         explode: true
+   *         schema:
+   *           type: object
+   *           additionalProperties:
+   *             type: string
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -123,11 +131,13 @@ export default class LogController {
       const userId = request.input('userId')
       const startDate = request.input('startDate')
       const endDate = request.input('endDate')
+      const otherFilters = request.input('otherFilters')
       const filters = {
         entity: entity,
         userId: userId,
         startDate: startDate,
         endDate: endDate,
+        otherFilters: otherFilters,
       } as LogFilterSearchInterface
       const info = await LogStore.get(filters)
 

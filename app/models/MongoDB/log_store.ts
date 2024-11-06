@@ -8,7 +8,7 @@ export class LogStore {
     const logRequest = LogRequest.getInstance()
     if (!logRequest.isConnected) {
       logRequest.scheduleReconnect()
-      //console.warn("No se conecto a mongo. no se guardo el log")
+      // console.warn("No se conecto a mongo. no se guardo el log")
       return
     }
     try {
@@ -16,7 +16,7 @@ export class LogStore {
       const logDocument = new model(logData)
       await logDocument.save()
     } catch (error) {
-      //console.error("Error guardando el log:", error)
+      // console.error("Error guardando el log:", error)
       logRequest.isConnected = false
       logRequest.scheduleReconnect()
     }
@@ -26,8 +26,8 @@ export class LogStore {
     const logRequest = LogRequest.getInstance()
     if (!logRequest.isConnected) {
       logRequest.scheduleReconnect()
-      //console.warn("No se conectó a mongo. No se puede obtener el log.")
-      return null
+      // console.warn("No se conectó a mongo. No se puede obtener el log.")
+      return []
     }
 
     try {
@@ -40,7 +40,7 @@ export class LogStore {
           $gte: startDate,
           $lte: endDate,
         },
-        ...filter.info,
+        ...filter.otherFilters,
       }
       const results = await model.find(query)
       return results

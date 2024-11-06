@@ -3,7 +3,7 @@ interface LogFilterSearchInterface {
   userId: number
   startDate: string
   endDate: string
-  info: object
+  otherFilters: object
 }
 
 export type { LogFilterSearchInterface }

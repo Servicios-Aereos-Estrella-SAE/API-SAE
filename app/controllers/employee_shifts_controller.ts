@@ -7,7 +7,6 @@ import {
 import { DateTime } from 'luxon'
 import EmployeeShiftService from '#services/employee_shift_service'
 import { EmployeeShiftFilterInterface } from '../interfaces/employee_shift_filter_interface.js'
-import { LogEmployeeShift } from '../interfaces/MongoDB/log_employee_shift.js'
 
 export default class EmployeeShiftController {
   /**
@@ -166,21 +165,13 @@ export default class EmployeeShiftController {
       // }
       const newEmployeeShift = await EmployeeShift.create(employeeShift)
       const rawHeaders = request.request.rawHeaders
-      const date = DateTime.local().setZone('utc').toISO()
       const userId = auth.user?.userId
-      const userAgent = employeeShiftService.getHeaderValue(rawHeaders, 'User-Agent')
-      const secChUaPlatform = employeeShiftService.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
-      const secChUa = employeeShiftService.getHeaderValue(rawHeaders, 'sec-ch-ua')
-      const logEmployeeShift = {
-        user_id: userId,
-        action: 'store',
-        user_agent: userAgent,
-        sec_ch_ua_platform: secChUaPlatform,
-        sec_ch_ua: secChUa,
-        date: date ? date : '',
-        record_current: newEmployeeShift,
-      } as LogEmployeeShift
-      await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      if (userId) {
+        const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'store')
+        logEmployeeShift.user_id = userId
+        logEmployeeShift.record_current = newEmployeeShift
+        await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      }
       return response.status(201).json({
         type: 'success',
         title: 'Successfully action',
@@ -591,22 +582,14 @@ export default class EmployeeShiftController {
       updateEmployeeShift.merge(employeeShift)
       await updateEmployeeShift.save()
       const rawHeaders = request.request.rawHeaders
-      const date = DateTime.local().setZone('utc').toISO()
       const userId = auth.user?.userId
-      const userAgent = employeeShiftService.getHeaderValue(rawHeaders, 'User-Agent')
-      const secChUaPlatform = employeeShiftService.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
-      const secChUa = employeeShiftService.getHeaderValue(rawHeaders, 'sec-ch-ua')
-      const logEmployeeShift = {
-        user_id: userId,
-        action: 'update',
-        user_agent: userAgent,
-        sec_ch_ua_platform: secChUaPlatform,
-        sec_ch_ua: secChUa,
-        date: date ? date : '',
-        record_previous: previousEmployeeShift,
-        record_current: updateEmployeeShift,
-      } as LogEmployeeShift
-      await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      if (userId) {
+        const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'update')
+        logEmployeeShift.user_id = userId
+        logEmployeeShift.record_current = updateEmployeeShift
+        logEmployeeShift.record_previous = previousEmployeeShift
+        await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -738,21 +721,13 @@ export default class EmployeeShiftController {
       await employeeShift.save()
       const employeeShiftService = new EmployeeShiftService()
       const rawHeaders = request.request.rawHeaders
-      const date = DateTime.local().setZone('utc').toISO()
       const userId = auth.user?.userId
-      const userAgent = employeeShiftService.getHeaderValue(rawHeaders, 'User-Agent')
-      const secChUaPlatform = employeeShiftService.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
-      const secChUa = employeeShiftService.getHeaderValue(rawHeaders, 'sec-ch-ua')
-      const logEmployeeShift = {
-        user_id: userId,
-        action: 'delete',
-        user_agent: userAgent,
-        sec_ch_ua_platform: secChUaPlatform,
-        sec_ch_ua: secChUa,
-        date: date ? date : '',
-        record_current: employeeShift,
-      } as LogEmployeeShift
-      await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      if (userId) {
+        const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'delete')
+        logEmployeeShift.user_id = userId
+        logEmployeeShift.record_current = employeeShift
+        await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
