@@ -12,9 +12,11 @@ export default class EmployeeShiftService {
       .where('employee_id', employeeShift.employeeId)
       .orderBy('employe_shifts_apply_since', 'desc')
       .first()
+
     if (lastShift) {
       const currentDateApplySince = DateTime.fromISO(lastShift.employeShiftsApplySince.toString())
       const newDateApplySince = DateTime.fromISO(employeeShift.employeShiftsApplySince.toString())
+
       if (
         lastShift.shiftId === employeeShift.shiftId &&
         newDateApplySince >= currentDateApplySince
@@ -29,10 +31,9 @@ export default class EmployeeShiftService {
       }
     }
 
-    const applySince = DateTime.fromFormat(
-      employeeShift.employeShiftsApplySince.toString(),
-      'yyyy-MM-dd HH:mm:ss'
-    ).toFormat('yyyy-MM-dd')
+    const applySince = DateTime.fromISO(employeeShift.employeShiftsApplySince.toString()).toFormat(
+      'yyyy-MM-dd'
+    )
     if (applySince) {
       const sameShift = await EmployeeShift.query()
         .whereNull('employe_shifts_deleted_at')
@@ -118,14 +119,17 @@ export default class EmployeeShiftService {
 
   getDateAndTime(employeShiftsApplySince: string) {
     const dateAndTime = employeShiftsApplySince.toString()
+
     if (dateAndTime.toString().includes('T')) {
       let [date, horaConZona] = dateAndTime.split('T')
       const time = horaConZona.replaceAll('"', '').substring(0, 8)
-      return `${date.replaceAll('"', '')} ${time}`
+      const dateTime = `${date.replaceAll('"', '')}T${time}.000-06:00`
+      return dateTime
     } else {
       let [date, horaConZona] = dateAndTime.split(' ')
       const time = horaConZona.replaceAll('"', '').substring(0, 8)
-      return `${date.replaceAll('"', '')} ${time}`
+      const dateTime = `${date.replaceAll('"', '')}T${time}.000-06:00`
+      return dateTime
     }
   }
 }
