@@ -578,7 +578,7 @@ export default class EmployeeShiftController {
           data: { ...employeeShift },
         }
       }
-      const previousEmployeeShift = updateEmployeeShift
+      const previousEmployeeShift = JSON.parse(JSON.stringify(updateEmployeeShift))
       updateEmployeeShift.merge(employeeShift)
       await updateEmployeeShift.save()
       const rawHeaders = request.request.rawHeaders

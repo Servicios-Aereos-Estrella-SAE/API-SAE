@@ -64,7 +64,7 @@ export default class ShiftExceptionController {
    *       400:
    *         description: Validation error
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
@@ -103,6 +103,15 @@ export default class ShiftExceptionController {
       }
       const newShiftException = await shiftExceptionService.create(shiftException)
       if (newShiftException) {
+        const rawHeaders = request.request.rawHeaders
+        const userId = auth.user?.userId
+        if (userId) {
+          const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'store')
+          logShiftException.user_id = userId
+          logShiftException.record_current = newShiftException
+          await shiftExceptionService.saveActionOnLog(logShiftException)
+        }
+
         await newShiftException.load('exceptionType')
         await newShiftException.load('vacationSetting')
         response.status(201)
@@ -196,7 +205,7 @@ export default class ShiftExceptionController {
    *       404:
    *         description: Shift exception not found
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ auth, params, request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
@@ -217,6 +226,7 @@ export default class ShiftExceptionController {
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       const currentShiftException = await ShiftException.findOrFail(params.id)
+      const previousShiftException = JSON.parse(JSON.stringify(currentShiftException))
       const shiftException = {
         shiftExceptionId: params.id,
         employeeId: employeeId,
@@ -240,6 +250,18 @@ export default class ShiftExceptionController {
         shiftException
       )
       if (updateShiftException) {
+        const rawHeaders = request.request.rawHeaders
+        const userId = auth.user?.userId
+        if (userId) {
+          const logShiftException = await shiftExceptionService.createActionLog(
+            rawHeaders,
+            'update'
+          )
+          logShiftException.user_id = userId
+          logShiftException.record_current = updateShiftException
+          logShiftException.record_previous = previousShiftException
+          await shiftExceptionService.saveActionOnLog(logShiftException)
+        }
         await updateShiftException.load('exceptionType')
         await updateShiftException.load('vacationSetting')
         response.status(201)
@@ -282,10 +304,19 @@ export default class ShiftExceptionController {
    *       404:
    *         description: Shift exception not found
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ auth, request, params, response }: HttpContext) {
     try {
       const shiftException = await ShiftException.findOrFail(params.id)
       await shiftException.delete()
+      const userId = auth.user?.userId
+      if (userId) {
+        const shiftExceptionService = new ShiftExceptionService()
+        const rawHeaders = request.request.rawHeaders
+        const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'delete')
+        logShiftException.user_id = userId
+        logShiftException.record_current = shiftException
+        await shiftExceptionService.saveActionOnLog(logShiftException)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',

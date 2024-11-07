@@ -35,7 +35,7 @@ export class LogStore {
       const startDate = DateTime.fromISO(filter.startDate).startOf('day').toISO()
       const endDate = DateTime.fromISO(filter.endDate).endOf('day').toISO()
       const query = {
-        user_id: Number.parseInt(filter.userId.toString()),
+        user_id: filter.userId,
         date: {
           $gte: startDate,
           $lte: endDate,

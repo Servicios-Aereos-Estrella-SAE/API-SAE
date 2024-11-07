@@ -1,49 +1,53 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { LogFilterSearchInterface } from '../../interfaces/MongoDB/log_filter_search_interface.js'
 import { LogStore } from '#models/MongoDB/log_store'
+import { LogRequest } from '#models/MongoDB/log_request'
 export default class LogController {
   /**
    * @swagger
    * /api/logs:
-   *   get:
+   *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
    *       - Logs
    *     summary: get log info by entity
-   *     parameters:
-   *       - name: entity
-   *         in: query
-   *         required: true
-   *         description: Entity
-   *         schema:
-   *           type: string
-   *       - name: userId
-   *         in: query
-   *         required: true
-   *         description: The user id
-   *         schema:
-   *           type: integer
-   *       - in: query
-   *         name: startDate
-   *         schema:
-   *           type: string
-   *           format: date
-   *         description: Start date for filtering
-   *       - in: query
-   *         name: endDate
-   *         schema:
-   *           type: string
-   *           format: date
-   *         description: End date for filtering
-   *       - in: query
-   *         name: otherFilters
-   *         style: deepObject
-   *         explode: true
-   *         schema:
-   *           type: object
-   *           additionalProperties:
-   *             type: string
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               entity:
+   *                 type: string
+   *                 description: The entity name
+   *                 required: true
+   *               userId:
+   *                 type: integer
+   *                 description: The user id
+   *                 required: true
+   *               startDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Start date for filtering (YYYY-MM-DD)
+   *                 required: true
+   *               endDate:
+   *                 type: string
+   *                 format: date
+   *                 description: End date for filtering (YYYY-MM-DD)
+   *                 required: true
+   *               otherFilters:
+   *                 type: object
+   *                 description: Others additional filters
+   *                 style: deepObject
+   *                 explode: true
+   *                 required: false
+   *                 schema:
+   *                   type: object
+   *                   additionalProperties:
+   *                     type: string
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -139,6 +143,28 @@ export default class LogController {
         endDate: endDate,
         otherFilters: otherFilters,
       } as LogFilterSearchInterface
+
+      const logRequest = LogRequest.getInstance()
+      if (!logRequest.isConnected) {
+        logRequest.scheduleReconnect()
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Connection error',
+          message: 'Did not connect to mongo.',
+          data: { ...filters },
+        }
+      }
+      const exists = await logRequest.collectionExists(filters.entity)
+
+      if (!exists) {
+        return {
+          type: 'warning',
+          title: 'Model mongo db',
+          message: `Collection ${filters.entity} does not exist in MongoDB`,
+          data: { ...filters },
+        }
+      }
       const info = await LogStore.get(filters)
 
       response.status(200)

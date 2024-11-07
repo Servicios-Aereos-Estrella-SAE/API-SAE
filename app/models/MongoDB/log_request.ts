@@ -58,4 +58,20 @@ export class LogRequest {
     }
     return this.connections[collectionName]
   }
+
+  async collectionExists(collectionName: string): Promise<boolean> {
+    if (!this.isConnected) await this.dbConnect()
+    if (!mongoose.connection.readyState) {
+      // console.log('MongoDB no está conectado aún.');
+      return false
+    }
+    if (mongoose.connection.db) {
+      const collections = await mongoose.connection.db
+        .listCollections({ name: collectionName })
+        .toArray()
+      return collections.length > 0
+    } else {
+      return false
+    }
+  }
 }
