@@ -126,10 +126,12 @@ export default class EmployeeShiftController {
   async store({ auth, request, response }: HttpContext) {
     try {
       await request.validateUsing(createEmployeeShiftValidator)
+
       const employeeId = request.input('employeeId')
       const shiftId = request.input('shiftId')
       const employeShiftsApplySince = request.input('employeShiftsApplySince')
       const employeeShiftService = new EmployeeShiftService()
+
       if (!employeeShiftService.isValidDate(employeShiftsApplySince)) {
         return response.status(400).json({
           type: 'error',
@@ -138,12 +140,15 @@ export default class EmployeeShiftController {
           data: null,
         })
       }
+
       const employeeShift = {
         employeeId: employeeId,
         shiftId: Number.parseInt(shiftId),
         employeShiftsApplySince: employeeShiftService.getDateAndTime(employeShiftsApplySince),
       } as EmployeeShift
+
       const verifyInfo = await employeeShiftService.verifyInfo(employeeShift)
+
       if (verifyInfo.status !== 200) {
         response.status(verifyInfo.status)
         return {
@@ -153,6 +158,7 @@ export default class EmployeeShiftController {
           data: { ...employeeShift },
         }
       }
+
       // const existingShifts = await EmployeeShift.query()
       //   .where('employeeId', employeeId)
       //   .whereNull('employeShiftsDeletedAt')
@@ -163,6 +169,7 @@ export default class EmployeeShiftController {
       //     .whereNull('employeShiftsDeletedAt')
       //     .update({ employeShiftsDeletedAt: new Date() })
       // }
+
       const newEmployeeShift = await EmployeeShift.create(employeeShift)
       const rawHeaders = request.request.rawHeaders
       const userId = auth.user?.userId
@@ -172,6 +179,7 @@ export default class EmployeeShiftController {
         logEmployeeShift.record_current = newEmployeeShift
         await employeeShiftService.saveActionOnLog(logEmployeeShift)
       }
+
       return response.status(201).json({
         type: 'success',
         title: 'Successfully action',
