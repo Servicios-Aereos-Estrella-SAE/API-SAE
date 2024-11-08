@@ -662,11 +662,17 @@ export default class SyncAssistsService {
 
     let dailyAssistListCounter = 0
 
+    const employee = await Employee.query()
+      .where('employee_id', employeeID || 0)
+      .first()
+
+    const isDiscriminated = employee?.employeeAssistDiscriminator === 1
+
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-      dateAssistItem = await this.checkInStatus(dateAssistItem)
-      dateAssistItem = this.checkOutStatus(dateAssistItem)
+      dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
+      dateAssistItem = this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
       dateAssistItem = this.isRestDay(dateAssistItem)
@@ -677,7 +683,7 @@ export default class SyncAssistsService {
 
       if (dateAssistItem?.assist?.dateShift) {
         if (dateAssistItem.assist.shiftCalculateFlag === '24x48') {
-          dateAssistItem = await this.calendar24x48(dateAssistItem)
+          dateAssistItem = await this.calendar24x48(dateAssistItem, isDiscriminated)
         }
 
         if (dateAssistItem.assist.shiftCalculateFlag === 'doble-12x48') {
@@ -689,7 +695,7 @@ export default class SyncAssistsService {
         }
 
         if (dateAssistItem.assist.shiftCalculateFlag === '24x24') {
-          dateAssistItem = await this.calendar24x24(dateAssistItem)
+          dateAssistItem = await this.calendar24x24(dateAssistItem, isDiscriminated)
         }
       }
 
@@ -700,11 +706,12 @@ export default class SyncAssistsService {
     return dailyAssistList
   }
 
-  private async checkInStatus(checkAssist: AssistDayInterface) {
+  private async checkInStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
     const checkAssistCopy = checkAssist
     const { delayTolerance, faultTolerance } = await this.getTolerances()
     const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
     const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
+
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
     }
@@ -722,6 +729,10 @@ export default class SyncAssistsService {
 
     if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
       checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
+
+      if (discriminated) {
+        checkAssistCopy.assist.checkInStatus = ''
+      }
 
       if (checkAssist.assist.exceptions.length > 0) {
         const absentException = checkAssist.assist.exceptions.find(
@@ -761,7 +772,7 @@ export default class SyncAssistsService {
 
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
 
-    if (diffTime > TOLERANCE_FAULT_MINUTES) {
+    if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
       if (checkAssist.assist) {
         checkAssistCopy.assist.checkOut = checkAssistCopy.assist.checkIn
         checkAssistCopy.assist.checkIn = null
@@ -780,6 +791,7 @@ export default class SyncAssistsService {
 
       return checkAssistCopy
     }
+
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'delay'
     }
@@ -790,6 +802,10 @@ export default class SyncAssistsService {
 
     if (diffTime <= 0) {
       checkAssistCopy.assist.checkInStatus = 'ontime'
+    }
+
+    if (discriminated) {
+      checkAssistCopy.assist.checkInStatus = ''
     }
 
     return checkAssistCopy
@@ -811,7 +827,7 @@ export default class SyncAssistsService {
     }
   }
 
-  private checkOutStatus(checkAssist: AssistDayInterface) {
+  private checkOutStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
     const checkAssistCopy = checkAssist
 
     if (!checkAssist?.assist?.dateShift) {
@@ -830,6 +846,11 @@ export default class SyncAssistsService {
 
     checkAssistCopy.assist.checkOutDateTime = timeToEnd
 
+    if (discriminated) {
+      checkAssistCopy.assist.checkOutStatus = ''
+      return checkAssistCopy
+    }
+
     if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
       checkAssistCopy.assist.checkOutStatus =
         checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
@@ -839,6 +860,7 @@ export default class SyncAssistsService {
     const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
       setZone: true,
     })
+
     const checkTime = DayTime.setZone('America/Mexico_city')
     const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
@@ -1174,7 +1196,7 @@ export default class SyncAssistsService {
     return assist
   }
 
-  private calendar24x48(dateAssistItem: AssistDayInterface) {
+  private calendar24x48(dateAssistItem: AssistDayInterface, discriminated?: Boolean) {
     const startDay24x48 = DateTime.fromJSDate(
       new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
     ).setZone('America/Mexico_City')
@@ -1212,7 +1234,7 @@ export default class SyncAssistsService {
 
       if (dateAssistItem.assist.checkIn) {
         dateAssistItem.assist.checkInStatus = 'working'
-        dateAssistItem.assist.checkOutStatus = 'ontime'
+        dateAssistItem.assist.checkOutStatus = !discriminated ? 'ontime' : ''
         dateAssistItem.assist.checkIn = null
 
         dateAssistItem.assist.checkEatIn = null
@@ -1238,8 +1260,6 @@ export default class SyncAssistsService {
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
     }
-
-    // dateAssistItem.assist.checkOutStatus = ''
 
     return dateAssistItem
   }
@@ -1401,7 +1421,7 @@ export default class SyncAssistsService {
     return dateAssistItem
   }
 
-  private calendar24x24(dateAssistItem: AssistDayInterface) {
+  private calendar24x24(dateAssistItem: AssistDayInterface, discriminated?: Boolean) {
     const startDay24x24 = DateTime.fromJSDate(
       new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
     ).setZone('America/Mexico_City')
@@ -1439,7 +1459,7 @@ export default class SyncAssistsService {
 
       if (dateAssistItem.assist.checkIn) {
         dateAssistItem.assist.checkInStatus = 'working'
-        dateAssistItem.assist.checkOutStatus = 'ontime'
+        dateAssistItem.assist.checkOutStatus = !discriminated ? 'ontime' : ''
         dateAssistItem.assist.checkIn = null
 
         dateAssistItem.assist.checkEatIn = null
@@ -1465,8 +1485,6 @@ export default class SyncAssistsService {
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
     }
-
-    // dateAssistItem.assist.checkOutStatus = ''
 
     return dateAssistItem
   }
