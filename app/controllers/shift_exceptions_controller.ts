@@ -4,6 +4,7 @@ import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_fil
 import ShiftException from '../models/shift_exception.js'
 import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
+import ExceptionType from '#models/exception_type'
 
 export default class ShiftExceptionController {
   /**
@@ -108,8 +109,19 @@ export default class ShiftExceptionController {
         if (userId) {
           const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'store')
           logShiftException.user_id = userId
-          logShiftException.record_current = newShiftException
-          await shiftExceptionService.saveActionOnLog(logShiftException)
+          logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+
+          const exceptionType = await ExceptionType.query()
+            .whereNull('exception_type_deleted_at')
+            .where('exception_type_slug', 'vacation')
+            .first()
+          let table = 'log_shift_exceptions'
+          if (exceptionType) {
+            if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
+              table = 'log_vacations'
+            }
+          }
+          await shiftExceptionService.saveActionOnLog(logShiftException, table)
         }
 
         await newShiftException.load('exceptionType')
@@ -258,9 +270,20 @@ export default class ShiftExceptionController {
             'update'
           )
           logShiftException.user_id = userId
-          logShiftException.record_current = updateShiftException
+          logShiftException.record_current = JSON.parse(JSON.stringify(updateShiftException))
           logShiftException.record_previous = previousShiftException
-          await shiftExceptionService.saveActionOnLog(logShiftException)
+
+          const exceptionType = await ExceptionType.query()
+            .whereNull('exception_type_deleted_at')
+            .where('exception_type_slug', 'vacation')
+            .first()
+          let table = 'log_shift_exceptions'
+          if (exceptionType) {
+            if (exceptionType.exceptionTypeId === updateShiftException.exceptionTypeId) {
+              table = 'log_vacations'
+            }
+          }
+          await shiftExceptionService.saveActionOnLog(logShiftException, table)
         }
         await updateShiftException.load('exceptionType')
         await updateShiftException.load('vacationSetting')
@@ -276,7 +299,7 @@ export default class ShiftExceptionController {
       return response.status(400).json({
         type: 'error',
         title: 'Validation error',
-        message: error.messages,
+        message: error,
         data: null,
       })
     }
@@ -314,8 +337,19 @@ export default class ShiftExceptionController {
         const rawHeaders = request.request.rawHeaders
         const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'delete')
         logShiftException.user_id = userId
-        logShiftException.record_current = shiftException
-        await shiftExceptionService.saveActionOnLog(logShiftException)
+        logShiftException.record_current = JSON.parse(JSON.stringify(shiftException))
+
+        const exceptionType = await ExceptionType.query()
+          .whereNull('exception_type_deleted_at')
+          .where('exception_type_slug', 'vacation')
+          .first()
+        let table = 'log_shift_exceptions'
+        if (exceptionType) {
+          if (exceptionType.exceptionTypeId === shiftException.exceptionTypeId) {
+            table = 'log_vacations'
+          }
+        }
+        await shiftExceptionService.saveActionOnLog(logShiftException, table)
       }
       return response.status(200).json({
         type: 'success',

@@ -176,7 +176,7 @@ export default class EmployeeShiftController {
       if (userId) {
         const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'store')
         logEmployeeShift.user_id = userId
-        logEmployeeShift.record_current = newEmployeeShift
+        logEmployeeShift.record_current = JSON.parse(JSON.stringify(newEmployeeShift))
         await employeeShiftService.saveActionOnLog(logEmployeeShift)
       }
 
@@ -594,7 +594,7 @@ export default class EmployeeShiftController {
       if (userId) {
         const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'update')
         logEmployeeShift.user_id = userId
-        logEmployeeShift.record_current = updateEmployeeShift
+        logEmployeeShift.record_current = JSON.parse(JSON.stringify(updateEmployeeShift))
         logEmployeeShift.record_previous = previousEmployeeShift
         await employeeShiftService.saveActionOnLog(logEmployeeShift)
       }
@@ -733,7 +733,7 @@ export default class EmployeeShiftController {
       if (userId) {
         const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'delete')
         logEmployeeShift.user_id = userId
-        logEmployeeShift.record_current = employeeShift
+        logEmployeeShift.record_current = JSON.parse(JSON.stringify(employeeShift))
         await employeeShiftService.saveActionOnLog(logEmployeeShift)
       }
       return response.status(200).json({

@@ -125,9 +125,9 @@ export default class ShiftExceptionService {
     return logShiftException
   }
 
-  async saveActionOnLog(logShiftException: LogShiftException) {
+  async saveActionOnLog(logShiftException: LogShiftException, table: string) {
     try {
-      await LogStore.set('log_shift_exceptions', logShiftException)
+      await LogStore.set(table, logShiftException)
     } catch (err) {}
   }
 

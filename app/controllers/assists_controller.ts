@@ -11,6 +11,7 @@ import { AssistDepartmentExcelFilterInterface } from '../interfaces/assist_depar
 import UserService from '#services/user_service'
 import Assist from '#models/assist'
 import { DateTime } from 'luxon'
+import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
 
 export default class AssistsController {
   /**
@@ -122,21 +123,25 @@ export default class AssistsController {
    */
   @inject()
   async employeeSynchronize(
-    { request, response }: HttpContext,
+    { auth, request, response }: HttpContext,
     syncAssistsService: SyncAssistsService
   ) {
     const startDate = request.input('startDate')
     const endDate = request.input('endDate')
     const empCode = request.input('empCode')
-    const page = request.input('page')
-
+    const userId = auth.user?.userId
+    const rawHeaders = request.request.rawHeaders
     try {
-      const result = await syncAssistsService.synchronizeByEmployee(
-        startDate,
-        endDate,
-        empCode,
-        page
-      )
+      const filters = {
+        startDate: startDate,
+        endDate: endDate,
+        empCode: empCode,
+        page: 1,
+        limit: 5000,
+        userId: userId ? userId : 0,
+        rawHeaders: rawHeaders,
+      } as AssistSyncFilterInterface
+      const result = await syncAssistsService.synchronizeByEmployee(filters)
       return response.status(200).json(result)
     } catch (error) {
       return response.status(400).json({ message: error.message })
@@ -780,7 +785,7 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
       let assistPunchTime = request.input('assistPunchTime')
@@ -834,6 +839,14 @@ export default class AssistsController {
         : null
       const newAssist = await assistsService.store(assist)
       if (newAssist) {
+        const rawHeaders = request.request.rawHeaders
+        const userId = auth.user?.userId
+        if (userId) {
+          const logAssist = await assistsService.createActionLog(rawHeaders, 'store')
+          logAssist.user_id = userId
+          logAssist.record_current = JSON.parse(JSON.stringify(newAssist))
+          await assistsService.saveActionOnLog(logAssist)
+        }
         response.status(201)
         return {
           type: 'success',
