@@ -140,11 +140,13 @@ export default class EmployeeShiftService {
     const userAgent = this.getHeaderValue(rawHeaders, 'User-Agent')
     const secChUaPlatform = this.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
     const secChUa = this.getHeaderValue(rawHeaders, 'sec-ch-ua')
+    const origin = this.getHeaderValue(rawHeaders, 'Origin')
     const logEmployeeShift = {
       action: action,
       user_agent: userAgent,
       sec_ch_ua_platform: secChUaPlatform,
       sec_ch_ua: secChUa,
+      origin: origin,
       date: date ? date : '',
     } as LogEmployeeShift
     return logEmployeeShift

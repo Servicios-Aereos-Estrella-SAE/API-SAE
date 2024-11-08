@@ -7,6 +7,7 @@ interface LogEmployeeShift {
   user_agent: string
   sec_ch_ua_platform: string
   sec_ch_ua: string
+  origin: string
   date: string
   record_previous: EmployeeShift
   record_current: EmployeeShift

@@ -149,9 +149,19 @@ export default class UserController {
       if (userVerify && token) {
         const date = DateTime.local().setZone('utc').toISO()
         try {
+          const rawHeaders = request.request.rawHeaders
+          const userService = new UserService()
+          const userAgent = userService.getHeaderValue(rawHeaders, 'User-Agent')
+          const secChUaPlatform = userService.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
+          const secChUa = userService.getHeaderValue(rawHeaders, 'sec-ch-ua')
+          const origin = userService.getHeaderValue(rawHeaders, 'Origin')
           await LogStore.set('log_authentication', {
-            user_id: user.userId,
+            user_agent: userAgent,
+            sec_ch_ua_platform: secChUaPlatform,
+            sec_ch_ua: secChUa,
+            origin: origin,
             date: date ? date : '',
+            user_id: user.userId,
           } as LogAuthentication)
         } catch (err) {}
         response.status(200)
@@ -1118,7 +1128,7 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
       const userEmail = request.input('userEmail')
       let userPassword = request.input('userPassword')
@@ -1150,6 +1160,14 @@ export default class UserController {
       }
       const newUser = await userService.create(user)
       if (newUser) {
+        const rawHeaders = request.request.rawHeaders
+        const userId = auth.user?.userId
+        if (userId) {
+          const logUser = await userService.createActionLog(rawHeaders, 'store')
+          logUser.user_id = userId
+          logUser.record_current = JSON.parse(JSON.stringify(newUser))
+          await userService.saveActionOnLog(logUser)
+        }
         response.status(201)
         return {
           type: 'success',
@@ -1301,7 +1319,7 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-  async update({ request, response }: HttpContext) {
+  async update({ auth, request, response }: HttpContext) {
     try {
       const input = request.all()
       const userId = request.param('userId')
@@ -1346,6 +1364,7 @@ export default class UserController {
           data: { ...user },
         }
       }
+      const previousUser = JSON.parse(JSON.stringify(currentUser))
       const userService = new UserService()
       const data = await request.validateUsing(updateUserValidator)
       const verifyInfo = await userService.verifyInfo(user)
@@ -1360,6 +1379,15 @@ export default class UserController {
       }
       const updateUser = await userService.update(currentUser, user)
       if (updateUser) {
+        const rawHeaders = request.request.rawHeaders
+        const tokenUserId = auth.user?.userId
+        if (tokenUserId) {
+          const logUser = await userService.createActionLog(rawHeaders, 'update')
+          logUser.user_id = tokenUserId
+          logUser.record_current = JSON.parse(JSON.stringify(updateUser))
+          logUser.record_previous = previousUser
+          await userService.saveActionOnLog(logUser)
+        }
         response.status(201)
         return {
           type: 'success',
@@ -1480,7 +1508,7 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-  async delete({ request, response }: HttpContext) {
+  async delete({ auth, request, response }: HttpContext) {
     try {
       const userId = request.param('userId')
       if (!userId) {
@@ -1508,6 +1536,14 @@ export default class UserController {
       const userService = new UserService()
       const deleteUser = await userService.delete(currentUser)
       if (deleteUser) {
+        const rawHeaders = request.request.rawHeaders
+        const tokenUserId = auth.user?.userId
+        if (tokenUserId) {
+          const logUser = await userService.createActionLog(rawHeaders, 'delete')
+          logUser.user_id = tokenUserId
+          logUser.record_current = JSON.parse(JSON.stringify(deleteUser))
+          await userService.saveActionOnLog(logUser)
+        }
         response.status(201)
         return {
           type: 'success',

@@ -1,7 +1,7 @@
-import ShiftException from '#models/shift_exception'
+import User from '#models/user'
 import { Actions } from './enum/actions.js'
 
-interface LogShiftException {
+interface LogUser {
   user_id: number
   action: Actions
   user_agent: string
@@ -9,7 +9,7 @@ interface LogShiftException {
   sec_ch_ua: string
   origin: string
   date: string
-  record_previous: ShiftException
-  record_current: ShiftException
+  record_previous: User
+  record_current: User
 }
-export type { LogShiftException }
+export type { LogUser }

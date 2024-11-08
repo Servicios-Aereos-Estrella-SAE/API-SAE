@@ -5,6 +5,9 @@ import { UserFilterSearchInterface } from '../interfaces/user_filter_search_inte
 import ApiToken from '#models/api_token'
 import RoleDepartment from '#models/role_department'
 import Department from '#models/department'
+import { DateTime } from 'luxon'
+import { LogStore } from '#models/MongoDB/log_store'
+import { LogUser } from '../interfaces/MongoDB/log_user.js'
 // import env from '#start/env'
 // import BusinessUnit from '#models/business_unit'
 
@@ -168,5 +171,33 @@ export default class UserService {
 
     const departments = roleDepartments.map((roleDepartment) => roleDepartment.departmentId)
     return departments
+  }
+
+  createActionLog(rawHeaders: string[], action: string) {
+    const date = DateTime.local().setZone('utc').toISO()
+    const userAgent = this.getHeaderValue(rawHeaders, 'User-Agent')
+    const secChUaPlatform = this.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
+    const secChUa = this.getHeaderValue(rawHeaders, 'sec-ch-ua')
+    const origin = this.getHeaderValue(rawHeaders, 'Origin')
+    const logUser = {
+      action: action,
+      user_agent: userAgent,
+      sec_ch_ua_platform: secChUaPlatform,
+      sec_ch_ua: secChUa,
+      origin: origin,
+      date: date ? date : '',
+    } as LogUser
+    return logUser
+  }
+
+  async saveActionOnLog(logAssist: LogUser) {
+    try {
+      await LogStore.set('log_users', logAssist)
+    } catch (err) {}
+  }
+
+  getHeaderValue(headers: Array<string>, headerName: string) {
+    const index = headers.indexOf(headerName)
+    return index !== -1 ? headers[index + 1] : null
   }
 }

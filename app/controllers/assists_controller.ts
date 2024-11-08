@@ -844,6 +844,7 @@ export default class AssistsController {
         if (userId) {
           const logAssist = await assistsService.createActionLog(rawHeaders, 'store')
           logAssist.user_id = userId
+          logAssist.create_from = 'manual'
           logAssist.record_current = JSON.parse(JSON.stringify(newAssist))
           await assistsService.saveActionOnLog(logAssist)
         }

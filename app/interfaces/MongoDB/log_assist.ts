@@ -7,6 +7,7 @@ interface LogAssist {
   user_agent: string
   sec_ch_ua_platform: string
   sec_ch_ua: string
+  origin: string
   date: string
   create_from: string
   record_previous: Assist
