@@ -175,8 +175,12 @@ export default class ExceptionRequestsController {
   async index({ request, response }: HttpContext) {
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
-    const exceptionRequests = await ExceptionRequest.query().paginate(page, limit)
-
+    const employeeId = request.input('employeeId')
+    const query = ExceptionRequest.query()
+    if (employeeId) {
+      query.where('employeeId', employeeId)
+    }
+    const exceptionRequests = await query.paginate(page, limit)
     return response.status(200).json(
       formatResponse(
         'success',
