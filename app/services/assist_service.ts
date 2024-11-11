@@ -45,8 +45,6 @@ export default class AssistsService {
         for await (const row of newRows) {
           rows.push(row)
         }
-        this.addRowExcelEmpty(rows)
-        this.addRowExcelEmptyWithCode(rows)
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
@@ -131,7 +129,7 @@ export default class AssistsService {
       await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'employee')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -194,8 +192,6 @@ export default class AssistsService {
           for await (const row of newRows) {
             rows.push(row)
           }
-          this.addRowExcelEmpty(rows)
-          this.addRowExcelEmptyWithCode(rows)
         }
       }
       // Crear un nuevo libro de Excel
@@ -286,7 +282,7 @@ export default class AssistsService {
           this.addRowIncidentExcelEmptyWithCode(rowsIncident)
         }
       }
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'position')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -351,8 +347,6 @@ export default class AssistsService {
             for await (const row of newRows) {
               rows.push(row)
             }
-            this.addRowExcelEmpty(rows)
-            this.addRowExcelEmptyWithCode(rows)
           }
         }
       }
@@ -466,7 +460,7 @@ export default class AssistsService {
       await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'department')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -536,8 +530,6 @@ export default class AssistsService {
               for await (const row of newRows) {
                 rows.push(row)
               }
-              this.addRowExcelEmpty(rows)
-              this.addRowExcelEmptyWithCode(rows)
             }
           }
         }
@@ -658,7 +650,7 @@ export default class AssistsService {
         await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
       }
       await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'all')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -738,54 +730,6 @@ export default class AssistsService {
     const calendarDayEnd = this.calendarDay(yearEnd, monthEnd, dayEnd)
 
     return `From ${calendarDayStart} to ${calendarDayEnd}`
-  }
-
-  private addRowExcelEmpty(rows: AssistExcelRowInterface[]) {
-    rows.push({
-      code: '',
-      name: '',
-      department: '',
-      position: '',
-      date: '',
-      shiftAssigned: '',
-      shiftStartDate: '',
-      shiftEndsDate: '',
-      checkInTime: '',
-      firstCheck: '',
-      lunchTime: '',
-      returnLunchTime: '',
-      checkOutTime: '',
-      lastCheck: '',
-      incidents: '',
-      notes: '',
-      sundayPremium: '',
-      checkOutStatus: '',
-      exceptions: [],
-    })
-  }
-
-  private addRowExcelEmptyWithCode(rows: AssistExcelRowInterface[]) {
-    rows.push({
-      code: '0',
-      name: '',
-      department: '',
-      position: '',
-      date: '',
-      shiftAssigned: '',
-      shiftStartDate: '',
-      shiftEndsDate: '',
-      checkInTime: '',
-      firstCheck: '',
-      lunchTime: '',
-      returnLunchTime: '',
-      checkOutTime: '',
-      lastCheck: '',
-      incidents: '',
-      notes: '',
-      sundayPremium: '',
-      checkOutStatus: '',
-      exceptions: [],
-    })
   }
 
   private dateYear(day: string) {
@@ -1358,8 +1302,7 @@ export default class AssistsService {
 
   async addRowIncidentToWorkSheet(
     rows: AssistIncidentExcelRowInterface[],
-    worksheet: ExcelJS.Worksheet,
-    type: string
+    worksheet: ExcelJS.Worksheet
   ) {
     let rowCount = 5
     let currentDepartment = ''
@@ -1379,17 +1322,9 @@ export default class AssistsService {
               }
               cell.font = { color: { argb: 'FFFFFF' } }
             }
-            if (type === 'all') {
-              worksheet.addRow([])
-              rowCount += 1
-            }
           }
           currentDepartment = rowData.department
           currentDepartmentRow = rowCount - 1
-        }
-        if (rowData.department === 'TOTALS') {
-          worksheet.addRow([])
-          rowCount += 1
         }
         worksheet.addRow([
           rowData.department,
