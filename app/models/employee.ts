@@ -64,6 +64,9 @@ import BusinessUnit from './business_unit.js'
  *          employeeLastSynchronizationAt:
  *            type: string
  *            description: Last synchronization date
+ *          employeeTypeOfContract:
+ *            type: string
+ *            description: Employee type of contract
  *          employeeCreatedAt:
  *            type: string
  *          employeeUpdatedAt:
@@ -126,6 +129,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeLastSynchronizationAt: Date
+
+  @column()
+  declare employeeTypeOfContract: string
 
   @column.dateTime({ autoCreate: true })
   declare employeeCreatedAt: DateTime

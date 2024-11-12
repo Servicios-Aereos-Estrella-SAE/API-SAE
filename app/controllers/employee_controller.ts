@@ -501,6 +501,11 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
+   *               employeeTypeOfContract:
+   *                 type: string
+   *                 description: Employee type of contract
+   *                 required: true
+   *                 default: 'Internal'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -595,6 +600,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const workSchedule = request.input('employeeWorkSchedule')
+      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const employee = {
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
@@ -608,6 +614,7 @@ export default class EmployeeController {
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: workSchedule,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
@@ -739,6 +746,11 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
+   *               employeeTypeOfContract:
+   *                 type: string
+   *                 description: Employee type of contract
+   *                 required: true
+   *                 default: 'Internal'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -833,6 +845,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -846,6 +859,7 @@ export default class EmployeeController {
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: employeeWorkSchedule,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       if (!employeeId) {
         response.status(400)

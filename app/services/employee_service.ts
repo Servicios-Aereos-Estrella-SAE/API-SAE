@@ -164,6 +164,7 @@ export default class EmployeeService {
     newEmployee.businessUnitId = await employee.businessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
+    newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     await newEmployee.save()
     await newEmployee.load('businessUnit')
     return newEmployee
@@ -181,6 +182,7 @@ export default class EmployeeService {
     currentEmployee.businessUnitId = employee.businessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
+    currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     await currentEmployee.save()
     await currentEmployee.load('businessUnit')
     return currentEmployee
