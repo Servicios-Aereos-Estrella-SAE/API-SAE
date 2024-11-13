@@ -101,7 +101,7 @@ export default class EmployeeService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const employees = await Employee.query()
-      .whereNull('employee_deleted_at')
+      //.whereNull('employee_deleted_at')
       .whereIn('businessUnitId', businessUnitsList)
       .if(filters.search, (query) => {
         query.where((subQuery) => {
@@ -140,6 +140,13 @@ export default class EmployeeService {
       .if(filters.ignoreDiscriminated === 1, (query) => {
         query.where('employeeAssistDiscriminator', 0)
       })
+      .if(
+        filters.onlyInactive && (filters.onlyInactive === 'true' || filters.onlyInactive === true),
+        (query) => {
+          query.whereNotNull('employee_deleted_at')
+          query.withTrashed()
+        }
+      )
       .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
@@ -157,6 +164,7 @@ export default class EmployeeService {
     newEmployee.employeeCode = employee.employeeCode
     newEmployee.employeePayrollNum = employee.employeePayrollNum
     newEmployee.employeeHireDate = employee.employeeHireDate
+    newEmployee.employeeTerminatedDate = employee.employeeTerminatedDate
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = await employee.departmentId
     newEmployee.positionId = await employee.positionId
@@ -176,6 +184,7 @@ export default class EmployeeService {
     currentEmployee.employeeCode = employee.employeeCode
     currentEmployee.employeePayrollNum = employee.employeePayrollNum
     currentEmployee.employeeHireDate = employee.employeeHireDate
+    currentEmployee.employeeTerminatedDate = employee.employeeTerminatedDate
     currentEmployee.companyId = employee.companyId
     currentEmployee.departmentId = await employee.departmentId
     currentEmployee.positionId = await employee.positionId

@@ -278,6 +278,13 @@ export default class EmployeeController {
    *         description: Employee work schedule
    *         schema:
    *           type: string
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
    *       - name: page
    *         in: query
    *         required: true
@@ -386,6 +393,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const onlyInactive = request.input('onlyInactive')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
@@ -393,6 +401,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         employeeWorkSchedule: employeeWorkSchedule,
+        onlyInactive: onlyInactive,
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
@@ -465,6 +474,12 @@ export default class EmployeeController {
    *                 format: date
    *                 description: Employee hire date (YYYY-MM-DD)
    *                 required: true
+   *                 default: ''
+   *               employeeTerminatedDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee terminated date (YYYY-MM-DD)
+   *                 required: false
    *                 default: ''
    *               companyId:
    *                 type: integer
@@ -595,6 +610,13 @@ export default class EmployeeController {
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      let employeeTerminatedDate = request.input('employeeTerminatedDate')
+      if (employeeTerminatedDate) {
+        employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace(
+          '"',
+          ''
+        )
+      }
       const personId = request.input('personId')
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
@@ -607,6 +629,7 @@ export default class EmployeeController {
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
+        employeeTerminatedDate: employeeTerminatedDate,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
@@ -715,6 +738,12 @@ export default class EmployeeController {
    *                 format: date
    *                 description: Employee hire date (YYYY-MM-DD)
    *                 required: true
+   *                 default: ''
+   *               employeeTerminatedDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee terminated date (YYYY-MM-DD)
+   *                 required: false
    *                 default: ''
    *               companyId:
    *                 type: integer
@@ -841,6 +870,13 @@ export default class EmployeeController {
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      let employeeTerminatedDate = request.input('employeeTerminatedDate')
+      if (employeeTerminatedDate) {
+        employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace(
+          '"',
+          ''
+        )
+      }
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -853,6 +889,7 @@ export default class EmployeeController {
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
+        employeeTerminatedDate: employeeTerminatedDate,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
@@ -865,8 +902,8 @@ export default class EmployeeController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The employee Id was not found',
-          message: 'Missing data to process',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
           data: { ...employee },
         }
       }

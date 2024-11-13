@@ -6,6 +6,7 @@ interface EmployeeFilterSearchInterface {
   positionId: number
   employeeWorkSchedule: string
   ignoreDiscriminated?: number
+  onlyInactive?: boolean | string
 }
 
 export type { EmployeeFilterSearchInterface }
