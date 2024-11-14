@@ -50,7 +50,6 @@ export default class ShiftForEmployeeService {
         data: null,
       }
     }
-
     const employeeRecords = records.reduce(
       (acc, record) => {
         if (!acc[record.employeeId]) {

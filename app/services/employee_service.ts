@@ -222,12 +222,13 @@ export default class EmployeeService {
 
   async show(employeeId: number) {
     const employee = await Employee.query()
-      .whereNull('employee_deleted_at')
+      //.whereNull('employee_deleted_at')
       .where('employee_id', employeeId)
       .preload('department')
       .preload('position')
       .preload('person')
       .preload('businessUnit')
+      .withTrashed()
       .first()
     return employee ? employee : null
   }

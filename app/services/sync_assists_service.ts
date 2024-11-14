@@ -445,6 +445,7 @@ export default class SyncAssistsService {
     if (params.employeeID) {
       const employee = await Employee.query()
         .where('employee_id', params.employeeID || 0)
+        .withTrashed()
         .first()
 
       if (!employee) {

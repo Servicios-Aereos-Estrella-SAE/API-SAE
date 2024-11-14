@@ -612,10 +612,9 @@ export default class EmployeeController {
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
       let employeeTerminatedDate = request.input('employeeTerminatedDate')
       if (employeeTerminatedDate) {
-        employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace(
-          '"',
-          ''
-        )
+        employeeTerminatedDate = (
+          employeeTerminatedDate.split('T')[0] + 'T00:00:00.000-06:00'
+        ).replace('"', '')
       }
       const personId = request.input('personId')
       const companyId = request.input('companyId')
@@ -629,7 +628,7 @@ export default class EmployeeController {
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
-        employeeTerminatedDate: employeeTerminatedDate,
+        employeeTerminatedDate: employeeTerminatedDate ? employeeTerminatedDate : null,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
@@ -872,10 +871,9 @@ export default class EmployeeController {
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
       let employeeTerminatedDate = request.input('employeeTerminatedDate')
       if (employeeTerminatedDate) {
-        employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace(
-          '"',
-          ''
-        )
+        employeeTerminatedDate = (
+          employeeTerminatedDate.split('T')[0] + 'T00:00:00.000-06:00'
+        ).replace('"', '')
       }
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
@@ -889,7 +887,7 @@ export default class EmployeeController {
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
-        employeeTerminatedDate: employeeTerminatedDate,
+        employeeTerminatedDate: employeeTerminatedDate ? employeeTerminatedDate : null,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
@@ -908,8 +906,9 @@ export default class EmployeeController {
         }
       }
       const currentEmployee = await Employee.query()
-        .whereNull('employee_deleted_at')
+        //.whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
+        .withTrashed()
         .first()
       if (!currentEmployee) {
         response.status(404)
@@ -942,6 +941,7 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
+      //console.log(employee)
       const updateEmployee = await employeeService.update(currentEmployee, employee)
       if (updateEmployee) {
         response.status(201)
