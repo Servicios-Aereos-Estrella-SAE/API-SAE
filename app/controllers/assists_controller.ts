@@ -806,6 +806,13 @@ export default class AssistsController {
           data: { employeeId },
         }
       }
+      assistPunchTime = assistPunchTime
+        ? DateTime.fromFormat(assistPunchTime, 'yyyy-MM-dd HH:mm:ss', {
+            zone: 'America/Mexico_City',
+          })
+            .toUTC()
+            .toFormat('yyyy-MM-dd HH:mm:ss')
+        : null
       const assist = {
         assistId: 1,
         assistEmpCode: employee.employeeCode ? employee.employeeCode : '',
@@ -834,9 +841,6 @@ export default class AssistsController {
           data: { ...assist },
         }
       }
-      assistPunchTime = assistPunchTime
-        ? DateTime.fromJSDate(new Date(assistPunchTime)).setZone('UTC').toJSDate()
-        : null
       const newAssist = await assistsService.store(assist)
       if (newAssist) {
         const rawHeaders = request.request.rawHeaders
