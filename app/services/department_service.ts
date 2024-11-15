@@ -180,7 +180,9 @@ export default class DepartmentService {
     const department = await Department.query()
       .whereNull('department_deleted_at')
       .where('department_id', departmentId)
-      .preload('subDepartments')
+      .preload('subDepartments', (query) => {
+        query.preload('parentDepartment')
+      })
       .first()
 
     return department ? department : null
