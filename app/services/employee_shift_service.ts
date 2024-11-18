@@ -1,6 +1,8 @@
 import EmployeeShift from '#models/employee_shift'
 import { DateTime } from 'luxon'
 import { EmployeeShiftFilterInterface } from '../interfaces/employee_shift_filter_interface.js'
+import { LogStore } from '#models/MongoDB/log_store'
+import { LogEmployeeShift } from '../interfaces/MongoDB/log_employee_shift.js'
 
 export default class EmployeeShiftService {
   async verifyInfo(employeeShift: EmployeeShift) {
@@ -131,5 +133,33 @@ export default class EmployeeShiftService {
       const dateTime = `${date.replaceAll('"', '')}T${time}.000-06:00`
       return dateTime
     }
+  }
+
+  createActionLog(rawHeaders: string[], action: string) {
+    const date = DateTime.local().setZone('utc').toISO()
+    const userAgent = this.getHeaderValue(rawHeaders, 'User-Agent')
+    const secChUaPlatform = this.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
+    const secChUa = this.getHeaderValue(rawHeaders, 'sec-ch-ua')
+    const origin = this.getHeaderValue(rawHeaders, 'Origin')
+    const logEmployeeShift = {
+      action: action,
+      user_agent: userAgent,
+      sec_ch_ua_platform: secChUaPlatform,
+      sec_ch_ua: secChUa,
+      origin: origin,
+      date: date ? date : '',
+    } as LogEmployeeShift
+    return logEmployeeShift
+  }
+
+  async saveActionOnLog(logEmployeeShift: LogEmployeeShift) {
+    try {
+      await LogStore.set('log_employee_shifts', logEmployeeShift)
+    } catch (err) {}
+  }
+
+  getHeaderValue(headers: Array<string>, headerName: string) {
+    const index = headers.indexOf(headerName)
+    return index !== -1 ? headers[index + 1] : null
   }
 }

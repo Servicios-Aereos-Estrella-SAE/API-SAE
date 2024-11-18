@@ -278,6 +278,13 @@ export default class EmployeeController {
    *         description: Employee work schedule
    *         schema:
    *           type: string
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
    *       - name: page
    *         in: query
    *         required: true
@@ -386,6 +393,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const onlyInactive = request.input('onlyInactive')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
@@ -393,6 +401,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         employeeWorkSchedule: employeeWorkSchedule,
+        onlyInactive: onlyInactive,
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
@@ -466,6 +475,12 @@ export default class EmployeeController {
    *                 description: Employee hire date (YYYY-MM-DD)
    *                 required: true
    *                 default: ''
+   *               employeeTerminatedDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee terminated date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
    *               companyId:
    *                 type: integer
    *                 description: Company id
@@ -501,6 +516,11 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
+   *               employeeTypeOfContract:
+   *                 type: string
+   *                 description: Employee type of contract
+   *                 required: true
+   *                 default: 'Internal'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -590,17 +610,25 @@ export default class EmployeeController {
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      let employeeTerminatedDate = request.input('employeeTerminatedDate')
+      if (employeeTerminatedDate) {
+        employeeTerminatedDate = (
+          employeeTerminatedDate.split('T')[0] + 'T00:00:00.000-06:00'
+        ).replace('"', '')
+      }
       const personId = request.input('personId')
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const workSchedule = request.input('employeeWorkSchedule')
+      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const employee = {
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
+        employeeTerminatedDate: employeeTerminatedDate ? employeeTerminatedDate : null,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
@@ -608,6 +636,7 @@ export default class EmployeeController {
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: workSchedule,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
@@ -709,6 +738,12 @@ export default class EmployeeController {
    *                 description: Employee hire date (YYYY-MM-DD)
    *                 required: true
    *                 default: ''
+   *               employeeTerminatedDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee terminated date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
    *               companyId:
    *                 type: integer
    *                 description: Company id
@@ -739,6 +774,11 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
+   *               employeeTypeOfContract:
+   *                 type: string
+   *                 description: Employee type of contract
+   *                 required: true
+   *                 default: 'Internal'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -829,10 +869,17 @@ export default class EmployeeController {
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      let employeeTerminatedDate = request.input('employeeTerminatedDate')
+      if (employeeTerminatedDate) {
+        employeeTerminatedDate = (
+          employeeTerminatedDate.split('T')[0] + 'T00:00:00.000-06:00'
+        ).replace('"', '')
+      }
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -840,25 +887,28 @@ export default class EmployeeController {
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
+        employeeTerminatedDate: employeeTerminatedDate ? employeeTerminatedDate : null,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: employeeWorkSchedule,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       if (!employeeId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The employee Id was not found',
-          message: 'Missing data to process',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
           data: { ...employee },
         }
       }
       const currentEmployee = await Employee.query()
-        .whereNull('employee_deleted_at')
+        //.whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
+        .withTrashed()
         .first()
       if (!currentEmployee) {
         response.status(404)
@@ -891,6 +941,7 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
+      //console.log(employee)
       const updateEmployee = await employeeService.update(currentEmployee, employee)
       if (updateEmployee) {
         response.status(201)

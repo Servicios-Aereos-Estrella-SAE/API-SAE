@@ -77,6 +77,9 @@ export default class EmployeeShift extends BaseModel {
 
   @belongsTo(() => Employee, {
     foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.withTrashed()
+    },
   })
   declare employee: relations.BelongsTo<typeof Employee>
 

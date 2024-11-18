@@ -18,6 +18,8 @@ import HolidayService from './holiday_service.js'
 import { HolidayInterface } from '../interfaces/holiday_interface.js'
 import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface.js'
 import ToleranceService from './tolerance_service.js'
+import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
+import AssistsService from './assist_service.js'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -91,25 +93,25 @@ export default class SyncAssistsService {
     return result2
   }
 
-  async synchronizeByEmployee(
-    startDate: string,
-    endDate: string,
-    empCode: string,
-    page: number = 1,
-    limit: number = 5000
-  ) {
-    const dateParam = new Date(startDate)
-    const dateEndParam = new Date(endDate)
-    page = 1
+  async synchronizeByEmployee(filters: AssistSyncFilterInterface) {
+    const dateParam = new Date(filters.startDate)
+    const dateEndParam = new Date(filters.endDate)
     let response = await this.fetchExternalDataEmployee(
       dateParam,
       dateEndParam,
-      empCode,
-      page,
-      limit
+      filters.empCode,
+      filters.page,
+      filters.limit
     )
-
-    await this.saveAssistDataEmployee(response)
+    const assists = await this.saveAssistDataEmployee(response)
+    const assistService = new AssistsService()
+    for await (const assist of assists) {
+      const logAssist = await assistService.createActionLog(filters.rawHeaders, 'store')
+      logAssist.user_id = filters.userId
+      logAssist.create_from = 'sync'
+      logAssist.record_current = JSON.parse(JSON.stringify(assist))
+      await assistService.saveActionOnLog(logAssist)
+    }
     return response
   }
 
@@ -265,6 +267,7 @@ export default class SyncAssistsService {
   }
 
   async saveAssistDataEmployee(externalData: ResponseApiAssistsDto) {
+    const assists = [] as Array<Assist>
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
       // convert objetct to string
@@ -284,8 +287,10 @@ export default class SyncAssistsService {
         newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
+        assists.push(newAssist)
       }
     }
+    return assists
   }
 
   async updatePageSync(page: number, status: string, itemsCount: number) {
@@ -440,6 +445,7 @@ export default class SyncAssistsService {
     if (params.employeeID) {
       const employee = await Employee.query()
         .where('employee_id', params.employeeID || 0)
+        .withTrashed()
         .first()
 
       if (!employee) {
