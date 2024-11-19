@@ -16,6 +16,8 @@ import axios from 'axios'
 import { AssistIncidentExcelRowInterface } from '../interfaces/assist_incident_excel_row_interface.js'
 import Assist from '#models/assist'
 import Tolerance from '#models/tolerance'
+import { LogStore } from '#models/MongoDB/log_store'
+import { LogAssist } from '../interfaces/MongoDB/log_assist.js'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -43,8 +45,6 @@ export default class AssistsService {
         for await (const row of newRows) {
           rows.push(row)
         }
-        this.addRowExcelEmpty(rows)
-        this.addRowExcelEmptyWithCode(rows)
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
@@ -129,7 +129,7 @@ export default class AssistsService {
       await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'employee')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -192,8 +192,6 @@ export default class AssistsService {
           for await (const row of newRows) {
             rows.push(row)
           }
-          this.addRowExcelEmpty(rows)
-          this.addRowExcelEmptyWithCode(rows)
         }
       }
       // Crear un nuevo libro de Excel
@@ -284,7 +282,7 @@ export default class AssistsService {
           this.addRowIncidentExcelEmptyWithCode(rowsIncident)
         }
       }
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'position')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -349,8 +347,6 @@ export default class AssistsService {
             for await (const row of newRows) {
               rows.push(row)
             }
-            this.addRowExcelEmpty(rows)
-            this.addRowExcelEmptyWithCode(rows)
           }
         }
       }
@@ -464,7 +460,7 @@ export default class AssistsService {
       await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'department')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -534,8 +530,6 @@ export default class AssistsService {
               for await (const row of newRows) {
                 rows.push(row)
               }
-              this.addRowExcelEmpty(rows)
-              this.addRowExcelEmptyWithCode(rows)
             }
           }
         }
@@ -656,7 +650,7 @@ export default class AssistsService {
         await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
       }
       await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet, 'all')
+      await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -736,54 +730,6 @@ export default class AssistsService {
     const calendarDayEnd = this.calendarDay(yearEnd, monthEnd, dayEnd)
 
     return `From ${calendarDayStart} to ${calendarDayEnd}`
-  }
-
-  private addRowExcelEmpty(rows: AssistExcelRowInterface[]) {
-    rows.push({
-      code: '',
-      name: '',
-      department: '',
-      position: '',
-      date: '',
-      shiftAssigned: '',
-      shiftStartDate: '',
-      shiftEndsDate: '',
-      checkInTime: '',
-      firstCheck: '',
-      lunchTime: '',
-      returnLunchTime: '',
-      checkOutTime: '',
-      lastCheck: '',
-      incidents: '',
-      notes: '',
-      sundayPremium: '',
-      checkOutStatus: '',
-      exceptions: [],
-    })
-  }
-
-  private addRowExcelEmptyWithCode(rows: AssistExcelRowInterface[]) {
-    rows.push({
-      code: '0',
-      name: '',
-      department: '',
-      position: '',
-      date: '',
-      shiftAssigned: '',
-      shiftStartDate: '',
-      shiftEndsDate: '',
-      checkInTime: '',
-      firstCheck: '',
-      lunchTime: '',
-      returnLunchTime: '',
-      checkOutTime: '',
-      lastCheck: '',
-      incidents: '',
-      notes: '',
-      sundayPremium: '',
-      checkOutStatus: '',
-      exceptions: [],
-    })
   }
 
   private dateYear(day: string) {
@@ -1356,8 +1302,7 @@ export default class AssistsService {
 
   async addRowIncidentToWorkSheet(
     rows: AssistIncidentExcelRowInterface[],
-    worksheet: ExcelJS.Worksheet,
-    type: string
+    worksheet: ExcelJS.Worksheet
   ) {
     let rowCount = 5
     let currentDepartment = ''
@@ -1377,17 +1322,9 @@ export default class AssistsService {
               }
               cell.font = { color: { argb: 'FFFFFF' } }
             }
-            if (type === 'all') {
-              worksheet.addRow([])
-              rowCount += 1
-            }
           }
           currentDepartment = rowData.department
           currentDepartmentRow = rowCount - 1
-        }
-        if (rowData.department === 'TOTALS') {
-          worksheet.addRow([])
-          rowCount += 1
         }
         worksheet.addRow([
           rowData.department,
@@ -1584,5 +1521,33 @@ export default class AssistsService {
       message: 'Info verifiy successfully',
       data: { ...assist },
     }
+  }
+
+  createActionLog(rawHeaders: string[], action: string) {
+    const date = DateTime.local().setZone('utc').toISO()
+    const userAgent = this.getHeaderValue(rawHeaders, 'User-Agent')
+    const secChUaPlatform = this.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
+    const secChUa = this.getHeaderValue(rawHeaders, 'sec-ch-ua')
+    const origin = this.getHeaderValue(rawHeaders, 'Origin')
+    const logAssist = {
+      action: action,
+      user_agent: userAgent,
+      sec_ch_ua_platform: secChUaPlatform,
+      sec_ch_ua: secChUa,
+      origin: origin,
+      date: date ? date : '',
+    } as LogAssist
+    return logAssist
+  }
+
+  async saveActionOnLog(logAssist: LogAssist) {
+    try {
+      await LogStore.set('log_assist', logAssist)
+    } catch (err) {}
+  }
+
+  getHeaderValue(headers: Array<string>, headerName: string) {
+    const index = headers.indexOf(headerName)
+    return index !== -1 ? headers[index + 1] : null
   }
 }

@@ -34,12 +34,12 @@ export class LogRequest {
     } catch (error) {
       //console.error("MongoDB conexion error:", error)
       this.isConnected = false
-      this.isConnected = false
       this.scheduleReconnect()
     }
   }
 
-  private scheduleReconnect() {
+  scheduleReconnect() {
+    //console.log('isReconnecting:' , this.isReconnecting)
     if (this.isReconnecting) return
 
     this.isReconnecting = true
@@ -57,5 +57,21 @@ export class LogRequest {
         mongoose.model(collectionName, new mongoose.Schema({}, { strict: false }))
     }
     return this.connections[collectionName]
+  }
+
+  async collectionExists(collectionName: string): Promise<boolean> {
+    if (!this.isConnected) await this.dbConnect()
+    if (!mongoose.connection.readyState) {
+      // console.log('MongoDB no está conectado aún.');
+      return false
+    }
+    if (mongoose.connection.db) {
+      const collections = await mongoose.connection.db
+        .listCollections({ name: collectionName })
+        .toArray()
+      return collections.length > 0
+    } else {
+      return false
+    }
   }
 }

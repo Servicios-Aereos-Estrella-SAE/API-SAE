@@ -1,6 +1,8 @@
 import ShiftException from '#models/shift_exception'
 import { DateTime } from 'luxon'
 import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_filter_interface.js'
+import { LogShiftException } from '../interfaces/MongoDB/log_shift_exception.js'
+import { LogStore } from '#models/MongoDB/log_store'
 
 export default class ShiftExceptionService {
   async create(shiftException: ShiftException) {
@@ -106,5 +108,33 @@ export default class ShiftExceptionService {
       message: 'Info verifiy successfully',
       data: { ...shiftException },
     }
+  }
+
+  createActionLog(rawHeaders: string[], action: string) {
+    const date = DateTime.local().setZone('utc').toISO()
+    const userAgent = this.getHeaderValue(rawHeaders, 'User-Agent')
+    const secChUaPlatform = this.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
+    const secChUa = this.getHeaderValue(rawHeaders, 'sec-ch-ua')
+    const origin = this.getHeaderValue(rawHeaders, 'Origin')
+    const logShiftException = {
+      action: action,
+      user_agent: userAgent,
+      sec_ch_ua_platform: secChUaPlatform,
+      sec_ch_ua: secChUa,
+      origin: origin,
+      date: date ? date : '',
+    } as LogShiftException
+    return logShiftException
+  }
+
+  async saveActionOnLog(logShiftException: LogShiftException, table: string) {
+    try {
+      await LogStore.set(table, logShiftException)
+    } catch (err) {}
+  }
+
+  getHeaderValue(headers: Array<string>, headerName: string) {
+    const index = headers.indexOf(headerName)
+    return index !== -1 ? headers[index + 1] : null
   }
 }

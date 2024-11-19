@@ -101,7 +101,7 @@ export default class EmployeeService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const employees = await Employee.query()
-      .whereNull('employee_deleted_at')
+      //.whereNull('employee_deleted_at')
       .whereIn('businessUnitId', businessUnitsList)
       .if(filters.search, (query) => {
         query.where((subQuery) => {
@@ -140,6 +140,13 @@ export default class EmployeeService {
       .if(filters.ignoreDiscriminated === 1, (query) => {
         query.where('employeeAssistDiscriminator', 0)
       })
+      .if(
+        filters.onlyInactive && (filters.onlyInactive === 'true' || filters.onlyInactive === true),
+        (query) => {
+          query.whereNotNull('employee_deleted_at')
+          query.withTrashed()
+        }
+      )
       .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
@@ -157,6 +164,7 @@ export default class EmployeeService {
     newEmployee.employeeCode = employee.employeeCode
     newEmployee.employeePayrollNum = employee.employeePayrollNum
     newEmployee.employeeHireDate = employee.employeeHireDate
+    newEmployee.employeeTerminatedDate = employee.employeeTerminatedDate
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = await employee.departmentId
     newEmployee.positionId = await employee.positionId
@@ -164,6 +172,7 @@ export default class EmployeeService {
     newEmployee.businessUnitId = await employee.businessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
+    newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     await newEmployee.save()
     await newEmployee.load('businessUnit')
     return newEmployee
@@ -175,12 +184,14 @@ export default class EmployeeService {
     currentEmployee.employeeCode = employee.employeeCode
     currentEmployee.employeePayrollNum = employee.employeePayrollNum
     currentEmployee.employeeHireDate = employee.employeeHireDate
+    currentEmployee.employeeTerminatedDate = employee.employeeTerminatedDate
     currentEmployee.companyId = employee.companyId
     currentEmployee.departmentId = await employee.departmentId
     currentEmployee.positionId = await employee.positionId
     currentEmployee.businessUnitId = employee.businessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
+    currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     await currentEmployee.save()
     await currentEmployee.load('businessUnit')
     return currentEmployee
@@ -211,12 +222,13 @@ export default class EmployeeService {
 
   async show(employeeId: number) {
     const employee = await Employee.query()
-      .whereNull('employee_deleted_at')
+      //.whereNull('employee_deleted_at')
       .where('employee_id', employeeId)
       .preload('department')
       .preload('position')
       .preload('person')
       .preload('businessUnit')
+      .withTrashed()
       .first()
     return employee ? employee : null
   }

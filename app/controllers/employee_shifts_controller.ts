@@ -123,7 +123,7 @@ export default class EmployeeShiftController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
       await request.validateUsing(createEmployeeShiftValidator)
 
@@ -171,6 +171,14 @@ export default class EmployeeShiftController {
       // }
 
       const newEmployeeShift = await EmployeeShift.create(employeeShift)
+      const rawHeaders = request.request.rawHeaders
+      const userId = auth.user?.userId
+      if (userId) {
+        const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'store')
+        logEmployeeShift.user_id = userId
+        logEmployeeShift.record_current = JSON.parse(JSON.stringify(newEmployeeShift))
+        await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      }
 
       return response.status(201).json({
         type: 'success',
@@ -179,7 +187,7 @@ export default class EmployeeShiftController {
         data: newEmployeeShift.toJSON(),
       })
     } catch (error) {
-      console.error('Error:', error)
+      // console.error('Error:', error)
       if (error.messages) {
         return response.status(400).json({
           type: 'error',
@@ -539,7 +547,7 @@ export default class EmployeeShiftController {
    *                       type: string
    */
 
-  async update({ params, request, response }: HttpContext) {
+  async update({ auth, params, request, response }: HttpContext) {
     try {
       await request.validateUsing(updateEmployeeShiftValidator)
       const updateEmployeeShift = await EmployeeShift.findOrFail(params.id)
@@ -578,8 +586,18 @@ export default class EmployeeShiftController {
           data: { ...employeeShift },
         }
       }
+      const previousEmployeeShift = JSON.parse(JSON.stringify(updateEmployeeShift))
       updateEmployeeShift.merge(employeeShift)
       await updateEmployeeShift.save()
+      const rawHeaders = request.request.rawHeaders
+      const userId = auth.user?.userId
+      if (userId) {
+        const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'update')
+        logEmployeeShift.user_id = userId
+        logEmployeeShift.record_current = JSON.parse(JSON.stringify(updateEmployeeShift))
+        logEmployeeShift.record_previous = previousEmployeeShift
+        await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -704,11 +722,20 @@ export default class EmployeeShiftController {
    *                       type: string
    */
 
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ auth, request, params, response }: HttpContext) {
     try {
       const employeeShift = await EmployeeShift.findOrFail(params.id)
       employeeShift.employeShiftsDeletedAt = DateTime.now()
       await employeeShift.save()
+      const employeeShiftService = new EmployeeShiftService()
+      const rawHeaders = request.request.rawHeaders
+      const userId = auth.user?.userId
+      if (userId) {
+        const logEmployeeShift = await employeeShiftService.createActionLog(rawHeaders, 'delete')
+        logEmployeeShift.user_id = userId
+        logEmployeeShift.record_current = JSON.parse(JSON.stringify(employeeShift))
+        await employeeShiftService.saveActionOnLog(logEmployeeShift)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
