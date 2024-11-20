@@ -1332,6 +1332,10 @@ export default class SyncAssistsService {
         isStartWorkday = true
         isEndWorkday = false
         isRestWorkday = false
+
+        if (dateAssistItem.assist.exceptions.length > 0) {
+          dateAssistItem.assist.checkInStatus = ''
+        }
       }
     }
 
