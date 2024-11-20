@@ -428,7 +428,6 @@ export default class ExceptionRequestsController {
         )
       )
   }
-
   /**
    * @swagger
    * /api/exception-requests/{id}:
@@ -452,12 +451,26 @@ export default class ExceptionRequestsController {
    *               properties:
    *                 status:
    *                   type: string
+   *                   example: success
    *                 message:
    *                   type: string
+   *                   example: Successfully deleted
    *                 data:
    *                   type: string
-   *        404:
+   *                   example: DELETED
+   *       404:
    *         description: Exception request not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: error
+   *                 message:
+   *                   type: string
+   *                   example: Exception request not found
    */
 
   async destroy({ params, response }: HttpContext) {
@@ -468,6 +481,110 @@ export default class ExceptionRequestsController {
       .status(200)
       .json(formatResponse('success', 'Successfully deleted', 'Resource deleted', 'DELETED'))
   }
+
+  /**
+   * @swagger
+   * /api/exception-requests/all:
+   *   get:
+   *     summary: Retrieve all exception requests with filters and pagination
+   *     tags: [ExceptionRequests]
+   *     parameters:
+   *       - name: page
+   *         in: query
+   *         description: Page number for pagination
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *       - name: limit
+   *         in: query
+   *         description: Number of items per page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *       - name: departmentId
+   *         in: query
+   *         description: Filter by department ID
+   *         required: false
+   *         schema:
+   *           type: integer
+   *       - name: positionId
+   *         in: query
+   *         description: Filter by position ID
+   *         required: false
+   *         schema:
+   *           type: integer
+   *       - name: status
+   *         in: query
+   *         description: Filter by exception request status
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [requested, pending, accepted, refused]
+   *       - name: searchText
+   *         in: query
+   *         description: Filter by employee first or last name
+   *         required: false
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: List of exception requests retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: success
+   *                 message:
+   *                   type: string
+   *                   example: Successfully fetched all exception requests
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: integer
+   *                       employeeId:
+   *                         type: integer
+   *                       exceptionRequestStatus:
+   *                         type: string
+   *                       exceptionRequestDescription:
+   *                         type: string
+   *                       requestedDate:
+   *                         type: string
+   *                         example: "2024-11-15 14:00:00"
+   *                 metadata:
+   *                   type: object
+   *                   properties:
+   *                     total:
+   *                       type: integer
+   *                     per_page:
+   *                       type: integer
+   *                     current_page:
+   *                       type: integer
+   *                     last_page:
+   *                       type: integer
+   *                     first_page:
+   *                       type: integer
+   *       404:
+   *         description: No exception requests found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: error
+   *                 message:
+   *                   type: string
+   *                   example: No exception requests found
+   */
 
   async indexAllExceptionRequests({ request, response }: HttpContext) {
     const page = request.input('page', 1)
