@@ -4,6 +4,9 @@ import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_fil
 import ShiftException from '../models/shift_exception.js'
 import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
+import Employee from '#models/employee'
+import ExcelJS from 'exceljs'
+import axios from 'axios'
 
 export default class ShiftExceptionController {
   /**
@@ -461,6 +464,163 @@ export default class ShiftExceptionController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
+    }
+  }
+  /**
+   * @swagger
+   * /shift-exception/{employeeId}/export-excel:
+   *   get:
+   *     summary: Export shift exceptions of an employee to Excel
+   *     description: Generates an Excel file containing shift exceptions for a specific employee, filtered by hire date and current date. Excludes exceptions of type "Día de descanso".
+   *     tags:
+   *       - ShiftException
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the employee
+   *     responses:
+   *       201:
+   *         description: Excel file generated successfully
+   *         content:
+   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+   *             schema:
+   *               type: string
+   *               format: binary
+   *       500:
+   *         description: Error generating Excel file
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 error:
+   *                   type: string
+   */
+  async exportShiftExceptionsToExcel({ params, response }: HttpContext) {
+    try {
+      const employeeId = params.employeeId
+
+      const employee = await Employee.query()
+        .where('employeeId', employeeId)
+        .preload('department')
+        .preload('position')
+        .preload('shift_exceptions', (shiftExceptionsQuery) => {
+          shiftExceptionsQuery.whereNull('shift_exceptions_deleted_at')
+        })
+        .firstOrFail()
+
+      const hireDate =
+        employee.employeeHireDate instanceof DateTime
+          ? employee.employeeHireDate.toJSDate()
+          : new Date(employee.employeeHireDate)
+      const currentDate = DateTime.local().toJSDate()
+
+      const shiftExceptions = await ShiftException.query()
+        .where('employeeId', employeeId)
+        .whereBetween('shiftExceptionsDate', [hireDate, currentDate])
+        .whereNot('exception_type_id', 9)
+        .preload('exceptionType')
+
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Shift Exceptions')
+
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 0 },
+        ext: { width: 139, height: 49 },
+      })
+      worksheet.getRow(1).height = 60
+      worksheet.mergeCells('A1:G1')
+
+      const titleRow = worksheet.addRow(['Employee Shift Exceptions'])
+      titleRow.font = { bold: true, size: 24, color: { argb: 'FFFFFFFF' } }
+      titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.mergeCells('A2:G2')
+      worksheet.getCell('A2').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '244062' },
+      }
+
+      const periodRow = worksheet.addRow([
+        `From: ${hireDate.toLocaleDateString()} , ${currentDate.toLocaleDateString()}`,
+      ])
+      periodRow.font = { italic: true, size: 12, color: { argb: 'FFFFFFFF' } }
+      worksheet.mergeCells('A3:G3')
+      periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.getCell('A3').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '365F8B' },
+      }
+      const headerRow = worksheet.addRow([
+        'Employee ID',
+        'Employee Name',
+        'Department',
+        'Position',
+        'Date',
+        'Shift Assigned',
+        'Exception Notes',
+      ])
+      headerRow.font = { bold: true, color: { argb: 'FFFFFF' } }
+      worksheet.columns = [
+        { key: 'employeeCode', width: 20 },
+        { key: 'employeeName', width: 30 },
+        { key: 'department', width: 30 },
+        { key: 'position', width: 30 },
+        { key: 'date', width: 20 },
+        { key: 'shiftAssigned', width: 25 },
+        { key: 'exceptionNotes', width: 30 },
+      ]
+      headerRow.eachCell((cell, colNumber) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: colNumber <= 5 ? '538DD5' : '16365C' },
+        }
+        cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      })
+
+      shiftExceptions.forEach((exception) => {
+        worksheet.addRow({
+          employeeCode: employee.employeeCode,
+          employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+          department: employee.department?.departmentName || 'N/A',
+          position: employee.position?.positionName || 'N/A',
+          date: exception.shiftExceptionsDate,
+          shiftAssigned: exception.exceptionType?.exceptionTypeTypeName || 'N/A',
+          exceptionNotes: exception.shiftExceptionsDescription || 'N/A',
+        })
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+
+      response.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      response.header(
+        'Content-Disposition',
+        `attachment; filename="shift_exceptions_employee.xlsx"`
+      )
+      response.status(201).send(buffer)
+    } catch (error) {
+      response.status(500).send({
+        message: 'Error generating Excel file',
+        error: error.message,
+      })
     }
   }
 }

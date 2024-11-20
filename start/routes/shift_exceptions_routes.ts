@@ -12,6 +12,10 @@ router
       '/shift-exception-employee/:employeeId',
       '#controllers/shift_exceptions_controller.getByEmployee'
     )
+    router.get(
+      '/shift-exception/:employeeId/export-excel',
+      '#controllers/shift_exceptions_controller.exportShiftExceptionsToExcel'
+    )
   })
   .prefix('/api')
   .use(middleware.auth())

@@ -468,4 +468,57 @@ export default class ExceptionRequestsController {
       .status(200)
       .json(formatResponse('success', 'Successfully deleted', 'Resource deleted', 'DELETED'))
   }
+
+  async indexAllExceptionRequests({ request, response }: HttpContext) {
+    const page = request.input('page', 1)
+    const limit = request.input('limit', 10)
+    const departmentId = request.input('departmentId')
+    const positionId = request.input('positionId')
+    const status = request.input('status')
+    const searchText = request.input('searchText', '')
+
+    // Construir la consulta base
+    const query = ExceptionRequest.query()
+      .preload('employee', (employeeQuery) => {
+        employeeQuery.preload('department')
+        employeeQuery.preload('position')
+      })
+      .preload('exceptionType')
+      .if(departmentId, (q) => {
+        q.whereHas('employee', (employeeQuery) => {
+          employeeQuery.where('departmentId', departmentId)
+        })
+      })
+      .if(positionId, (q) => {
+        q.whereHas('employee', (employeeQuery) => {
+          employeeQuery.where('positionId', positionId)
+        })
+      })
+      .if(status, (q) => q.where('exceptionRequestStatus', status))
+      .if(searchText, (q) => {
+        q.whereHas('employee', (employeeQuery) => {
+          employeeQuery
+            .where('employeeFirstName', 'like', `%${searchText}%`)
+            .orWhere('employeeLastName', 'like', `%${searchText}%`)
+        })
+      })
+
+    const exceptionRequests = await query.paginate(page, limit)
+
+    return response.status(200).json(
+      formatResponse(
+        'success',
+        'Successfully fetched all exception requests',
+        'Resources fetched',
+        exceptionRequests.all(),
+        {
+          total: exceptionRequests.total,
+          per_page: exceptionRequests.perPage,
+          current_page: exceptionRequests.currentPage,
+          last_page: exceptionRequests.lastPage,
+          first_page: 1,
+        }
+      )
+    )
+  }
 }
