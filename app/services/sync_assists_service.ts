@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import AssistStatusSync from '#models/assist_status_sync'
 import { DateTime } from 'luxon'
 import axios from 'axios'
@@ -562,10 +563,7 @@ export default class SyncAssistsService {
     }
   }
 
-  private getAssignedDateShift(
-    compareDateTime: Date | DateTime,
-    dailyShifs: ShiftRecordInterface[]
-  ) {
+  private getAssignedDateShift(compareDateTime: Date | DateTime, dailyShifs: ShiftRecordInterface[]) {
     const DayTime = DateTime.fromISO(`${compareDateTime}`, { setZone: true })
     const checkTime = DayTime.setZone('America/Mexico_City')
 
@@ -578,26 +576,6 @@ export default class SyncAssistsService {
         return shiftDate
       }
     })
-
-    // availableShifts = availableShifts.sort((a, b) => {
-    //   const shiftAssignedDateA = DateTime.fromISO(`${a.employeShiftsApplySince}`, {
-    //     setZone: true,
-    //   }).setZone('America/Mexico_City')
-
-    //   const shiftAssignedDateB = DateTime.fromISO(`${b.employeShiftsApplySince}`, {
-    //     setZone: true,
-    //   }).setZone('America/Mexico_City')
-
-    //   if (shiftAssignedDateB < shiftAssignedDateA) {
-    //     return -1
-    //   }
-
-    //   if (shiftAssignedDateB > shiftAssignedDateA) {
-    //     return 1
-    //   }
-
-    //   return 0
-    // })
 
     availableShifts = availableShifts.sort(
       (a: any, b: any) => b.employeShiftsApplySince - a.employeShiftsApplySince
@@ -672,11 +650,13 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
+
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.isFutureDay(dateAssistItem)
       dateAssistItem = this.isSundayBonus(dateAssistItem)
       dateAssistItem = this.isRestDay(dateAssistItem)
+
       dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
       dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
@@ -761,22 +741,10 @@ export default class SyncAssistsService {
       'America/Mexico_City'
     )
 
-    if (checkAssist.assist.exceptions.length > 0) {
-      const vacationException = checkAssist.assist.exceptions.find(
-        (ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation'
-      )
-
-      if (vacationException) {
-        checkAssistCopy.assist.checkInStatus = ''
-      }
-    }
-
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
 
     if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
       if (checkAssist.assist) {
-        checkAssistCopy.assist.checkOut = checkAssistCopy.assist.checkIn
-        checkAssistCopy.assist.checkIn = null
         checkAssistCopy.assist.checkInStatus = 'fault'
       }
 
@@ -853,8 +821,7 @@ export default class SyncAssistsService {
     }
 
     if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
-      checkAssistCopy.assist.checkOutStatus =
-        checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
+      checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
       return checkAssistCopy
     }
 
@@ -870,11 +837,11 @@ export default class SyncAssistsService {
     )
     const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
 
-    if (diffTime > 15) {
+    if (diffTime > 10) {
       checkAssistCopy.assist.checkOutStatus = 'delay'
     }
 
-    if (diffTime <= 15) {
+    if (diffTime <= 10) {
       checkAssistCopy.assist.checkOutStatus = 'tolerance'
     }
 
@@ -1127,12 +1094,19 @@ export default class SyncAssistsService {
     })
 
     if (employee.shift_exceptions.length > 0) {
-      checkAssistCopy.assist.checkInStatus = 'exception'
-      checkAssistCopy.assist.checkOutStatus = 'exception'
 
       const restException = employee.shift_exceptions.find(
         (ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day'
       )
+
+      const workOnRest = employee.shift_exceptions.find(
+        (ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado'
+      )
+
+      if (!workOnRest) {
+        checkAssistCopy.assist.checkInStatus = 'exception'
+        checkAssistCopy.assist.checkOutStatus = 'exception'
+      }
 
       if (restException) {
         checkAssistCopy.assist.isRestDay = true
@@ -1345,9 +1319,25 @@ export default class SyncAssistsService {
 
     const diffNowOut = nowDateTime.diff(checkOutDateTime, 'milliseconds').milliseconds
     const daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
-    const isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
-    const isEndWorkday = !!(daysBettweenStart % 4 === 1)
-    const isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
+    let isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
+    let isEndWorkday = !!(daysBettweenStart % 4 === 1)
+    let isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
+
+    if (dateAssistItem.assist.exceptions.length > 0) {
+      const workRestDay = dateAssistItem.assist.exceptions.find(
+        (ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado'
+      )
+
+      if (workRestDay) {
+        isStartWorkday = true
+        isEndWorkday = false
+        isRestWorkday = false
+
+        if (dateAssistItem.assist.exceptions.length > 0) {
+          dateAssistItem.assist.checkInStatus = ''
+        }
+      }
+    }
 
     if (isStartWorkday) {
       if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
@@ -1367,7 +1357,7 @@ export default class SyncAssistsService {
       }
     }
 
-    if (isEndWorkday) {
+    if (isEndWorkday && !isStartWorkday) {
       if (dateAssistItem.assist.checkOut) {
         if (dateAssistItem.assist.assitFlatList) {
           if (dateAssistItem.assist.assitFlatList.length >= 3) {
