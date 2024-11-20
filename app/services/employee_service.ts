@@ -101,7 +101,6 @@ export default class EmployeeService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const employees = await Employee.query()
-      //.whereNull('employee_deleted_at')
       .whereIn('businessUnitId', businessUnitsList)
       .if(filters.search, (query) => {
         query.where((subQuery) => {

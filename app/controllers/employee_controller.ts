@@ -941,7 +941,6 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
-      //console.log(employee)
       const updateEmployee = await employeeService.update(currentEmployee, employee)
       if (updateEmployee) {
         response.status(201)
@@ -2418,6 +2417,12 @@ export default class EmployeeController {
    *       - Employees
    *     summary: Generate an Excel report of employees
    *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
    *       - in: query
    *         name: departmentId
    *         schema:
@@ -2440,6 +2445,13 @@ export default class EmployeeController {
    *           type: string
    *           format: date
    *         description: End date for filtering
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
    *     responses:
    *       200:
    *         description: Excel file generated successfully
@@ -2450,15 +2462,21 @@ export default class EmployeeController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
+      const search = request.input('search')
       const filterDepartmentId = request.qs().departmentId
+      const filterPositionId = request.qs().positionId
       const filterEmployeeId = request.qs().employeeId
       const filterStartDate = request.qs().startDate
       const filterEndDate = request.qs().endDate
+      const onlyInactive = request.input('onlyInactive')
 
-      let query = Employee.query().whereNull('employee_deleted_at')
+      let query = Employee.query()
 
       if (filterDepartmentId) {
         query = query.where('departmentId', filterDepartmentId)
+      }
+      if (filterPositionId) {
+        query = query.where('positionId', filterPositionId)
       }
 
       if (filterEmployeeId) {
@@ -2477,6 +2495,26 @@ export default class EmployeeController {
       }
 
       const employees = await query
+        .if(search, (subQuery) => {
+          subQuery.where((employeeQuery) => {
+            employeeQuery
+              .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+                `%${search.toUpperCase()}%`,
+              ])
+              .orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
+              .orWhereHas('person', (personQuery) => {
+                personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${search.toUpperCase()}%`])
+                personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [`%${search.toUpperCase()}%`])
+                personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                  `%${search.toUpperCase()}%`,
+                ])
+              })
+          })
+        })
+        .if(onlyInactive && (onlyInactive === 'true' || onlyInactive === true), (subQuery) => {
+          subQuery.whereNotNull('employee_deleted_at')
+          subQuery.withTrashed()
+        })
         .preload('department')
         .preload('position')
         .preload('person')
