@@ -13,6 +13,7 @@ router
     router.delete('/:employeeId', '#controllers/employee_controller.delete')
     router.get('/:employeeId', '#controllers/employee_controller.show')
     router.put('/:employeeId/photo', '#controllers/employee_controller.uploadPhoto')
+    router.put('/:employeeId/reactivate', '#controllers/employee_controller.reactivate')
     router.get(
       '/:employeeId/proceeding-files',
       '#controllers/employee_controller.getProceedingFiles'
