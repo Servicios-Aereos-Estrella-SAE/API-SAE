@@ -12,6 +12,12 @@ export default class EmployeeVacationController {
    *       - bearerAuth: []
    *     tags: [Employees]
    *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
    *       - name: startDate
    *         in: query
    *         required: true
@@ -38,6 +44,19 @@ export default class EmployeeVacationController {
    *         schema:
    *           type: number
    *         description: Department id
+   *       - name: positionId
+   *         in: query
+   *         required: false
+   *         schema:
+   *           type: number
+   *         description: Position id
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -55,15 +74,21 @@ export default class EmployeeVacationController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
+      const search = request.input('search')
       const employeeId = request.input('employeeId')
       const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
       const filterStartDate = request.input('startDate')
       const filterEndDate = request.input('endDate')
+      const onlyInactive = request.input('onlyInactive')
       const filters = {
+        search: search,
         employeeId: employeeId,
         departmentId: departmentId,
+        positionId: positionId,
         filterStartDate: filterStartDate,
         filterEndDate: filterEndDate,
+        onlyInactive: onlyInactive,
       } as EmployeeVacationExcelFilterInterface
       const emplpoyeeVacationService = new EmployeeVacationService()
       const buffer = await emplpoyeeVacationService.getExcelAll(filters)

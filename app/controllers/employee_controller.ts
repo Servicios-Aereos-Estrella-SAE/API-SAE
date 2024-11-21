@@ -941,7 +941,6 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
-      //console.log(employee)
       const updateEmployee = await employeeService.update(currentEmployee, employee)
       if (updateEmployee) {
         response.status(201)
@@ -2418,6 +2417,12 @@ export default class EmployeeController {
    *       - Employees
    *     summary: Generate an Excel report of employees
    *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
    *       - in: query
    *         name: departmentId
    *         schema:
@@ -2440,6 +2445,13 @@ export default class EmployeeController {
    *           type: string
    *           format: date
    *         description: End date for filtering
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
    *     responses:
    *       200:
    *         description: Excel file generated successfully
@@ -2450,15 +2462,21 @@ export default class EmployeeController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
+      const search = request.input('search')
       const filterDepartmentId = request.qs().departmentId
+      const filterPositionId = request.qs().positionId
       const filterEmployeeId = request.qs().employeeId
       const filterStartDate = request.qs().startDate
       const filterEndDate = request.qs().endDate
+      const onlyInactive = request.input('onlyInactive')
 
-      let query = Employee.query().whereNull('employee_deleted_at')
+      let query = Employee.query()
 
       if (filterDepartmentId) {
         query = query.where('departmentId', filterDepartmentId)
+      }
+      if (filterPositionId) {
+        query = query.where('positionId', filterPositionId)
       }
 
       if (filterEmployeeId) {
@@ -2477,6 +2495,26 @@ export default class EmployeeController {
       }
 
       const employees = await query
+        .if(search, (subQuery) => {
+          subQuery.where((employeeQuery) => {
+            employeeQuery
+              .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+                `%${search.toUpperCase()}%`,
+              ])
+              .orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
+              .orWhereHas('person', (personQuery) => {
+                personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${search.toUpperCase()}%`])
+                personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [`%${search.toUpperCase()}%`])
+                personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                  `%${search.toUpperCase()}%`,
+                ])
+              })
+          })
+        })
+        .if(onlyInactive && (onlyInactive === 'true' || onlyInactive === true), (subQuery) => {
+          subQuery.whereNotNull('employee_deleted_at')
+          subQuery.withTrashed()
+        })
         .preload('department')
         .preload('position')
         .preload('person')
@@ -2647,5 +2685,152 @@ export default class EmployeeController {
 
   addRowExcelEmpty(worksheet: ExcelJS.Worksheet) {
     worksheet.addRow([])
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/reactivate:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: reactivate employee
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async reactivate({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { ...request.all() },
+        }
+      }
+      const currentEmployee = await Employee.query()
+        .whereNotNull('employee_deleted_at')
+        .where('employee_id', employeeId)
+        .withTrashed()
+        .first()
+      if (!currentEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      currentEmployee.deletedAt = null
+      await currentEmployee.save()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employee was reactivate successfully',
+        data: { employee: currentEmployee },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
   }
 }
