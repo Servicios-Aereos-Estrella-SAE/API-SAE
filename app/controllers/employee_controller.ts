@@ -17,6 +17,7 @@ import VacationSetting from '#models/vacation_setting'
 import { DateTime } from 'luxon'
 import ExcelJS from 'exceljs'
 import ShiftException from '#models/shift_exception'
+import EmployeeShift from '#models/employee_shift'
 
 export default class EmployeeController {
   /**
@@ -2657,7 +2658,14 @@ export default class EmployeeController {
         .whereBetween('shiftExceptionsDate', [hireDate, currentDate])
         .whereNot('exception_type_id', 9)
         .preload('exceptionType')
+      // Obtener los turnos asignados al empleado durante el periodo
+      const employeeShifts = await EmployeeShift.query()
+        .where('employeeId', employeeId)
+        .whereNull('employeShiftsDeletedAt') // Excluir registros eliminados
+        .whereBetween('employeShiftsApplySince', [hireDate, currentDate])
+        .preload('shift')
 
+      // Crear un mapa de fechas y turnos para facilitar la asociación
       const workbook = new ExcelJS.Workbook()
       const worksheet = workbook.addWorksheet('Shift Exceptions')
 
@@ -2670,8 +2678,8 @@ export default class EmployeeController {
         extension: 'png',
       })
       worksheet.addImage(imageId, {
-        tl: { col: 0, row: 0 },
-        ext: { width: 139, height: 49 },
+        tl: { col: 0.38, row: 0.99 },
+        ext: { width: 139, height: 50 },
       })
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:G1')
@@ -2680,14 +2688,14 @@ export default class EmployeeController {
       titleRow.font = { bold: true, size: 24, color: { argb: 'FFFFFFFF' } }
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
       worksheet.mergeCells('A2:G2')
-      worksheet.getCell('A2').fill = {
+      worksheet.getCell('A' + 2).fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: '244062' },
       }
 
       const periodRow = worksheet.addRow([
-        `From: ${hireDate.toLocaleDateString()} , ${currentDate.toLocaleDateString()}`,
+        `From: ${hireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} , ${currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
       ])
       periodRow.font = { italic: true, size: 12, color: { argb: 'FFFFFFFF' } }
       worksheet.mergeCells('A3:G3')
@@ -2713,9 +2721,12 @@ export default class EmployeeController {
         { key: 'department', width: 30 },
         { key: 'position', width: 30 },
         { key: 'date', width: 20 },
-        { key: 'shiftAssigned', width: 25 },
+        { key: 'shiftAssigned', width: 35 },
         { key: 'exceptionNotes', width: 30 },
       ]
+      worksheet.columns.forEach((col) => {
+        col.alignment = { horizontal: 'center', vertical: 'middle' }
+      })
       headerRow.eachCell((cell, colNumber) => {
         cell.fill = {
           type: 'pattern',
@@ -2726,15 +2737,34 @@ export default class EmployeeController {
       })
 
       shiftExceptions.forEach((exception) => {
-        worksheet.addRow({
+        const shiftsForDate = employeeShifts
+          .filter(
+            (employeeShift) =>
+              new Date(employeeShift.employeShiftsApplySince).toDateString() !==
+              new Date(exception.shiftExceptionsDate).toDateString()
+          )
+          .map((employeeShift) => employeeShift.shift?.shiftName) // Obtén los nombres de los turnos
+
+        const shiftNames = shiftsForDate.length > 0 ? shiftsForDate.join(', ') : 'N/A'
+
+        const row = worksheet.addRow({
           employeeCode: employee.employeeCode,
           employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
           department: employee.department?.departmentName || 'N/A',
           position: employee.position?.positionName || 'N/A',
           date: exception.shiftExceptionsDate,
-          shiftAssigned: exception.exceptionType?.exceptionTypeTypeName || 'N/A',
+          shiftAssigned: shiftNames,
           exceptionNotes: exception.shiftExceptionsDescription || 'N/A',
         })
+        const exceptionNotesCell = row.getCell('exceptionNotes')
+        const exceptionTypeName = exception.exceptionType?.exceptionTypeTypeName || 'N/A'
+        const description = exception.shiftExceptionsDescription || 'N/A'
+        exceptionNotesCell.value = {
+          richText: [
+            { text: exceptionTypeName + ': ', font: { bold: true } },
+            { text: description },
+          ],
+        }
       })
 
       const buffer = await workbook.xlsx.writeBuffer()
