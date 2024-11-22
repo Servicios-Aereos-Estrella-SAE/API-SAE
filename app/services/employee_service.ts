@@ -99,7 +99,6 @@ export default class EmployeeService {
       .where('business_unit_active', 1)
       .whereIn('business_unit_slug', businessList)
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-
     const employees = await Employee.query()
       .whereIn('businessUnitId', businessUnitsList)
       .if(filters.search, (query) => {
@@ -221,8 +220,19 @@ export default class EmployeeService {
 
   async show(employeeId: number) {
     const employee = await Employee.query()
-      //.whereNull('employee_deleted_at')
       .where('employee_id', employeeId)
+      .preload('department')
+      .preload('position')
+      .preload('person')
+      .preload('businessUnit')
+      .withTrashed()
+      .first()
+    return employee ? employee : null
+  }
+
+  async getByCode(employeeCode: number) {
+    const employee = await Employee.query()
+      .where('employee_code', employeeCode)
       .preload('department')
       .preload('position')
       .preload('person')
