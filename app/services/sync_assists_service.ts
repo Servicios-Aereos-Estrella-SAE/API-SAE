@@ -1307,6 +1307,9 @@ export default class SyncAssistsService {
       'America/Mexico_City'
     )
 
+    // console.log('🚀 --------------------------------------------------------------------------🚀')
+    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~ evaluatedDay:', evaluatedDay.toFormat('ff'))
+
     const nowDateTime = DateTime.now().setZone('America/Mexico_City')
 
     const checkOutDateTime = DateTime.fromJSDate(
@@ -1339,43 +1342,56 @@ export default class SyncAssistsService {
       }
     }
 
-    if (isStartWorkday) {
-      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
-        if (dateAssistItem.assist.checkOut) {
-          if (dateAssistItem.assist.assitFlatList) {
-            if (dateAssistItem.assist.assitFlatList.length < 3) {
-              dateAssistItem.assist.checkEatIn = null
-              dateAssistItem.assist.checkEatOut = null
-              dateAssistItem.assist.checkOut = null
-
-              if (diffNowOut > 0 && !isEndWorkday) {
-                dateAssistItem.assist.checkOutStatus = 'working'
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if (isEndWorkday && !isStartWorkday) {
-      if (dateAssistItem.assist.checkOut) {
+    // Solamente es el día de entrada a turno
+    if (isStartWorkday && !isEndWorkday && !isRestWorkday) {
+      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) { // Valida si la fecha de salida es posterior al dia de entrada
         if (dateAssistItem.assist.assitFlatList) {
-          if (dateAssistItem.assist.assitFlatList.length >= 3) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-            dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[3]
-            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+          if (dateAssistItem.assist.assitFlatList.length > 2 && dateAssistItem.assist.assitFlatList.length < 4) {
+            dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[dateAssistItem.assist.assitFlatList.length - 1]
+          } else if (dateAssistItem.assist.assitFlatList.length >= 4) {
+            dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[2]
           }
-
-          if (!isStartWorkday && dateAssistItem.assist.assitFlatList.length >= 4) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-            dateAssistItem.assist.checkIn = null
-            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
-          }
+          dateAssistItem.assist.checkEatIn = null
+          dateAssistItem.assist.checkEatOut = null
+          dateAssistItem.assist.checkOut = null
         }
+
+        // if (dateAssistItem.assist.assitFlatList && dateAssistItem.assist.assitFlatList.length < 3) {
+        //   dateAssistItem.assist.checkEatIn = null
+        //   dateAssistItem.assist.checkEatOut = null
+        //   dateAssistItem.assist.checkOut = null
+
+        //   if (diffNowOut > 0 && !isEndWorkday) {
+        //     dateAssistItem.assist.checkOutStatus = 'working'
+        //   }
+        // }
+
+        // if (dateAssistItem.assist.checkOut) { // Valida si en el dia ya hay un registrio de salida
+        // }
       }
     }
+
+    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~  dateAssistItem.assist.assitFlatList.length:',  dateAssistItem.assist.assitFlatList.length)
+
+    // if (isEndWorkday) {
+    //   if (dateAssistItem.assist.checkOut) {
+    //     if (dateAssistItem.assist.assitFlatList) {
+    //       if (dateAssistItem.assist.assitFlatList.length >= 3 && dateAssistItem.assist.assitFlatList.length < 4) {
+    //         dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+    //         dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+    //         dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[3]
+    //         dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+    //       }
+
+    //       if (!isStartWorkday && dateAssistItem.assist.assitFlatList.length >= 4) {
+    //         dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+    //         dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+    //         dateAssistItem.assist.checkIn = null
+    //         dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+    //       }
+    //     }
+    //   }
+    // }
 
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
@@ -1388,26 +1404,31 @@ export default class SyncAssistsService {
       }
     }
 
-    if (dateAssistItem.assist.isFutureDay && dateAssistItem.assist.checkOut) {
-      dateAssistItem.assist.isFutureDay = false
-      dateAssistItem.assist.checkIn = null
-      dateAssistItem.assist.checkInStatus = ''
-      dateAssistItem.assist.checkEatIn = null
-      dateAssistItem.assist.checkEatOut = null
+    // if (dateAssistItem.assist.isFutureDay && dateAssistItem.assist.checkOut) {
+    //   dateAssistItem.assist.isFutureDay = false
+    //   dateAssistItem.assist.checkIn = null
+    //   dateAssistItem.assist.checkInStatus = ''
+    //   dateAssistItem.assist.checkEatIn = null
+    //   dateAssistItem.assist.checkEatOut = null
 
-      if (dateAssistItem.assist.assitFlatList) {
-        if (dateAssistItem.assist.assitFlatList.length >= 2) {
-          dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-          dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-        }
+    //   if (dateAssistItem.assist.assitFlatList) {
+    //     if (dateAssistItem.assist.assitFlatList.length >= 2) {
+    //       dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
+    //       dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
+    //     }
 
-        if (dateAssistItem.assist.assitFlatList.length >= 3) {
-          dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
-        }
-      }
-    }
+    //     if (dateAssistItem.assist.assitFlatList.length >= 3) {
+    //       dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
+    //     }
+    //   }
+    // }
 
-    dateAssistItem.assist.checkOutStatus = ''
+    // dateAssistItem.assist.checkOutStatus = ''
+
+    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~ isStartWorkday:', isStartWorkday)
+    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~ isEndWorkday:', isEndWorkday)
+    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~ isRestWorkday:', isRestWorkday)
+    // console.log('🚀 --------------------------------------------------------------------------🚀')
 
     return dateAssistItem
   }
