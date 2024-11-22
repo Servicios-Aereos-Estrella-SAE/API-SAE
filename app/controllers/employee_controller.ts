@@ -280,13 +280,6 @@ export default class EmployeeController {
    *         description: Employee work schedule
    *         schema:
    *           type: string
-   *       - name: onlyInactive
-   *         in: query
-   *         required: false
-   *         description: Include only inactive
-   *         default: false
-   *         schema:
-   *           type: boolean
    *       - name: page
    *         in: query
    *         required: true
@@ -395,7 +388,6 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
-      const onlyInactive = request.input('onlyInactive')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
@@ -403,7 +395,6 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         employeeWorkSchedule: employeeWorkSchedule,
-        onlyInactive: onlyInactive,
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
@@ -477,12 +468,6 @@ export default class EmployeeController {
    *                 description: Employee hire date (YYYY-MM-DD)
    *                 required: true
    *                 default: ''
-   *               employeeTerminatedDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Employee terminated date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
    *               companyId:
    *                 type: integer
    *                 description: Company id
@@ -518,11 +503,6 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
-   *               employeeTypeOfContract:
-   *                 type: string
-   *                 description: Employee type of contract
-   *                 required: true
-   *                 default: 'Internal'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -612,25 +592,17 @@ export default class EmployeeController {
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
-      let employeeTerminatedDate = request.input('employeeTerminatedDate')
-      if (employeeTerminatedDate) {
-        employeeTerminatedDate = (
-          employeeTerminatedDate.split('T')[0] + 'T00:00:00.000-06:00'
-        ).replace('"', '')
-      }
       const personId = request.input('personId')
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const workSchedule = request.input('employeeWorkSchedule')
-      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const employee = {
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
-        employeeTerminatedDate: employeeTerminatedDate ? employeeTerminatedDate : null,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
@@ -638,7 +610,6 @@ export default class EmployeeController {
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: workSchedule,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
-        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
@@ -740,12 +711,6 @@ export default class EmployeeController {
    *                 description: Employee hire date (YYYY-MM-DD)
    *                 required: true
    *                 default: ''
-   *               employeeTerminatedDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Employee terminated date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
    *               companyId:
    *                 type: integer
    *                 description: Company id
@@ -776,11 +741,6 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
-   *               employeeTypeOfContract:
-   *                 type: string
-   *                 description: Employee type of contract
-   *                 required: true
-   *                 default: 'Internal'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -871,17 +831,10 @@ export default class EmployeeController {
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
       employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
-      let employeeTerminatedDate = request.input('employeeTerminatedDate')
-      if (employeeTerminatedDate) {
-        employeeTerminatedDate = (
-          employeeTerminatedDate.split('T')[0] + 'T00:00:00.000-06:00'
-        ).replace('"', '')
-      }
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
-      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -889,28 +842,25 @@ export default class EmployeeController {
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
-        employeeTerminatedDate: employeeTerminatedDate ? employeeTerminatedDate : null,
         companyId: companyId,
         departmentId: departmentId,
         positionId: positionId,
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: employeeWorkSchedule,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
-        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       if (!employeeId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Missing data to process',
-          message: 'The employee Id was not found',
+          title: 'The employee Id was not found',
+          message: 'Missing data to process',
           data: { ...employee },
         }
       }
       const currentEmployee = await Employee.query()
-        //.whereNull('employee_deleted_at')
+        .whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
-        .withTrashed()
         .first()
       if (!currentEmployee) {
         response.status(404)
@@ -1257,147 +1207,6 @@ export default class EmployeeController {
 
   /**
    * @swagger
-   * /api/employees/get-by-code/{employeeCode}:
-   *   get:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Employees
-   *     summary: get employee by code
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - in: path
-   *         name: employeeCode
-   *         schema:
-   *           type: string
-   *         description: Employee code
-   *         required: true
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async getByCode({ request, response }: HttpContext) {
-    try {
-      const employeeCode = request.param('employeeCode')
-      if (!employeeCode) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'Missing data to process',
-          message: 'The employee code was not found',
-          data: { employeeCode },
-        }
-      }
-      const employeeService = new EmployeeService()
-      const showEmployee = await employeeService.getByCode(employeeCode)
-      if (!showEmployee) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'The employee was not found',
-          message: 'The employee was not found with the entered code',
-          data: { employeeCode },
-        }
-      } else {
-        response.status(200)
-        return {
-          type: 'success',
-          title: 'Employees',
-          message: 'The employee was found successfully',
-          data: { employee: showEmployee },
-        }
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-
-  /**
-   * @swagger
    * /api/employees/without-user:
    *   get:
    *     security:
@@ -1552,6 +1361,21 @@ export default class EmployeeController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
+    }
+  }
+
+  private async verify(
+    employee: BiometricEmployeeInterface,
+    employeeService: EmployeeService,
+    departmentService: DepartmentService,
+    positionService: PositionService
+  ) {
+    const existEmployee = await Employee.query()
+      .where('employee_code', employee.empCode)
+      .withTrashed()
+      .first()
+    if (!existEmployee) {
+      await employeeService.syncCreate(employee, departmentService, positionService)
     }
   }
 
@@ -2537,7 +2361,6 @@ export default class EmployeeController {
       }
     }
   }
-
   /**
    * @swagger
    * /api/employees/employee-generate-excel:
@@ -2546,12 +2369,6 @@ export default class EmployeeController {
    *       - Employees
    *     summary: Generate an Excel report of employees
    *     parameters:
-   *       - name: search
-   *         in: query
-   *         required: false
-   *         description: Search
-   *         schema:
-   *           type: string
    *       - in: query
    *         name: departmentId
    *         schema:
@@ -2574,13 +2391,6 @@ export default class EmployeeController {
    *           type: string
    *           format: date
    *         description: End date for filtering
-   *       - name: onlyInactive
-   *         in: query
-   *         required: false
-   *         description: Include only inactive
-   *         default: false
-   *         schema:
-   *           type: boolean
    *     responses:
    *       200:
    *         description: Excel file generated successfully
@@ -2591,21 +2401,15 @@ export default class EmployeeController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
-      const search = request.input('search')
       const filterDepartmentId = request.qs().departmentId
-      const filterPositionId = request.qs().positionId
       const filterEmployeeId = request.qs().employeeId
       const filterStartDate = request.qs().startDate
       const filterEndDate = request.qs().endDate
-      const onlyInactive = request.input('onlyInactive')
 
-      let query = Employee.query()
+      let query = Employee.query().whereNull('employee_deleted_at')
 
       if (filterDepartmentId) {
         query = query.where('departmentId', filterDepartmentId)
-      }
-      if (filterPositionId) {
-        query = query.where('positionId', filterPositionId)
       }
 
       if (filterEmployeeId) {
@@ -2624,26 +2428,6 @@ export default class EmployeeController {
       }
 
       const employees = await query
-        .if(search, (subQuery) => {
-          subQuery.where((employeeQuery) => {
-            employeeQuery
-              .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
-                `%${search.toUpperCase()}%`,
-              ])
-              .orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
-              .orWhereHas('person', (personQuery) => {
-                personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${search.toUpperCase()}%`])
-                personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [`%${search.toUpperCase()}%`])
-                personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
-                  `%${search.toUpperCase()}%`,
-                ])
-              })
-          })
-        })
-        .if(onlyInactive && (onlyInactive === 'true' || onlyInactive === true), (subQuery) => {
-          subQuery.whereNotNull('employee_deleted_at')
-          subQuery.withTrashed()
-        })
         .preload('department')
         .preload('position')
         .preload('person')
@@ -2727,355 +2511,6 @@ export default class EmployeeController {
         message: 'Error generating Excel file',
         error: error.message,
       })
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/employees/{employeeId}/reactivate:
-   *   put:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - Employees
-   *     summary: reactivate employee
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - in: path
-   *         name: employeeId
-   *         schema:
-   *           type: number
-   *         description: Employee id
-   *         required: true
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async reactivate({ request, response }: HttpContext) {
-    try {
-      const employeeId = request.param('employeeId')
-      if (!employeeId) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'Missing data to process',
-          message: 'The employee Id was not found',
-          data: { ...request.all() },
-        }
-      }
-      const currentEmployee = await Employee.query()
-        .whereNotNull('employee_deleted_at')
-        .where('employee_id', employeeId)
-        .withTrashed()
-        .first()
-      if (!currentEmployee) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'The employee was not found',
-          message: 'The employee was not found with the entered ID',
-          data: { employeeId },
-        }
-      }
-      currentEmployee.deletedAt = null
-      await currentEmployee.save()
-      response.status(200)
-      return {
-        type: 'success',
-        title: 'Employees',
-        message: 'The employee was reactivate successfully',
-        data: { employee: currentEmployee },
-      }
-    } catch (error) {
-      const messageError =
-        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
-        error: messageError,
-      }
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/employees/{employeeId}/export-excel:
-   *   get:
-   *     summary: Export shift exceptions of an employee to Excel
-   *     description: Generates an Excel file containing shift exceptions for a specific employee, filtered by hire date and current date. Excludes exceptions of type "Día de descanso".
-   *     tags:
-   *       - Employees
-   *     parameters:
-   *       - in: path
-   *         name: employeeId
-   *         required: true
-   *         schema:
-   *           type: string
-   *         description: ID of the employee
-   *     responses:
-   *       201:
-   *         description: Excel file generated successfully
-   *         content:
-   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-   *             schema:
-   *               type: string
-   *               format: binary
-   *       500:
-   *         description: Error generating Excel file
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                 error:
-   *                   type: string
-   */
-  async exportShiftExceptionsToExcel({ params, response }: HttpContext) {
-    try {
-      const employeeId = params.employeeId
-
-      const employee = await Employee.query()
-        .where('employeeId', employeeId)
-        .preload('department')
-        .preload('position')
-        .preload('shift_exceptions', (shiftExceptionsQuery) => {
-          shiftExceptionsQuery.whereNull('shift_exceptions_deleted_at')
-        })
-        .firstOrFail()
-
-      const hireDate =
-        employee.employeeHireDate instanceof DateTime
-          ? employee.employeeHireDate.toJSDate()
-          : new Date(employee.employeeHireDate)
-      const currentDate = DateTime.local().toJSDate()
-
-      const shiftExceptions = await ShiftException.query()
-        .where('employeeId', employeeId)
-        .whereBetween('shiftExceptionsDate', [hireDate, currentDate])
-        .whereNot('exception_type_id', 9)
-        .preload('exceptionType')
-      // Obtener los turnos asignados al empleado durante el periodo
-      const employeeShifts = await EmployeeShift.query()
-        .where('employeeId', employeeId)
-        .whereNull('employeShiftsDeletedAt') // Excluir registros eliminados
-        .whereBetween('employeShiftsApplySince', [hireDate, currentDate])
-        .preload('shift')
-
-      // Crear un mapa de fechas y turnos para facilitar la asociación
-      const workbook = new ExcelJS.Workbook()
-      const worksheet = workbook.addWorksheet('Shift Exceptions')
-
-      const imageUrl =
-        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
-      const imageBuffer = imageResponse.data
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: 'png',
-      })
-      worksheet.addImage(imageId, {
-        tl: { col: 0.38, row: 0.99 },
-        ext: { width: 139, height: 50 },
-      })
-      worksheet.getRow(1).height = 60
-      worksheet.mergeCells('A1:G1')
-
-      const titleRow = worksheet.addRow(['Employee Shift Exceptions'])
-      titleRow.font = { bold: true, size: 24, color: { argb: 'FFFFFFFF' } }
-      titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:G2')
-      worksheet.getCell('A' + 2).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '244062' },
-      }
-
-      const periodRow = worksheet.addRow([
-        `From: ${hireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} , ${currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-      ])
-      periodRow.font = { italic: true, size: 12, color: { argb: 'FFFFFFFF' } }
-      worksheet.mergeCells('A3:G3')
-      periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.getCell('A3').fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '365F8B' },
-      }
-      const headerRow = worksheet.addRow([
-        'Employee ID',
-        'Employee Name',
-        'Department',
-        'Position',
-        'Date',
-        'Shift Assigned',
-        'Exception Notes',
-      ])
-      headerRow.font = { bold: true, color: { argb: 'FFFFFF' } }
-      worksheet.columns = [
-        { key: 'employeeCode', width: 20 },
-        { key: 'employeeName', width: 30 },
-        { key: 'department', width: 30 },
-        { key: 'position', width: 30 },
-        { key: 'date', width: 20 },
-        { key: 'shiftAssigned', width: 35 },
-        { key: 'exceptionNotes', width: 30 },
-      ]
-      worksheet.columns.forEach((col) => {
-        col.alignment = { horizontal: 'center', vertical: 'middle' }
-      })
-      headerRow.eachCell((cell, colNumber) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: colNumber <= 5 ? '538DD5' : '16365C' },
-        }
-        cell.alignment = { vertical: 'middle', horizontal: 'center' }
-      })
-
-      shiftExceptions.forEach((exception) => {
-        const shiftsForDate = employeeShifts
-          .filter(
-            (employeeShift) =>
-              new Date(employeeShift.employeShiftsApplySince).toDateString() !==
-              new Date(exception.shiftExceptionsDate).toDateString()
-          )
-          .map((employeeShift) => employeeShift.shift?.shiftName) // Obtén los nombres de los turnos
-
-        const shiftNames = shiftsForDate.length > 0 ? shiftsForDate.join(', ') : 'N/A'
-
-        const row = worksheet.addRow({
-          employeeCode: employee.employeeCode,
-          employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
-          department: employee.department?.departmentName || 'N/A',
-          position: employee.position?.positionName || 'N/A',
-          date: exception.shiftExceptionsDate,
-          shiftAssigned: shiftNames,
-          exceptionNotes: exception.shiftExceptionsDescription || 'N/A',
-        })
-        const exceptionNotesCell = row.getCell('exceptionNotes')
-        const exceptionTypeName = exception.exceptionType?.exceptionTypeTypeName || 'N/A'
-        const description = exception.shiftExceptionsDescription || 'N/A'
-        exceptionNotesCell.value = {
-          richText: [
-            { text: exceptionTypeName + ': ', font: { bold: true } },
-            { text: description },
-          ],
-        }
-      })
-
-      const buffer = await workbook.xlsx.writeBuffer()
-
-      response.header(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      )
-      response.header(
-        'Content-Disposition',
-        `attachment; filename="shift_exceptions_employee.xlsx"`
-      )
-      response.status(201).send(buffer)
-    } catch (error) {
-      response.status(500).send({
-        message: 'Error generating Excel file',
-        error: error.message,
-      })
-    }
-  }
-
-  private async verify(
-    employee: BiometricEmployeeInterface,
-    employeeService: EmployeeService,
-    departmentService: DepartmentService,
-    positionService: PositionService
-  ) {
-    const existEmployee = await Employee.query()
-      .where('employee_code', employee.empCode)
-      .withTrashed()
-      .first()
-    if (!existEmployee) {
-      await employeeService.syncCreate(employee, departmentService, positionService)
     }
   }
 
