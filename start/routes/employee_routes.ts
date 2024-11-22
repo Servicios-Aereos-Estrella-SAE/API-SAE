@@ -32,6 +32,10 @@ router
       '/:employeeId/get-vacations-by-period',
       '#controllers/employee_controller.getVacationsByPeriod'
     )
+    router.get(
+      '/:employeeId/export-excel',
+      '#controllers/employee_controller.exportShiftExceptionsToExcel'
+    )
   })
   .prefix('/api/employees')
   .use(middleware.auth())

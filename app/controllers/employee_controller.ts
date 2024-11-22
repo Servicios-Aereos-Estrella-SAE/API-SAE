@@ -16,6 +16,8 @@ import UserService from '#services/user_service'
 import VacationSetting from '#models/vacation_setting'
 import { DateTime } from 'luxon'
 import ExcelJS from 'exceljs'
+import ShiftException from '#models/shift_exception'
+import EmployeeShift from '#models/employee_shift'
 
 export default class EmployeeController {
   /**
@@ -1553,21 +1555,6 @@ export default class EmployeeController {
     }
   }
 
-  private async verify(
-    employee: BiometricEmployeeInterface,
-    employeeService: EmployeeService,
-    departmentService: DepartmentService,
-    positionService: PositionService
-  ) {
-    const existEmployee = await Employee.query()
-      .where('employee_code', employee.empCode)
-      .withTrashed()
-      .first()
-    if (!existEmployee) {
-      await employeeService.syncCreate(employee, departmentService, positionService)
-    }
-  }
-
   /**
    * @swagger
    * /api/employees/{employeeId}/photo:
@@ -2550,6 +2537,7 @@ export default class EmployeeController {
       }
     }
   }
+
   /**
    * @swagger
    * /api/employees/employee-generate-excel:
@@ -2742,92 +2730,6 @@ export default class EmployeeController {
     }
   }
 
-  // Método para agregar fila de encabezado
-  addHeadRow(worksheet: ExcelJS.Worksheet, employees: any[]) {
-    const headerRow = worksheet.addRow([
-      'Employee Code',
-      'Employee Name',
-      'Department',
-      'Position',
-      'Hire Date',
-      '',
-      'Work Modality',
-      'Phone',
-      'Gender',
-      '',
-      'CURP',
-      'RFC',
-      'Employee NSS',
-    ])
-
-    let fgColor = 'FFFFFFF'
-    let color = '538DD5'
-    for (let col = 1; col <= 6; col++) {
-      const cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-    }
-
-    color = '16365C'
-    for (let col = 7; col <= 9; col++) {
-      const cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-    }
-
-    color = '538DD5'
-    for (let col = 10; col <= 13; col++) {
-      const cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-    }
-
-    headerRow.height = 30
-    headerRow.font = { bold: true, color: { argb: fgColor } }
-
-    this.adjustColumnWidths(worksheet)
-
-    employees.forEach((employee) => {
-      worksheet.addRow([
-        employee.employeeCode,
-        `${employee.employeeFirstName} ${employee.employeeLastName}`,
-        employee.department?.departmentName || 'no data',
-        employee.position?.positionName || 'no data',
-        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : 'no data',
-        '',
-        employee.employeeWorkSchedule || 'no data',
-        employee.person?.personPhone || 'no data',
-        employee.person?.personGender || 'no data',
-        '',
-        employee.person?.personCurp || 'no data',
-        employee.person?.personRfc || 'no data',
-        employee.person?.personImssNss || 'no data',
-      ])
-    })
-  }
-
-  adjustColumnWidths(worksheet: ExcelJS.Worksheet) {
-    const widths = [20, 44, 44, 44, 25, 5, 25, 25, 25, 5, 25, 25, 25, 25, 30, 30, 30]
-    widths.forEach((width, index) => {
-      const column = worksheet.getColumn(index + 1)
-      column.width = width
-      column.alignment = { vertical: 'middle', horizontal: 'center' }
-    })
-  }
-
-  addRowExcelEmpty(worksheet: ExcelJS.Worksheet) {
-    worksheet.addRow([])
-  }
-
   /**
    * @swagger
    * /api/employees/{employeeId}/reactivate:
@@ -2973,5 +2875,293 @@ export default class EmployeeController {
         error: messageError,
       }
     }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/export-excel:
+   *   get:
+   *     summary: Export shift exceptions of an employee to Excel
+   *     description: Generates an Excel file containing shift exceptions for a specific employee, filtered by hire date and current date. Excludes exceptions of type "Día de descanso".
+   *     tags:
+   *       - Employees
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the employee
+   *     responses:
+   *       201:
+   *         description: Excel file generated successfully
+   *         content:
+   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+   *             schema:
+   *               type: string
+   *               format: binary
+   *       500:
+   *         description: Error generating Excel file
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 error:
+   *                   type: string
+   */
+  async exportShiftExceptionsToExcel({ params, response }: HttpContext) {
+    try {
+      const employeeId = params.employeeId
+
+      const employee = await Employee.query()
+        .where('employeeId', employeeId)
+        .preload('department')
+        .preload('position')
+        .preload('shift_exceptions', (shiftExceptionsQuery) => {
+          shiftExceptionsQuery.whereNull('shift_exceptions_deleted_at')
+        })
+        .firstOrFail()
+
+      const hireDate =
+        employee.employeeHireDate instanceof DateTime
+          ? employee.employeeHireDate.toJSDate()
+          : new Date(employee.employeeHireDate)
+      const currentDate = DateTime.local().toJSDate()
+
+      const shiftExceptions = await ShiftException.query()
+        .where('employeeId', employeeId)
+        .whereBetween('shiftExceptionsDate', [hireDate, currentDate])
+        .whereNot('exception_type_id', 9)
+        .preload('exceptionType')
+      // Obtener los turnos asignados al empleado durante el periodo
+      const employeeShifts = await EmployeeShift.query()
+        .where('employeeId', employeeId)
+        .whereNull('employeShiftsDeletedAt') // Excluir registros eliminados
+        .whereBetween('employeShiftsApplySince', [hireDate, currentDate])
+        .preload('shift')
+
+      // Crear un mapa de fechas y turnos para facilitar la asociación
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Shift Exceptions')
+
+      const imageUrl =
+        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageBuffer = imageResponse.data
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: 'png',
+      })
+      worksheet.addImage(imageId, {
+        tl: { col: 0.38, row: 0.99 },
+        ext: { width: 139, height: 50 },
+      })
+      worksheet.getRow(1).height = 60
+      worksheet.mergeCells('A1:G1')
+
+      const titleRow = worksheet.addRow(['Employee Shift Exceptions'])
+      titleRow.font = { bold: true, size: 24, color: { argb: 'FFFFFFFF' } }
+      titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.mergeCells('A2:G2')
+      worksheet.getCell('A' + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '244062' },
+      }
+
+      const periodRow = worksheet.addRow([
+        `From: ${hireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} , ${currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+      ])
+      periodRow.font = { italic: true, size: 12, color: { argb: 'FFFFFFFF' } }
+      worksheet.mergeCells('A3:G3')
+      periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.getCell('A3').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '365F8B' },
+      }
+      const headerRow = worksheet.addRow([
+        'Employee ID',
+        'Employee Name',
+        'Department',
+        'Position',
+        'Date',
+        'Shift Assigned',
+        'Exception Notes',
+      ])
+      headerRow.font = { bold: true, color: { argb: 'FFFFFF' } }
+      worksheet.columns = [
+        { key: 'employeeCode', width: 20 },
+        { key: 'employeeName', width: 30 },
+        { key: 'department', width: 30 },
+        { key: 'position', width: 30 },
+        { key: 'date', width: 20 },
+        { key: 'shiftAssigned', width: 35 },
+        { key: 'exceptionNotes', width: 30 },
+      ]
+      worksheet.columns.forEach((col) => {
+        col.alignment = { horizontal: 'center', vertical: 'middle' }
+      })
+      headerRow.eachCell((cell, colNumber) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: colNumber <= 5 ? '538DD5' : '16365C' },
+        }
+        cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      })
+
+      shiftExceptions.forEach((exception) => {
+        const shiftsForDate = employeeShifts
+          .filter(
+            (employeeShift) =>
+              new Date(employeeShift.employeShiftsApplySince).toDateString() !==
+              new Date(exception.shiftExceptionsDate).toDateString()
+          )
+          .map((employeeShift) => employeeShift.shift?.shiftName) // Obtén los nombres de los turnos
+
+        const shiftNames = shiftsForDate.length > 0 ? shiftsForDate.join(', ') : 'N/A'
+
+        const row = worksheet.addRow({
+          employeeCode: employee.employeeCode,
+          employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+          department: employee.department?.departmentName || 'N/A',
+          position: employee.position?.positionName || 'N/A',
+          date: exception.shiftExceptionsDate,
+          shiftAssigned: shiftNames,
+          exceptionNotes: exception.shiftExceptionsDescription || 'N/A',
+        })
+        const exceptionNotesCell = row.getCell('exceptionNotes')
+        const exceptionTypeName = exception.exceptionType?.exceptionTypeTypeName || 'N/A'
+        const description = exception.shiftExceptionsDescription || 'N/A'
+        exceptionNotesCell.value = {
+          richText: [
+            { text: exceptionTypeName + ': ', font: { bold: true } },
+            { text: description },
+          ],
+        }
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+
+      response.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      response.header(
+        'Content-Disposition',
+        `attachment; filename="shift_exceptions_employee.xlsx"`
+      )
+      response.status(201).send(buffer)
+    } catch (error) {
+      response.status(500).send({
+        message: 'Error generating Excel file',
+        error: error.message,
+      })
+    }
+  }
+
+  private async verify(
+    employee: BiometricEmployeeInterface,
+    employeeService: EmployeeService,
+    departmentService: DepartmentService,
+    positionService: PositionService
+  ) {
+    const existEmployee = await Employee.query()
+      .where('employee_code', employee.empCode)
+      .withTrashed()
+      .first()
+    if (!existEmployee) {
+      await employeeService.syncCreate(employee, departmentService, positionService)
+    }
+  }
+
+  // Método para agregar fila de encabezado
+  addHeadRow(worksheet: ExcelJS.Worksheet, employees: any[]) {
+    const headerRow = worksheet.addRow([
+      'Employee Code',
+      'Employee Name',
+      'Department',
+      'Position',
+      'Hire Date',
+      '',
+      'Work Modality',
+      'Phone',
+      'Gender',
+      '',
+      'CURP',
+      'RFC',
+      'Employee NSS',
+    ])
+
+    let fgColor = 'FFFFFFF'
+    let color = '538DD5'
+    for (let col = 1; col <= 6; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    color = '16365C'
+    for (let col = 7; col <= 9; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    color = '538DD5'
+    for (let col = 10; col <= 13; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    headerRow.height = 30
+    headerRow.font = { bold: true, color: { argb: fgColor } }
+
+    this.adjustColumnWidths(worksheet)
+
+    employees.forEach((employee) => {
+      worksheet.addRow([
+        employee.employeeCode,
+        `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        employee.department?.departmentName || 'no data',
+        employee.position?.positionName || 'no data',
+        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : 'no data',
+        '',
+        employee.employeeWorkSchedule || 'no data',
+        employee.person?.personPhone || 'no data',
+        employee.person?.personGender || 'no data',
+        '',
+        employee.person?.personCurp || 'no data',
+        employee.person?.personRfc || 'no data',
+        employee.person?.personImssNss || 'no data',
+      ])
+    })
+  }
+
+  adjustColumnWidths(worksheet: ExcelJS.Worksheet) {
+    const widths = [20, 44, 44, 44, 25, 5, 25, 25, 25, 5, 25, 25, 25, 25, 30, 30, 30]
+    widths.forEach((width, index) => {
+      const column = worksheet.getColumn(index + 1)
+      column.width = width
+      column.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+  }
+
+  addRowExcelEmpty(worksheet: ExcelJS.Worksheet) {
+    worksheet.addRow([])
   }
 }
