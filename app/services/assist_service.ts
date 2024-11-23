@@ -95,7 +95,8 @@ export default class AssistsService {
       ]
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
-      await this.addRowToWorkSheet(rows, worksheet)
+      const status = employee.deletedAt ? 'Terminated' : 'Active'
+      await this.addRowToWorkSheet(rows, worksheet, status)
       // hasta aquí era lo de asistencia
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
       worksheet = workbook.addWorksheet('Incident Summary')
@@ -130,6 +131,9 @@ export default class AssistsService {
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
+      if (employee.deletedAt) {
+        await this.paintEmployeeTerminated(worksheet, 'C', 4)
+      }
       // hasta aquí era lo de asistencia
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
@@ -710,6 +714,19 @@ export default class AssistsService {
     }
   }
 
+  private paintEmployeeTerminated(worksheet: ExcelJS.Worksheet, columnName: string, row: number) {
+    const color = 'FFD45633'
+    const fgColor = 'FFFFFFF'
+    worksheet.getCell(columnName + row).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: color }, // Color de fondo rojo
+    }
+    worksheet.getCell(columnName + row).font = {
+      color: { argb: fgColor }, // Color de fondo rojo
+    }
+  }
+
   private paintCheckOutStatus(worksheet: ExcelJS.Worksheet, row: number, value: string) {
     if (value.toString().toUpperCase() === 'DELAY') {
       const fgColor = 'FF993A'
@@ -1041,7 +1058,11 @@ export default class AssistsService {
     cell.alignment = { wrapText: true }
   }
 
-  async addRowToWorkSheet(rows: AssistExcelRowInterface[], worksheet: ExcelJS.Worksheet) {
+  async addRowToWorkSheet(
+    rows: AssistExcelRowInterface[],
+    worksheet: ExcelJS.Worksheet,
+    status: string = 'Active'
+  ) {
     let rowCount = 5
     let faultsTotal = 0
     for await (const rowData of rows) {
@@ -1073,6 +1094,9 @@ export default class AssistsService {
       if (rowData.name) {
         this.paintIncidents(worksheet, rowCount, rowData.incidents)
         this.paintCheckOutStatus(worksheet, rowCount, rowData.checkOutStatus)
+        if (status === 'Terminated') {
+          await this.paintEmployeeTerminated(worksheet, 'B', rowCount)
+        }
       }
       if (rowData.exceptions.length > 0) {
         await this.addExceptions(rowData, worksheet, rowCount)
