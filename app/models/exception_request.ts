@@ -21,8 +21,16 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
 
   @column()
   exceptionRequestDescription?: string
+
   @column.dateTime()
-  requestedDate!: DateTime
+  declare requestedDate: DateTime
+
+  @column()
+  exceptionRequestRhRead!: number // 0: No leído, 1: Leído
+
+  @column()
+  exceptionRequestGerencialRead!: number // 0: No leído, 1: Leído
+
   @column.dateTime({ autoCreate: true })
   exceptionRequestCreatedAt!: DateTime
 
@@ -32,9 +40,13 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
   @column.dateTime({ columnName: 'exception_request_deleted_at' })
   declare deletedAt: DateTime | null
 
-  @belongsTo(() => Employee)
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeId',
+  })
   employee!: relations.BelongsTo<typeof Employee>
 
-  @belongsTo(() => ExceptionType)
+  @belongsTo(() => ExceptionType, {
+    foreignKey: 'exceptionTypeId',
+  })
   exceptionType!: relations.BelongsTo<typeof ExceptionType>
 }

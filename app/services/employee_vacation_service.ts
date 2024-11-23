@@ -17,13 +17,43 @@ export default class EmployeeVacationService {
         .whereIn('business_unit_slug', businessList)
       const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
       const employees = await Employee.query()
-        .whereNull('employee_deleted_at')
+        .if(filters.search, (query) => {
+          query.where((subQuery) => {
+            subQuery
+              .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+              .orWhereHas('person', (personQuery) => {
+                personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+                personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+                personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+              })
+          })
+        })
         .if(filters.departmentId > 0, (query) => {
           query.where('department_id', filters.departmentId)
+        })
+        .if(filters.positionId > 0, (query) => {
+          query.where('position_id', filters.positionId)
         })
         .if(filters.employeeId > 0, (query) => {
           query.where('employee_id', filters.employeeId)
         })
+        .if(
+          filters.onlyInactive &&
+            (filters.onlyInactive === 'true' || filters.onlyInactive === true),
+          (query) => {
+            query.whereNotNull('employee_deleted_at')
+            query.withTrashed()
+          }
+        )
         .whereIn('business_unit_id', businessUnitsList)
         .preload('businessUnit')
         .preload('department')

@@ -428,7 +428,6 @@ export default class ExceptionRequestsController {
         )
       )
   }
-
   /**
    * @swagger
    * /api/exception-requests/{id}:
@@ -452,12 +451,26 @@ export default class ExceptionRequestsController {
    *               properties:
    *                 status:
    *                   type: string
+   *                   example: success
    *                 message:
    *                   type: string
+   *                   example: Successfully deleted
    *                 data:
    *                   type: string
-   *        404:
+   *                   example: DELETED
+   *       404:
    *         description: Exception request not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: error
+   *                 message:
+   *                   type: string
+   *                   example: Exception request not found
    */
 
   async destroy({ params, response }: HttpContext) {
@@ -467,5 +480,252 @@ export default class ExceptionRequestsController {
     return response
       .status(200)
       .json(formatResponse('success', 'Successfully deleted', 'Resource deleted', 'DELETED'))
+  }
+
+  /**
+   * @swagger
+   * /api/exception-requests/all:
+   *   get:
+   *     summary: Retrieve all exception requests with filters and pagination
+   *     tags: [ExceptionRequests]
+   *     parameters:
+   *       - name: page
+   *         in: query
+   *         description: Page number for pagination
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *       - name: limit
+   *         in: query
+   *         description: Number of items per page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *       - name: departmentId
+   *         in: query
+   *         description: Filter by department ID
+   *         required: false
+   *         schema:
+   *           type: integer
+   *       - name: positionId
+   *         in: query
+   *         description: Filter by position ID
+   *         required: false
+   *         schema:
+   *           type: integer
+   *       - name: status
+   *         in: query
+   *         description: Filter by exception request status
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [requested, pending, accepted, refused]
+   *       - name: searchText
+   *         in: query
+   *         description: Filter by employee first or last name
+   *         required: false
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: List of exception requests retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: success
+   *                 message:
+   *                   type: string
+   *                   example: Successfully fetched all exception requests
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: integer
+   *                       employeeId:
+   *                         type: integer
+   *                       exceptionRequestStatus:
+   *                         type: string
+   *                       exceptionRequestDescription:
+   *                         type: string
+   *                       requestedDate:
+   *                         type: string
+   *                         example: "2024-11-15 14:00:00"
+   *                 metadata:
+   *                   type: object
+   *                   properties:
+   *                     total:
+   *                       type: integer
+   *                     per_page:
+   *                       type: integer
+   *                     current_page:
+   *                       type: integer
+   *                     last_page:
+   *                       type: integer
+   *                     first_page:
+   *                       type: integer
+   *       404:
+   *         description: No exception requests found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: error
+   *                 message:
+   *                   type: string
+   *                   example: No exception requests found
+   */
+
+  async indexAllExceptionRequests({ request, response }: HttpContext) {
+    const page = request.input('page', 1)
+    const limit = request.input('limit', 10)
+    const departmentId = request.input('departmentId')
+    const positionId = request.input('positionId')
+    const status = request.input('status')
+    const searchText = request.input('searchText', '')
+
+    // Construir la consulta base
+    const query = ExceptionRequest.query()
+      .preload('employee', (employeeQuery) => {
+        employeeQuery.preload('department')
+        employeeQuery.preload('position')
+      })
+      .preload('exceptionType')
+      .if(departmentId, (q) => {
+        q.whereHas('employee', (employeeQuery) => {
+          employeeQuery.where('departmentId', departmentId)
+        })
+      })
+      .if(positionId, (q) => {
+        q.whereHas('employee', (employeeQuery) => {
+          employeeQuery.where('positionId', positionId)
+        })
+      })
+      .if(status, (q) => q.where('exceptionRequestStatus', status))
+      .if(searchText, (q) => {
+        q.whereHas('employee', (employeeQuery) => {
+          employeeQuery
+            .where('employeeFirstName', 'like', `%${searchText}%`)
+            .orWhere('employeeLastName', 'like', `%${searchText}%`)
+        })
+      })
+
+    const exceptionRequests = await query.paginate(page, limit)
+
+    return response.status(200).json(
+      formatResponse(
+        'success',
+        'Successfully fetched all exception requests',
+        'Resources fetched',
+        exceptionRequests.all(),
+        {
+          total: exceptionRequests.total,
+          per_page: exceptionRequests.perPage,
+          current_page: exceptionRequests.currentPage,
+          last_page: exceptionRequests.lastPage,
+          first_page: 1,
+        }
+      )
+    )
+  }
+  /**
+   * @swagger
+   * /api/exception-requests/unread:
+   *   get:
+   *     summary: Get unread exception requests
+   *     description: Fetch unread exception requests filtered by RH and managerial read status.
+   *     tags:
+   *       - ExceptionRequests
+   *     parameters:
+   *       - name: rhRead
+   *         in: query
+   *         required: false
+   *         description: >
+   *           Filter by RH read status (0: unread, 1: read).
+   *         schema:
+   *           type: integer
+   *           enum: [0, 1]
+   *       - name: gerencialRead
+   *         in: query
+   *         required: false
+   *         description: >
+   *           Filter by managerial read status (0: unread, 1: read).
+   *         schema:
+   *           type: integer
+   *           enum: [0, 1]
+   *     responses:
+   *       200:
+   *         description: Successfully fetched unread exception requests
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: success
+   *                 message:
+   *                   type: string
+   *                   example: Successfully fetched unread exception requests
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       exceptionRequestId:
+   *                         type: integer
+   *                         example: 1
+   *                       employeeId:
+   *                         type: integer
+   *                         example: 123
+   *                       exceptionTypeId:
+   *                         type: integer
+   *                         example: 5
+   *                       exceptionRequestStatus:
+   *                         type: string
+   *                         example: pending
+   *       400:
+   *         description: Invalid query parameters
+   *       500:
+   *         description: Internal server error
+   */
+
+  async getUnreadExceptionRequests({ request, response }: HttpContext) {
+    const rhReadFilter = request.input('rhRead')
+    const gerencialReadFilter = request.input('gerencialRead')
+
+    const query = ExceptionRequest.query()
+      .if(rhReadFilter !== undefined, (q) => {
+        q.where('exceptionRequestRhRead', rhReadFilter)
+      })
+      .if(gerencialReadFilter !== undefined, (q) => {
+        q.where('exceptionRequestGerencialRead', gerencialReadFilter)
+      })
+      .if(rhReadFilter === undefined && gerencialReadFilter === undefined, (q) => {
+        q.where('exceptionRequestRhRead', 0).where('exceptionRequestGerencialRead', 0)
+      })
+
+    const exceptionRequests = await query.exec()
+
+    return response
+      .status(200)
+      .json(
+        formatResponse(
+          'success',
+          'Successfully fetched unread exception requests',
+          'Resources fetched',
+          exceptionRequests
+        )
+      )
   }
 }

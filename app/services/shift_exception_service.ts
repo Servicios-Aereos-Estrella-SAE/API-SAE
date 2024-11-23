@@ -82,11 +82,12 @@ export default class ShiftExceptionService {
   }
 
   async verifyInfo(shiftException: ShiftException) {
-    const action = shiftException.shiftExceptionId > 0 ? 'updated' : 'created'
+    const action = shiftException.shiftExceptionId > 0 ? 'update' : 'create'
     const existDate = await ShiftException.query()
       .if(shiftException.shiftExceptionId > 0, (query) => {
         query.whereNot('shift_exception_id', shiftException.shiftExceptionId)
       })
+      .where('exception_type_id', shiftException.exceptionTypeId)
       .whereNull('shift_exceptions_deleted_at')
       .where('shift_exceptions_date', shiftException.shiftExceptionsDate)
       .where('employee_id', shiftException.employeeId)
@@ -97,7 +98,7 @@ export default class ShiftExceptionService {
         status: 400,
         type: 'warning',
         title: 'The date exists in other exception',
-        message: `The shift exception resource cannot be ${action} because the date exists in other exception is already assigned to another shift exception.`,
+        message: `The shift exception resource cannot be ${action} because this exception type is already assigned on the same date for the same employee.`,
         data: { ...shiftException },
       }
     }

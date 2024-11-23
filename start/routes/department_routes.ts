@@ -6,6 +6,7 @@ router.group(() => {
   router.get('/', '#controllers/department_controller.getAll')
   router.get('/organization', '#controllers/department_controller.getOrganization')
   router.get('/search', '#controllers/department_controller.getSearch')
+  router.get('/:departmentId/get-rotation-index', '#controllers/department_controller.getRotationIndex')
   router.get('/:departmentId', '#controllers/department_controller.show')
   router.get('/:departmentId/positions', '#controllers/department_controller.getPositions')
   router.post('/', '#controllers/department_controller.store')
