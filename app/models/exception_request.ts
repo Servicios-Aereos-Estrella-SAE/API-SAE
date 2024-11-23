@@ -25,6 +25,12 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
   @column.dateTime()
   declare requestedDate: DateTime
 
+  @column()
+  exceptionRequestRhRead!: number // 0: No leído, 1: Leído
+
+  @column()
+  exceptionRequestGerencialRead!: number // 0: No leído, 1: Leído
+
   @column.dateTime({ autoCreate: true })
   exceptionRequestCreatedAt!: DateTime
 
