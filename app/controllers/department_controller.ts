@@ -505,6 +505,227 @@ export default class DepartmentController {
 
   /**
    * @swagger
+   * /api/departments/{departmentId}/get-rotation-index:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get rotation index
+   *     parameters:
+   *       - name: departmentId
+   *         in: path
+   *         required: true
+   *         description: Departmemnt id
+   *         schema:
+   *           type: integer
+   *       - name: dateStart
+   *         in: query
+   *         required: false
+   *         description: Date start (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *       - name: dateEnd
+   *         in: query
+   *         required: false
+   *         description: Date end (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getRotationIndex({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Departments',
+          message: 'Missing data to process',
+          data: {},
+        }
+      }
+
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      const department = await Department.query()
+        .where('department_id', departmentId)
+        .whereIn('businessUnitId', businessUnitsList)
+        .first()
+
+      if (!department) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Positions by department',
+          message: 'Department not found',
+          data: { department_id: departmentId },
+        }
+      }
+
+      const dateStart = request.input('dateStart')
+      const dateEnd = request.input('dateEnd')
+
+      //S = personal que se separó de la empresa en el periodo.
+      const terminatedEmployees = await Employee.query()
+        .withTrashed()
+        .where('department_id', departmentId)
+        .whereBetween('employee_deleted_at', [dateStart, dateEnd])
+        .count('* as total')
+      const numEployeesTerminated = terminatedEmployees[0].$extras.total
+      //console.log('empleados eliminados durante el periodo: ' + numEployeesTerminated)
+
+      //I = personal que se tenía al inicio del periodo.
+      const employeesAtStart = await Employee.query()
+        .where('department_id', departmentId)
+        .where('employee_hire_date', '<=', dateStart)
+        .andWhere((query) => {
+          query.whereNull('employee_deleted_at').orWhere('employee_deleted_at', '>', dateStart)
+        })
+        .count('* as total')
+      const numEmployeesAtStart = employeesAtStart[0].$extras.total
+      //console.log('empleados al inicio: ' + numEmployeesAtStart)
+
+      //F = personal que se tiene al final del periodo.
+      const employeesAtEnd = await Employee.query()
+        .where('department_id', departmentId)
+        .where('employee_hire_date', '<=', dateEnd)
+        .andWhere((query) => {
+          query.whereNull('employee_deleted_at').orWhere('employee_deleted_at', '>', dateEnd)
+        })
+        .count('* as total')
+      const numEmployeesAtEnd = employeesAtEnd[0].$extras.total
+      //console.log('empleados al final: ' + numEmployeesAtEnd)
+
+      const avgEmployees = (numEmployeesAtStart + numEmployeesAtEnd) / 2
+
+      //console.log('promedio de empleados:' + avgEmployees)
+      const rotationIndex = (numEployeesTerminated / avgEmployees) * 100
+
+      /* R=S/((I+F)/2) x 100.
+
+      Donde:
+      
+      R = tasa de rotación.
+      S = personal que se separó de la empresa en el periodo.
+      I = personal que se tenía al inicio del periodo.
+      F = personal que se tiene al final del periodo. */
+
+      //console.log(`Indice de rotación ${departmentId}: ${rotationIndex.toFixed(2)}%`)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Rotation index by department',
+        message: 'The rotation index by department has calculate successfully',
+        data: {
+          numEployeesTerminated: numEployeesTerminated,
+          numEmployeesAtStart: numEmployeesAtStart,
+          numEmployeesAtEnd: numEmployeesAtEnd,
+          avgEmployees: avgEmployees,
+          rotationIndex: rotationIndex,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
    * /api/departments:
    *   get:
    *     security:
