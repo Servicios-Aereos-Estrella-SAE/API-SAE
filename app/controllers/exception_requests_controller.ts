@@ -81,7 +81,7 @@ export default class ExceptionRequestsController {
    *                   example: ExceptionRequest not found
    */
   async updateStatus({ request, params, response }: HttpContext) {
-    const { status } = request.only(['status'])
+    const { status, description } = request.only(['status', 'description'])
 
     if (status !== 'accepted' && status !== 'refused') {
       return response.status(400).json({
@@ -95,6 +95,7 @@ export default class ExceptionRequestsController {
       })
     }
     exceptionRequest.exceptionRequestStatus = status
+
     await exceptionRequest.save()
     const userEmail = env.get('SMTP_USERNAME')
     if (userEmail) {
@@ -105,6 +106,7 @@ export default class ExceptionRequestsController {
           .subject('Notification: Status of Exception Request Updated')
           .htmlView('emails/update_status_mail', {
             newStatus: status,
+            newDescription: description,
           })
       })
     }
