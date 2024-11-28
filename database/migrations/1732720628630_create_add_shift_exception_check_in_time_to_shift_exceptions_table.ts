@@ -5,13 +5,13 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.time('shift_exception_check_out_time').nullable()
+      table.time('shift_exception_check_in_time').after('shift_exceptions_description').nullable()
     })
   }
 
   async down() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.dropColumn('shift_exception_check_out_time')
+      table.dropColumn('shift_exception_check_in_time')
     })
   }
 }

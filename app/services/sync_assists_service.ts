@@ -650,7 +650,6 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.isFutureDay(dateAssistItem)
@@ -678,12 +677,15 @@ export default class SyncAssistsService {
         if (dateAssistItem.assist.shiftCalculateFlag === '24x24') {
           dateAssistItem = await this.calendar24x24(dateAssistItem, isDiscriminated)
         }
+
+        if (!dateAssistItem.assist.shiftCalculateFlag) {
+          dateAssistItem = await this.hasSomeExceptionTime(dateAssistItem)
+        }
       }
 
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
-
     return dailyAssistList
   }
 
@@ -696,7 +698,6 @@ export default class SyncAssistsService {
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
     }
-
     const hourStart = checkAssist.assist.dateShift.shiftTimeStart
     const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
     const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
@@ -725,7 +726,6 @@ export default class SyncAssistsService {
           return checkAssistCopy
         }
       }
-
       return checkAssistCopy
     }
 
@@ -740,14 +740,11 @@ export default class SyncAssistsService {
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
       'America/Mexico_City'
     )
-
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
-
     if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
       if (checkAssist.assist) {
         checkAssistCopy.assist.checkInStatus = 'fault'
       }
-
       if (checkAssist.assist.exceptions.length > 0) {
         const vacationException = checkAssist.assist.exceptions.find(
           (ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation'
@@ -757,7 +754,6 @@ export default class SyncAssistsService {
           checkAssistCopy.assist.checkInStatus = ''
         }
       }
-
       return checkAssistCopy
     }
 
@@ -776,7 +772,6 @@ export default class SyncAssistsService {
     if (discriminated) {
       checkAssistCopy.assist.checkInStatus = ''
     }
-
     return checkAssistCopy
   }
 
@@ -1478,5 +1473,71 @@ export default class SyncAssistsService {
     }
 
     return dateAssistItem
+  }
+
+  private async hasSomeExceptionTime(checkAssist: AssistDayInterface) {
+    if (!checkAssist) {
+      return checkAssist
+    }
+    const checkAssistCopy = checkAssist
+    if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
+      //console.log('es turno estandar')
+      //const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+      const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+      const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+      const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+      //const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+      const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn?.assistPunchTimeOrigin}`, {
+        setZone: true,
+      })
+      const checkTime = DayTime.setZone('America/Mexico_city')
+      /* const timeToStart = DateTime.fromISO(stringDate, { setZone: true })
+        .setZone('America/Mexico_City')
+        .plus({ minutes: 1 }) */
+      const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+      const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
+      const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
+        'America/Mexico_City'
+      )
+      const { delayTolerance } = await this.getTolerances()//, faultTolerance
+      const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
+      //const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
+    /*   console.log('timeToStart ' + timeToStart.toFormat('HH:mm'))
+      console.log('timeCheckIn ' + timeCheckIn.toFormat('HH:mm'))
+      console.log('TOLERANCE_FAULT_MINUTES ' + TOLERANCE_FAULT_MINUTES) */
+      if (checkAssist.assist.exceptions.length > 0) {
+        const exception = checkAssist.assist.exceptions.find(
+          (ex) => ex.shiftExceptionCheckInTime
+        )
+
+        if (exception) {
+          //console.log(JSON.parse(JSON.stringify(exception)))
+          if (exception.shiftExceptionCheckInTime) {
+            const shiftExceptionCheckInTime = DateTime.fromFormat(exception.shiftExceptionCheckInTime, 'HH:mm:ss')
+            const diffTime = timeCheckIn.diff(
+              timeCheckIn.set({
+                hour: shiftExceptionCheckInTime.hour,
+                minute: shiftExceptionCheckInTime.minute,
+              }),
+              'minutes'
+            ).as('minutes')
+            //console.log(diffTime)
+            if (diffTime > TOLERANCE_DELAY_MINUTES) {
+              checkAssistCopy.assist.checkInStatus = 'delay'
+            }
+        
+            if (diffTime <= TOLERANCE_DELAY_MINUTES) {
+              checkAssistCopy.assist.checkInStatus = 'tolerance'
+            }
+        
+            if (diffTime <= 0) {
+              checkAssistCopy.assist.checkInStatus = 'ontime'
+            }
+            //console.log(checkAssistCopy.assist.checkInStatus)
+          }
+        }
+      }
+    }
+    return checkAssistCopy
   }
 }

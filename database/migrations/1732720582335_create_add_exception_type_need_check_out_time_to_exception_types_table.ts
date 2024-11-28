@@ -5,7 +5,11 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.tinyint('exception_type_need_check_out_time').nullable().defaultTo(0)
+      table
+        .tinyint('exception_type_need_check_out_time')
+        .after('exception_type_need_check_in_time')
+        .nullable()
+        .defaultTo(0)
     })
   }
 
