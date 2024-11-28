@@ -252,7 +252,6 @@ export default class ExceptionRequestsController {
 
   async store({ request, response }: HttpContext) {
     const data = await request.validateUsing(storeExceptionRequestValidator)
-
     const employee = await Employee.query()
       .where('employeeId', data.employeeId)
       .whereNull('deletedAt')
@@ -284,7 +283,14 @@ export default class ExceptionRequestsController {
         error: 'An exception request for the same date and time already exists and is not refused',
       })
     }
-    const exceptionRequest = await ExceptionRequest.create(data)
+    const roleId = data.role?.roleId || 0
+    const exceptionRequestData = {
+      ...data,
+      exceptionRequestRhRead: roleId === 2 ? 1 : 0,
+      exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+    }
+    delete exceptionRequestData.role
+    const exceptionRequest = await ExceptionRequest.create(exceptionRequestData)
 
     return response
       .status(201)

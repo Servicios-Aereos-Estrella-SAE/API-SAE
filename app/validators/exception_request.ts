@@ -8,6 +8,12 @@ export const storeExceptionRequestValidator = vine.compile(
     exceptionRequestStatus: vine.enum(['requested', 'pending', 'accepted', 'refused']),
     exceptionRequestDescription: vine.string().trim().maxLength(255).optional(),
     requestedDate: vine.date().transform((value) => DateTime.fromJSDate(value)),
+    role: vine
+      .object({
+        roleId: vine.number().min(1),
+        roleName: vine.string().trim().maxLength(50).optional(),
+      })
+      .optional(),
   })
 )
 
@@ -16,5 +22,11 @@ export const updateExceptionRequestValidator = vine.compile(
     exceptionRequestStatus: vine.enum(['requested', 'pending', 'accepted', 'refused']).optional(),
     exceptionRequestDescription: vine.string().trim().maxLength(255).optional(),
     requestedDate: vine.date().transform((value) => DateTime.fromJSDate(value)),
+    role: vine
+      .object({
+        roleId: vine.number().min(1),
+        roleName: vine.string().trim().maxLength(50).optional(),
+      })
+      .optional(),
   })
 )
