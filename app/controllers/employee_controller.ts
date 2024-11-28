@@ -280,6 +280,13 @@ export default class EmployeeController {
    *         description: Employee work schedule
    *         schema:
    *           type: string
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
    *       - name: page
    *         in: query
    *         required: true
@@ -388,6 +395,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const onlyInactive = request.input('onlyInactive')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
@@ -395,6 +403,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         employeeWorkSchedule: employeeWorkSchedule,
+        onlyInactive: onlyInactive,
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
