@@ -27,6 +27,7 @@ interface AssistDayInterface {
     hasExceptions: boolean
     exceptions: ShiftExceptionInterface[]
     assitFlatList?: AssistInterface[]
+    isCheckOutNextDay?: boolean
   }
 }
 
