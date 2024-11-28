@@ -1207,6 +1207,147 @@ export default class EmployeeController {
 
   /**
    * @swagger
+   * /api/employees/get-by-code/{employeeCode}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get employee by code
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeCode
+   *         schema:
+   *           type: string
+   *         description: Employee code
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getByCode({ request, response }: HttpContext) {
+    try {
+      const employeeCode = request.param('employeeCode')
+      if (!employeeCode) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee code was not found',
+          data: { employeeCode },
+        }
+      }
+      const employeeService = new EmployeeService()
+      const showEmployee = await employeeService.getByCode(employeeCode)
+      if (!showEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered code',
+          data: { employeeCode },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Employees',
+          message: 'The employee was found successfully',
+          data: { employee: showEmployee },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
    * /api/employees/without-user:
    *   get:
    *     security:
@@ -1361,21 +1502,6 @@ export default class EmployeeController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
-    }
-  }
-
-  private async verify(
-    employee: BiometricEmployeeInterface,
-    employeeService: EmployeeService,
-    departmentService: DepartmentService,
-    positionService: PositionService
-  ) {
-    const existEmployee = await Employee.query()
-      .where('employee_code', employee.empCode)
-      .withTrashed()
-      .first()
-    if (!existEmployee) {
-      await employeeService.syncCreate(employee, departmentService, positionService)
     }
   }
 
@@ -2361,6 +2487,7 @@ export default class EmployeeController {
       }
     }
   }
+
   /**
    * @swagger
    * /api/employees/employee-generate-excel:
@@ -2514,91 +2641,153 @@ export default class EmployeeController {
     }
   }
 
-  // Método para agregar fila de encabezado
-  addHeadRow(worksheet: ExcelJS.Worksheet, employees: any[]) {
-    const headerRow = worksheet.addRow([
-      'Employee Code',
-      'Employee Name',
-      'Department',
-      'Position',
-      'Hire Date',
-      '',
-      'Work Modality',
-      'Phone',
-      'Gender',
-      '',
-      'CURP',
-      'RFC',
-      'Employee NSS',
-    ])
-
-    let fgColor = 'FFFFFFF'
-    let color = '538DD5'
-    for (let col = 1; col <= 6; col++) {
-      const cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/reactivate:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: reactivate employee
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async reactivate({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { ...request.all() },
+        }
+      }
+      const currentEmployee = await Employee.query()
+        .whereNotNull('employee_deleted_at')
+        .where('employee_id', employeeId)
+        .withTrashed()
+        .first()
+      if (!currentEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      currentEmployee.deletedAt = null
+      await currentEmployee.save()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employee was reactivate successfully',
+        data: { employee: currentEmployee },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
       }
     }
-
-    color = '16365C'
-    for (let col = 7; col <= 9; col++) {
-      const cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-    }
-
-    color = '538DD5'
-    for (let col = 10; col <= 13; col++) {
-      const cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-    }
-
-    headerRow.height = 30
-    headerRow.font = { bold: true, color: { argb: fgColor } }
-
-    this.adjustColumnWidths(worksheet)
-
-    employees.forEach((employee) => {
-      worksheet.addRow([
-        employee.employeeCode,
-        `${employee.employeeFirstName} ${employee.employeeLastName}`,
-        employee.department?.departmentName || 'no data',
-        employee.position?.positionName || 'no data',
-        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : 'no data',
-        '',
-        employee.employeeWorkSchedule || 'no data',
-        employee.person?.personPhone || 'no data',
-        employee.person?.personGender || 'no data',
-        '',
-        employee.person?.personCurp || 'no data',
-        employee.person?.personRfc || 'no data',
-        employee.person?.personImssNss || 'no data',
-      ])
-    })
   }
 
-  adjustColumnWidths(worksheet: ExcelJS.Worksheet) {
-    const widths = [20, 44, 44, 44, 25, 5, 25, 25, 25, 5, 25, 25, 25, 25, 30, 30, 30]
-    widths.forEach((width, index) => {
-      const column = worksheet.getColumn(index + 1)
-      column.width = width
-      column.alignment = { vertical: 'middle', horizontal: 'center' }
-    })
-  }
-
-  addRowExcelEmpty(worksheet: ExcelJS.Worksheet) {
-    worksheet.addRow([])
-  }
   /**
    * @swagger
    * /api/employees/{employeeId}/export-excel:
@@ -2784,5 +2973,106 @@ export default class EmployeeController {
         error: error.message,
       })
     }
+  }
+
+  private async verify(
+    employee: BiometricEmployeeInterface,
+    employeeService: EmployeeService,
+    departmentService: DepartmentService,
+    positionService: PositionService
+  ) {
+    const existEmployee = await Employee.query()
+      .where('employee_code', employee.empCode)
+      .withTrashed()
+      .first()
+    if (!existEmployee) {
+      await employeeService.syncCreate(employee, departmentService, positionService)
+    }
+  }
+
+  // Método para agregar fila de encabezado
+  addHeadRow(worksheet: ExcelJS.Worksheet, employees: any[]) {
+    const headerRow = worksheet.addRow([
+      'Employee Code',
+      'Employee Name',
+      'Department',
+      'Position',
+      'Hire Date',
+      '',
+      'Work Modality',
+      'Phone',
+      'Gender',
+      '',
+      'CURP',
+      'RFC',
+      'Employee NSS',
+    ])
+
+    let fgColor = 'FFFFFFF'
+    let color = '538DD5'
+    for (let col = 1; col <= 6; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    color = '16365C'
+    for (let col = 7; col <= 9; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    color = '538DD5'
+    for (let col = 10; col <= 13; col++) {
+      const cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+
+    headerRow.height = 30
+    headerRow.font = { bold: true, color: { argb: fgColor } }
+
+    this.adjustColumnWidths(worksheet)
+
+    employees.forEach((employee) => {
+      worksheet.addRow([
+        employee.employeeCode,
+        `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        employee.department?.departmentName || 'no data',
+        employee.position?.positionName || 'no data',
+        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : 'no data',
+        '',
+        employee.employeeWorkSchedule || 'no data',
+        employee.person?.personPhone || 'no data',
+        employee.person?.personGender || 'no data',
+        '',
+        employee.person?.personCurp || 'no data',
+        employee.person?.personRfc || 'no data',
+        employee.person?.personImssNss || 'no data',
+      ])
+    })
+  }
+
+  adjustColumnWidths(worksheet: ExcelJS.Worksheet) {
+    const widths = [20, 44, 44, 44, 25, 5, 25, 25, 25, 5, 25, 25, 25, 25, 30, 30, 30]
+    widths.forEach((width, index) => {
+      const column = worksheet.getColumn(index + 1)
+      column.width = width
+      column.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+  }
+
+  addRowExcelEmpty(worksheet: ExcelJS.Worksheet) {
+    worksheet.addRow([])
   }
 }
