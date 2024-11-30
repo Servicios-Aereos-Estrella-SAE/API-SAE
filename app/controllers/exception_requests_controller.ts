@@ -81,7 +81,7 @@ export default class ExceptionRequestsController {
    *                   example: ExceptionRequest not found
    */
   async updateStatus({ request, params, response }: HttpContext) {
-    const { status } = request.only(['status'])
+    const { status, description } = request.only(['status', 'description'])
 
     if (status !== 'accepted' && status !== 'refused') {
       return response.status(400).json({
@@ -95,6 +95,7 @@ export default class ExceptionRequestsController {
       })
     }
     exceptionRequest.exceptionRequestStatus = status
+
     await exceptionRequest.save()
     const userEmail = env.get('SMTP_USERNAME')
     if (userEmail) {
@@ -105,6 +106,7 @@ export default class ExceptionRequestsController {
           .subject('Notification: Status of Exception Request Updated')
           .htmlView('emails/update_status_mail', {
             newStatus: status,
+            newDescription: description,
           })
       })
     }
@@ -250,7 +252,6 @@ export default class ExceptionRequestsController {
 
   async store({ request, response }: HttpContext) {
     const data = await request.validateUsing(storeExceptionRequestValidator)
-
     const employee = await Employee.query()
       .where('employeeId', data.employeeId)
       .whereNull('deletedAt')
@@ -282,7 +283,14 @@ export default class ExceptionRequestsController {
         error: 'An exception request for the same date and time already exists and is not refused',
       })
     }
-    const exceptionRequest = await ExceptionRequest.create(data)
+    const roleId = data.role?.roleId || 0
+    const exceptionRequestData = {
+      ...data,
+      exceptionRequestRhRead: roleId === 2 ? 1 : 0,
+      exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+    }
+    delete exceptionRequestData.role
+    const exceptionRequest = await ExceptionRequest.create(exceptionRequestData)
 
     return response
       .status(201)
