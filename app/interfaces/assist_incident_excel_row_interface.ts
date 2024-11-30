@@ -11,6 +11,7 @@ interface AssistIncidentExcelRowInterface {
   vacations: number
   exeptions: number
   holidaysWorked: number
+  restWorked: number
   faults: number
   delayFaults: number
   totalFaults: number

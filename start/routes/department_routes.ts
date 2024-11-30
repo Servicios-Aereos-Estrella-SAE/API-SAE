@@ -4,6 +4,7 @@ import { middleware } from '#start/kernel'
 
 router.group(() => {
   router.get('/', '#controllers/department_controller.getAll')
+  router.get('/get-only-with-employees', '#controllers/department_controller.getOnlyWithEmployees')
   router.get('/organization', '#controllers/department_controller.getOrganization')
   router.get('/search', '#controllers/department_controller.getSearch')
   router.get('/:departmentId/get-rotation-index', '#controllers/department_controller.getRotationIndex')
