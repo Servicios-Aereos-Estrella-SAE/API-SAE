@@ -172,7 +172,7 @@ export default class AssistsService {
           employeeWorkSchedule: '',
           page: page,
           limit: limit,
-          ignoreDiscriminated: 1,
+          ignoreDiscriminated: 0,
         },
         [departmentId]
       )
@@ -329,7 +329,7 @@ export default class AssistsService {
             employeeWorkSchedule: '',
             page: page,
             limit: limit,
-            ignoreDiscriminated: 1,
+            ignoreDiscriminated: 0,
           },
           [departmentId]
         )
@@ -435,7 +435,7 @@ export default class AssistsService {
             employeeWorkSchedule: '',
             page: page,
             limit: limit,
-            ignoreDiscriminated: 1,
+            ignoreDiscriminated: 0,
           },
           [departmentId]
         )
@@ -512,7 +512,7 @@ export default class AssistsService {
               page: page,
               limit: limit,
               employeeWorkSchedule: '',
-              ignoreDiscriminated: 1,
+              ignoreDiscriminated: 0,
             },
             [departmentId]
           )
@@ -624,7 +624,7 @@ export default class AssistsService {
               employeeWorkSchedule: '',
               page: page,
               limit: limit,
-              ignoreDiscriminated: 1,
+              ignoreDiscriminated: 0,
             },
             [departmentId]
           )
@@ -1133,13 +1133,14 @@ export default class AssistsService {
       'Vacations',
       'Exceptions',
       'Holidays Worked',
+      'Rest Worked',
       'Faults',
       'Delays Faults',
       'Total Faults',
     ])
     let fgColor = 'FFFFFFF'
     let color = '30869C'
-    for (let col = 1; col <= 15; col++) {
+    for (let col = 1; col <= 16; col++) {
       const cell = worksheet.getCell(3, col)
       cell.fill = {
         type: 'pattern',
@@ -1194,6 +1195,9 @@ export default class AssistsService {
     const columnO = worksheet.getColumn(15)
     columnO.width = 16
     columnO.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnP = worksheet.getColumn(16)
+    columnP.width = 16
+    columnP.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 
   async addRowIncidentCalendar(
@@ -1215,6 +1219,7 @@ export default class AssistsService {
     let sundayBonus = 0
     let vacations = 0
     let holidaysWorked = 0
+    let restWorked = 0
     let faults = 0
     let delayFaults = 0
     const exceptions = [] as ShiftExceptionInterface[]
@@ -1226,6 +1231,9 @@ export default class AssistsService {
               const exceptionTypeSlug = exception.exceptionType.exceptionTypeSlug
               if (exceptionTypeSlug !== 'rest-day' && exceptionTypeSlug !== 'vacation') {
                 exceptions.push(exception)
+              }
+              if (exceptionTypeSlug === 'descanso-laborado') {
+                restWorked += 1
               }
             }
           }
@@ -1277,6 +1285,7 @@ export default class AssistsService {
       vacations: vacations,
       exeptions: exceptions.length,
       holidaysWorked: holidaysWorked,
+      restWorked: restWorked,
       faults: faults,
       delayFaults: delayFaults,
       totalFaults: faults + delayFaults,
@@ -1298,6 +1307,7 @@ export default class AssistsService {
       vacations: 0,
       exeptions: 0,
       holidaysWorked: 0,
+      restWorked: 0,
       faults: 0,
       delayFaults: 0,
       totalFaults: 0,
@@ -1318,6 +1328,7 @@ export default class AssistsService {
       vacations: 0,
       exeptions: 0,
       holidaysWorked: 0,
+      restWorked: 0,
       faults: 0,
       delayFaults: 0,
       totalFaults: 0,
@@ -1363,13 +1374,14 @@ export default class AssistsService {
           rowData.vacations,
           rowData.exeptions,
           rowData.holidaysWorked,
+          rowData.restWorked,
           rowData.faults,
           rowData.delayFaults,
           rowData.totalFaults,
         ])
         if (!rowData.employeeName && rowData.employeeId === '') {
           const color = '93CDDC'
-          for (let col = 1; col <= 15; col++) {
+          for (let col = 1; col <= 16; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
             cell.fill = {
               type: 'pattern',
@@ -1381,7 +1393,7 @@ export default class AssistsService {
         }
         if (rowData.department === 'TOTALS') {
           const color = '30869C'
-          for (let col = 1; col <= 15; col++) {
+          for (let col = 1; col <= 16; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
             const row = worksheet.getRow(rowCount - 1)
             row.height = 30
@@ -1443,6 +1455,7 @@ export default class AssistsService {
     totalRowIncident.vacations += row.vacations
     totalRowIncident.exeptions += row.exeptions
     totalRowIncident.holidaysWorked += row.holidaysWorked
+    totalRowIncident.restWorked += row.restWorked
     totalRowIncident.faults += row.faults
     totalRowIncident.delayFaults += row.delayFaults
     totalRowIncident.totalFaults += row.totalFaults
@@ -1463,6 +1476,7 @@ export default class AssistsService {
     totalRowIncident.vacations += rowByDepartment.vacations
     totalRowIncident.exeptions += rowByDepartment.exeptions
     totalRowIncident.holidaysWorked += rowByDepartment.holidaysWorked
+    totalRowIncident.restWorked += rowByDepartment.restWorked
     totalRowIncident.faults += rowByDepartment.faults
     totalRowIncident.delayFaults += rowByDepartment.delayFaults
     totalRowIncident.totalFaults += rowByDepartment.totalFaults
@@ -1479,6 +1493,7 @@ export default class AssistsService {
     totalRowIncident.vacations = 0
     totalRowIncident.exeptions = 0
     totalRowIncident.holidaysWorked = 0
+    totalRowIncident.restWorked = 0
     totalRowIncident.faults = 0
     totalRowIncident.delayFaults = 0
     totalRowIncident.totalFaults = 0

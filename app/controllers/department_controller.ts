@@ -1851,6 +1851,136 @@ export default class DepartmentController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/departments/get-only-with-employees:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get all departments only with employees
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getOnlyWithEmployees({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      const departmentName = request.input('department-name')
+      const onlyParents = request.input('only-parents')
+
+      let departmentsList = [] as Array<number>
+
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+
+      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents }
+      const departments = await new DepartmentService().getOnlyWithEmployees(
+        departmentsList,
+        filters
+      )
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Departments',
+        message: 'Departments were found successfully',
+        data: {
+          departments,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private async verify(
     department: BiometricDepartmentInterface,
     departmentService: DepartmentService
