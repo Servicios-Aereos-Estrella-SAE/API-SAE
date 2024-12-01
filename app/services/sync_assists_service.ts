@@ -486,8 +486,7 @@ export default class SyncAssistsService {
         ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[])
         : []
 
-    const employeeShifts: ShiftRecordInterface[] = dailyShifts[0]
-      .employeeShifts as ShiftRecordInterface[]
+    const employeeShifts: ShiftRecordInterface[] = dailyShifts[0].employeeShifts as ShiftRecordInterface[]
 
     assistListFlat.forEach((item) => {
       const assist = item as AssistInterface
@@ -605,10 +604,7 @@ export default class SyncAssistsService {
     const dailyAssistList: AssistDayInterface[] = []
 
     for (let index = 0; index < daysBetween; index++) {
-      const currentDate = DateTime.fromISO(`${dateStart}`, { setZone: true })
-        .setZone('America/Mexico_City')
-        .plus({ days: index })
-
+      const currentDate = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone('America/Mexico_City').plus({ days: index })
       const dateShift = this.getAssignedDateShift(currentDate, employeeShifts)
       const fakeCheck: AssistDayInterface = {
         day: currentDate.toFormat('yyyy-LL-dd'),
@@ -650,6 +646,11 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
+      
+      dateAssistItem.assist.isCheckOutNextDay = false
+      dateAssistItem.assist.isCheckInEatNextDay = false
+      dateAssistItem.assist.isCheckOutEatNextDay = false
+
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = this.isFutureDay(dateAssistItem)
@@ -667,7 +668,7 @@ export default class SyncAssistsService {
         }
 
         if (dateAssistItem.assist.shiftCalculateFlag === 'doble-12x48') {
-          dateAssistItem = await this.calendarDouble12x48(dateAssistItem)
+          dateAssistItem = await this.calendarDouble12x48(dateAssistItem, assistList)
         }
 
         if (dateAssistItem.assist.shiftCalculateFlag === '12x36') {
@@ -730,17 +731,12 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
-    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeOrigin}`, {
-      setZone: true,
-    })
-
+    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeOrigin}`, { setZone: true })
     const checkTime = DayTime.setZone('America/Mexico_city')
-
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
-    const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
+    const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone('America/Mexico_City')
+
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
     if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
       if (checkAssist.assist) {
@@ -805,9 +801,7 @@ export default class SyncAssistsService {
     const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
     const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
     const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
-    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true })
-      .setZone('America/Mexico_City')
-      .plus({ minutes: timeToAdd })
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: timeToAdd })
 
     checkAssistCopy.assist.checkOutDateTime = timeToEnd
 
@@ -1168,13 +1162,8 @@ export default class SyncAssistsService {
   }
 
   private calendar24x48(dateAssistItem: AssistDayInterface, discriminated?: Boolean) {
-    const startDay24x48 = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
-    ).setZone('America/Mexico_City')
-
-    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
-      'America/Mexico_City'
-    )
+    const startDay24x48 = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('America/Mexico_City')
+    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('America/Mexico_City')
 
     const daysBettweenStart = evaluatedDay.diff(startDay24x48, 'days').days
     const isStartWorkday = !!(daysBettweenStart % 3 === 0)
@@ -1294,30 +1283,20 @@ export default class SyncAssistsService {
     return dateAssistItem
   }
 
-  private calendarDouble12x48(dateAssistItem: AssistDayInterface) {
-    const startDay = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
-    ).setZone('America/Mexico_City')
+  private async calendarDouble12x48(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
+    const lastTimeZoneLimit = DateTime.fromISO(`2024-10-26T00:00:00.000-06:00`).setZone('America/Mexico_City')
+    const startDay = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('America/Mexico_City')
+    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('America/Mexico_City')
+    const checkOutDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkOutDateTime}`)).setZone('America/Mexico_City')
 
-    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
-      'America/Mexico_City'
-    )
+    // console.log('🚀 --------------------------------------------------------------------------🚀')
+    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~ evaluatedDay:', evaluatedDay.toFormat('ff'))
 
-    const nowDateTime = DateTime.now().setZone('America/Mexico_City')
+    const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('America/Mexico_City')
+    const diffSinceLastTimeZoneLimit = lastTimeZoneLimit.diff(evaluatedDay, 'milliseconds').milliseconds
 
-    const checkOutDateTime = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.checkOutDateTime}`)
-    ).setZone('America/Mexico_City')
-
-    const checkInDateTime = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.checkInDateTime}`)
-    ).setZone('America/Mexico_City')
-
-    const diffNowOut = nowDateTime.diff(checkOutDateTime, 'milliseconds').milliseconds
-    const daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
-    let isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
-    let isEndWorkday = !!(daysBettweenStart % 4 === 1)
-    let isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
+    let isStartWorkday = this.double12x48DayStatus(evaluatedDay, startDay).isStartWorkday
+    let isRestWorkday = this.double12x48DayStatus(evaluatedDay, startDay).isRestWorkday
 
     if (dateAssistItem.assist.exceptions.length > 0) {
       const workRestDay = dateAssistItem.assist.exceptions.find(
@@ -1326,7 +1305,6 @@ export default class SyncAssistsService {
 
       if (workRestDay) {
         isStartWorkday = true
-        isEndWorkday = false
         isRestWorkday = false
 
         if (dateAssistItem.assist.exceptions.length > 0) {
@@ -1336,75 +1314,114 @@ export default class SyncAssistsService {
     }
 
     if (isStartWorkday) {
-      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
-        if (dateAssistItem.assist.checkOut) {
-          if (dateAssistItem.assist.assitFlatList) {
-            if (dateAssistItem.assist.assitFlatList.length < 3) {
-              dateAssistItem.assist.checkEatIn = null
-              dateAssistItem.assist.checkEatOut = null
-              dateAssistItem.assist.checkOut = null
+      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) { // Validar si el check de salida debe ser al día siguiente
 
-              if (diffNowOut > 0 && !isEndWorkday) {
-                dateAssistItem.assist.checkOutStatus = 'working'
-              }
+        dateAssistItem.assist.checkIn = null
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+        dateAssistItem.assist.checkOut = null
+        
+        if (dateAssistItem.assist.assitFlatList) {
+          const calendarDay: AssistInterface[] = []
+          const limitDateTimeCheckinFault = checkInDateTime.plus({ hours: 3 })
+
+          dateAssistItem.assist.assitFlatList.forEach((checkItem) => {
+            const punchTime = DateTime.fromISO(`${checkItem.assistPunchTimeUtc}`, { setZone: true }).setZone('America/Mexico_City')
+            const diffToCheckStart = punchTime.diff(checkInDateTime.minus({ hours: diffSinceLastTimeZoneLimit > 0 ? 3 : 2 }), 'milliseconds').milliseconds
+
+            if (diffToCheckStart > 0) {
+              calendarDay.push(checkItem)
             }
+          })
+
+          if (calendarDay.length > 0) {
+            dateAssistItem.assist.checkIn = calendarDay[0]
+            dateAssistItem.assist.checkEatIn = calendarDay.length >= 2 ? calendarDay[1] : null
+            dateAssistItem.assist.checkEatOut = calendarDay.length >= 3 ? calendarDay[2] : null
+          }
+
+          const nextEvaluatedDay = evaluatedDay.plus({ days: 1 }).toFormat('yyyy-LL-dd')
+          
+          const nextDay = assistList.find((assistDate) => assistDate.day === nextEvaluatedDay)
+
+          dateAssistItem.assist.isCheckOutNextDay = true
+
+          if (nextDay && nextDay?.assist?.assitFlatList) {
+            nextDay.assist.assitFlatList.forEach((checkItem) => {
+              const punchTime = DateTime.fromISO(`${checkItem.assistPunchTimeUtc}`, { setZone: true }).setZone('America/Mexico_City')
+              const diffToCheckOut = punchTime.diff(checkOutDateTime.plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 3 : 2 }), 'milliseconds').milliseconds
+
+              if (diffToCheckOut <= 0) {
+                calendarDay.push(checkItem)
+              }
+            })
+          }
+
+          if (calendarDay.length > 0) {
+            dateAssistItem.assist.checkIn = calendarDay[0]
+            dateAssistItem.assist.checkEatIn = calendarDay.length > 2 ? calendarDay[1] : null
+            dateAssistItem.assist.checkEatOut = calendarDay.length > 3 ? calendarDay[2] : null
+            dateAssistItem.assist.checkOut = calendarDay.length >= 2 ? calendarDay[calendarDay.length - 1] : null
+          }
+
+          const checkinPunch = dateAssistItem.assist.checkIn ? DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).setZone('America/Mexico_City') : null
+          const diffLimitCheckinFault = checkinPunch ? checkinPunch.diff(limitDateTimeCheckinFault, 'milliseconds').milliseconds : 0
+
+          if (calendarDay.length > 0 && diffLimitCheckinFault > 0) {
+            dateAssistItem.assist.checkIn = null
+            dateAssistItem.assist.checkEatIn = calendarDay.length > 0 ? calendarDay[0] : null
+            dateAssistItem.assist.checkEatOut = calendarDay.length > 2 ? calendarDay[1] : null
+            dateAssistItem.assist.checkOut = calendarDay.length >= 2 ? calendarDay[calendarDay.length - 1] : null
           }
         }
       }
     }
 
-    if (isEndWorkday && !isStartWorkday) {
-      if (dateAssistItem.assist.checkOut) {
-        if (dateAssistItem.assist.assitFlatList) {
-          if (dateAssistItem.assist.assitFlatList.length >= 3) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-            dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[3]
-            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
-          }
+    if (dateAssistItem.assist.checkEatIn && DateTime.fromISO(`${dateAssistItem.assist.checkEatIn?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+      dateAssistItem.assist.isCheckInEatNextDay = true
+    }
 
-          if (!isStartWorkday && dateAssistItem.assist.assitFlatList.length >= 4) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-            dateAssistItem.assist.checkIn = null
-            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
-          }
-        }
-      }
+    if (dateAssistItem.assist.checkEatOut && DateTime.fromISO(`${dateAssistItem.assist.checkEatOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+      dateAssistItem.assist.isCheckOutEatNextDay = true
+    }
+
+    if (!dateAssistItem.assist.checkIn) {
+      dateAssistItem.assist.checkInStatus = 'fault'
+    }
+
+    if (!dateAssistItem.assist.checkOut) {
+      dateAssistItem.assist.checkOutStatus = 'fault'
     }
 
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
 
       if (dateAssistItem.assist.checkIn) {
-        dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkEatIn
-        dateAssistItem.assist.checkEatIn = dateAssistItem.assist.checkIn
         dateAssistItem.assist.checkIn = null
-        dateAssistItem.assist.checkInStatus = 'rest-working-out'
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+        dateAssistItem.assist.checkOut = null
       }
     }
 
-    if (dateAssistItem.assist.isFutureDay && dateAssistItem.assist.checkOut) {
-      dateAssistItem.assist.isFutureDay = false
-      dateAssistItem.assist.checkIn = null
-      dateAssistItem.assist.checkInStatus = ''
-      dateAssistItem.assist.checkEatIn = null
-      dateAssistItem.assist.checkEatOut = null
-
-      if (dateAssistItem.assist.assitFlatList) {
-        if (dateAssistItem.assist.assitFlatList.length >= 2) {
-          dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-          dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-        }
-
-        if (dateAssistItem.assist.assitFlatList.length >= 3) {
-          dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList[2]
-        }
+    if (diffSinceLastTimeZoneLimit > 0) {
+      if (dateAssistItem.assist.checkIn) {
+        dateAssistItem.assist.checkIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+      }
+      if (dateAssistItem.assist.checkEatIn) {
+        dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+      }
+      if (dateAssistItem.assist.checkEatOut) {
+        dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+      }
+      if (dateAssistItem.assist.checkOut) {
+        dateAssistItem.assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
       }
     }
 
     dateAssistItem.assist.checkOutStatus = ''
 
+    // console.log('🚀 --------------------------------------------------------------------------🚀')
     return dateAssistItem
   }
 
@@ -1588,5 +1605,18 @@ export default class SyncAssistsService {
       }
     }
     return checkAssistCopy
+  }
+
+  private double12x48DayStatus (evaluatedDay: DateTime, startDay: DateTime) {
+    const daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
+    const isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
+    const isEndWorkday = !!(daysBettweenStart % 4 === 1)
+    const isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
+
+    return {
+      isStartWorkday,
+      isEndWorkday,
+      isRestWorkday
+    }
   }
 }
