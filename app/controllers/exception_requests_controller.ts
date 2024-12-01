@@ -81,7 +81,7 @@ export default class ExceptionRequestsController {
    *                   example: ExceptionRequest not found
    */
   async updateStatus({ request, params, response }: HttpContext) {
-    const { status } = request.only(['status'])
+    const { status, description } = request.only(['status', 'description'])
 
     if (status !== 'accepted' && status !== 'refused') {
       return response.status(400).json({
@@ -95,6 +95,7 @@ export default class ExceptionRequestsController {
       })
     }
     exceptionRequest.exceptionRequestStatus = status
+
     await exceptionRequest.save()
     const userEmail = env.get('SMTP_USERNAME')
     if (userEmail) {
@@ -105,6 +106,7 @@ export default class ExceptionRequestsController {
           .subject('Notification: Status of Exception Request Updated')
           .htmlView('emails/update_status_mail', {
             newStatus: status,
+            newDescription: description,
           })
       })
     }
@@ -250,7 +252,6 @@ export default class ExceptionRequestsController {
 
   async store({ request, response }: HttpContext) {
     const data = await request.validateUsing(storeExceptionRequestValidator)
-
     const employee = await Employee.query()
       .where('employeeId', data.employeeId)
       .whereNull('deletedAt')
@@ -282,7 +283,14 @@ export default class ExceptionRequestsController {
         error: 'An exception request for the same date and time already exists and is not refused',
       })
     }
-    const exceptionRequest = await ExceptionRequest.create(data)
+    const roleId = data.role?.roleId || 0
+    const exceptionRequestData = {
+      ...data,
+      exceptionRequestRhRead: roleId === 2 ? 1 : 0,
+      exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+    }
+    delete exceptionRequestData.role
+    const exceptionRequest = await ExceptionRequest.create(exceptionRequestData)
 
     return response
       .status(201)
@@ -637,5 +645,95 @@ export default class ExceptionRequestsController {
         }
       )
     )
+  }
+  /**
+   * @swagger
+   * /api/exception-requests/unread:
+   *   get:
+   *     summary: Get unread exception requests
+   *     description: Fetch unread exception requests filtered by RH and managerial read status.
+   *     tags:
+   *       - ExceptionRequests
+   *     parameters:
+   *       - name: rhRead
+   *         in: query
+   *         required: false
+   *         description: >
+   *           Filter by RH read status (0: unread, 1: read).
+   *         schema:
+   *           type: integer
+   *           enum: [0, 1]
+   *       - name: gerencialRead
+   *         in: query
+   *         required: false
+   *         description: >
+   *           Filter by managerial read status (0: unread, 1: read).
+   *         schema:
+   *           type: integer
+   *           enum: [0, 1]
+   *     responses:
+   *       200:
+   *         description: Successfully fetched unread exception requests
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: success
+   *                 message:
+   *                   type: string
+   *                   example: Successfully fetched unread exception requests
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       exceptionRequestId:
+   *                         type: integer
+   *                         example: 1
+   *                       employeeId:
+   *                         type: integer
+   *                         example: 123
+   *                       exceptionTypeId:
+   *                         type: integer
+   *                         example: 5
+   *                       exceptionRequestStatus:
+   *                         type: string
+   *                         example: pending
+   *       400:
+   *         description: Invalid query parameters
+   *       500:
+   *         description: Internal server error
+   */
+
+  async getUnreadExceptionRequests({ request, response }: HttpContext) {
+    const rhReadFilter = request.input('rhRead')
+    const gerencialReadFilter = request.input('gerencialRead')
+
+    const query = ExceptionRequest.query()
+      .if(rhReadFilter !== undefined, (q) => {
+        q.where('exceptionRequestRhRead', rhReadFilter)
+      })
+      .if(gerencialReadFilter !== undefined, (q) => {
+        q.where('exceptionRequestGerencialRead', gerencialReadFilter)
+      })
+      .if(rhReadFilter === undefined && gerencialReadFilter === undefined, (q) => {
+        q.where('exceptionRequestRhRead', 0).where('exceptionRequestGerencialRead', 0)
+      })
+
+    const exceptionRequests = await query.exec()
+
+    return response
+      .status(200)
+      .json(
+        formatResponse(
+          'success',
+          'Successfully fetched unread exception requests',
+          'Resources fetched',
+          exceptionRequests
+        )
+      )
   }
 }

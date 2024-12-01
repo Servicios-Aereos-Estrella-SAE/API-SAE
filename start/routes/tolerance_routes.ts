@@ -4,6 +4,10 @@ import { middleware } from '#start/kernel'
 router
   .group(() => {
     router.get('/', '#controllers/tolerances_controller.index')
+    router.get(
+      '/get-tardiness-tolerance',
+      '#controllers/tolerances_controller.getTardinessTolerance'
+    )
     router.post('/', '#controllers/tolerances_controller.store')
     router.put('/:id', '#controllers/tolerances_controller.update')
     router.delete('/:id', '#controllers/tolerances_controller.destroy')

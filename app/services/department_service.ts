@@ -39,6 +39,37 @@ export default class DepartmentService {
     return departments
   }
 
+  async getOnlyWithEmployees(
+    departmentsList: Array<number>,
+    filters?: DepartmentIndexFilterInterface
+  ) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+    const departments = await Department.query()
+      .whereIn('businessUnitId', businessUnitsList)
+      .whereIn('departmentId', departmentsList)
+      .where('departmentId', '<>', 999)
+      .if(filters?.departmentName, (query) => {
+        query.whereILike('departmentName', `%${filters?.departmentName}%`)
+      })
+      .if(filters?.onlyParents, (query) => {
+        query.whereNull('parentDepartmentId')
+      })
+      .whereHas('employees', (query) => {
+        query.orderBy('employee_id')
+      })
+      .preload('employees')
+      .orderBy('departmentId', 'asc')
+
+    return departments
+  }
+
   async buildOrganization(departmentList: number[]) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')

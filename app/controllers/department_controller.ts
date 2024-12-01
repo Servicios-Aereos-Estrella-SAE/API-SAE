@@ -13,6 +13,7 @@ import BusinessUnit from '#models/business_unit'
 import { DateTime } from 'luxon'
 import UserService from '#services/user_service'
 import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
+import db from '@adonisjs/lucid/services/db'
 
 export default class DepartmentController {
   /**
@@ -490,6 +491,228 @@ export default class DepartmentController {
         message: 'The positions by department have been found successfully',
         data: {
           positions,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments/{departmentId}/get-rotation-index:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get rotation index
+   *     parameters:
+   *       - name: departmentId
+   *         in: path
+   *         required: true
+   *         description: Departmemnt id
+   *         schema:
+   *           type: integer
+   *       - name: dateStart
+   *         in: query
+   *         required: false
+   *         description: Date start (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *       - name: dateEnd
+   *         in: query
+   *         required: false
+   *         description: Date end (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getRotationIndex({ request, response }: HttpContext) {
+    try {
+      const departmentId = request.param('departmentId')
+
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Departments',
+          message: 'Missing data to process',
+          data: {},
+        }
+      }
+
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      const department = await Department.query()
+        .where('department_id', departmentId)
+        .whereIn('businessUnitId', businessUnitsList)
+        .first()
+
+      if (!department) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Positions by department',
+          message: 'Department not found',
+          data: { department_id: departmentId },
+        }
+      }
+
+      const dateStart = request.input('dateStart')
+      const dateEnd = request.input('dateEnd')
+
+      //S = personal que se separó de la empresa en el periodo.
+      const employeesTerminated =
+        await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
+        And employee_deleted_at between '${dateStart}' And '${dateEnd}' 
+        And employee_deleted_at is not null`)
+      let numEployeesTerminated = 0
+      if (employeesTerminated[0] && employeesTerminated[0][0]) {
+        const total = employeesTerminated[0][0].total
+        numEployeesTerminated = total
+      }
+
+      //I = personal que se tenía al inicio del periodo.
+      const employeesAtStart =
+        await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
+        And employee_hire_date <= '${dateStart}'
+        And (employee_deleted_at is null or employee_deleted_at > '${dateStart}')`)
+      let numEmployeesAtStart = 0
+
+      if (employeesAtStart[0] && employeesAtStart[0][0]) {
+        const total = employeesAtStart[0][0].total
+        numEmployeesAtStart = total
+      }
+
+      //F = personal que se tiene al final del periodo.
+      const employeesAtEnd =
+        await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
+        And employee_hire_date <= '${dateEnd}'
+        And (employee_deleted_at is null or employee_deleted_at > '${dateEnd}')`)
+      let numEmployeesAtEnd = 0
+      if (employeesAtEnd[0] && employeesAtEnd[0][0]) {
+        const total = employeesAtEnd[0][0].total
+        numEmployeesAtEnd = total
+      }
+
+      const avgEmployees = (numEmployeesAtStart + numEmployeesAtEnd) / 2
+      const rotationIndex = Number.parseFloat(
+        ((numEployeesTerminated / avgEmployees) * 100).toFixed(2)
+      )
+
+      /* Formula para traer indice de rotación del departamnR=S/((I+F)/2) x 100.
+
+      Donde:
+      
+      R = tasa de rotación.
+      S = personal que se separó de la empresa en el periodo.
+      I = personal que se tenía al inicio del periodo.
+      F = personal que se tiene al final del periodo. */
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Rotation index by department',
+        message: 'The rotation index by department has calculate successfully',
+        data: {
+          numEployeesTerminated: numEployeesTerminated,
+          numEmployeesAtStart: numEmployeesAtStart,
+          numEmployeesAtEnd: numEmployeesAtEnd,
+          avgEmployees: avgEmployees,
+          rotationIndex: rotationIndex,
         },
       }
     } catch (error) {
@@ -1624,6 +1847,136 @@ export default class DepartmentController {
       return {
         type: 'error',
         title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/departments/get-only-with-employees:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Departments
+   *     summary: get all departments only with employees
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getOnlyWithEmployees({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      const departmentName = request.input('department-name')
+      const onlyParents = request.input('only-parents')
+
+      let departmentsList = [] as Array<number>
+
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+
+      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents }
+      const departments = await new DepartmentService().getOnlyWithEmployees(
+        departmentsList,
+        filters
+      )
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Departments',
+        message: 'Departments were found successfully',
+        data: {
+          departments,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }

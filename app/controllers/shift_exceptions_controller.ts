@@ -83,6 +83,8 @@ export default class ShiftExceptionController {
       }
       const exceptionTypeId = request.input('exceptionTypeId')
       const vacationSettingId = request.input('vacationSettingId')
+      const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
+      const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       const shiftException = {
@@ -91,6 +93,8 @@ export default class ShiftExceptionController {
         shiftExceptionsDate: shiftExceptionsDate,
         exceptionTypeId: exceptionTypeId,
         vacationSettingId: vacationSettingId ? vacationSettingId : null,
+        shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
+        shiftExceptionCheckOutTime: shiftExceptionCheckOutTime ? shiftExceptionCheckOutTime : null,
       } as ShiftException
       const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
       if (verifyInfo.status !== 200) {
@@ -235,6 +239,8 @@ export default class ShiftExceptionController {
       }
       const exceptionTypeId = request.input('exceptionTypeId')
       const vacationSettingId = request.input('vacationSettingId')
+      const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
+      const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       const currentShiftException = await ShiftException.findOrFail(params.id)
@@ -246,6 +252,8 @@ export default class ShiftExceptionController {
         shiftExceptionsDate: shiftExceptionsDate,
         exceptionTypeId: exceptionTypeId,
         vacationSettingId: vacationSettingId ? vacationSettingId : null,
+        shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
+        shiftExceptionCheckOutTime: shiftExceptionCheckOutTime ? shiftExceptionCheckOutTime : null,
       } as ShiftException
       const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
       if (verifyInfo.status !== 200) {

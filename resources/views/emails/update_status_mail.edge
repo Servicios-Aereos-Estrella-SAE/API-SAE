@@ -28,6 +28,11 @@
       <ul style="list-style-type: none; padding-left: 0;">
         <li><strong>New Status:</strong> {{ newStatus }}</li>
       </ul>
+      @if(newDescription)
+          <ul style="list-style-type: none; padding-left: 0;">
+        <li><strong>Description:</strong> {{ newDescription }}</li>
+      </ul>
+      @endif
       <div style="border: 1px dashed #e3ebf6; padding: 1.5rem; border-radius: 0.3rem; text-align: left; font-size: 0.9rem; text-wrap: pretty;">
         This notification is intended to inform you about the change in the status of your permission request.
         <br>
