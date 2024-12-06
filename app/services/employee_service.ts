@@ -147,7 +147,7 @@ export default class EmployeeService {
         }
       )
       .if(filters.employeeTypeId, (query) => {
-        query.where('employee_type_id', filters.employeeTypeId)
+        query.where('employee_type_id', filters.employeeTypeId ? filters.employeeTypeId : 0)
       })
       .whereIn('departmentId', departmentsList)
       .preload('department')
