@@ -437,6 +437,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
+
   async getPositions({ request, response }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
@@ -458,6 +459,28 @@ export default class DepartmentController {
         .whereIn('business_unit_slug', businessList)
 
       const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      // Si el departmentId es 9999, retornar todas las posiciones
+      if (Number.parseInt(departmentId) === 9999) {
+        const allPositions = await DepartmentPosition.query()
+          .whereHas('position', (queryPosition) => {
+            queryPosition.whereIn('businessUnitId', businessUnitsList)
+          })
+          .preload('position', (queryPosition) => {
+            queryPosition.whereIn('businessUnitId', businessUnitsList)
+          })
+          .orderBy('position_id')
+
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Positions by department',
+          message: 'All positions have been found successfully',
+          data: {
+            positions: allPositions,
+          },
+        }
+      }
 
       const department = await Department.query()
         .where('department_id', departmentId)
@@ -486,7 +509,7 @@ export default class DepartmentController {
 
       response.status(200)
       return {
-        type: 'successi',
+        type: 'success',
         title: 'Positions by department',
         message: 'The positions by department have been found successfully',
         data: {

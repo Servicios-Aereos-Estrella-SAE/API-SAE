@@ -597,11 +597,19 @@ export default class ExceptionRequestsController {
   async indexAllExceptionRequests({ request, response }: HttpContext) {
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
-    const departmentId = request.input('departmentId')
-    const positionId = request.input('positionId')
-    const status = request.input('status')
-    const searchText = request.input('searchText', '')
-
+    let departmentId = request.input('departmentId')
+    let positionId = request.input('positionId')
+    let status = request.input('status')
+    let employeeName = request.input('employeeName')
+    if (departmentId === '9999') {
+      departmentId = null
+    }
+    if (positionId === '9999') {
+      positionId = null
+    }
+    if (status === 'all') {
+      status = null
+    }
     // Construir la consulta base
     const query = ExceptionRequest.query()
       .preload('employee', (employeeQuery) => {
@@ -620,11 +628,9 @@ export default class ExceptionRequestsController {
         })
       })
       .if(status, (q) => q.where('exceptionRequestStatus', status))
-      .if(searchText, (q) => {
+      .if(employeeName, (q) => {
         q.whereHas('employee', (employeeQuery) => {
-          employeeQuery
-            .where('employeeFirstName', 'like', `%${searchText}%`)
-            .orWhere('employeeLastName', 'like', `%${searchText}%`)
+          employeeQuery.where('employeeId', employeeName)
         })
       })
 
