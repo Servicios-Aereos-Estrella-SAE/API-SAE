@@ -8,6 +8,7 @@ import { compose } from '@adonisjs/core/helpers'
 import Person from './person.js'
 import ShiftException from './shift_exception.js'
 import BusinessUnit from './business_unit.js'
+import EmployeeType from './employee_type.js'
 
 /**
  * @swagger
@@ -67,6 +68,9 @@ import BusinessUnit from './business_unit.js'
  *          employeeTypeOfContract:
  *            type: string
  *            description: Employee type of contract
+ *          employeeTypeId:
+ *            type: number
+ *            description: Employee type id
  *          employeeTerminatedDate:
  *            type: string
  *            description: Employee terminated date
@@ -134,6 +138,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
   declare employeeLastSynchronizationAt: Date
 
   @column()
+  declare employeeTypeId: number
+
+  @column()
   declare employeeTypeOfContract: string
 
   @column()
@@ -167,6 +174,11 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'businessUnitId',
   })
   declare businessUnit: BelongsTo<typeof BusinessUnit>
+
+  @belongsTo(() => EmployeeType, {
+    foreignKey: 'employeeTypeId',
+  })
+  declare employeeType: BelongsTo<typeof EmployeeType>
 
   @hasMany(() => ShiftException, {
     foreignKey: 'employeeId',
