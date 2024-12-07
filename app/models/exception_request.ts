@@ -6,6 +6,73 @@ import * as relations from '@adonisjs/lucid/types/relations'
 import Employee from './employee.js'
 import ExceptionType from './exception_type.js'
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ExceptionRequest:
+ *       type: object
+ *       properties:
+ *         exceptionRequestId:
+ *           type: number
+ *           description: Exception request ID
+ *         employeeId:
+ *           type: number
+ *           nullable: false
+ *           description: ID of the employee associated with the exception request
+ *         exceptionTypeId:
+ *           type: number
+ *           nullable: false
+ *           description: ID of the exception type associated with the exception request
+ *         requestedDate:
+ *           type: string
+ *           format: date
+ *           description: Date of the exception request
+ *         exceptionRequestDescription:
+ *           type: string
+ *           description: Description of the exception request
+ *         exceptionRequestCheckInTime:
+ *           type: string
+ *           format: time
+ *           description: Time check in
+ *           nullable: true
+ *         exceptionRequestCheckOutTime:
+ *           type: string
+ *           format: time
+ *           description: Time check out
+ *           nullable: true
+ *         exceptionRequestRhRead:
+ *           type: number
+ *           description: Read by RH
+ *         exceptionRequestGerencialRead:
+ *           type: number
+ *           description: Read by Gerencial
+ *         exceptionRequestCreatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time when the exception reques was created
+ *         exceptionRequestUpdatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time when the exception requeswas last updated
+ *         exceptionRequestDeletedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Date and time when the exception reques was soft-deleted
+ *       example:
+ *         exceptionRequestId: 1
+ *         employeeId: 1
+ *         exceptionTypeId: 1
+ *         requestedDate: '2024-12-06'
+ *         exceptionRequestDescription: "Employee was absent from work"
+ *         exceptionRequestCheckInTime: '07:00:00'
+ *         exceptionRequestCheckOutTime: '21:00:00'
+ *         exceptionRequestCreatedAt: '2024-06-20T12:00:00Z'
+ *         exceptionRequestUpdatedAt: '2024-06-20T13:00:00Z'
+ *         exceptionRequestDeletedAt: null
+ */
+
 export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
   exceptionRequestId!: number
@@ -21,6 +88,12 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
 
   @column()
   exceptionRequestDescription?: string
+
+  @column()
+  exceptionRequestCheckInTime!: string | null
+
+  @column()
+  exceptionRequestCheckOutTime!: string | null
 
   @column.dateTime()
   declare requestedDate: DateTime

@@ -38,6 +38,7 @@ export const createEmployeeValidator = vine.compile(
           .first()
         return !existingPersonId
       }),
+    employeeTypeId: vine.number().min(1),
   })
 )
 
@@ -56,5 +57,6 @@ export const updateEmployeeValidator = vine.compile(
     departmentSyncId: vine.number().min(0).optional(),
     positionId: vine.number().min(1),
     positionSyncId: vine.number().min(0).optional(),
+    employeeTypeId: vine.number().min(1),
   })
 )

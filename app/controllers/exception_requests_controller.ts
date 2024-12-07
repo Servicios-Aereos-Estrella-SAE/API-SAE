@@ -225,6 +225,12 @@ export default class ExceptionRequestsController {
    *               requestedDate:
    *                 type: string
    *                 example: "2024-11-15 14:00:00"
+   *               exceptionRequestCheckInTime:
+   *                 type: string
+   *                 example: "14:00:00"
+   *               exceptionRequestCheckOutTime:
+   *                 type: string
+   *                 example: "14:00:00"
    *     responses:
    *       201:
    *         description: Exception request created successfully
@@ -422,7 +428,14 @@ export default class ExceptionRequestsController {
   async update({ params, request, response }: HttpContext) {
     const data = await request.validateUsing(updateExceptionRequestValidator)
     const exceptionRequest = await ExceptionRequest.findOrFail(params.id)
-    exceptionRequest.merge(data)
+    const roleId = data.role?.roleId || 0
+    const exceptionRequestData = {
+      ...data,
+      exceptionRequestRhRead: roleId === 2 ? 1 : 0,
+      exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+    }
+    delete exceptionRequestData.role
+    exceptionRequest.merge(exceptionRequestData)
     await exceptionRequest.save()
 
     return response

@@ -18,6 +18,7 @@ import FlightAttendant from '#models/flight_attendant'
 import Customer from '#models/customer'
 import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
+import EmployeeType from '#models/employee_type'
 
 export default class EmployeeService {
   async syncCreate(
@@ -145,6 +146,9 @@ export default class EmployeeService {
           query.withTrashed()
         }
       )
+      .if(filters.employeeTypeId, (query) => {
+        query.where('employee_type_id', filters.employeeTypeId ? filters.employeeTypeId : 0)
+      })
       .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
@@ -164,13 +168,14 @@ export default class EmployeeService {
     newEmployee.employeeHireDate = employee.employeeHireDate
     newEmployee.employeeTerminatedDate = employee.employeeTerminatedDate
     newEmployee.companyId = employee.companyId
-    newEmployee.departmentId = await employee.departmentId
-    newEmployee.positionId = await employee.positionId
-    newEmployee.personId = await employee.personId
-    newEmployee.businessUnitId = await employee.businessUnitId
+    newEmployee.departmentId = employee.departmentId
+    newEmployee.positionId = employee.positionId
+    newEmployee.personId = employee.personId
+    newEmployee.businessUnitId = employee.businessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
+    newEmployee.employeeTypeId = employee.employeeTypeId
     await newEmployee.save()
     await newEmployee.load('businessUnit')
     return newEmployee
@@ -184,12 +189,13 @@ export default class EmployeeService {
     currentEmployee.employeeHireDate = employee.employeeHireDate
     currentEmployee.employeeTerminatedDate = employee.employeeTerminatedDate
     currentEmployee.companyId = employee.companyId
-    currentEmployee.departmentId = await employee.departmentId
-    currentEmployee.positionId = await employee.positionId
+    currentEmployee.departmentId = employee.departmentId
+    currentEmployee.positionId = employee.positionId
     currentEmployee.businessUnitId = employee.businessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
+    currentEmployee.employeeTypeId = employee.employeeTypeId
     await currentEmployee.save()
     await currentEmployee.load('businessUnit')
     return currentEmployee
@@ -289,6 +295,21 @@ export default class EmployeeService {
         type: 'warning',
         title: 'The position was not found',
         message: 'The position was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+
+    const existEmployeeType = await EmployeeType.query()
+      .whereNull('employee_type_deleted_at')
+      .where('employee_type_id', employee.employeeTypeId)
+      .first()
+
+    if (!existEmployeeType && employee.employeeTypeId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee type was not found',
+        message: 'The employee type was not found with the entered ID',
         data: { ...employee },
       }
     }
@@ -497,14 +518,33 @@ export default class EmployeeService {
     const employeeVacationsInfo = await this.getCurrentVacationPeriod(employee)
     if (employeeVacationsInfo && employeeVacationsInfo.yearsWorked) {
       const yearWorked = Math.floor(employeeVacationsInfo.yearsWorked)
+      const employeeType = await EmployeeType.query()
+        .whereNull('employee_type_deleted_at')
+        .where('employee_type_id', employee.employeeTypeId)
+        .first()
+      let employeeIsCrew = false
+      if (employeeType) {
+        if (
+          employeeType.employeeTypeSlug === 'pilot' ||
+          employeeType.employeeTypeSlug === 'flight-attendant'
+        ) {
+          employeeIsCrew = true
+        }
+      }
       let vacationSetting = await VacationSetting.query()
         .whereNull('vacation_setting_deleted_at')
         .where('vacation_setting_years_of_service', yearWorked)
+        .if(employeeIsCrew, (query) => {
+          query.where('vacation_setting_crew', 1)
+        })
         .first()
       if (!vacationSetting) {
         vacationSetting = await VacationSetting.query()
           .whereNull('vacation_setting_deleted_at')
           .orderBy('vacation_setting_years_of_service', 'desc')
+          .if(employeeIsCrew, (query) => {
+            query.where('vacation_setting_crew', 1)
+          })
           .first()
         if (!vacationSetting) {
           return {
@@ -577,6 +617,19 @@ export default class EmployeeService {
       }
     }
     if (employee.employeeHireDate) {
+      const employeeType = await EmployeeType.query()
+        .whereNull('employee_type_deleted_at')
+        .where('employee_type_id', employee.employeeTypeId)
+        .first()
+      let employeeIsCrew = false
+      if (employeeType) {
+        if (
+          employeeType.employeeTypeSlug === 'pilot' ||
+          employeeType.employeeTypeSlug === 'flight-attendant'
+        ) {
+          employeeIsCrew = true
+        }
+      }
       const start = DateTime.fromISO(employee.employeeHireDate.toString())
       const startYear = yearTemp ? yearTemp : start.year
       const currentYear = yearTemp ? yearTemp : DateTime.now().year + 1
@@ -604,6 +657,9 @@ export default class EmployeeService {
           .whereNull('vacation_setting_deleted_at')
           .where('vacation_setting_years_of_service', yearsPassed)
           .where('vacation_setting_apply_since', '<=', formattedDate ? formattedDate : '')
+          .if(employeeIsCrew, (query) => {
+            query.where('vacation_setting_crew', 1)
+          })
           .first()
         let vacationsUsedList = [] as Array<ShiftException>
         if (vacationSetting) {
@@ -666,10 +722,26 @@ export default class EmployeeService {
         month: month,
         day: day,
       }).toFormat('yyyy-MM-dd')
+      const employeeType = await EmployeeType.query()
+        .whereNull('employee_type_deleted_at')
+        .where('employee_type_id', employee.employeeTypeId)
+        .first()
+      let employeeIsCrew = false
+      if (employeeType) {
+        if (
+          employeeType.employeeTypeSlug === 'pilot' ||
+          employeeType.employeeTypeSlug === 'flight-attendant'
+        ) {
+          employeeIsCrew = true
+        }
+      }
       const vacationSetting = await VacationSetting.query()
         .whereNull('vacation_setting_deleted_at')
         .where('vacation_setting_years_of_service', yearsPassed)
         .where('vacation_setting_apply_since', '<=', formattedDate ? formattedDate : '')
+        .if(employeeIsCrew, (query) => {
+          query.where('vacation_setting_crew', 1)
+        })
         .first()
       let vacationsUsedList = [] as Array<ShiftException>
       if (vacationSetting) {
