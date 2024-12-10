@@ -9,6 +9,9 @@ import env from '#start/env'
 import mail from '@adonisjs/mail/services/main'
 import Employee from '#models/employee'
 import ExceptionType from '#models/exception_type'
+import ShiftException from '#models/shift_exception'
+import ShiftExceptionService from '#services/shift_exception_service'
+import { DateTime } from 'luxon'
 
 export default class ExceptionRequestsController {
   /**
@@ -80,7 +83,7 @@ export default class ExceptionRequestsController {
    *                   type: string
    *                   example: ExceptionRequest not found
    */
-  async updateStatus({ request, params, response }: HttpContext) {
+  async updateStatus({ auth, request, params, response }: HttpContext) {
     const { status, description } = request.only(['status', 'description'])
 
     if (status !== 'accepted' && status !== 'refused') {
@@ -95,8 +98,57 @@ export default class ExceptionRequestsController {
       })
     }
     exceptionRequest.exceptionRequestStatus = status
-
     await exceptionRequest.save()
+
+    if (status === 'accepted') {
+      const shiftExceptionService = new ShiftExceptionService()
+      const shiftException = {
+        shiftExceptionId: 0,
+        employeeId: exceptionRequest.employeeId,
+        shiftExceptionsDescription: exceptionRequest.exceptionRequestDescription,
+        shiftExceptionsDate: exceptionRequest.requestedDate
+          ? DateTime.fromJSDate(new Date(exceptionRequest.requestedDate.toString()))
+              .setZone('UTC')
+              .toJSDate()
+          : null,
+        exceptionTypeId: exceptionRequest.exceptionTypeId,
+        vacationSettingId: null,
+        shiftExceptionCheckInTime: exceptionRequest.exceptionRequestCheckInTime,
+        shiftExceptionCheckOutTime: exceptionRequest.exceptionRequestCheckOutTime,
+      } as ShiftException
+      const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...shiftException },
+        }
+      }
+      const newShiftException = await shiftExceptionService.create(shiftException)
+      if (newShiftException) {
+        const rawHeaders = request.request.rawHeaders
+        const userId = auth.user?.userId
+        if (userId) {
+          const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'store')
+          logShiftException.user_id = userId
+          logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+
+          const exceptionType = await ExceptionType.query()
+            .whereNull('exception_type_deleted_at')
+            .where('exception_type_slug', 'vacation')
+            .first()
+          let table = 'log_shift_exceptions'
+          if (exceptionType) {
+            if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
+              table = 'log_vacations'
+            }
+          }
+          await shiftExceptionService.saveActionOnLog(logShiftException, table)
+        }
+      }
+    }
     const userEmail = env.get('SMTP_USERNAME')
     if (userEmail) {
       await mail.send((message) => {
