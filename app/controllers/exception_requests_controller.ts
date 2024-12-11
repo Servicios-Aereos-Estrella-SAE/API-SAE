@@ -715,6 +715,7 @@ export default class ExceptionRequestsController {
         employeeQuery.preload('position')
       })
       .preload('exceptionType')
+      .preload('user')
       .if(departmentId, (q) => {
         q.whereHas('employee', (employeeQuery) => {
           employeeQuery.where('departmentId', departmentId)

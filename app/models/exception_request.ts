@@ -5,6 +5,7 @@ import { compose } from '@adonisjs/core/helpers'
 import * as relations from '@adonisjs/lucid/types/relations'
 import Employee from './employee.js'
 import ExceptionType from './exception_type.js'
+import User from './user.js'
 
 /**
  * @swagger
@@ -130,4 +131,14 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'exceptionTypeId',
   })
   exceptionType!: relations.BelongsTo<typeof ExceptionType>
+
+  @belongsTo(() => User, {
+    foreignKey: 'userId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+      }
+    },
+  })
+  user!: relations.BelongsTo<typeof User>
 }
