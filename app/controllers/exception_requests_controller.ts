@@ -102,7 +102,7 @@ export default class ExceptionRequestsController {
     exceptionRequest.exceptionRequestStatus = status
     await exceptionRequest.save()
 
-    if (status === 'accepted') {
+    if (status === 'accepted' || status === 'refused') {
       if (exceptionRequest.userId) {
         const user = await User.query()
           .where('user_id', exceptionRequest.userId)
@@ -117,7 +117,9 @@ export default class ExceptionRequestsController {
                 message
                   .to(user.userEmail)
                   .from(userEmail, 'SAE')
-                  .subject('Notification: Status of Exception Request Updated')
+                  .subject(
+                    `SAE, Exception Request - ${`${exceptionRequest.exceptionRequestId}`.padStart(5, '0')}`
+                  )
                   .htmlView('emails/update_status_mail', {
                     newStatus: status,
                     newDescription: description,
@@ -130,6 +132,8 @@ export default class ExceptionRequestsController {
           }
         }
       }
+    }
+    if (status === 'accepted') {
       const shiftExceptionService = new ShiftExceptionService()
       const shiftException = {
         shiftExceptionId: 0,
@@ -177,20 +181,6 @@ export default class ExceptionRequestsController {
           await shiftExceptionService.saveActionOnLog(logShiftException, table)
         }
       }
-    }
-    const userEmail = env.get('SMTP_USERNAME')
-    if (userEmail) {
-      await mail.send((message) => {
-        message
-          .to('wramirez@siler-mx.com')
-          .from(userEmail, 'SAE')
-          .subject('Notification: Status of Exception Request Updated')
-          .htmlView('emails/update_status_mail', {
-            newStatus: status,
-            newDescription: description,
-            userName: 'Gerente willy',
-          })
-      })
     }
     return response.status(200).json({
       message: 'Status updated successfully',
