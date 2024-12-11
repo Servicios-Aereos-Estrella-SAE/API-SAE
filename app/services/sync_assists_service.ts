@@ -651,44 +651,63 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
 
-      dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
-      dateAssistItem = this.checkOutStatus(dateAssistItem, isDiscriminated)
-      dateAssistItem = this.isFutureDay(dateAssistItem)
-      dateAssistItem = this.isSundayBonus(dateAssistItem)
-      dateAssistItem = this.isRestDay(dateAssistItem)
-
+      dateAssistItem = await this.isSundayBonus(dateAssistItem)
       dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
       dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
+      dateAssistItem = await this.setCheckInDateTime(dateAssistItem)
+      dateAssistItem = await this.setCheckOutDateTime(dateAssistItem)
+      
+      dateAssistItem = await this.calculateRawCalendar(dateAssistItem, assistList)
+
+      // if (!dateAssistItem.assist.shiftCalculateFlag) {
+      //   dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
+      //   dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
+      // }
+
+      dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
+      dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
-
-      if (dateAssistItem?.assist?.dateShift) {
-        if (dateAssistItem.assist.shiftCalculateFlag === '24x48') {
-          dateAssistItem = await this.calendar24x48(dateAssistItem, isDiscriminated)
-        }
-
-        if (dateAssistItem.assist.shiftCalculateFlag === 'doble-12x48') {
-          dateAssistItem = await this.calendarDouble12x48(dateAssistItem, assistList)
-        }
-
-        if (dateAssistItem.assist.shiftCalculateFlag === '12x36') {
-          dateAssistItem = await this.calendar12x36(dateAssistItem)
-        }
-
-        if (dateAssistItem.assist.shiftCalculateFlag === '24x24') {
-          dateAssistItem = await this.calendar24x24(dateAssistItem, isDiscriminated)
-        }
-
-        if (!dateAssistItem.assist.shiftCalculateFlag) {
-          dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
-          dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
-        }
-      }
 
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
     return dailyAssistList
+  }
+
+  private setCheckInDateTime (checkAssist: AssistDayInterface) {
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssist
+    }
+
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: 1 })
+
+    checkAssist.assist.checkInDateTime = timeToStart
+
+    return checkAssist
+  }
+
+  private setCheckOutDateTime (checkAssist: AssistDayInterface) {
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssist
+    }
+
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: timeToAdd })
+
+    checkAssist.assist.checkOutDateTime = timeToEnd
+
+    return checkAssist
   }
 
   private async checkInStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
@@ -700,18 +719,8 @@ export default class SyncAssistsService {
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
     }
-    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true })
-      .setZone('America/Mexico_City')
-      .plus({ minutes: 1 })
 
-    checkAssistCopy.assist.checkInDateTime = timeToStart
-
-    if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
+    if (!checkAssist?.assist?.checkIn?.assistPunchTimeUtc) {
       checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
 
       if (discriminated) {
@@ -719,38 +728,45 @@ export default class SyncAssistsService {
       }
 
       if (checkAssist.assist.exceptions.length > 0) {
-        const absentException = checkAssist.assist.exceptions.find(
-          (ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work'
-        )
+        const absentException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
 
         if (absentException) {
           checkAssistCopy.assist.checkInStatus = ''
           return checkAssistCopy
         }
       }
+
       return checkAssistCopy
     }
 
-    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeOrigin}`, { setZone: true })
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: 1 })
+
+    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeUtc}`, { setZone: true })
     const checkTime = DayTime.setZone('America/Mexico_city')
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone('America/Mexico_City')
 
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
+
     if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
       if (checkAssist.assist) {
         checkAssistCopy.assist.checkInStatus = 'fault'
       }
+
       if (checkAssist.assist.exceptions.length > 0) {
-        const vacationException = checkAssist.assist.exceptions.find(
-          (ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation'
-        )
+        const vacationException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation')
 
         if (vacationException) {
           checkAssistCopy.assist.checkInStatus = ''
         }
       }
+
       return checkAssistCopy
     }
 
@@ -769,6 +785,55 @@ export default class SyncAssistsService {
     if (discriminated) {
       checkAssistCopy.assist.checkInStatus = ''
     }
+
+    return checkAssistCopy
+  }
+
+  private checkOutStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: timeToAdd })
+
+    if (discriminated) {
+      checkAssistCopy.assist.checkOutStatus = ''
+      return checkAssistCopy
+    }
+
+    if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
+      checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
+      return checkAssistCopy
+    }
+
+    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeUtc}`, { setZone: true })
+
+    const checkTime = DayTime.setZone('America/Mexico_city')
+    const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+    const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
+    const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone('America/Mexico_City')
+    const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
+
+    if (diffTime > 10) {
+      checkAssistCopy.assist.checkOutStatus = 'delay'
+    }
+
+    if (diffTime <= 10) {
+      checkAssistCopy.assist.checkOutStatus = 'tolerance'
+    }
+
+    if (diffTime <= 0) {
+      checkAssistCopy.assist.checkOutStatus = 'ontime'
+    }
+
     return checkAssistCopy
   }
 
@@ -788,114 +853,51 @@ export default class SyncAssistsService {
     }
   }
 
-  private checkOutStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
-    const checkAssistCopy = checkAssist
-
-    if (!checkAssist?.assist?.dateShift) {
-      return checkAssistCopy
-    }
-
-    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
-    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: timeToAdd })
-
-    checkAssistCopy.assist.checkOutDateTime = timeToEnd
-
-    if (discriminated) {
-      checkAssistCopy.assist.checkOutStatus = ''
-      return checkAssistCopy
-    }
-
-    if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
-      checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
-      return checkAssistCopy
-    }
-
-    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
-      setZone: true,
-    })
-
-    const checkTime = DayTime.setZone('America/Mexico_city')
-    const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-    const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
-    const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
-    const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
-
-    if (diffTime > 10) {
-      checkAssistCopy.assist.checkOutStatus = 'delay'
-    }
-
-    if (diffTime <= 10) {
-      checkAssistCopy.assist.checkOutStatus = 'tolerance'
-    }
-
-    if (diffTime <= 0) {
-      checkAssistCopy.assist.checkOutStatus = 'ontime'
-    }
-
-    return checkAssistCopy
-  }
-
   private isFutureDay(checkAssist: AssistDayInterface) {
     const checkAssistCopy = checkAssist
 
     if (!checkAssist?.assist?.dateShift) {
-      return checkAssistCopy
+      // return checkAssistCopy
+      return false
     }
 
     const now = DateTime.now().setZone('America/Mexico_City')
     const assignedShift = checkAssist.assist.dateShift
 
     if (!assignedShift) {
-      return checkAssistCopy
+      // return checkAssistCopy
+      return false
     }
 
     const hourStart = assignedShift.shiftTimeStart
     const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City')
     const diff = now.diff(timeToStart, 'seconds').seconds
 
     checkAssistCopy.assist.isFutureDay = diff < 0
-    return checkAssistCopy
+    // return checkAssistCopy
+    return diff < 0
   }
 
   private isSundayBonus(checkAssist: AssistDayInterface) {
-    const currentDate = DateTime.fromISO(`${checkAssist.day}T00:00:00.000-06:00`, {
-      setZone: true,
-    }).setZone('America/Mexico_City')
+    const currentDate = DateTime.fromISO(`${checkAssist.day}T00:00:00.000-06:00`, { setZone: true }).setZone('America/Mexico_City')
     const naturalDay = currentDate.toFormat('c')
-    checkAssist.assist.isSundayBonus =
-      Number.parseInt(`${naturalDay}`) === 7 && !!checkAssist?.assist?.checkIn
+    checkAssist.assist.isSundayBonus = Number.parseInt(`${naturalDay}`) === 7 && !!checkAssist?.assist?.checkIn
     return checkAssist
   }
 
   private isRestDay(checkAssist: AssistDayInterface) {
     if (!checkAssist?.assist?.dateShift) {
-      return checkAssist
+      return false
     }
 
-    const currentDate = DateTime.fromISO(
-      `${checkAssist.day}T${checkAssist.assist.dateShift.shiftTimeStart}.000-06:00`,
-      { setZone: true }
-    ).setZone('America/Mexico_City')
+    const currentDate = DateTime.fromISO(`${checkAssist.day}T${checkAssist.assist.dateShift.shiftTimeStart}.000-06:00`, { setZone: true }).setZone('America/Mexico_City')
     const naturalDay = currentDate.toFormat('c')
     const restDay = checkAssist.assist.dateShift.shiftRestDays
       .split(',')
-      .find(
-        (assistRestDay) => Number.parseInt(`${assistRestDay}`) === Number.parseInt(`${naturalDay}`)
-      )
+      .find((assistRestDay) => Number.parseInt(`${assistRestDay}`) === Number.parseInt(`${naturalDay}`))
 
-    checkAssist.assist.isRestDay = !!restDay
-
-    return checkAssist
+    return !!restDay
   }
 
   private async isHoliday(checkAssist: AssistDayInterface) {
@@ -913,23 +915,12 @@ export default class SyncAssistsService {
 
     const hourStart = assignedShift.shiftTimeStart
     const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City')
+    const service = await new HolidayService().index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
 
-    const service = await new HolidayService().index(
-      timeToStart.toFormat('yyyy-LL-dd'),
-      timeToStart.toFormat('yyyy-LL-dd'),
-      '',
-      1,
-      100
-    )
+    checkAssistCopy.assist.isHoliday = service.status === 200 && service.holidays && service.holidays.length > 0 ? true : false
 
-    checkAssistCopy.assist.isHoliday =
-      service.status === 200 && service.holidays && service.holidays.length > 0 ? true : false
-
-    checkAssistCopy.assist.holiday =
-      service.status === 200 && service.holidays && service.holidays.length > 0
+    checkAssistCopy.assist.holiday = service.status === 200 && service.holidays && service.holidays.length > 0
         ? (service.holidays[0] as unknown as HolidayInterface)
         : null
 
@@ -968,10 +959,7 @@ export default class SyncAssistsService {
 
     const hourStart = assignedShift.shiftTimeStart
     const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
-
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City')
     const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
     const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
 
@@ -981,8 +969,63 @@ export default class SyncAssistsService {
     })
 
     checkAssistCopy.assist.hasExceptions = employee.shift_exceptions.length > 0 ? true : false
-    checkAssistCopy.assist.exceptions =
-      employee.shift_exceptions as unknown as ShiftExceptionInterface[]
+    checkAssistCopy.assist.exceptions = employee.shift_exceptions as unknown as ShiftExceptionInterface[]
+
+    return checkAssistCopy
+  }
+
+  private async hasSomeException(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+    if (!employeeID) {
+      return checkAssist
+    }
+
+    const employee = await Employee.query()
+      .where('employee_id', employeeID || 0)
+      .first()
+
+    if (!employee) {
+      return checkAssist
+    }
+
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const assignedShift = checkAssist.assist.dateShift
+
+    if (!assignedShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = assignedShift.shiftTimeStart
+    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City')
+    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
+    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
+
+    await employee.load('shift_exceptions', (query) => {
+      query.where('shiftExceptionsDate', '>=', startDate)
+      query.where('shiftExceptionsDate', '<=', endDate)
+    })
+
+    if (employee.shift_exceptions.length > 0) {
+      const restException = employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day')
+      // const workOnRest = employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado')
+
+      // if (!workOnRest) {
+      //   checkAssistCopy.assist.checkInStatus = 'exception'
+      //   checkAssistCopy.assist.checkOutStatus = 'exception'
+      // }
+
+      checkAssistCopy.assist.checkInStatus = 'exception'
+      checkAssistCopy.assist.checkOutStatus = 'exception'
+
+      if (restException) {
+        checkAssistCopy.assist.isRestDay = true
+      }
+    }
 
     return checkAssistCopy
   }
@@ -1044,68 +1087,6 @@ export default class SyncAssistsService {
     return checkAssistCopy
   }
 
-  private async hasSomeException(employeeID: number | undefined, checkAssist: AssistDayInterface) {
-    if (!employeeID) {
-      return checkAssist
-    }
-
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .first()
-
-    if (!employee) {
-      return checkAssist
-    }
-
-    const checkAssistCopy = checkAssist
-
-    if (!checkAssist?.assist?.dateShift) {
-      return checkAssistCopy
-    }
-
-    const assignedShift = checkAssist.assist.dateShift
-
-    if (!assignedShift) {
-      return checkAssistCopy
-    }
-
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
-
-    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
-    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
-
-    await employee.load('shift_exceptions', (query) => {
-      query.where('shiftExceptionsDate', '>=', startDate)
-      query.where('shiftExceptionsDate', '<=', endDate)
-    })
-
-    if (employee.shift_exceptions.length > 0) {
-
-      const restException = employee.shift_exceptions.find(
-        (ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day'
-      )
-
-      const workOnRest = employee.shift_exceptions.find(
-        (ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado'
-      )
-
-      if (!workOnRest) {
-        checkAssistCopy.assist.checkInStatus = 'exception'
-        checkAssistCopy.assist.checkOutStatus = 'exception'
-      }
-
-      if (restException) {
-        checkAssistCopy.assist.isRestDay = true
-      }
-    }
-
-    return checkAssistCopy
-  }
-
   private getCheckInDate(dayAssist: AssistInterface[]) {
     const assist = dayAssist.length > 0 ? dayAssist[0] : null
     return assist
@@ -1161,147 +1142,23 @@ export default class SyncAssistsService {
     return assist
   }
 
-  private calendar24x48(dateAssistItem: AssistDayInterface, discriminated?: Boolean) {
-    const startDay24x48 = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('America/Mexico_City')
-    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('America/Mexico_City')
-
-    const daysBettweenStart = evaluatedDay.diff(startDay24x48, 'days').days
-    const isStartWorkday = !!(daysBettweenStart % 3 === 0)
-    const isEndWorkday = !!(daysBettweenStart % 3 === 1)
-    const isRestWorkday = !!(daysBettweenStart % 3 === 2)
-
-    if (isStartWorkday) {
-      if (dateAssistItem.assist.checkOut) {
-        dateAssistItem.assist.checkOutStatus = 'working'
-
-        if (dateAssistItem.assist.assitFlatList) {
-          if (dateAssistItem.assist.assitFlatList.length < 3) {
-            dateAssistItem.assist.checkEatIn = null
-            dateAssistItem.assist.checkEatOut = null
-          }
-
-          if (dateAssistItem.assist.assitFlatList.length === 3) {
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkOut
-          }
-        }
-
-        dateAssistItem.assist.checkOut = null
-      }
-    }
-
-    if (isEndWorkday) {
-      dateAssistItem.assist.isRestDay = true
-
-      if (dateAssistItem.assist.checkIn) {
-        dateAssistItem.assist.checkInStatus = 'working'
-        dateAssistItem.assist.checkOutStatus = !discriminated ? 'ontime' : ''
-        dateAssistItem.assist.checkIn = null
-
-        dateAssistItem.assist.checkEatIn = null
-        dateAssistItem.assist.checkEatOut = null
-
-        if (dateAssistItem.assist.assitFlatList) {
-          if (dateAssistItem.assist.assitFlatList.length === 2) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-            dateAssistItem.assist.checkOut = null
-          }
-          if (dateAssistItem.assist.assitFlatList.length >= 3) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-          }
-        }
-      } else {
-        dateAssistItem.assist.checkInStatus = ''
-        dateAssistItem.assist.checkOutStatus = ''
-      }
-    }
-
-    if (isRestWorkday) {
-      dateAssistItem.assist.isRestDay = true
-    }
-
-    return dateAssistItem
-  }
-
-  private calendar12x36(dateAssistItem: AssistDayInterface) {
-    const startDay12X36 = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
-    ).setZone('America/Mexico_City')
-
-    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
-      'America/Mexico_City'
-    )
-
-    const nowDateTime = DateTime.now().setZone('America/Mexico_City')
-
-    const checkOutDateTime = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.checkOutDateTime}`)
-    ).setZone('America/Mexico_City')
-
-    const checkInDateTime = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.checkInDateTime}`)
-    ).setZone('America/Mexico_City')
-
-    const diffNowOut = nowDateTime.diff(checkOutDateTime, 'milliseconds').milliseconds
-    const daysBettweenStart = evaluatedDay.diff(startDay12X36, 'days').days
-    const isStartWorkday = !!(daysBettweenStart % 2 === 0)
-    const isRestWorkday = !!(daysBettweenStart % 2 === 1)
-
-    if (isStartWorkday) {
-      if (checkOutDateTime.toFormat('yyyy-LL-dd') === checkInDateTime.toFormat('yyyy-LL-dd')) {
-        if (diffNowOut < 0) {
-          dateAssistItem.assist.checkOut = null
-          dateAssistItem.assist.checkOutStatus = 'working'
-        }
-      }
-
-      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
-        if (dateAssistItem.assist.checkOut) {
-          dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkOut
-          dateAssistItem.assist.checkOut = null
-          dateAssistItem.assist.checkOutStatus = 'working'
-        }
-      }
-    }
-
-    if (isRestWorkday) {
-      dateAssistItem.assist.isRestDay = true
-
-      if (dateAssistItem.assist.checkIn) {
-        dateAssistItem.assist.checkIn = null
-        dateAssistItem.assist.checkInStatus = 'working'
-      }
-
-      if (!dateAssistItem.assist.checkOut) {
-        dateAssistItem.assist.checkOutStatus = ''
-      }
-    }
-
-    dateAssistItem.assist.checkOutStatus = ''
-
-    return dateAssistItem
-  }
-
-  private async calendarDouble12x48(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
+  private async calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
     const lastTimeZoneLimit = DateTime.fromISO(`2024-10-26T00:00:00.000-06:00`).setZone('America/Mexico_City')
     const startDay = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('America/Mexico_City')
     const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('America/Mexico_City')
     const checkOutDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkOutDateTime}`)).setZone('America/Mexico_City')
 
-    // console.log('🚀 --------------------------------------------------------------------------🚀')
-    // console.log('🚀 ~ SyncAssistsService ~ calendarDouble12x48 ~ evaluatedDay:', evaluatedDay.toFormat('ff'))
-
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('America/Mexico_City')
     const diffSinceLastTimeZoneLimit = lastTimeZoneLimit.diff(evaluatedDay, 'milliseconds').milliseconds
+    const calendarDayStatus = await this.calendarDayStatus(dateAssistItem, evaluatedDay, startDay, dateAssistItem.assist.shiftCalculateFlag)
 
-    let isStartWorkday = this.double12x48DayStatus(evaluatedDay, startDay).isStartWorkday
-    let isRestWorkday = this.double12x48DayStatus(evaluatedDay, startDay).isRestWorkday
+    let isStartWorkday = calendarDayStatus.isStartWorkday
+    let isRestWorkday = calendarDayStatus.isRestWorkday
+
+    dateAssistItem.assist.isFutureDay = calendarDayStatus.isNextDay
 
     if (dateAssistItem.assist.exceptions.length > 0) {
-      const workRestDay = dateAssistItem.assist.exceptions.find(
-        (ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado'
-      )
+      const workRestDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado')
 
       if (workRestDay) {
         isStartWorkday = true
@@ -1341,10 +1198,7 @@ export default class SyncAssistsService {
           }
 
           const nextEvaluatedDay = evaluatedDay.plus({ days: 1 }).toFormat('yyyy-LL-dd')
-          
           const nextDay = assistList.find((assistDate) => assistDate.day === nextEvaluatedDay)
-
-          dateAssistItem.assist.isCheckOutNextDay = true
 
           if (nextDay && nextDay?.assist?.assitFlatList) {
             nextDay.assist.assitFlatList.forEach((checkItem) => {
@@ -1385,6 +1239,10 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckOutEatNextDay = true
     }
 
+    if (dateAssistItem.assist.checkOut && DateTime.fromISO(`${dateAssistItem.assist.checkOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+      dateAssistItem.assist.isCheckOutNextDay = true
+    }
+
     if (!dateAssistItem.assist.checkIn) {
       dateAssistItem.assist.checkInStatus = 'fault'
     }
@@ -1395,6 +1253,8 @@ export default class SyncAssistsService {
 
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
+      dateAssistItem.assist.checkInStatus = ''
+      dateAssistItem.assist.checkOutStatus = ''
 
       if (dateAssistItem.assist.checkIn) {
         dateAssistItem.assist.checkIn = null
@@ -1408,12 +1268,15 @@ export default class SyncAssistsService {
       if (dateAssistItem.assist.checkIn) {
         dateAssistItem.assist.checkIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
       }
+
       if (dateAssistItem.assist.checkEatIn) {
         dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
       }
+
       if (dateAssistItem.assist.checkEatOut) {
         dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
       }
+
       if (dateAssistItem.assist.checkOut) {
         dateAssistItem.assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
       }
@@ -1421,202 +1284,156 @@ export default class SyncAssistsService {
 
     dateAssistItem.assist.checkOutStatus = ''
 
-    // console.log('🚀 --------------------------------------------------------------------------🚀')
-    return dateAssistItem
+    return JSON.parse(JSON.stringify(dateAssistItem)) as AssistDayInterface
   }
 
-  private calendar24x24(dateAssistItem: AssistDayInterface, discriminated?: Boolean) {
-    const startDay24x24 = DateTime.fromJSDate(
-      new Date(`${dateAssistItem.assist.dateShiftApplySince}`)
-    ).setZone('America/Mexico_City')
+  private async calendarDayStatus (dateAssistItem: AssistDayInterface, evaluatedDay: DateTime, startDay: DateTime, flag: string) {
+    let daysBettweenStart = 0
+    let isStartWorkday = true
+    let isEndWorkday = false
+    let isRestWorkday = false
+    let isNextDay = this.isFutureDay(dateAssistItem)
 
-    const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone(
-      'America/Mexico_City'
-    )
-
-    const daysBettweenStart = Math.floor(evaluatedDay.diff(startDay24x24, 'days').days)
-    const isStartWorkday = !!(daysBettweenStart % 2 === 0)
-    const isEndWorkday = !!(daysBettweenStart % 2 === 1)
-    const isRestWorkday = !!(daysBettweenStart % 2 === 1)
-
-    if (isStartWorkday) {
-      if (dateAssistItem.assist.checkOut) {
-        dateAssistItem.assist.checkOutStatus = 'working'
-
-        if (dateAssistItem.assist.assitFlatList) {
-          if (dateAssistItem.assist.assitFlatList.length < 3) {
-            dateAssistItem.assist.checkEatIn = null
-            dateAssistItem.assist.checkEatOut = null
-          }
-
-          if (dateAssistItem.assist.assitFlatList.length === 3) {
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.checkOut
-          }
-        }
-
-        dateAssistItem.assist.checkOut = null
-      }
+    if (flag === 'doble-12x48') {
+      daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
+      isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
+      isEndWorkday = !!(daysBettweenStart % 4 === 1)
+      isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
+    } else if (flag === '24x48') {
+      daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
+      isStartWorkday = !!(daysBettweenStart % 3 === 0)
+      isRestWorkday = !!(daysBettweenStart % 3 === 2) || !!(daysBettweenStart % 3 === 1)
+    } else if (flag === '12x36') {
+      daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
+      isStartWorkday = !!(daysBettweenStart % 2 === 0)
+      isRestWorkday = !!(daysBettweenStart % 2 === 1)
+    } else if (flag === '24x24') {
+      daysBettweenStart = Math.floor(evaluatedDay.diff(startDay, 'days').days)
+      isStartWorkday = !!(daysBettweenStart % 2 === 0)
+      isRestWorkday = !!(daysBettweenStart % 2 === 1)
+    } else {
+      isRestWorkday = this.isRestDay(dateAssistItem)
     }
-
-    if (isEndWorkday) {
-      dateAssistItem.assist.isRestDay = true
-
-      if (dateAssistItem.assist.checkIn) {
-        dateAssistItem.assist.checkInStatus = 'working'
-        dateAssistItem.assist.checkOutStatus = !discriminated ? 'ontime' : ''
-        dateAssistItem.assist.checkIn = null
-
-        dateAssistItem.assist.checkEatIn = null
-        dateAssistItem.assist.checkEatOut = null
-
-        if (dateAssistItem.assist.assitFlatList) {
-          if (dateAssistItem.assist.assitFlatList.length === 2) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-            dateAssistItem.assist.checkOut = null
-          }
-          if (dateAssistItem.assist.assitFlatList.length >= 3) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[0]
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[1]
-          }
-        }
-      } else {
-        dateAssistItem.assist.checkInStatus = ''
-        dateAssistItem.assist.checkOutStatus = ''
-      }
-    }
-
-    if (isRestWorkday) {
-      dateAssistItem.assist.isRestDay = true
-    }
-
-    return dateAssistItem
-  }
-
-  private async hasSomeExceptionTimeCheckIn(checkAssist: AssistDayInterface) {
-    if (!checkAssist) {
-      return checkAssist
-    }
-    const checkAssistCopy = checkAssist
-    if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
-      
-      if (checkAssist.assist.exceptions.length > 0) {
-      
-        const exception = checkAssist.assist.exceptions.find(
-          (ex) => ex.shiftExceptionCheckInTime
-        )
-
-        if (exception) {
-          const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-          const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-          const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-          const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn?.assistPunchTimeOrigin}`, {
-            setZone: true,
-          })
-          const checkTime = DayTime.setZone('America/Mexico_city')
-          const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-          const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
-          const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
-            'America/Mexico_City'
-          )
-          const { delayTolerance } = await this.getTolerances()
-          const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
-          if (exception.shiftExceptionCheckInTime) {
-            const shiftExceptionCheckInTime = DateTime.fromFormat(exception.shiftExceptionCheckInTime, 'HH:mm:ss')
-            const diffTime = timeCheckIn.diff(
-              timeCheckIn.set({
-                hour: shiftExceptionCheckInTime.hour,
-                minute: shiftExceptionCheckInTime.minute,
-              }),
-              'minutes'
-            ).as('minutes')
-            if (diffTime > TOLERANCE_DELAY_MINUTES) {
-              checkAssistCopy.assist.checkInStatus = 'delay'
-            }
-        
-            if (diffTime <= TOLERANCE_DELAY_MINUTES) {
-              checkAssistCopy.assist.checkInStatus = 'tolerance'
-            }
-        
-            if (diffTime <= 0) {
-              checkAssistCopy.assist.checkInStatus = 'ontime'
-            }
-          }
-        }
-      }
-    }
-    return checkAssistCopy
-  }
-
-  private async hasSomeExceptionTimeCheckOut(checkAssist: AssistDayInterface) {
-    if (!checkAssist) {
-      return checkAssist
-    }
-    const checkAssistCopy = checkAssist
-    if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
-      
-      if (checkAssist.assist.exceptions.length > 0) {
-      
-        const exception = checkAssist.assist.exceptions.find(
-          (ex) => ex.shiftExceptionCheckOutTime
-        )
-
-        if (exception) {
-
-          if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
-            checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
-            return checkAssistCopy
-          }
-
-          const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
-            setZone: true,
-          })
-
-          const checkTime = DayTime.setZone('America/Mexico_city')
-          const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-          const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
-          const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
-            'America/Mexico_City'
-          )
-
-          if (exception.shiftExceptionCheckOutTime) {
-            const shiftExceptionCheckOutTime = DateTime.fromFormat(exception.shiftExceptionCheckOutTime, 'HH:mm:ss')
-         
-            const diffTime = timeToCheckOut.diff(
-              timeToCheckOut.set({
-                hour: shiftExceptionCheckOutTime.hour,
-                minute: shiftExceptionCheckOutTime.minute,
-              }),
-              'minutes'
-            ).as('minutes')
-            if (diffTime > 10) {
-              checkAssistCopy.assist.checkOutStatus = 'delay'
-            }
-  
-            if (diffTime <= 10) {
-              checkAssistCopy.assist.checkOutStatus = 'tolerance'
-            }
-  
-            if (diffTime <= 0) {
-              checkAssistCopy.assist.checkOutStatus = 'ontime'
-            }
-          }
-        }
-      }
-    }
-    return checkAssistCopy
-  }
-
-  private double12x48DayStatus (evaluatedDay: DateTime, startDay: DateTime) {
-    const daysBettweenStart = evaluatedDay.diff(startDay, 'days').days
-    const isStartWorkday = !!(daysBettweenStart % 4 === 0 || daysBettweenStart % 4 === 1)
-    const isEndWorkday = !!(daysBettweenStart % 4 === 1)
-    const isRestWorkday = !!(daysBettweenStart % 4 === 3 || daysBettweenStart % 4 === 2)
 
     return {
       isStartWorkday,
       isEndWorkday,
-      isRestWorkday
+      isRestWorkday,
+      isNextDay
     }
   }
+
+  // private async hasSomeExceptionTimeCheckIn(checkAssist: AssistDayInterface) {
+  //   if (!checkAssist) {
+  //     return checkAssist
+  //   }
+  //   const checkAssistCopy = checkAssist
+  //   if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
+      
+  //     if (checkAssist.assist.exceptions.length > 0) {
+      
+  //       const exception = checkAssist.assist.exceptions.find(
+  //         (ex) => ex.shiftExceptionCheckInTime
+  //       )
+
+  //       if (exception) {
+  //         const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+  //         const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+  //         const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+  //         const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn?.assistPunchTimeOrigin}`, {
+  //           setZone: true,
+  //         })
+  //         const checkTime = DayTime.setZone('America/Mexico_city')
+  //         const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+  //         const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
+  //         const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
+  //           'America/Mexico_City'
+  //         )
+  //         const { delayTolerance } = await this.getTolerances()
+  //         const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
+  //         if (exception.shiftExceptionCheckInTime) {
+  //           const shiftExceptionCheckInTime = DateTime.fromFormat(exception.shiftExceptionCheckInTime, 'HH:mm:ss')
+  //           const diffTime = timeCheckIn.diff(
+  //             timeCheckIn.set({
+  //               hour: shiftExceptionCheckInTime.hour,
+  //               minute: shiftExceptionCheckInTime.minute,
+  //             }),
+  //             'minutes'
+  //           ).as('minutes')
+  //           if (diffTime > TOLERANCE_DELAY_MINUTES) {
+  //             checkAssistCopy.assist.checkInStatus = 'delay'
+  //           }
+        
+  //           if (diffTime <= TOLERANCE_DELAY_MINUTES) {
+  //             checkAssistCopy.assist.checkInStatus = 'tolerance'
+  //           }
+        
+  //           if (diffTime <= 0) {
+  //             checkAssistCopy.assist.checkInStatus = 'ontime'
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return checkAssistCopy
+  // }
+
+  // private async hasSomeExceptionTimeCheckOut(checkAssist: AssistDayInterface) {
+  //   if (!checkAssist) {
+  //     return checkAssist
+  //   }
+  //   const checkAssistCopy = checkAssist
+  //   if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
+      
+  //     if (checkAssist.assist.exceptions.length > 0) {
+      
+  //       const exception = checkAssist.assist.exceptions.find(
+  //         (ex) => ex.shiftExceptionCheckOutTime
+  //       )
+
+  //       if (exception) {
+
+  //         if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
+  //           checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
+  //           return checkAssistCopy
+  //         }
+
+  //         const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
+  //           setZone: true,
+  //         })
+
+  //         const checkTime = DayTime.setZone('America/Mexico_city')
+  //         const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+  //         const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
+  //         const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
+  //           'America/Mexico_City'
+  //         )
+
+  //         if (exception.shiftExceptionCheckOutTime) {
+  //           const shiftExceptionCheckOutTime = DateTime.fromFormat(exception.shiftExceptionCheckOutTime, 'HH:mm:ss')
+         
+  //           const diffTime = timeToCheckOut.diff(
+  //             timeToCheckOut.set({
+  //               hour: shiftExceptionCheckOutTime.hour,
+  //               minute: shiftExceptionCheckOutTime.minute,
+  //             }),
+  //             'minutes'
+  //           ).as('minutes')
+  //           if (diffTime > 10) {
+  //             checkAssistCopy.assist.checkOutStatus = 'delay'
+  //           }
+  
+  //           if (diffTime <= 10) {
+  //             checkAssistCopy.assist.checkOutStatus = 'tolerance'
+  //           }
+  
+  //           if (diffTime <= 0) {
+  //             checkAssistCopy.assist.checkOutStatus = 'ontime'
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return checkAssistCopy
+  // }
 }
