@@ -12,6 +12,8 @@ import ExceptionType from '#models/exception_type'
 import ShiftException from '#models/shift_exception'
 import ShiftExceptionService from '#services/shift_exception_service'
 import { DateTime } from 'luxon'
+import Ws from '#services/ws'
+import User from '#models/user'
 
 export default class ExceptionRequestsController {
   /**
@@ -101,6 +103,33 @@ export default class ExceptionRequestsController {
     await exceptionRequest.save()
 
     if (status === 'accepted') {
+      if (exceptionRequest.userId) {
+        const user = await User.query()
+          .where('user_id', exceptionRequest.userId)
+          .whereNull('user_deleted_at')
+          .preload('person')
+          .first()
+        if (user) {
+          if (user.userEmail) {
+            const userEmail = env.get('SMTP_USERNAME')
+            if (userEmail) {
+              await mail.send((message) => {
+                message
+                  .to(user.userEmail)
+                  .from(userEmail, 'SAE')
+                  .subject('Notification: Status of Exception Request Updated')
+                  .htmlView('emails/update_status_mail', {
+                    newStatus: status,
+                    newDescription: description,
+                    userName: user.person
+                      ? `${user.person.personFirstname} ${user.person.personLastname} ${user.person.personSecondLastname}`
+                      : 'User',
+                  })
+              })
+            }
+          }
+        }
+      }
       const shiftExceptionService = new ShiftExceptionService()
       const shiftException = {
         shiftExceptionId: 0,
@@ -159,6 +188,7 @@ export default class ExceptionRequestsController {
           .htmlView('emails/update_status_mail', {
             newStatus: status,
             newDescription: description,
+            userName: 'Gerente willy',
           })
       })
     }
@@ -308,7 +338,17 @@ export default class ExceptionRequestsController {
    *                       type: string
    */
 
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
+    const user = auth.user
+    if (!user) {
+      response.status(404)
+      return {
+        type: 'warning',
+        title: 'User',
+        message: 'User not found',
+        data: { user: {} },
+      }
+    }
     const data = await request.validateUsing(storeExceptionRequestValidator)
     const employee = await Employee.query()
       .where('employeeId', data.employeeId)
@@ -346,10 +386,13 @@ export default class ExceptionRequestsController {
       ...data,
       exceptionRequestRhRead: roleId === 2 ? 1 : 0,
       exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+      userId: user.userId,
     }
     delete exceptionRequestData.role
     const exceptionRequest = await ExceptionRequest.create(exceptionRequestData)
-
+    if (Ws.io) {
+      Ws.io.emit('new-exception-request', {})
+    }
     return response
       .status(201)
       .json(
@@ -697,8 +740,13 @@ export default class ExceptionRequestsController {
         q.whereHas('employee', (employeeQuery) => {
           employeeQuery.where('employeeId', employeeName)
         })
-      })
-
+      }).orderByRaw(`CASE 
+                 WHEN exception_request_status = 'pending' THEN 1 
+                 WHEN exception_request_status = 'requested' THEN 2
+                 WHEN exception_request_status = 'accepted' THEN 3
+                 WHEN exception_request_status = 'refused' THEN 4
+                 ELSE 5
+               END`)
     const exceptionRequests = await query.paginate(page, limit)
 
     return response.status(200).json(

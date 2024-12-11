@@ -47,6 +47,10 @@ import ExceptionType from './exception_type.js'
  *         exceptionRequestGerencialRead:
  *           type: number
  *           description: Read by Gerencial
+ *         userId:
+ *           type: number
+ *           nullable: false
+ *           description: User Id who creates it
  *         exceptionRequestCreatedAt:
  *           type: string
  *           format: date-time
@@ -68,6 +72,7 @@ import ExceptionType from './exception_type.js'
  *         exceptionRequestDescription: "Employee was absent from work"
  *         exceptionRequestCheckInTime: '07:00:00'
  *         exceptionRequestCheckOutTime: '21:00:00'
+ *         userId: 1
  *         exceptionRequestCreatedAt: '2024-06-20T12:00:00Z'
  *         exceptionRequestUpdatedAt: '2024-06-20T13:00:00Z'
  *         exceptionRequestDeletedAt: null
@@ -103,6 +108,9 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
 
   @column()
   exceptionRequestGerencialRead!: number // 0: No leído, 1: Leído
+
+  @column()
+  userId!: number
 
   @column.dateTime({ autoCreate: true })
   exceptionRequestCreatedAt!: DateTime
