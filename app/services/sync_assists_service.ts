@@ -660,14 +660,17 @@ export default class SyncAssistsService {
       
       dateAssistItem = await this.calculateRawCalendar(dateAssistItem, assistList)
 
-      // if (!dateAssistItem.assist.shiftCalculateFlag) {
-      //   dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
-      //   dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
-      // }
+       //if (!dateAssistItem.assist.shiftCalculateFlag) {
+         /* dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
+         dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem) */
+       //}
 
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
+      dateAssistItem = await this.validTime(dateAssistItem)
+      dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
+      dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
 
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
@@ -731,6 +734,12 @@ export default class SyncAssistsService {
         const absentException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
 
         if (absentException) {
+          checkAssistCopy.assist.checkInStatus = ''
+          return checkAssistCopy
+        }
+        const changeShiftException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'change-shift')
+
+        if (changeShiftException) {
           checkAssistCopy.assist.checkInStatus = ''
           return checkAssistCopy
         }
@@ -1019,8 +1028,8 @@ export default class SyncAssistsService {
       //   checkAssistCopy.assist.checkOutStatus = 'exception'
       // }
 
-      checkAssistCopy.assist.checkInStatus = 'exception'
-      checkAssistCopy.assist.checkOutStatus = 'exception'
+      //checkAssistCopy.assist.checkInStatus = 'exception'
+      //checkAssistCopy.assist.checkOutStatus = 'exception'
 
       if (restException) {
         checkAssistCopy.assist.isRestDay = true
@@ -1161,6 +1170,17 @@ export default class SyncAssistsService {
       const workRestDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado')
 
       if (workRestDay) {
+        isStartWorkday = true
+        isRestWorkday = false
+
+        if (dateAssistItem.assist.exceptions.length > 0) {
+          dateAssistItem.assist.checkInStatus = ''
+        }
+      }
+
+      const coverShiftDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'cover-shift')
+
+      if (coverShiftDay) {
         isStartWorkday = true
         isRestWorkday = false
 
@@ -1323,117 +1343,127 @@ export default class SyncAssistsService {
     }
   }
 
-  // private async hasSomeExceptionTimeCheckIn(checkAssist: AssistDayInterface) {
-  //   if (!checkAssist) {
-  //     return checkAssist
-  //   }
-  //   const checkAssistCopy = checkAssist
-  //   if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
-      
-  //     if (checkAssist.assist.exceptions.length > 0) {
-      
-  //       const exception = checkAssist.assist.exceptions.find(
-  //         (ex) => ex.shiftExceptionCheckInTime
-  //       )
+  private async hasSomeExceptionTimeCheckIn(checkAssist: AssistDayInterface) {
+    if (!checkAssist) {
+      return checkAssist
+    }
+    const checkAssistCopy = checkAssist
+    //if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
+    if (checkAssist.assist.dateShift) {
+      if (checkAssist.assist.exceptions.length > 0) {
+        const exception = checkAssist.assist.exceptions.find(
+          (ex) => ex.shiftExceptionCheckInTime
+        )
 
-  //       if (exception) {
-  //         const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-  //         const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-  //         const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-  //         const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn?.assistPunchTimeOrigin}`, {
-  //           setZone: true,
-  //         })
-  //         const checkTime = DayTime.setZone('America/Mexico_city')
-  //         const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-  //         const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
-  //         const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
-  //           'America/Mexico_City'
-  //         )
-  //         const { delayTolerance } = await this.getTolerances()
-  //         const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
-  //         if (exception.shiftExceptionCheckInTime) {
-  //           const shiftExceptionCheckInTime = DateTime.fromFormat(exception.shiftExceptionCheckInTime, 'HH:mm:ss')
-  //           const diffTime = timeCheckIn.diff(
-  //             timeCheckIn.set({
-  //               hour: shiftExceptionCheckInTime.hour,
-  //               minute: shiftExceptionCheckInTime.minute,
-  //             }),
-  //             'minutes'
-  //           ).as('minutes')
-  //           if (diffTime > TOLERANCE_DELAY_MINUTES) {
-  //             checkAssistCopy.assist.checkInStatus = 'delay'
-  //           }
+        if (exception) {
+          
+          const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+          const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+          const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+          const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn?.assistPunchTimeOrigin}`, {
+            setZone: true,
+          })
+          const checkTime = DayTime.setZone('America/Mexico_city')
+          const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+          const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
+          const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
+            'America/Mexico_City'
+          )
+          const { delayTolerance } = await this.getTolerances()
+          const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
+          if (exception.shiftExceptionCheckInTime) {
+            const shiftExceptionCheckInTime = DateTime.fromFormat(exception.shiftExceptionCheckInTime, 'HH:mm:ss')
+            const diffTime = timeCheckIn.diff(
+              timeCheckIn.set({
+                hour: shiftExceptionCheckInTime.hour,
+                minute: shiftExceptionCheckInTime.minute,
+              }),
+              'minutes'
+            ).as('minutes')
+            if (diffTime > TOLERANCE_DELAY_MINUTES) {
+              checkAssistCopy.assist.checkInStatus = 'delay'
+            }
         
-  //           if (diffTime <= TOLERANCE_DELAY_MINUTES) {
-  //             checkAssistCopy.assist.checkInStatus = 'tolerance'
-  //           }
+            if (diffTime <= TOLERANCE_DELAY_MINUTES) {
+              checkAssistCopy.assist.checkInStatus = 'tolerance'
+            }
         
-  //           if (diffTime <= 0) {
-  //             checkAssistCopy.assist.checkInStatus = 'ontime'
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return checkAssistCopy
-  // }
+            if (diffTime <= 0) {
+              checkAssistCopy.assist.checkInStatus = 'ontime'
+            }
+          }
+        }
+      }
+    }
+    return checkAssistCopy
+  }
 
-  // private async hasSomeExceptionTimeCheckOut(checkAssist: AssistDayInterface) {
-  //   if (!checkAssist) {
-  //     return checkAssist
-  //   }
-  //   const checkAssistCopy = checkAssist
-  //   if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
-      
-  //     if (checkAssist.assist.exceptions.length > 0) {
-      
-  //       const exception = checkAssist.assist.exceptions.find(
-  //         (ex) => ex.shiftExceptionCheckOutTime
-  //       )
+  private async validTime(checkAssist: AssistDayInterface) {
+    if (!checkAssist) {
+      return checkAssist
+    }
+    const checkAssistCopy = checkAssist
+    if (checkAssistCopy.assist.checkIn?.assistId === checkAssistCopy.assist.checkOut?.assistId ) {
+      checkAssistCopy.assist.checkOut = null
+    }
+    return checkAssistCopy
+  }
 
-  //       if (exception) {
+  private async hasSomeExceptionTimeCheckOut(checkAssist: AssistDayInterface) {
+    if (!checkAssist) {
+      return checkAssist
+    }
+    const checkAssistCopy = checkAssist
+    //if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
+      if (checkAssist.assist.dateShift) {
+      if (checkAssist.assist.exceptions.length > 0) {
+     
+        const exception = checkAssist.assist.exceptions.find(
+          (ex) => ex.shiftExceptionCheckOutTime
+        )
 
-  //         if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
-  //           checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
-  //           return checkAssistCopy
-  //         }
+        if (exception) {
 
-  //         const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
-  //           setZone: true,
-  //         })
+          if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
+            checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
+            return checkAssistCopy
+          }
 
-  //         const checkTime = DayTime.setZone('America/Mexico_city')
-  //         const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-  //         const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
-  //         const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
-  //           'America/Mexico_City'
-  //         )
+          const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeOrigin}`, {
+            setZone: true,
+          })
 
-  //         if (exception.shiftExceptionCheckOutTime) {
-  //           const shiftExceptionCheckOutTime = DateTime.fromFormat(exception.shiftExceptionCheckOutTime, 'HH:mm:ss')
-         
-  //           const diffTime = timeToCheckOut.diff(
-  //             timeToCheckOut.set({
-  //               hour: shiftExceptionCheckOutTime.hour,
-  //               minute: shiftExceptionCheckOutTime.minute,
-  //             }),
-  //             'minutes'
-  //           ).as('minutes')
-  //           if (diffTime > 10) {
-  //             checkAssistCopy.assist.checkOutStatus = 'delay'
-  //           }
+          const checkTime = DayTime.setZone('America/Mexico_city')
+          const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+          const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
+          const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone(
+            'America/Mexico_City'
+          )
+
+          if (exception.shiftExceptionCheckOutTime) {
+            const shiftExceptionCheckOutTime = DateTime.fromFormat(exception.shiftExceptionCheckOutTime, 'HH:mm:ss')
+            const diffTime = timeToCheckOut.diff(
+              timeToCheckOut.set({
+                hour: shiftExceptionCheckOutTime.hour,
+                minute: shiftExceptionCheckOutTime.minute,
+              }),
+              'minutes'
+            ).as('minutes')
+            if (diffTime > 10) {
+              checkAssistCopy.assist.checkOutStatus = 'delay'
+            }
   
-  //           if (diffTime <= 10) {
-  //             checkAssistCopy.assist.checkOutStatus = 'tolerance'
-  //           }
+            if (diffTime <= 10) {
+              checkAssistCopy.assist.checkOutStatus = 'tolerance'
+            }
   
-  //           if (diffTime <= 0) {
-  //             checkAssistCopy.assist.checkOutStatus = 'ontime'
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return checkAssistCopy
-  // }
+            if (diffTime <= 0) {
+              checkAssistCopy.assist.checkOutStatus = 'ontime'
+            }
+          }
+        }
+      }
+    }
+    return checkAssistCopy
+   }
 }

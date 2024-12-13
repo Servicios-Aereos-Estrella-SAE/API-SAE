@@ -112,7 +112,7 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
   declare shiftExceptionsUpdatedAt: DateTime
 
   @column()
-  declare vacationSettingId: number
+  declare vacationSettingId: number | null
 
   @column.dateTime({ columnName: 'shift_exceptions_deleted_at' })
   declare deletedAt: DateTime | null
