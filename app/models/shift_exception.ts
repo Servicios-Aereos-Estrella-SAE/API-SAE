@@ -76,6 +76,7 @@ import VacationSetting from './vacation_setting.js'
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'
  *         shiftExceptionDeletedAt: null
+ *         daysToApply: 0
  *         employee:
  *           # Example Employee object
  *         exceptionType:
