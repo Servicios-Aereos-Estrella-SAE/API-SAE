@@ -35,6 +35,16 @@ import VacationSetting from './vacation_setting.js'
  *           type: number
  *           nullable: true
  *           description: ID of the vacation setting associated with the shift exception
+ *         shiftExceptionCheckInTime:
+ *           type: string
+ *           format: time
+ *           description: Time check in
+ *           nullable: true
+ *         shiftExceptionCheckOutTime:
+ *           type: string
+ *           format: time
+ *           description: Time check out
+ *           nullable: true
  *         shiftExceptionCreatedAt:
  *           type: string
  *           format: date-time
@@ -61,9 +71,12 @@ import VacationSetting from './vacation_setting.js'
  *         vacationSettingId: 1
  *         shiftExceptionsDate: '2024-06-20'
  *         shiftExceptionsDescription: "Employee was absent from work"
+ *         shiftExceptionCheckInTime: '07:00:00'
+ *         shiftExceptionCheckOutTime: '21:00:00'
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'
  *         shiftExceptionDeletedAt: null
+ *         daysToApply: 0
  *         employee:
  *           # Example Employee object
  *         exceptionType:
@@ -87,6 +100,12 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
   @column()
   declare shiftExceptionsDescription: string
 
+  @column()
+  declare shiftExceptionCheckInTime: string | null
+
+  @column()
+  declare shiftExceptionCheckOutTime: string | null
+
   @column.dateTime({ autoCreate: true })
   declare shiftExceptionsCreatedAt: DateTime
 
@@ -94,7 +113,7 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
   declare shiftExceptionsUpdatedAt: DateTime
 
   @column()
-  declare vacationSettingId: number
+  declare vacationSettingId: number | null
 
   @column.dateTime({ columnName: 'shift_exceptions_deleted_at' })
   declare deletedAt: DateTime | null

@@ -5,6 +5,7 @@ import ShiftException from '../models/shift_exception.js'
 import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionType from '#models/exception_type'
+import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
 
 export default class ShiftExceptionController {
   /**
@@ -72,67 +73,92 @@ export default class ShiftExceptionController {
       let shiftExceptionsDate = request.input('shiftExceptionsDate')
       if (shiftExceptionsDate.toString().length <= 10) {
         shiftExceptionsDate = shiftExceptionsDate
-          ? DateTime.fromJSDate(new Date(`${shiftExceptionsDate}T00:00:00.000-06:00`))
-              .setZone('UTC')
-              .toJSDate()
+          ? DateTime.fromJSDate(new Date(`${shiftExceptionsDate}T00:00:00.000-06:00`)).setZone(
+              'UTC'
+            )
           : null
       } else {
         shiftExceptionsDate = shiftExceptionsDate
-          ? DateTime.fromJSDate(new Date(shiftExceptionsDate)).setZone('UTC').toJSDate()
+          ? DateTime.fromJSDate(new Date(shiftExceptionsDate)).setZone('UTC')
           : null
       }
       const exceptionTypeId = request.input('exceptionTypeId')
       const vacationSettingId = request.input('vacationSettingId')
-      await request.validateUsing(createShiftExceptionValidator)
-      const shiftExceptionService = new ShiftExceptionService()
-      const shiftException = {
-        employeeId: employeeId,
-        shiftExceptionsDescription: shiftExceptionsDescription,
-        shiftExceptionsDate: shiftExceptionsDate,
-        exceptionTypeId: exceptionTypeId,
-        vacationSettingId: vacationSettingId ? vacationSettingId : null,
-      } as ShiftException
-      const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
-      if (verifyInfo.status !== 200) {
-        response.status(verifyInfo.status)
-        return {
-          type: verifyInfo.type,
-          title: verifyInfo.title,
-          message: verifyInfo.message,
-          data: { ...shiftException },
-        }
+      const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
+      const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
+      let daysToApply = request.input('daysToApply', 1)
+      if (!daysToApply) {
+        daysToApply = 1
       }
-      const newShiftException = await shiftExceptionService.create(shiftException)
-      if (newShiftException) {
-        const rawHeaders = request.request.rawHeaders
-        const userId = auth.user?.userId
-        if (userId) {
-          const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'store')
-          logShiftException.user_id = userId
-          logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
-
-          const exceptionType = await ExceptionType.query()
-            .whereNull('exception_type_deleted_at')
-            .where('exception_type_slug', 'vacation')
-            .first()
-          let table = 'log_shift_exceptions'
-          if (exceptionType) {
-            if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
-              table = 'log_vacations'
+      const shiftExceptionsSaved = [] as Array<ShiftException>
+      const shiftExceptionsError = [] as Array<ShiftExceptionErrorInterface>
+      for (let i = 0; i < daysToApply; i++) {
+        const currentDate = shiftExceptionsDate.plus({ days: i }).toISODate()
+        const shiftException = {
+          employeeId: employeeId,
+          shiftExceptionsDescription: shiftExceptionsDescription,
+          shiftExceptionsDate: currentDate,
+          exceptionTypeId: exceptionTypeId,
+          vacationSettingId: vacationSettingId ? vacationSettingId : null,
+          shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
+          shiftExceptionCheckOutTime: shiftExceptionCheckOutTime
+            ? shiftExceptionCheckOutTime
+            : null,
+        } as ShiftException
+        try {
+          await request.validateUsing(createShiftExceptionValidator)
+          const shiftExceptionService = new ShiftExceptionService()
+          const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
+          if (verifyInfo.status !== 200) {
+            shiftExceptionsError.push({
+              shiftExceptionsDate: currentDate,
+              error: verifyInfo.message,
+            })
+          } else {
+            const newShiftException = await shiftExceptionService.create(shiftException)
+            if (newShiftException) {
+              const rawHeaders = request.request.rawHeaders
+              const userId = auth.user?.userId
+              if (userId) {
+                const logShiftException = await shiftExceptionService.createActionLog(
+                  rawHeaders,
+                  'store'
+                )
+                logShiftException.user_id = userId
+                logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+                const exceptionType = await ExceptionType.query()
+                  .whereNull('exception_type_deleted_at')
+                  .where('exception_type_slug', 'vacation')
+                  .first()
+                let table = 'log_shift_exceptions'
+                if (exceptionType) {
+                  if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
+                    table = 'log_vacations'
+                  }
+                }
+                await shiftExceptionService.saveActionOnLog(logShiftException, table)
+              }
+              await newShiftException.load('exceptionType')
+              await newShiftException.load('vacationSetting')
+              shiftExceptionsSaved.push(newShiftException)
             }
           }
-          await shiftExceptionService.saveActionOnLog(logShiftException, table)
+        } catch (error) {
+          shiftExceptionsError.push({
+            shiftExceptionsDate: currentDate,
+            error: error.message,
+          })
         }
-
-        await newShiftException.load('exceptionType')
-        await newShiftException.load('vacationSetting')
-        response.status(201)
-        return {
-          type: 'success',
-          title: 'Shift exception',
-          message: 'The shift exception was created successfully',
-          data: { shiftException: newShiftException },
-        }
+      }
+      response.status(201)
+      return {
+        type: 'success',
+        title: 'Shift exception',
+        message: 'The shift exception was created successfully',
+        data: {
+          shiftExceptionsSaved: shiftExceptionsSaved,
+          shiftExceptionsError: shiftExceptionsError,
+        },
       }
     } catch (error) {
       console.error('Error:', error)
@@ -235,6 +261,8 @@ export default class ShiftExceptionController {
       }
       const exceptionTypeId = request.input('exceptionTypeId')
       const vacationSettingId = request.input('vacationSettingId')
+      const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
+      const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       const currentShiftException = await ShiftException.findOrFail(params.id)
@@ -246,6 +274,8 @@ export default class ShiftExceptionController {
         shiftExceptionsDate: shiftExceptionsDate,
         exceptionTypeId: exceptionTypeId,
         vacationSettingId: vacationSettingId ? vacationSettingId : null,
+        shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
+        shiftExceptionCheckOutTime: shiftExceptionCheckOutTime ? shiftExceptionCheckOutTime : null,
       } as ShiftException
       const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
       if (verifyInfo.status !== 200) {

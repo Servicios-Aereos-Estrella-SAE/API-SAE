@@ -18,6 +18,8 @@ import { DateTime } from 'luxon'
 import ExcelJS from 'exceljs'
 import ShiftException from '#models/shift_exception'
 import EmployeeShift from '#models/employee_shift'
+import EmployeeType from '#models/employee_type'
+import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeController {
   /**
@@ -280,6 +282,19 @@ export default class EmployeeController {
    *         description: Employee work schedule
    *         schema:
    *           type: string
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
+   *       - name: employeeTypeId
+   *         in: query
+   *         required: false
+   *         description: Employee Type Id
+   *         schema:
+   *           type: integer
    *       - name: page
    *         in: query
    *         required: true
@@ -388,6 +403,8 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const onlyInactive = request.input('onlyInactive')
+      const employeeTypeId = request.input('employeeTypeId')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
@@ -395,6 +412,8 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         employeeWorkSchedule: employeeWorkSchedule,
+        onlyInactive: onlyInactive,
+        employeeTypeId: employeeTypeId,
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
@@ -503,6 +522,11 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
+   *               employeeTypeId:
+   *                 type: integer
+   *                 description: Employee type id
+   *                 required: true
+   *                 default: 0
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -597,6 +621,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const workSchedule = request.input('employeeWorkSchedule')
+      const employeeTypeId = request.input('employeeTypeId')
       const employee = {
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
@@ -609,6 +634,7 @@ export default class EmployeeController {
         personId: personId,
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: workSchedule,
+        employeeTypeId: employeeTypeId,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
       const employeeService = new EmployeeService()
@@ -741,6 +767,11 @@ export default class EmployeeController {
    *                 description: Work Schedule Onsite or Remote
    *                 required: true
    *                 default: 'Onsite'
+   *               employeeTypeId:
+   *                 type: integer
+   *                 description: Employee type id
+   *                 required: true
+   *                 default: 0
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -835,6 +866,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
+      const employeeTypeId = request.input('employeeTypeId')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -847,6 +879,7 @@ export default class EmployeeController {
         positionId: positionId,
         businessUnitId: request.input('businessUnitId'),
         employeeWorkSchedule: employeeWorkSchedule,
+        employeeTypeId: employeeTypeId,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
       if (!employeeId) {
@@ -2454,9 +2487,25 @@ export default class EmployeeController {
           data: { vacationSettingId },
         }
       }
+      const employeeType = await EmployeeType.query()
+        .whereNull('employee_type_deleted_at')
+        .where('employee_type_id', employee.employeeTypeId)
+        .first()
+      let employeeIsCrew = false
+      if (employeeType) {
+        if (
+          employeeType.employeeTypeSlug === 'pilot' ||
+          employeeType.employeeTypeSlug === 'flight-attendant'
+        ) {
+          employeeIsCrew = true
+        }
+      }
       const vacationSetting = await VacationSetting.query()
         .where('vacation_setting_id', vacationSettingId)
         .whereNull('vacation_setting_deleted_at')
+        .if(employeeIsCrew, (query) => {
+          query.where('vacation_setting_crew', 1)
+        })
       if (!vacationSetting) {
         response.status(404)
         return {
@@ -2528,6 +2577,12 @@ export default class EmployeeController {
    */
   async getExcel({ request, response }: HttpContext) {
     try {
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
       const filterDepartmentId = request.qs().departmentId
       const filterEmployeeId = request.qs().employeeId
       const filterStartDate = request.qs().startDate
@@ -2555,6 +2610,7 @@ export default class EmployeeController {
       }
 
       const employees = await query
+        .whereIn('businessUnitId', businessUnitsList)
         .preload('department')
         .preload('position')
         .preload('person')
@@ -2589,19 +2645,17 @@ export default class EmployeeController {
       titleRow.font = { bold: true, size: 24, color: { argb: titleFgColor } }
       titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:M2')
+      worksheet.mergeCells('A2:K2')
       worksheet.getCell('A2').fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: titleColor },
       }
       // Agregar fila de periodos
-      const periodRow = worksheet.addRow([
-        `Period: ${filterStartDate || 'Inicio 00/00/00'} to ${filterEndDate || '99/99/9999'}`,
-      ])
+      const periodRow = worksheet.addRow([''])
       periodRow.font = { size: 15, color: { argb: titleFgColor } }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A3:M3')
+      worksheet.mergeCells('A3:K3')
       let periodColor = '366092'
       worksheet.getCell('A3').fill = {
         type: 'pattern',
@@ -2998,11 +3052,9 @@ export default class EmployeeController {
       'Department',
       'Position',
       'Hire Date',
-      '',
       'Work Modality',
       'Phone',
       'Gender',
-      '',
       'CURP',
       'RFC',
       'Employee NSS',
@@ -3010,7 +3062,7 @@ export default class EmployeeController {
 
     let fgColor = 'FFFFFFF'
     let color = '538DD5'
-    for (let col = 1; col <= 6; col++) {
+    for (let col = 1; col <= 5; col++) {
       const cell = worksheet.getCell(4, col)
       cell.fill = {
         type: 'pattern',
@@ -3020,7 +3072,7 @@ export default class EmployeeController {
     }
 
     color = '16365C'
-    for (let col = 7; col <= 9; col++) {
+    for (let col = 6; col <= 8; col++) {
       const cell = worksheet.getCell(4, col)
       cell.fill = {
         type: 'pattern',
@@ -3030,7 +3082,7 @@ export default class EmployeeController {
     }
 
     color = '538DD5'
-    for (let col = 10; col <= 13; col++) {
+    for (let col = 9; col <= 11; col++) {
       const cell = worksheet.getCell(4, col)
       cell.fill = {
         type: 'pattern',
@@ -3043,28 +3095,31 @@ export default class EmployeeController {
     headerRow.font = { bold: true, color: { argb: fgColor } }
 
     this.adjustColumnWidths(worksheet)
-
+    worksheet.views = [
+      { state: 'frozen', ySplit: 1 }, // Fija la primera fila
+      { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
+      { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+      { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
+    ]
     employees.forEach((employee) => {
       worksheet.addRow([
         employee.employeeCode,
         `${employee.employeeFirstName} ${employee.employeeLastName}`,
-        employee.department?.departmentName || 'no data',
-        employee.position?.positionName || 'no data',
-        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : 'no data',
-        '',
-        employee.employeeWorkSchedule || 'no data',
-        employee.person?.personPhone || 'no data',
-        employee.person?.personGender || 'no data',
-        '',
-        employee.person?.personCurp || 'no data',
-        employee.person?.personRfc || 'no data',
-        employee.person?.personImssNss || 'no data',
+        employee.department?.departmentName || '',
+        employee.position?.positionName || '',
+        employee.employeeHireDate ? employee.employeeHireDate.toISODate() : '',
+        employee.employeeWorkSchedule || '',
+        employee.person?.personPhone || '',
+        employee.person?.personGender || '',
+        employee.person?.personCurp || '',
+        employee.person?.personRfc || '',
+        employee.person?.personImssNss || '',
       ])
     })
   }
 
   adjustColumnWidths(worksheet: ExcelJS.Worksheet) {
-    const widths = [20, 44, 44, 44, 25, 5, 25, 25, 25, 5, 25, 25, 25, 25, 30, 30, 30]
+    const widths = [20, 44, 44, 44, 25, 25, 25, 25, 25, 25, 25, 25, 30, 30, 30]
     widths.forEach((width, index) => {
       const column = worksheet.getColumn(index + 1)
       column.width = width

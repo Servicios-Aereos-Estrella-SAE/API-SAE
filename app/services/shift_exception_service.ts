@@ -12,6 +12,8 @@ export default class ShiftExceptionService {
     newShiftException.shiftExceptionsDate = shiftException.shiftExceptionsDate
     newShiftException.exceptionTypeId = shiftException.exceptionTypeId
     newShiftException.vacationSettingId = shiftException.vacationSettingId
+    newShiftException.shiftExceptionCheckInTime = shiftException.shiftExceptionCheckInTime
+    newShiftException.shiftExceptionCheckOutTime = shiftException.shiftExceptionCheckOutTime
     await newShiftException.save()
     return newShiftException
   }
@@ -22,6 +24,8 @@ export default class ShiftExceptionService {
     currentShiftException.shiftExceptionsDate = shiftException.shiftExceptionsDate
     currentShiftException.exceptionTypeId = shiftException.exceptionTypeId
     currentShiftException.vacationSettingId = shiftException.vacationSettingId
+    currentShiftException.shiftExceptionCheckInTime = shiftException.shiftExceptionCheckInTime
+    currentShiftException.shiftExceptionCheckOutTime = shiftException.shiftExceptionCheckOutTime
     await currentShiftException.save()
     return currentShiftException
   }

@@ -5,6 +5,7 @@ interface EmployeeFilterSearchInterface {
   departmentId: number
   positionId: number
   employeeWorkSchedule: string
+  employeeTypeId?: number
   ignoreDiscriminated?: number
   onlyInactive?: boolean | string
 }

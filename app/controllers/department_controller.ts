@@ -13,6 +13,7 @@ import BusinessUnit from '#models/business_unit'
 import { DateTime } from 'luxon'
 import UserService from '#services/user_service'
 import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
+import db from '@adonisjs/lucid/services/db'
 
 export default class DepartmentController {
   /**
@@ -436,6 +437,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
+
   async getPositions({ request, response }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
@@ -457,6 +459,28 @@ export default class DepartmentController {
         .whereIn('business_unit_slug', businessList)
 
       const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      // Si el departmentId es 9999, retornar todas las posiciones
+      if (Number.parseInt(departmentId) === 9999) {
+        const allPositions = await DepartmentPosition.query()
+          .whereHas('position', (queryPosition) => {
+            queryPosition.whereIn('businessUnitId', businessUnitsList)
+          })
+          .preload('position', (queryPosition) => {
+            queryPosition.whereIn('businessUnitId', businessUnitsList)
+          })
+          .orderBy('position_id')
+
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Positions by department',
+          message: 'All positions have been found successfully',
+          data: {
+            positions: allPositions,
+          },
+        }
+      }
 
       const department = await Department.query()
         .where('department_id', departmentId)
@@ -485,7 +509,7 @@ export default class DepartmentController {
 
       response.status(200)
       return {
-        type: 'successi',
+        type: 'success',
         title: 'Positions by department',
         message: 'The positions by department have been found successfully',
         data: {
@@ -655,42 +679,45 @@ export default class DepartmentController {
       const dateEnd = request.input('dateEnd')
 
       //S = personal que se separó de la empresa en el periodo.
-      const terminatedEmployees = await Employee.query()
-        .withTrashed()
-        .where('department_id', departmentId)
-        .whereBetween('employee_deleted_at', [dateStart, dateEnd])
-        .count('* as total')
-      const numEployeesTerminated = terminatedEmployees[0].$extras.total
-      //console.log('empleados eliminados durante el periodo: ' + numEployeesTerminated)
+      const employeesTerminated =
+        await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
+        And employee_deleted_at between '${dateStart}' And '${dateEnd}' 
+        And employee_deleted_at is not null`)
+      let numEployeesTerminated = 0
+      if (employeesTerminated[0] && employeesTerminated[0][0]) {
+        const total = employeesTerminated[0][0].total
+        numEployeesTerminated = total
+      }
 
       //I = personal que se tenía al inicio del periodo.
-      const employeesAtStart = await Employee.query()
-        .where('department_id', departmentId)
-        .where('employee_hire_date', '<=', dateStart)
-        .andWhere((query) => {
-          query.whereNull('employee_deleted_at').orWhere('employee_deleted_at', '>', dateStart)
-        })
-        .count('* as total')
-      const numEmployeesAtStart = employeesAtStart[0].$extras.total
-      //console.log('empleados al inicio: ' + numEmployeesAtStart)
+      const employeesAtStart =
+        await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
+        And employee_hire_date <= '${dateStart}'
+        And (employee_deleted_at is null or employee_deleted_at > '${dateStart}')`)
+      let numEmployeesAtStart = 0
+
+      if (employeesAtStart[0] && employeesAtStart[0][0]) {
+        const total = employeesAtStart[0][0].total
+        numEmployeesAtStart = total
+      }
 
       //F = personal que se tiene al final del periodo.
-      const employeesAtEnd = await Employee.query()
-        .where('department_id', departmentId)
-        .where('employee_hire_date', '<=', dateEnd)
-        .andWhere((query) => {
-          query.whereNull('employee_deleted_at').orWhere('employee_deleted_at', '>', dateEnd)
-        })
-        .count('* as total')
-      const numEmployeesAtEnd = employeesAtEnd[0].$extras.total
-      //console.log('empleados al final: ' + numEmployeesAtEnd)
+      const employeesAtEnd =
+        await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
+        And employee_hire_date <= '${dateEnd}'
+        And (employee_deleted_at is null or employee_deleted_at > '${dateEnd}')`)
+      let numEmployeesAtEnd = 0
+      if (employeesAtEnd[0] && employeesAtEnd[0][0]) {
+        const total = employeesAtEnd[0][0].total
+        numEmployeesAtEnd = total
+      }
 
       const avgEmployees = (numEmployeesAtStart + numEmployeesAtEnd) / 2
+      const rotationIndex = Number.parseFloat(
+        ((numEployeesTerminated / avgEmployees) * 100).toFixed(2)
+      )
 
-      //console.log('promedio de empleados:' + avgEmployees)
-      const rotationIndex = (numEployeesTerminated / avgEmployees) * 100
-
-      /* R=S/((I+F)/2) x 100.
+      /* Formula para traer indice de rotación del departamnR=S/((I+F)/2) x 100.
 
       Donde:
       
@@ -698,8 +725,6 @@ export default class DepartmentController {
       S = personal que se separó de la empresa en el periodo.
       I = personal que se tenía al inicio del periodo.
       F = personal que se tiene al final del periodo. */
-
-      //console.log(`Indice de rotación ${departmentId}: ${rotationIndex.toFixed(2)}%`)
       response.status(200)
       return {
         type: 'success',

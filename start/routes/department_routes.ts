@@ -16,7 +16,7 @@ router.group(() => {
   router.delete('/:departmentId', '#controllers/department_controller.delete')
   router.delete('/:departmentId/force-delete', '#controllers/department_controller.forceDelete')
 })
-.prefix('/api/departments').use(middleware.auth())
+ .prefix('/api/departments').use(middleware.auth())
 
 router.group(() => {
   router.post('/assign-shift/:departmentId', '#controllers/department_controller.assignShift')

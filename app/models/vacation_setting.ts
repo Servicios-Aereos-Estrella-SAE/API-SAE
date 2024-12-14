@@ -16,6 +16,9 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  *          vacationSettingVacationDays:
  *            type: number
  *            description: Vacation setting vacation days
+ *          vacationSettingCrew:
+ *            type: number
+ *            description: Vacation setting is crew
  *          vacationSettingApplySince:
  *            type: date
  *            description: Vacation setting apply since date
@@ -40,6 +43,9 @@ export default class VacationSetting extends BaseModel {
 
   @column()
   vacationSettingApplySince!: Date | string
+
+  @column()
+  vacationSettingCrew!: number
 
   @column.dateTime({ autoCreate: true })
   vacationSettingCreatedAt!: DateTime
