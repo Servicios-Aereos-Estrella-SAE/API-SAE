@@ -651,26 +651,24 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
 
-      dateAssistItem = await this.isSundayBonus(dateAssistItem)
-      dateAssistItem = await this.isHoliday(dateAssistItem)
-      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
-      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dateAssistItem = await this.setCheckInDateTime(dateAssistItem)
       dateAssistItem = await this.setCheckOutDateTime(dateAssistItem)
+      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
       
       dateAssistItem = await this.calculateRawCalendar(dateAssistItem, assistList)
 
-       //if (!dateAssistItem.assist.shiftCalculateFlag) {
-         /* dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
-         dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem) */
-       //}
-
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
-      dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
+
+      dateAssistItem = await this.isSundayBonus(dateAssistItem)
+      dateAssistItem = await this.isHoliday(dateAssistItem)
+      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
+
       dateAssistItem = await this.validTime(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
+
+      dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
 
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
@@ -737,6 +735,7 @@ export default class SyncAssistsService {
           checkAssistCopy.assist.checkInStatus = ''
           return checkAssistCopy
         }
+
         const changeShiftException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'change-shift')
 
         if (changeShiftException) {
@@ -1021,15 +1020,16 @@ export default class SyncAssistsService {
 
     if (employee.shift_exceptions.length > 0) {
       const restException = employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day')
-      // const workOnRest = employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado')
+      const exWrongSystem = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'error-de-horario-en-sistema')
+      const exNewWorker = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'nuevo-ingreso')
+      const exIncapacity = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
+      const exMaternity = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'incapacidad-por-maternidad')
+      const exAbsentWork = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
 
-      // if (!workOnRest) {
-      //   checkAssistCopy.assist.checkInStatus = 'exception'
-      //   checkAssistCopy.assist.checkOutStatus = 'exception'
-      // }
-
-      //checkAssistCopy.assist.checkInStatus = 'exception'
-      //checkAssistCopy.assist.checkOutStatus = 'exception'
+      if (exWrongSystem || exNewWorker || exIncapacity || exMaternity || exAbsentWork) {
+        checkAssistCopy.assist.checkInStatus = 'exception'
+        checkAssistCopy.assist.checkOutStatus = 'exception'
+      }
 
       if (restException) {
         checkAssistCopy.assist.isRestDay = true
