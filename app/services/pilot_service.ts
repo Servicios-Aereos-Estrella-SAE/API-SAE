@@ -1,10 +1,7 @@
 import Pilot from '#models/pilot'
 import Person from '#models/person'
 import { PilotFilterSearchInterface } from '../interfaces/pilot_filter_search_interface.js'
-import Employee from '#models/employee'
 import PilotProceedingFile from '#models/pilot_proceeding_file'
-import FlightAttendant from '#models/flight_attendant'
-import Customer from '#models/customer'
 
 export default class PilotService {
   async index(filters: PilotFilterSearchInterface) {

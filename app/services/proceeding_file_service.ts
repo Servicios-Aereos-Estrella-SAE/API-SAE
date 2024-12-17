@@ -477,7 +477,9 @@ export default class ProceedingFileService {
       })
       .preload('pilotProceedingFile', (query) => {
         query.preload('pilot', (queryPilot) => {
-          queryPilot.preload('person')
+          queryPilot.preload('employee', (queryEmployee) => {
+            queryEmployee.preload('person')
+          })
         })
       })
       .preload('aircraftProceedingFile', (query) => {
@@ -509,7 +511,9 @@ export default class ProceedingFileService {
       })
       .preload('pilotProceedingFile', (query) => {
         query.preload('pilot', (queryPilot) => {
-          queryPilot.preload('person')
+          queryPilot.preload('employee', (queryEmployee) => {
+            queryEmployee.preload('person')
+          })
         })
       })
       .preload('aircraftProceedingFile', (query) => {
@@ -522,7 +526,9 @@ export default class ProceedingFileService {
       })
       .preload('flightAttendantProceedingFile', (query) => {
         query.preload('flightAttendant', (queryFlightAttendant) => {
-          queryFlightAttendant.preload('person')
+          queryFlightAttendant.preload('employee', (queryEmployee) => {
+            queryEmployee.preload('person')
+          })
         })
       })
       .orderBy('proceeding_file_expiration_at')
