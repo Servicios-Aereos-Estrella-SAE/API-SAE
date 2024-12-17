@@ -14,6 +14,7 @@ import ShiftExceptionService from '#services/shift_exception_service'
 import { DateTime } from 'luxon'
 import Ws from '#services/ws'
 import User from '#models/user'
+import { ExceptionRequestErrorInterface } from '../interfaces/exception_request_error_interface.js'
 
 export default class ExceptionRequestsController {
   /**
@@ -303,6 +304,9 @@ export default class ExceptionRequestsController {
    *               exceptionRequestCheckOutTime:
    *                 type: string
    *                 example: "14:00:00"
+   *               daysToApply:
+   *                 type: number
+   *                 example: 0
    *     responses:
    *       201:
    *         description: Exception request created successfully
@@ -359,40 +363,70 @@ export default class ExceptionRequestsController {
         error: 'Exception type not found or has been deleted',
       })
     }
-
-    const existingRequest = await ExceptionRequest.query()
-      .where('employee_id', data.employeeId)
-      .where('requested_date', data.requestedDate.toJSDate())
-      .whereNot('exception_request_status', 'refused')
-      .first()
-
-    if (existingRequest) {
-      return response.status(400).json({
-        error: 'An exception request for the same date and time already exists and is not refused',
-      })
+    let daysToApply = request.input('daysToApply', 1)
+    if (!daysToApply) {
+      daysToApply = 1
     }
-    const roleId = data.role?.roleId || 0
-    const exceptionRequestData = {
-      ...data,
-      exceptionRequestRhRead: roleId === 2 ? 1 : 0,
-      exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
-      userId: user.userId,
+    const exceptionRequestsSaved = [] as Array<ExceptionRequest>
+    const exceptionRequestsError = [] as Array<ExceptionRequestErrorInterface>
+    const exceptionRequestDate = data.requestedDate
+    for (let i = 0; i < daysToApply; i++) {
+      const currentDate = exceptionRequestDate.plus({ days: i }).toISODate()
+      if (currentDate) {
+        try {
+          const existingRequest = await ExceptionRequest.query()
+            .where('employee_id', data.employeeId)
+            .where('requested_date', currentDate)
+            .whereNot('exception_request_status', 'refused')
+            .first()
+
+          if (existingRequest) {
+            exceptionRequestsError.push({
+              requestedDate: currentDate,
+              error:
+                'An exception request for the same date and time already exists and is not refused',
+            })
+          } else {
+            const roleId = data.role?.roleId || 0
+            const exceptionRequestData = {
+              employeeId: data.employeeId,
+              exceptionTypeId: data.exceptionTypeId,
+              exceptionRequestStatus: data.exceptionRequestStatus,
+              exceptionRequestDescription: data.exceptionRequestDescription,
+              exceptionRequestCheckInTime: data.exceptionRequestCheckInTime,
+              exceptionRequestCheckOutTime: data.exceptionRequestCheckOutTime,
+              requestedDate: currentDate,
+              exceptionRequestRhRead: roleId === 2 ? 1 : 0,
+              exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+              userId: user.userId,
+            }
+            delete data.role
+            const exceptionRequest = await ExceptionRequest.create(exceptionRequestData)
+            exceptionRequestsSaved.push(exceptionRequest)
+          }
+        } catch (error) {
+          exceptionRequestsError.push({
+            requestedDate: currentDate,
+            error: error.message,
+          })
+        }
+      }
     }
-    delete exceptionRequestData.role
-    const exceptionRequest = await ExceptionRequest.create(exceptionRequestData)
-    if (Ws.io) {
-      Ws.io.emit('new-exception-request', {})
+
+    if (exceptionRequestsSaved.length > 0) {
+      if (Ws.io) {
+        Ws.io.emit('new-exception-request', {})
+      }
+    }
+    const dataInfo = {
+      data: {
+        exceptionRequestsSaved: exceptionRequestsSaved,
+        exceptionRequestsError: exceptionRequestsError,
+      },
     }
     return response
       .status(201)
-      .json(
-        formatResponse(
-          'success',
-          'Successfully created',
-          'Resource created',
-          exceptionRequest.toJSON()
-        )
-      )
+      .json(formatResponse('success', 'Successfully created', 'Resource created', dataInfo))
   }
 
   /**
@@ -514,25 +548,35 @@ export default class ExceptionRequestsController {
     const data = await request.validateUsing(updateExceptionRequestValidator)
     const exceptionRequest = await ExceptionRequest.findOrFail(params.id)
     const roleId = data.role?.roleId || 0
-    const exceptionRequestData = {
-      ...data,
-      exceptionRequestRhRead: roleId === 2 ? 1 : 0,
-      exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
-    }
-    delete exceptionRequestData.role
-    exceptionRequest.merge(exceptionRequestData)
-    await exceptionRequest.save()
-
-    return response
-      .status(200)
-      .json(
-        formatResponse(
-          'success',
-          'Successfully updated',
-          'Resource updated',
-          exceptionRequest.toJSON()
+    const requestedDate = data.requestedDate.toISODate()
+    if (requestedDate) {
+      const exceptionRequestData = {
+        exceptionRequestStatus: data.exceptionRequestStatus,
+        exceptionRequestDescription: data.exceptionRequestDescription,
+        exceptionRequestCheckInTime: data.exceptionRequestCheckInTime,
+        exceptionRequestCheckOutTime: data.exceptionRequestCheckOutTime,
+        requestedDate: requestedDate,
+        exceptionRequestRhRead: roleId === 2 ? 1 : 0,
+        exceptionRequestGerencialRead: roleId !== 2 ? 1 : 0,
+      }
+      delete data.role
+      exceptionRequest.merge(exceptionRequestData)
+      await exceptionRequest.save()
+      return response
+        .status(200)
+        .json(
+          formatResponse(
+            'success',
+            'Successfully updated',
+            'Resource updated',
+            exceptionRequest.toJSON()
+          )
         )
-      )
+    } else {
+      return response.status(404).json({
+        error: 'Exception request date is not valid',
+      })
+    }
   }
   /**
    * @swagger
