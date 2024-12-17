@@ -492,7 +492,9 @@ export default class ProceedingFileService {
       })
       .preload('flightAttendantProceedingFile', (query) => {
         query.preload('flightAttendant', (queryFlightAttendant) => {
-          queryFlightAttendant.preload('person')
+          queryFlightAttendant.preload('employee', (queryEmployee) => {
+            queryEmployee.preload('person')
+          })
         })
       })
       .orderBy('proceeding_file_expiration_at')
