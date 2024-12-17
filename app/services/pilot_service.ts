@@ -12,22 +12,17 @@ export default class PilotService {
       .whereNull('pilot_deleted_at')
       .if(filters.search, (query) => {
         query.where((subQuery) => {
-          subQuery.whereHas('person', (personQuery) => {
-            personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${filters.search.toUpperCase()}%`])
-            personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
-              `%${filters.search.toUpperCase()}%`,
-            ])
-            personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
-              `%${filters.search.toUpperCase()}%`,
-            ])
-            personQuery.orWhereRaw(
-              'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+          subQuery.whereHas('employee', (employeeQuery) => {
+            employeeQuery.orWhereRaw(
+              'UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?',
               [`%${filters.search.toUpperCase()}%`]
             )
           })
         })
       })
-      .preload('person')
+      .preload('employee', (employeeQuery) => {
+        employeeQuery.preload('person')
+      })
       .orderBy('pilot_id')
       .paginate(filters.page, filters.limit)
     return pilots
@@ -35,7 +30,7 @@ export default class PilotService {
 
   async create(pilot: Pilot) {
     const newPilot = new Pilot()
-    newPilot.personId = await pilot.personId
+    newPilot.employeeId = await pilot.employeeId
     newPilot.pilotHireDate = pilot.pilotHireDate
     newPilot.pilotPhoto = pilot.pilotPhoto
     await newPilot.save()
@@ -58,7 +53,9 @@ export default class PilotService {
     const pilot = await Pilot.query()
       .whereNull('pilot_deleted_at')
       .where('pilot_id', pilotId)
-      .preload('person')
+      .preload('employee', (employeeQuery) => {
+        employeeQuery.preload('person')
+      })
       .first()
     return pilot ? pilot : null
   }
@@ -67,10 +64,10 @@ export default class PilotService {
     if (!pilot.pilotId) {
       const existPerson = await Person.query()
         .whereNull('person_deleted_at')
-        .where('person_id', pilot.personId)
+        .where('person_id', pilot.employeeId)
         .first()
 
-      if (!existPerson && pilot.personId) {
+      if (!existPerson && pilot.employeeId) {
         return {
           status: 400,
           type: 'warning',
@@ -104,62 +101,49 @@ export default class PilotService {
   async verifyInfo(pilot: Pilot) {
     const action = pilot.pilotId > 0 ? 'updated' : 'created'
     if (!pilot.pilotId) {
-      const existPersonId = await Pilot.query()
+      const existEmployeeId = await Pilot.query()
         .if(pilot.pilotId > 0, (query) => {
           query.whereNot('pilot_id', pilot.pilotId)
         })
         .whereNull('pilot_deleted_at')
-        .where('person_id', pilot.personId)
+        .where('employee_id', pilot.employeeId)
         .first()
 
-      if (existPersonId && pilot.personId) {
+      if (existEmployeeId && pilot.employeeId) {
         return {
           status: 400,
           type: 'warning',
-          title: 'The pilot person id exists for another pilot',
+          title: 'The pilot employee id exists for another pilot',
           message: `The pilot resource cannot be ${action} because the person id is already assigned to another pilot`,
           data: { ...pilot },
         }
       }
-      const existEmployeePersonId = await Employee.query()
-        .whereNull('employee_deleted_at')
-        .where('person_id', pilot.personId)
-        .first()
-      if (existEmployeePersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another employee',
-          message: `The pilot resource cannot be ${action} because the person id is already assigned to another employee`,
-          data: { ...pilot },
-        }
-      }
-      const existFlightAttendantPersonId = await FlightAttendant.query()
-        .whereNull('flight_attendant_deleted_at')
-        .where('person_id', pilot.personId)
-        .first()
-      if (existFlightAttendantPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another flight attendant',
-          message: `The pilot resource cannot be ${action} because the person id is already assigned to another flight attendant`,
-          data: { ...pilot },
-        }
-      }
-      const existCustomerPersonId = await Customer.query()
-        .whereNull('customer_deleted_at')
-        .where('person_id', pilot.personId)
-        .first()
-      if (existCustomerPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another customer',
-          message: `The pilot resource cannot be ${action} because the person id is already assigned to another customer`,
-          data: { ...pilot },
-        }
-      }
+      // const existFlightAttendantPersonId = await FlightAttendant.query()
+      //   .whereNull('flight_attendant_deleted_at')
+      //   .where('person_id', pilot.employeeId)
+      //   .first()
+      // if (existFlightAttendantPersonId) {
+      //   return {
+      //     status: 400,
+      //     type: 'warning',
+      //     title: 'The person id exists for another flight attendant',
+      //     message: `The pilot resource cannot be ${action} because the person id is already assigned to another flight attendant`,
+      //     data: { ...pilot },
+      //   }
+      // }
+      // const existCustomerPersonId = await Customer.query()
+      //   .whereNull('customer_deleted_at')
+      //   .where('person_id', pilot.employeeId)
+      //   .first()
+      // if (existCustomerPersonId) {
+      //   return {
+      //     status: 400,
+      //     type: 'warning',
+      //     title: 'The person id exists for another customer',
+      //     message: `The pilot resource cannot be ${action} because the person id is already assigned to another customer`,
+      //     data: { ...pilot },
+      //   }
+      // }
     }
     return {
       status: 200,

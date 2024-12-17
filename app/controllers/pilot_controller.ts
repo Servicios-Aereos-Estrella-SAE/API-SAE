@@ -1,11 +1,15 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Pilot from '#models/pilot'
 import PilotService from '#services/pilot_service'
+import EmployeeService from '#services/employee_service'
+import PersonService from '#services/person_service'
 import { createPilotValidator } from '#validators/pilot'
 import { PilotFilterSearchInterface } from '../interfaces/pilot_filter_search_interface.js'
 import UploadService from '#services/upload_service'
 import path from 'node:path'
 import Env from '#start/env'
+import Employee from '#models/employee'
+import Person from '#models/person'
 export default class PilotController {
   /**
    * @swagger
@@ -178,9 +182,9 @@ export default class PilotController {
    *                 description: Pilot hire date (YYYY-MM-DD)
    *                 required: true
    *                 default: ''
-   *               personId:
+   *               employeeId:
    *                 type: integer
-   *                 description: Person id
+   *                 description: Employee id
    *                 required: true
    *                 default: 0
    *     responses:
@@ -266,11 +270,11 @@ export default class PilotController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const personId = request.input('personId')
+      const employeeId = request.input('employeeId')
       let pilotHireDate = request.input('pilotHireDate')
       pilotHireDate = (pilotHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
       const pilot = {
-        personId: personId,
+        employeeId: employeeId,
         pilotHireDate: pilotHireDate,
       } as Pilot
       const pilotService = new PilotService()
@@ -282,16 +286,6 @@ export default class PilotController {
           type: valid.type,
           title: valid.title,
           message: valid.message,
-          data: { ...data },
-        }
-      }
-      const exist = await pilotService.verifyInfoExist(pilot)
-      if (exist.status !== 200) {
-        response.status(exist.status)
-        return {
-          type: exist.type,
-          title: exist.title,
-          message: exist.message,
           data: { ...data },
         }
       }
@@ -658,9 +652,39 @@ export default class PilotController {
           data: { pilotId },
         }
       }
+      const currentEmployee = await await Employee.query()
+        .whereNull('employee_deleted_at')
+        .where('employee_id', currentPilot.employeeId)
+        .first()
+      if (!currentEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId: currentPilot.employeeId },
+        }
+      }
+      const currentPerson = await Person.query()
+        .whereNull('person_deleted_at')
+        .where('person_id', currentEmployee.personId)
+        .first()
+      if (!currentPerson) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The person was not found',
+          message: 'The person was not found with the entered ID',
+          data: { personId: currentEmployee.personId },
+        }
+      }
+      const personService = new PersonService()
+      const employeeService = new EmployeeService()
       const pilotService = new PilotService()
+      const deletePerson = await personService.delete(currentPerson)
+      const deleteEmployee = await employeeService.delete(currentEmployee)
       const deletePilot = await pilotService.delete(currentPilot)
-      if (deletePilot) {
+      if (deletePilot && deleteEmployee && deletePerson) {
         response.status(200)
         return {
           type: 'success',

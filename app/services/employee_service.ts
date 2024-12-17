@@ -374,28 +374,15 @@ export default class EmployeeService {
           data: { ...employee },
         }
       }
-      const existPilotPersonId = await Pilot.query()
-        .whereNull('pilot_deleted_at')
-        .where('person_id', employee.personId)
-        .first()
-      if (existPilotPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another pilot',
-          message: `The employee resource cannot be ${action} because the person id is already assigned to another pilot`,
-          data: { ...employee },
-        }
-      }
       const existFlightAttendantPersonId = await FlightAttendant.query()
         .whereNull('flight_attendant_deleted_at')
-        .where('person_id', employee.personId)
+        .where('employee_id', employee.employeeId)
         .first()
       if (existFlightAttendantPersonId) {
         return {
           status: 400,
           type: 'warning',
-          title: 'The person id exists for another flight attendant',
+          title: 'The employee id exists for another flight attendant',
           message: `The employee resource cannot be ${action} because the person id is already assigned to another flight attendant`,
           data: { ...employee },
         }
