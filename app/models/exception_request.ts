@@ -101,8 +101,8 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
   @column()
   exceptionRequestCheckOutTime!: string | null
 
-  @column.dateTime()
-  declare requestedDate: DateTime
+  @column()
+  declare requestedDate: DateTime<true> | DateTime<false> | string | Date
 
   @column()
   exceptionRequestRhRead!: number // 0: No leído, 1: Leído
