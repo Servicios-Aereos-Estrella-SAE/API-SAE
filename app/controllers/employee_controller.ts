@@ -5,8 +5,6 @@ import env from '#start/env'
 import { HttpContext } from '@adonisjs/core/http'
 import axios from 'axios'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
-import DepartmentService from '#services/department_service'
-import PositionService from '#services/position_service'
 import { createEmployeeValidator } from '../validators/employee.js'
 import { updateEmployeeValidator } from '../validators/employee.js'
 import { EmployeeFilterSearchInterface } from '../interfaces/employee_filter_search_interface.js'
@@ -20,6 +18,7 @@ import ShiftException from '#models/shift_exception'
 import EmployeeShift from '#models/employee_shift'
 import EmployeeType from '#models/employee_type'
 import BusinessUnit from '#models/business_unit'
+import Position from '#models/position'
 
 export default class EmployeeController {
   /**
@@ -196,6 +195,14 @@ export default class EmployeeController {
       const positionId = request.input('positionId')
       const hireDate = request.input('hireDate')
 
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitName)
+
       let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees`
       apiUrl = `${apiUrl}?page=${page || ''}`
       apiUrl = `${apiUrl}&limit=${limit || ''}`
@@ -211,13 +218,49 @@ export default class EmployeeController {
       apiUrl = `${apiUrl}&hireDate=${hireDate || ''}`
       const apiResponse = await axios.get(apiUrl)
       const data = apiResponse.data.data
+      let withOutDepartmentId = null
+      let withOutPositionId = null
+      const department = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_name', 'Sin departamento')
+        .first()
+      if (department) {
+        withOutDepartmentId = department.departmentId
+      }
+      const position = await Position.query()
+        .whereNull('position_deleted_at')
+        .where('position_name', 'Sin posición')
+        .first()
+      if (position) {
+        withOutPositionId = position.positionId
+      }
       if (data) {
         const employeeService = new EmployeeService()
-        const departmentService = new DepartmentService()
-        const positionService = new PositionService()
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+
+        let employeeCountSaved = 0
         for await (const employee of data) {
-          await this.verify(employee, employeeService, departmentService, positionService)
+          let existInBusinessUnitList = false
+          if (employee.payrollNum) {
+            if (businessUnitsList.includes(employee.payrollNum)) {
+              existInBusinessUnitList = true
+            }
+          } else if (employee.personnelEmployeeArea.length > 0) {
+            for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
+              if (personnelEmployeeArea.personnelArea) {
+                if (businessUnitsList.includes(personnelEmployeeArea.personnelArea.areaName)) {
+                  existInBusinessUnitList = true
+                  break
+                }
+              }
+            }
+          }
+          if (existInBusinessUnitList) {
+            employee.departmentId = withOutDepartmentId
+            employee.positionId = withOutPositionId
+            employeeCountSaved += 1
+            await this.verify(employee, employeeService)
+          }
         }
         response.status(201)
         return {
@@ -3029,18 +3072,13 @@ export default class EmployeeController {
     }
   }
 
-  private async verify(
-    employee: BiometricEmployeeInterface,
-    employeeService: EmployeeService,
-    departmentService: DepartmentService,
-    positionService: PositionService
-  ) {
+  private async verify(employee: BiometricEmployeeInterface, employeeService: EmployeeService) {
     const existEmployee = await Employee.query()
       .where('employee_code', employee.empCode)
       .withTrashed()
       .first()
     if (!existEmployee) {
-      await employeeService.syncCreate(employee, departmentService, positionService)
+      await employeeService.syncCreate(employee)
     }
   }
 

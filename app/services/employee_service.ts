@@ -19,13 +19,10 @@ import Customer from '#models/customer'
 import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 import EmployeeType from '#models/employee_type'
+import axios from 'axios'
 
 export default class EmployeeService {
-  async syncCreate(
-    employee: BiometricEmployeeInterface,
-    departmentService: DepartmentService,
-    positionService: PositionService
-  ) {
+  async syncCreate(employee: BiometricEmployeeInterface) {
     const newEmployee = new Employee()
     const personService = new PersonService()
     const newPerson = await personService.syncCreate(employee)
@@ -39,18 +36,14 @@ export default class EmployeeService {
     newEmployee.employeePayrollNum = employee.payrollNum
     newEmployee.employeeHireDate = employee.hireDate
     newEmployee.companyId = employee.companyId
-    newEmployee.departmentId = await departmentService.getIdBySyncId(employee.departmentId)
-    newEmployee.positionId = await positionService.getIdBySyncId(employee.positionId)
-    newEmployee.departmentSyncId = employee.departmentId
-    const positionRealId = await positionService.getIdBySyncId(employee.positionId)
-    if (positionRealId) {
-      newEmployee.positionId = positionRealId
-    } else {
-      newEmployee.positionId = await this.getNewPosition(
-        employee,
-        positionService,
-        departmentService
-      )
+    newEmployee.departmentId = employee.departmentId
+    newEmployee.positionId = employee.positionId
+    if (employee.empCode) {
+      const urlPhoto = `${env.get('API_BIOMETRICS_EMPLOYEE_PHOTO_URL')}/${employee.empCode}.jpg`
+      const existPhoto = await this.verifyExistPhoto(urlPhoto)
+      if (existPhoto) {
+        newEmployee.employeePhoto = urlPhoto
+      }
     }
     newEmployee.employeeLastSynchronizationAt = new Date()
     await newEmployee.save()
@@ -789,5 +782,15 @@ export default class EmployeeService {
       .orderBy('shift_exceptions_date', 'asc')
 
     return vacations ? vacations : []
+  }
+
+  async verifyExistPhoto(url: string) {
+    try {
+      const response = await axios.head(url)
+      if (response.status === 200) {
+        return true
+      }
+    } catch (error) {}
+    return false
   }
 }

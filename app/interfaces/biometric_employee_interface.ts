@@ -10,4 +10,6 @@ export default interface BiometricEmployeeInterface {
   companyId: number
   departmentId: number
   positionId: number
+  gender: string
+  photo: string
 }
