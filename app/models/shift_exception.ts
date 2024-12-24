@@ -45,6 +45,21 @@ import VacationSetting from './vacation_setting.js'
  *           format: time
  *           description: Time check out
  *           nullable: true
+ *         exceptionTypeNeedEnjoymentOfSalary:
+ *           type: string
+ *           format: time
+ *           description: Enjoyment of salary
+ *           nullable: true
+ *         exceptionTypeNeedPeriodInDays:
+ *           type: string
+ *           format: time
+ *           description: Period in days
+ *           nullable: true
+ *         exceptionTypeNeedPeriodInHours:
+ *           type: string
+ *           format: time
+ *           description: Period in hours
+ *           nullable: true
  *         shiftExceptionCreatedAt:
  *           type: string
  *           format: date-time
@@ -73,6 +88,9 @@ import VacationSetting from './vacation_setting.js'
  *         shiftExceptionsDescription: "Employee was absent from work"
  *         shiftExceptionCheckInTime: '07:00:00'
  *         shiftExceptionCheckOutTime: '21:00:00'
+ *         exceptionTypeNeedEnjoymentOfSalary: 'NO'
+ *         exceptionTypeNeedPeriodInDays: 0
+ *         exceptionTypeNeedPeriodInHours: 0
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'
  *         shiftExceptionDeletedAt: null
@@ -105,6 +123,15 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare shiftExceptionCheckOutTime: string | null
+
+  @column()
+  declare exceptionTypeNeedEnjoymentOfSalary: string | null
+
+  @column()
+  declare exceptionTypeNeedPeriodInDays: number | null
+
+  @column()
+  declare exceptionTypeNeedPeriodInHours: number | null
 
   @column.dateTime({ autoCreate: true })
   declare shiftExceptionsCreatedAt: DateTime

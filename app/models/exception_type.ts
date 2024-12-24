@@ -31,6 +31,22 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           type: number
  *           description: Need check out time
  *           nullable: true
+ *         exceptionTypeNeedReason:
+ *           type: number
+ *           description: Need reason
+ *           nullable: true
+ *         exceptionTypeNeedEnjoymentOfSalary:
+ *           type: number
+ *           description: Need enjoyment of salary
+ *           nullable: true
+ *         exceptionTypeNeedPeriodInDays:
+ *           type: number
+ *           description: Need period in days
+ *           nullable: true
+ *         exceptionTypeNeedPeriodInHours:
+ *           type: number
+ *           description: Need period in hours
+ *           nullable: true
  *         exceptionTypeCreatedAt:
  *           type: string
  *           format: date-time
@@ -78,6 +94,18 @@ export default class ExceptionType extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare exceptionTypeNeedCheckOutTime: number | null
+
+  @column()
+  declare exceptionTypeNeedReason: number | null
+
+  @column()
+  declare exceptionTypeNeedEnjoymentOfSalary: number | null
+
+  @column()
+  declare exceptionTypeNeedPeriodInDays: number | null
+
+  @column()
+  declare exceptionTypeNeedPeriodInHours: number | null
 
   @column.dateTime({ autoCreate: true })
   declare exceptionTypeCreatedAt: DateTime
