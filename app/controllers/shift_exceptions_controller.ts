@@ -86,6 +86,9 @@ export default class ShiftExceptionController {
       const vacationSettingId = request.input('vacationSettingId')
       const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
       const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
+      const shiftExceptionEnjoymentOfSalary = request.input('shiftExceptionEnjoymentOfSalary')
+      const shiftExceptionPeriodInDays = request.input('shiftExceptionPeriodInDays')
+      const shiftExceptionPeriodInHours = request.input('shiftExceptionPeriodInHours')
       let daysToApply = request.input('daysToApply', 1)
       if (!daysToApply) {
         daysToApply = 1
@@ -103,6 +106,13 @@ export default class ShiftExceptionController {
           shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
           shiftExceptionCheckOutTime: shiftExceptionCheckOutTime
             ? shiftExceptionCheckOutTime
+            : null,
+          shiftExceptionEnjoymentOfSalary: shiftExceptionEnjoymentOfSalary,
+          shiftExceptionPeriodInDays: shiftExceptionPeriodInDays
+            ? shiftExceptionPeriodInDays
+            : null,
+          shiftExceptionPeriodInHours: shiftExceptionPeriodInHours
+            ? shiftExceptionPeriodInHours
             : null,
         } as ShiftException
         try {
@@ -263,6 +273,9 @@ export default class ShiftExceptionController {
       const vacationSettingId = request.input('vacationSettingId')
       const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
       const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
+      const shiftExceptionEnjoymentOfSalary = request.input('shiftExceptionEnjoymentOfSalary')
+      const shiftExceptionPeriodInDays = request.input('shiftExceptionPeriodInDays')
+      const shiftExceptionPeriodInHours = request.input('shiftExceptionPeriodInHours')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       const currentShiftException = await ShiftException.findOrFail(params.id)
@@ -276,6 +289,11 @@ export default class ShiftExceptionController {
         vacationSettingId: vacationSettingId ? vacationSettingId : null,
         shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
         shiftExceptionCheckOutTime: shiftExceptionCheckOutTime ? shiftExceptionCheckOutTime : null,
+        shiftExceptionEnjoymentOfSalary: shiftExceptionEnjoymentOfSalary,
+        shiftExceptionPeriodInDays: shiftExceptionPeriodInDays ? shiftExceptionPeriodInDays : null,
+        shiftExceptionPeriodInHours: shiftExceptionPeriodInHours
+          ? shiftExceptionPeriodInHours
+          : null,
       } as ShiftException
       const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
       if (verifyInfo.status !== 200) {

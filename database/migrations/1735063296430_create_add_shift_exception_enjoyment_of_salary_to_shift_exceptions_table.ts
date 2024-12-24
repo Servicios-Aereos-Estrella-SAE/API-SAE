@@ -6,8 +6,8 @@ export default class extends BaseSchema {
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
       table
-        .string('shift_exception_enjoyment_of_salary', 2)
-        .after('shift_exception_reason')
+        .tinyint('shift_exception_enjoyment_of_salary')
+        .after('shift_exception_check_out_time')
         .nullable()
     })
   }

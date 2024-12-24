@@ -45,19 +45,16 @@ import VacationSetting from './vacation_setting.js'
  *           format: time
  *           description: Time check out
  *           nullable: true
- *         exceptionTypeNeedEnjoymentOfSalary:
- *           type: string
- *           format: time
+ *         shiftExceptionEnjoymentOfSalary:
+ *           type: number
  *           description: Enjoyment of salary
  *           nullable: true
- *         exceptionTypeNeedPeriodInDays:
- *           type: string
- *           format: time
+ *         shiftExceptionPeriodInDays:
+ *           type: number
  *           description: Period in days
  *           nullable: true
- *         exceptionTypeNeedPeriodInHours:
- *           type: string
- *           format: time
+ *         shiftExceptionPeriodInHours:
+ *           type: number
  *           description: Period in hours
  *           nullable: true
  *         shiftExceptionCreatedAt:
@@ -88,9 +85,9 @@ import VacationSetting from './vacation_setting.js'
  *         shiftExceptionsDescription: "Employee was absent from work"
  *         shiftExceptionCheckInTime: '07:00:00'
  *         shiftExceptionCheckOutTime: '21:00:00'
- *         exceptionTypeNeedEnjoymentOfSalary: 'NO'
- *         exceptionTypeNeedPeriodInDays: 0
- *         exceptionTypeNeedPeriodInHours: 0
+ *         shiftExceptionEnjoymentOfSalary: 0
+ *         shiftExceptionPeriodInDays: 0
+ *         shiftExceptionPeriodInHours: 0
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'
  *         shiftExceptionDeletedAt: null
@@ -125,13 +122,13 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
   declare shiftExceptionCheckOutTime: string | null
 
   @column()
-  declare exceptionTypeNeedEnjoymentOfSalary: string | null
+  declare shiftExceptionEnjoymentOfSalary: number | null
 
   @column()
-  declare exceptionTypeNeedPeriodInDays: number | null
+  declare shiftExceptionPeriodInDays: number | null
 
   @column()
-  declare exceptionTypeNeedPeriodInHours: number | null
+  declare shiftExceptionPeriodInHours: number | null
 
   @column.dateTime({ autoCreate: true })
   declare shiftExceptionsCreatedAt: DateTime
