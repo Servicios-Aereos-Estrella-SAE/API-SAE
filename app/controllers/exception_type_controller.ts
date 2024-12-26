@@ -19,6 +19,13 @@ export default class ExceptionTypeController {
    *         description: Search
    *         schema:
    *           type: string
+   *       - name: onlyActive
+   *         in: query
+   *         required: false
+   *         description: Include only active
+   *         default: true
+   *         schema:
+   *           type: boolean
    *       - name: page
    *         in: query
    *         required: true
@@ -117,10 +124,12 @@ export default class ExceptionTypeController {
   async index({ request, response }: HttpContext) {
     try {
       const search = request.input('search')
+      const onlyActive = request.input('onlyActive', true)
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
         search: search,
+        onlyActive: onlyActive,
         page: page,
         limit: limit,
       } as ExceptionTypeFilterSearchInterface

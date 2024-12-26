@@ -49,14 +49,6 @@ import VacationSetting from './vacation_setting.js'
  *           type: number
  *           description: Enjoyment of salary
  *           nullable: true
- *         shiftExceptionPeriodInDays:
- *           type: number
- *           description: Period in days
- *           nullable: true
- *         shiftExceptionPeriodInHours:
- *           type: number
- *           description: Period in hours
- *           nullable: true
  *         shiftExceptionCreatedAt:
  *           type: string
  *           format: date-time
@@ -86,8 +78,6 @@ import VacationSetting from './vacation_setting.js'
  *         shiftExceptionCheckInTime: '07:00:00'
  *         shiftExceptionCheckOutTime: '21:00:00'
  *         shiftExceptionEnjoymentOfSalary: 0
- *         shiftExceptionPeriodInDays: 0
- *         shiftExceptionPeriodInHours: 0
  *         shiftExceptionCreatedAt: '2024-06-20T12:00:00Z'
  *         shiftExceptionUpdatedAt: '2024-06-20T13:00:00Z'
  *         shiftExceptionDeletedAt: null
@@ -123,12 +113,6 @@ export default class ShiftException extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare shiftExceptionEnjoymentOfSalary: number | null
-
-  @column()
-  declare shiftExceptionPeriodInDays: number | null
-
-  @column()
-  declare shiftExceptionPeriodInHours: number | null
 
   @column.dateTime({ autoCreate: true })
   declare shiftExceptionsCreatedAt: DateTime
