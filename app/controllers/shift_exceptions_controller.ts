@@ -87,6 +87,7 @@ export default class ShiftExceptionController {
       const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
       const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
       const shiftExceptionEnjoymentOfSalary = request.input('shiftExceptionEnjoymentOfSalary')
+      const shiftExceptionTimeByTime = request.input('shiftExceptionTimeByTime')
       let daysToApply = request.input('daysToApply', 1)
       if (!daysToApply) {
         daysToApply = 1
@@ -106,6 +107,7 @@ export default class ShiftExceptionController {
             ? shiftExceptionCheckOutTime
             : null,
           shiftExceptionEnjoymentOfSalary: shiftExceptionEnjoymentOfSalary,
+          shiftExceptionTimeByTime: shiftExceptionTimeByTime,
         } as ShiftException
         try {
           await request.validateUsing(createShiftExceptionValidator)
@@ -266,6 +268,7 @@ export default class ShiftExceptionController {
       const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
       const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
       const shiftExceptionEnjoymentOfSalary = request.input('shiftExceptionEnjoymentOfSalary')
+      const shiftExceptionTimeByTime = request.input('shiftExceptionTimeByTime')
       await request.validateUsing(createShiftExceptionValidator)
       const shiftExceptionService = new ShiftExceptionService()
       const currentShiftException = await ShiftException.findOrFail(params.id)
@@ -280,6 +283,7 @@ export default class ShiftExceptionController {
         shiftExceptionCheckInTime: shiftExceptionCheckInTime ? shiftExceptionCheckInTime : null,
         shiftExceptionCheckOutTime: shiftExceptionCheckOutTime ? shiftExceptionCheckOutTime : null,
         shiftExceptionEnjoymentOfSalary: shiftExceptionEnjoymentOfSalary,
+        shiftExceptionTimeByTime: shiftExceptionTimeByTime,
       } as ShiftException
       const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
       if (verifyInfo.status !== 200) {

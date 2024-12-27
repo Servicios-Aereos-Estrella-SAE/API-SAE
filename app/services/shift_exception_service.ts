@@ -16,6 +16,7 @@ export default class ShiftExceptionService {
     newShiftException.shiftExceptionCheckOutTime = shiftException.shiftExceptionCheckOutTime
     newShiftException.shiftExceptionEnjoymentOfSalary =
       shiftException.shiftExceptionEnjoymentOfSalary
+    newShiftException.shiftExceptionTimeByTime = shiftException.shiftExceptionTimeByTime
     await newShiftException.save()
     return newShiftException
   }
@@ -30,6 +31,7 @@ export default class ShiftExceptionService {
     currentShiftException.shiftExceptionCheckOutTime = shiftException.shiftExceptionCheckOutTime
     currentShiftException.shiftExceptionEnjoymentOfSalary =
       shiftException.shiftExceptionEnjoymentOfSalary
+    currentShiftException.shiftExceptionTimeByTime = shiftException.shiftExceptionTimeByTime
     await currentShiftException.save()
     return currentShiftException
   }
