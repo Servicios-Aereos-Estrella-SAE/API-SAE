@@ -31,6 +31,25 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           type: number
  *           description: Need check out time
  *           nullable: true
+ *         exceptionTypeNeedReason:
+ *           type: number
+ *           description: Need reason
+ *           nullable: true
+ *         exceptionTypeNeedEnjoymentOfSalary:
+ *           type: number
+ *           description: Need enjoyment of salary
+ *           nullable: true
+ *         exceptionTypeNeedPeriodInDays:
+ *           type: number
+ *           description: Need period in days
+ *           nullable: true
+ *         exceptionTypeNeedPeriodInHours:
+ *           type: number
+ *           description: Need period in hours
+ *           nullable: true
+ *         exceptionTypeActive:
+ *           type: number
+ *           description: Status active
  *         exceptionTypeCreatedAt:
  *           type: string
  *           format: date-time
@@ -54,6 +73,13 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         exceptionTypeTypeName: "Absence from work"
  *         exceptionTypeIcon: "icon_absence_from_work"
  *         exceptionTypeSlug: "absence-from-work"
+ *         exceptionTypeNeedCheckInTime: 1
+ *         exceptionTypeNeedCheckOutTime: 1
+ *         exceptionTypeNeedReason: 1
+ *         exceptionTypeNeedEnjoymentOfSalary: 1
+ *         exceptionTypeNeedPeriodInDays: 1
+ *         exceptionTypeNeedPeriodInHours: 1
+ *         exceptionTypeActive: 1
  *         exceptionTypeCreatedAt: '2024-06-20T12:00:00Z'
  *         exceptionTypeUpdatedAt: '2024-06-20T13:00:00Z'
  *         exceptionTypeDeletedAt: null
@@ -78,6 +104,21 @@ export default class ExceptionType extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare exceptionTypeNeedCheckOutTime: number | null
+
+  @column()
+  declare exceptionTypeNeedReason: number | null
+
+  @column()
+  declare exceptionTypeNeedEnjoymentOfSalary: number | null
+
+  @column()
+  declare exceptionTypeNeedPeriodInDays: number | null
+
+  @column()
+  declare exceptionTypeNeedPeriodInHours: number | null
+
+  @column()
+  declare exceptionTypeActive: number
 
   @column.dateTime({ autoCreate: true })
   declare exceptionTypeCreatedAt: DateTime
