@@ -3,15 +3,15 @@ import vine from '@vinejs/vine'
 
 export const createPilotValidator = vine.compile(
   vine.object({
-    personId: vine
+    employeeId: vine
       .number()
       .min(1)
       .unique(async (_db, value) => {
-        const existingPersonId = await Pilot.query()
-          .where('person_id', value)
+        const existingEmployeeId = await Pilot.query()
+          .where('employee_id', value)
           .whereNull('pilot_deleted_at')
           .first()
-        return !existingPersonId
+        return !existingEmployeeId
       }),
   })
 )

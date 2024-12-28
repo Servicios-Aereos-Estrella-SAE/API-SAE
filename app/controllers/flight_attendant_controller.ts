@@ -1,6 +1,8 @@
 import { HttpContext } from '@adonisjs/core/http'
 import FlightAttendant from '#models/flight_attendant'
 import FlightAttendantService from '#services/flight_attendant_service'
+import EmployeeService from '#services/employee_service'
+import PersonService from '#services/person_service'
 import {
   createFlightAttendantValidator,
   updateFlightAttendantValidator,
@@ -9,6 +11,8 @@ import { FlightAttendantFilterSearchInterface } from '../interfaces/flight_atten
 import UploadService from '#services/upload_service'
 import path from 'node:path'
 import Env from '#start/env'
+import Employee from '#models/employee'
+import Person from '#models/person'
 export default class FlightAttendantController {
   /**
    * @swagger
@@ -181,9 +185,9 @@ export default class FlightAttendantController {
    *                 description: Flight attendant hire date (YYYY-MM-DD)
    *                 required: true
    *                 default: ''
-   *               personId:
+   *               employeeId:
    *                 type: integer
-   *                 description: Person id
+   *                 description: employee id
    *                 required: true
    *                 default: 0
    *     responses:
@@ -270,14 +274,14 @@ export default class FlightAttendantController {
   async store({ request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(createFlightAttendantValidator)
-      const personId = request.input('personId')
+      const employeeId = request.input('employeeId')
       let flightAttendantHireDate = request.input('flightAttendantHireDate')
       flightAttendantHireDate = (flightAttendantHireDate.split('T')[0] + ' 00:000:00').replace(
         '"',
         ''
       )
       const flightAttendant = {
-        personId: personId,
+        employeeId: employeeId,
         flightAttendantHireDate: flightAttendantHireDate,
       } as FlightAttendant
       const flightAttendantService = new FlightAttendantService()
@@ -671,9 +675,39 @@ export default class FlightAttendantController {
           data: { flightAttendantId },
         }
       }
+      const currentEmployee = await await Employee.query()
+        .whereNull('employee_deleted_at')
+        .where('employee_id', currentFlightAttendant.employeeId)
+        .first()
+      if (!currentEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { flightAttendantId },
+        }
+      }
+      const currentPerson = await Person.query()
+        .whereNull('person_deleted_at')
+        .where('person_id', currentEmployee.personId)
+        .first()
+      if (!currentPerson) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The person was not found',
+          message: 'The person was not found with the entered ID',
+          data: { flightAttendantId },
+        }
+      }
       const flightAttendantService = new FlightAttendantService()
+      const personService = new PersonService()
+      const employeeService = new EmployeeService()
+      const deletePerson = await personService.delete(currentPerson)
+      const deleteEmployee = await employeeService.delete(currentEmployee)
       const deleteFlightAttendant = await flightAttendantService.delete(currentFlightAttendant)
-      if (deleteFlightAttendant) {
+      if (deleteFlightAttendant && deleteEmployee && deletePerson) {
         response.status(200)
         return {
           type: 'success',

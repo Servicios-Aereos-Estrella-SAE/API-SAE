@@ -175,7 +175,9 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
     localKey: 'proceedingFileId',
     onQuery: (query) => {
       query.whereNull('deletedAt').preload('flightAttendant', (subQuery) => {
-        subQuery.preload('person')
+        subQuery.preload('employee', (subSubQuery) => {
+          subSubQuery.preload('person')
+        })
       })
     },
   })
@@ -186,7 +188,9 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
     localKey: 'proceedingFileId',
     onQuery: (query) => {
       query.whereNull('deletedAt').preload('pilot', (subQuery) => {
-        subQuery.preload('person')
+        subQuery.preload('employee', (subSubQuery) => {
+          subSubQuery.preload('person')
+        })
       })
     },
   })

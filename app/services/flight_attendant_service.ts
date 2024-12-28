@@ -1,5 +1,4 @@
 import FlightAttendants from '#models/flight_attendant'
-import Person from '#models/person'
 import Employee from '#models/employee'
 import FlightAttendantsProceedingFile from '#models/flight_attendant_proceeding_file'
 import { FlightAttendantFilterSearchInterface } from '../interfaces/flight_attendant_filter_search_interface.js'
@@ -12,22 +11,28 @@ export default class FlightAttendantService {
       .whereNull('flight_attendant_deleted_at')
       .if(filters.search, (query) => {
         query.where((subQuery) => {
-          subQuery.whereHas('person', (personQuery) => {
-            personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${filters.search.toUpperCase()}%`])
-            personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
-              `%${filters.search.toUpperCase()}%`,
-            ])
-            personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
-              `%${filters.search.toUpperCase()}%`,
-            ])
-            personQuery.orWhereRaw(
-              'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
-              [`%${filters.search.toUpperCase()}%`]
-            )
+          subQuery.whereHas('employee', (employeeQuery) => {
+            employeeQuery.whereHas('person', (personQuery) => {
+              personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw(
+                'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+                [`%${filters.search.toUpperCase()}%`]
+              )
+            })
           })
         })
       })
-      .preload('person')
+      .preload('employee', (query) => {
+        query.preload('person')
+      })
       .orderBy('flight_attendant_id')
       .paginate(filters.page, filters.limit)
     return flightAttendants
@@ -35,7 +40,7 @@ export default class FlightAttendantService {
 
   async create(flightAttendant: FlightAttendants) {
     const newFlightAttendants = new FlightAttendants()
-    newFlightAttendants.personId = await flightAttendant.personId
+    newFlightAttendants.employeeId = flightAttendant.employeeId
     newFlightAttendants.flightAttendantHireDate = flightAttendant.flightAttendantHireDate
     newFlightAttendants.flightAttendantPhoto = flightAttendant.flightAttendantPhoto
     await newFlightAttendants.save()
@@ -58,24 +63,26 @@ export default class FlightAttendantService {
     const flightAttendant = await FlightAttendants.query()
       .whereNull('flight_attendant_deleted_at')
       .where('flight_attendant_id', flightAttendantId)
-      .preload('person')
+      .preload('employee', (query) => {
+        query.preload('person')
+      })
       .first()
     return flightAttendant ? flightAttendant : null
   }
 
   async verifyInfoExist(flightAttendant: FlightAttendants) {
     if (!flightAttendant.flightAttendantId) {
-      const existPerson = await Person.query()
-        .whereNull('person_deleted_at')
-        .where('person_id', flightAttendant.personId)
+      const existsEmployee = await Employee.query()
+        .whereNull('employee_deleted_at')
+        .where('employee_id', flightAttendant.employeeId)
         .first()
 
-      if (!existPerson && flightAttendant.personId) {
+      if (!existsEmployee && flightAttendant.employeeId) {
         return {
           status: 400,
           type: 'warning',
-          title: 'The person was not found',
-          message: 'The person was not found with the entered ID',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
           data: { ...flightAttendant },
         }
       }
@@ -104,61 +111,54 @@ export default class FlightAttendantService {
   async verifyInfo(flightAttendant: FlightAttendants) {
     const action = flightAttendant.flightAttendantId > 0 ? 'updated' : 'created'
     if (!flightAttendant.flightAttendantId) {
-      const existPersonId = await FlightAttendants.query()
+      const existEmployeeId = await FlightAttendants.query()
         .if(flightAttendant.flightAttendantId > 0, (query) => {
           query.whereNot('flight_attendant_id', flightAttendant.flightAttendantId)
         })
         .whereNull('flight_attendant_deleted_at')
-        .where('person_id', flightAttendant.personId)
+        .where('employee_id', flightAttendant.employeeId)
+        .preload('employee')
         .first()
 
-      if (existPersonId && flightAttendant.personId) {
+      if (existEmployeeId && flightAttendant.employeeId) {
         return {
           status: 400,
           type: 'warning',
-          title: 'The flight attendant person id exists for another flight attendant',
+          title: 'The flight attendant employee id exists for another flight attendant',
           message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another flight attendant`,
           data: { ...flightAttendant },
         }
       }
-      const existEmployeePersonId = await Employee.query()
+      const currentEmployee = await Employee.query()
         .whereNull('employee_deleted_at')
-        .where('person_id', flightAttendant.personId)
+        .where('employee_id', flightAttendant.employeeId)
         .first()
-      if (existEmployeePersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another employee',
-          message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another employee`,
-          data: { ...flightAttendant },
+      if (currentEmployee) {
+        const existPilotPersonId = await Pilot.query()
+          .whereNull('pilot_deleted_at')
+          .where('employee_id', currentEmployee.employeeId)
+          .first()
+        if (existPilotPersonId) {
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'The employee id exists for another pilot',
+            message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another pilot`,
+            data: { ...flightAttendant },
+          }
         }
-      }
-      const existPilotPersonId = await Pilot.query()
-        .whereNull('pilot_deleted_at')
-        .where('person_id', flightAttendant.personId)
-        .first()
-      if (existPilotPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another pilot',
-          message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another pilot`,
-          data: { ...flightAttendant },
-        }
-      }
-
-      const existCustomerPersonId = await Customer.query()
-        .whereNull('customer_deleted_at')
-        .where('person_id', flightAttendant.personId)
-        .first()
-      if (existCustomerPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another customer',
-          message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another customer`,
-          data: { ...flightAttendant },
+        const existCustomerPersonId = await Customer.query()
+          .whereNull('customer_deleted_at')
+          .where('person_id', currentEmployee.personId)
+          .first()
+        if (existCustomerPersonId) {
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'The person id exists for another customer',
+            message: `The flight attendant resource cannot be ${action} because the person id is already assigned to another customer`,
+            data: { ...flightAttendant },
+          }
         }
       }
     }

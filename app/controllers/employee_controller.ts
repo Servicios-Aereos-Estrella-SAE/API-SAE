@@ -623,6 +623,7 @@ export default class EmployeeController {
       const workSchedule = request.input('employeeWorkSchedule')
       const employeeTypeId = request.input('employeeTypeId')
       const employee = {
+        employeeId: 0,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
         employeeCode: employeeCode,

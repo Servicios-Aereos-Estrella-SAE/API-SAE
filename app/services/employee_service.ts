@@ -13,7 +13,6 @@ import DepartmentService from './department_service.js'
 import PersonService from './person_service.js'
 import PositionService from './position_service.js'
 import VacationSetting from '#models/vacation_setting'
-import Pilot from '#models/pilot'
 import FlightAttendant from '#models/flight_attendant'
 import Customer from '#models/customer'
 import env from '#start/env'
@@ -374,28 +373,15 @@ export default class EmployeeService {
           data: { ...employee },
         }
       }
-      const existPilotPersonId = await Pilot.query()
-        .whereNull('pilot_deleted_at')
-        .where('person_id', employee.personId)
-        .first()
-      if (existPilotPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another pilot',
-          message: `The employee resource cannot be ${action} because the person id is already assigned to another pilot`,
-          data: { ...employee },
-        }
-      }
       const existFlightAttendantPersonId = await FlightAttendant.query()
         .whereNull('flight_attendant_deleted_at')
-        .where('person_id', employee.personId)
+        .where('employee_id', employee.employeeId)
         .first()
       if (existFlightAttendantPersonId) {
         return {
           status: 400,
           type: 'warning',
-          title: 'The person id exists for another flight attendant',
+          title: 'The employee id exists for another flight attendant',
           message: `The employee resource cannot be ${action} because the person id is already assigned to another flight attendant`,
           data: { ...employee },
         }
