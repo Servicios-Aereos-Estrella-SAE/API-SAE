@@ -3,7 +3,7 @@ import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
-import Person from './person.js'
+import Employee from './employee.js'
 
 /**
  * @swagger
@@ -21,9 +21,9 @@ import Person from './person.js'
  *          pilotPhoto:
  *            type: string
  *            description: Pilot photo
- *          personId:
+ *          employeeId:
  *            type: number
- *            description: Person id
+ *            description: Employee id
  *          pilotCreatedAt:
  *            type: string
  *          pilotUpdatedAt:
@@ -43,7 +43,7 @@ export default class Pilot extends compose(BaseModel, SoftDeletes) {
   declare pilotPhoto: string
 
   @column()
-  declare personId: number
+  declare employeeId: number
 
   @column.dateTime({ autoCreate: true })
   declare pilotCreatedAt: DateTime
@@ -54,8 +54,8 @@ export default class Pilot extends compose(BaseModel, SoftDeletes) {
   @column.dateTime({ columnName: 'pilot_deleted_at' })
   declare deletedAt: DateTime | null
 
-  @belongsTo(() => Person, {
-    foreignKey: 'personId',
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeId',
   })
-  declare person: BelongsTo<typeof Person>
+  declare employee: BelongsTo<typeof Employee>
 }

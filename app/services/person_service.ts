@@ -10,6 +10,13 @@ export default class PersonService {
     const lastNames = await this.getLastNames(employee.lastName)
     newPerson.personLastname = lastNames.lastName
     newPerson.personSecondLastname = lastNames.secondLastName
+    if (employee.gender) {
+      if (employee.gender === 'M') {
+        newPerson.personGender = 'Hombre'
+      } else if (employee.gender === 'F') {
+        newPerson.personGender = 'Mujer'
+      }
+    }
     await newPerson.save()
     return newPerson
   }

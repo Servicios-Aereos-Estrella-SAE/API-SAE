@@ -13,19 +13,15 @@ import DepartmentService from './department_service.js'
 import PersonService from './person_service.js'
 import PositionService from './position_service.js'
 import VacationSetting from '#models/vacation_setting'
-import Pilot from '#models/pilot'
 import FlightAttendant from '#models/flight_attendant'
 import Customer from '#models/customer'
 import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 import EmployeeType from '#models/employee_type'
+import axios from 'axios'
 
 export default class EmployeeService {
-  async syncCreate(
-    employee: BiometricEmployeeInterface,
-    departmentService: DepartmentService,
-    positionService: PositionService
-  ) {
+  async syncCreate(employee: BiometricEmployeeInterface) {
     const newEmployee = new Employee()
     const personService = new PersonService()
     const newPerson = await personService.syncCreate(employee)
@@ -39,18 +35,14 @@ export default class EmployeeService {
     newEmployee.employeePayrollNum = employee.payrollNum
     newEmployee.employeeHireDate = employee.hireDate
     newEmployee.companyId = employee.companyId
-    newEmployee.departmentId = await departmentService.getIdBySyncId(employee.departmentId)
-    newEmployee.positionId = await positionService.getIdBySyncId(employee.positionId)
-    newEmployee.departmentSyncId = employee.departmentId
-    const positionRealId = await positionService.getIdBySyncId(employee.positionId)
-    if (positionRealId) {
-      newEmployee.positionId = positionRealId
-    } else {
-      newEmployee.positionId = await this.getNewPosition(
-        employee,
-        positionService,
-        departmentService
-      )
+    newEmployee.departmentId = employee.departmentId
+    newEmployee.positionId = employee.positionId
+    if (employee.empCode) {
+      const urlPhoto = `${env.get('API_BIOMETRICS_EMPLOYEE_PHOTO_URL')}/${employee.empCode}.jpg`
+      const existPhoto = await this.verifyExistPhoto(urlPhoto)
+      if (existPhoto) {
+        newEmployee.employeePhoto = urlPhoto
+      }
     }
     newEmployee.employeeLastSynchronizationAt = new Date()
     await newEmployee.save()
@@ -374,28 +366,15 @@ export default class EmployeeService {
           data: { ...employee },
         }
       }
-      const existPilotPersonId = await Pilot.query()
-        .whereNull('pilot_deleted_at')
-        .where('person_id', employee.personId)
-        .first()
-      if (existPilotPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another pilot',
-          message: `The employee resource cannot be ${action} because the person id is already assigned to another pilot`,
-          data: { ...employee },
-        }
-      }
       const existFlightAttendantPersonId = await FlightAttendant.query()
         .whereNull('flight_attendant_deleted_at')
-        .where('person_id', employee.personId)
+        .where('employee_id', employee.employeeId)
         .first()
       if (existFlightAttendantPersonId) {
         return {
           status: 400,
           type: 'warning',
-          title: 'The person id exists for another flight attendant',
+          title: 'The employee id exists for another flight attendant',
           message: `The employee resource cannot be ${action} because the person id is already assigned to another flight attendant`,
           data: { ...employee },
         }
@@ -789,5 +768,15 @@ export default class EmployeeService {
       .orderBy('shift_exceptions_date', 'asc')
 
     return vacations ? vacations : []
+  }
+
+  async verifyExistPhoto(url: string) {
+    try {
+      const response = await axios.head(url)
+      if (response.status === 200) {
+        return true
+      }
+    } catch (error) {}
+    return false
   }
 }
