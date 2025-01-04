@@ -1128,6 +1128,7 @@ export default class AssistsService {
       'On Time',
       'Tolerances',
       'Delays',
+      'Early Outs',
       'Rests',
       'Sunday Bonus',
       'Vacations',
@@ -1136,11 +1137,12 @@ export default class AssistsService {
       'Rest Worked',
       'Faults',
       'Delays Faults',
+      'Early Outs Faults',
       'Total Faults',
     ])
     let fgColor = 'FFFFFFF'
     let color = '30869C'
-    for (let col = 1; col <= 16; col++) {
+    for (let col = 1; col <= 18; col++) {
       const cell = worksheet.getCell(3, col)
       cell.fill = {
         type: 'pattern',
@@ -1198,6 +1200,12 @@ export default class AssistsService {
     const columnP = worksheet.getColumn(16)
     columnP.width = 16
     columnP.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnQ = worksheet.getColumn(17)
+    columnQ.width = 16
+    columnQ.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnR = worksheet.getColumn(18)
+    columnR.width = 16
+    columnR.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 
   async addRowIncidentCalendar(
@@ -1215,6 +1223,7 @@ export default class AssistsService {
     let daysOnTime = 0
     let tolerances = 0
     let delays = 0
+    let earlyOuts = 0
     let rests = 0
     let sundayBonus = 0
     let vacations = 0
@@ -1222,6 +1231,7 @@ export default class AssistsService {
     let restWorked = 0
     let faults = 0
     let delayFaults = 0
+    let earlyOutsFaults = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
@@ -1250,6 +1260,11 @@ export default class AssistsService {
               delays += 1
             }
           }
+          if (calendar.assist.checkOutStatus !== 'fault') {
+            if (calendar.assist.checkOutStatus === 'delay') {
+              earlyOuts += 1
+            }
+          }
           if (
             calendar.assist.isSundayBonus &&
             (calendar.assist.checkIn || calendar.assist.checkOut)
@@ -1272,6 +1287,7 @@ export default class AssistsService {
       }
     }
     delayFaults = this.getFaultsFromDelays(delays, tardies)
+    earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
     rows.push({
       employeeId: employee.employeeCode.toString(),
       employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
@@ -1280,6 +1296,7 @@ export default class AssistsService {
       daysOnTime: daysOnTime,
       tolerances: tolerances,
       delays: delays,
+      earlyOuts: earlyOuts,
       rests: rests,
       sundayBonus: sundayBonus,
       vacations: vacations,
@@ -1288,7 +1305,8 @@ export default class AssistsService {
       restWorked: restWorked,
       faults: faults,
       delayFaults: delayFaults,
-      totalFaults: faults + delayFaults,
+      earlyOutsFaults: earlyOutsFaults,
+      totalFaults: faults + delayFaults + earlyOutsFaults,
     })
     return rows
   }
@@ -1302,6 +1320,7 @@ export default class AssistsService {
       daysOnTime: 0,
       tolerances: 0,
       delays: 0,
+      earlyOuts: 0,
       rests: 0,
       sundayBonus: 0,
       vacations: 0,
@@ -1310,6 +1329,7 @@ export default class AssistsService {
       restWorked: 0,
       faults: 0,
       delayFaults: 0,
+      earlyOutsFaults: 0,
       totalFaults: 0,
     })
   }
@@ -1323,6 +1343,7 @@ export default class AssistsService {
       daysOnTime: 0,
       tolerances: 0,
       delays: 0,
+      earlyOuts: 0,
       rests: 0,
       sundayBonus: 0,
       vacations: 0,
@@ -1331,6 +1352,7 @@ export default class AssistsService {
       restWorked: 0,
       faults: 0,
       delayFaults: 0,
+      earlyOutsFaults: 0,
       totalFaults: 0,
     })
   }
@@ -1369,6 +1391,7 @@ export default class AssistsService {
           rowData.daysOnTime,
           rowData.tolerances,
           rowData.delays,
+          rowData.earlyOuts,
           rowData.rests,
           rowData.sundayBonus,
           rowData.vacations,
@@ -1377,11 +1400,12 @@ export default class AssistsService {
           rowData.restWorked,
           rowData.faults,
           rowData.delayFaults,
+          rowData.earlyOutsFaults,
           rowData.totalFaults,
         ])
         if (!rowData.employeeName && rowData.employeeId === '') {
           const color = '93CDDC'
-          for (let col = 1; col <= 16; col++) {
+          for (let col = 1; col <= 18; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
             cell.fill = {
               type: 'pattern',
@@ -1393,7 +1417,7 @@ export default class AssistsService {
         }
         if (rowData.department === 'TOTALS') {
           const color = '30869C'
-          for (let col = 1; col <= 16; col++) {
+          for (let col = 1; col <= 18; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
             const row = worksheet.getRow(rowCount - 1)
             row.height = 30
@@ -1450,6 +1474,7 @@ export default class AssistsService {
     totalRowIncident.daysOnTime += row.daysOnTime
     totalRowIncident.tolerances += row.tolerances
     totalRowIncident.delays += row.delays
+    totalRowIncident.earlyOuts += row.earlyOuts
     totalRowIncident.rests += row.rests
     totalRowIncident.sundayBonus += row.sundayBonus
     totalRowIncident.vacations += row.vacations
@@ -1458,6 +1483,7 @@ export default class AssistsService {
     totalRowIncident.restWorked += row.restWorked
     totalRowIncident.faults += row.faults
     totalRowIncident.delayFaults += row.delayFaults
+    totalRowIncident.earlyOutsFaults += row.earlyOutsFaults
     totalRowIncident.totalFaults += row.totalFaults
   }
 
@@ -1471,6 +1497,7 @@ export default class AssistsService {
     totalRowIncident.daysOnTime += rowByDepartment.daysOnTime
     totalRowIncident.tolerances += rowByDepartment.tolerances
     totalRowIncident.delays += rowByDepartment.delays
+    totalRowIncident.earlyOuts += rowByDepartment.earlyOuts
     totalRowIncident.rests += rowByDepartment.rests
     totalRowIncident.sundayBonus += rowByDepartment.sundayBonus
     totalRowIncident.vacations += rowByDepartment.vacations
@@ -1479,6 +1506,7 @@ export default class AssistsService {
     totalRowIncident.restWorked += rowByDepartment.restWorked
     totalRowIncident.faults += rowByDepartment.faults
     totalRowIncident.delayFaults += rowByDepartment.delayFaults
+    totalRowIncident.earlyOutsFaults += rowByDepartment.earlyOutsFaults
     totalRowIncident.totalFaults += rowByDepartment.totalFaults
   }
 
@@ -1488,6 +1516,7 @@ export default class AssistsService {
     totalRowIncident.daysOnTime = 0
     totalRowIncident.tolerances = 0
     totalRowIncident.delays = 0
+    totalRowIncident.earlyOuts = 0
     totalRowIncident.rests = 0
     totalRowIncident.sundayBonus = 0
     totalRowIncident.vacations = 0
@@ -1496,6 +1525,7 @@ export default class AssistsService {
     totalRowIncident.restWorked = 0
     totalRowIncident.faults = 0
     totalRowIncident.delayFaults = 0
+    totalRowIncident.earlyOutsFaults = 0
     totalRowIncident.totalFaults = 0
   }
 
