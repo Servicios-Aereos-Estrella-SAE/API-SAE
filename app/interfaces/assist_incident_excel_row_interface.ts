@@ -6,6 +6,7 @@ interface AssistIncidentExcelRowInterface {
   daysOnTime: number
   tolerances: number
   delays: number
+  earlyOuts: number
   rests: number
   sundayBonus: number
   vacations: number
@@ -14,6 +15,7 @@ interface AssistIncidentExcelRowInterface {
   restWorked: number
   faults: number
   delayFaults: number
+  earlyOutsFaults: number
   totalFaults: number
 }
 export type { AssistIncidentExcelRowInterface }

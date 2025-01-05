@@ -88,6 +88,7 @@ export default class ShiftForEmployeeService {
             shiftRestDays: record.shift.shiftRestDays,
             shiftCreatedAt: record.shift.shiftCreatedAt,
             shiftUpdatedAt: record.shift.shiftUpdatedAt,
+            shiftCalculateFlag: record.shift.shiftCalculateFlag,
           },
         })
         return acc
