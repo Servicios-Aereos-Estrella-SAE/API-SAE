@@ -17,8 +17,14 @@ export default class PilotService {
           })
         })
       })
+      .whereHas('employee', (employeeQuery) => {
+        employeeQuery.whereNull('employee_deleted_at')
+      })
       .preload('employee', (employeeQuery) => {
         employeeQuery.preload('person')
+        employeeQuery.preload('businessUnit')
+        employeeQuery.preload('department')
+        employeeQuery.preload('position')
       })
       .orderBy('pilot_id')
       .paginate(filters.page, filters.limit)
@@ -52,6 +58,9 @@ export default class PilotService {
       .where('pilot_id', pilotId)
       .preload('employee', (employeeQuery) => {
         employeeQuery.preload('person')
+        employeeQuery.preload('businessUnit')
+        employeeQuery.preload('department')
+        employeeQuery.preload('position')
       })
       .first()
     return pilot ? pilot : null
