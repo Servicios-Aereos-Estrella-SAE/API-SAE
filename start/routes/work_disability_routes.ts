@@ -7,6 +7,7 @@ router
     router.post('/', '#controllers/work_disability_controller.store')
     router.delete('/:workDisabilityId', '#controllers/work_disability_controller.delete')
     router.get('/:workDisabilityId', '#controllers/work_disability_controller.show')
+    router.get('/employee/:employeeId', '#controllers/work_disability_controller.getByEmployee')
   })
   .prefix('/api/work-disabilities')
   .use(middleware.auth())

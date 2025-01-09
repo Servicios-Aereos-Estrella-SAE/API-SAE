@@ -46,6 +46,17 @@ export default class WorkDisabilityService {
     return workDisabilities
   }
 
+  async getByEmployee(filters: WorkDisabilityFilterSearchInterface) {
+    const workDisabilities = await WorkDisability.query()
+      .whereNull('work_disability_deleted_at')
+      .if(filters.employeeId, (query) => {
+        query.where('employee_id', filters.employeeId)
+      })
+      .preload('insuranceCoverageType')
+      .orderBy('work_disability_id')
+    return workDisabilities
+  }
+
   async verifyInfoExist(workDisability: WorkDisability) {
     const existEmployee = await Employee.query()
       .whereNull('employee_deleted_at')
