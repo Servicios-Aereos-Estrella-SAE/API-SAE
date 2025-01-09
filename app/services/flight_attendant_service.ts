@@ -32,6 +32,9 @@ export default class FlightAttendantService {
       })
       .preload('employee', (query) => {
         query.preload('person')
+        query.preload('businessUnit')
+        query.preload('department')
+        query.preload('position')
       })
       .orderBy('flight_attendant_id')
       .paginate(filters.page, filters.limit)
@@ -63,8 +66,14 @@ export default class FlightAttendantService {
     const flightAttendant = await FlightAttendants.query()
       .whereNull('flight_attendant_deleted_at')
       .where('flight_attendant_id', flightAttendantId)
+      .whereHas('employee', (employeeQuery) => {
+        employeeQuery.whereNull('employee_deleted_at')
+      })
       .preload('employee', (query) => {
         query.preload('person')
+        query.preload('businessUnit')
+        query.preload('department')
+        query.preload('position')
       })
       .first()
     return flightAttendant ? flightAttendant : null
