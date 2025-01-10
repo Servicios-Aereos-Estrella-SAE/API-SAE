@@ -16,6 +16,14 @@ export const createAircraftValidator = vine.compile(
       const airportExists = await _db.query().from('airports').where('airport_id', value).first()
       return !!airportExists
     }),
+    aircraftOperatorId: vine.number().exists(async (_db: any, value: any) => {
+      const operatorExists = await _db
+        .query()
+        .from('aircraft_operators')
+        .where('aircraft_operator_id', value)
+        .first()
+      return !!operatorExists
+    }),
     aircraftPropertiesId: vine.number().exists(async (_db: any, value: any) => {
       const propertiesExists = await _db
         .query()
@@ -34,6 +42,14 @@ export const updateAircraftValidator = vine.compile(
     airportId: vine.number().exists(async (_db: any, value: any) => {
       const airportExists = await _db.query().from('airports').where('airport_id', value).first()
       return !!airportExists
+    }),
+    aircraftOperatorId: vine.number().exists(async (_db: any, value: any) => {
+      const operatorExists = await _db
+        .query()
+        .from('aircraft_operators')
+        .where('aircraft_operator_id', value)
+        .first()
+      return !!operatorExists
     }),
     aircraftPropertiesId: vine.number().exists(async (_db: any, value: any) => {
       const propertiesExists = await _db
