@@ -3,6 +3,7 @@ import { formatResponse } from '../helpers/responseFormatter.js'
 import Aircraft from '../models/aircraft.js'
 import { createAircraftValidator, updateAircraftValidator } from '../validators/aircraft.js'
 import { DateTime } from 'luxon'
+import Database from '@adonisjs/lucid/services/db'
 
 export default class AircraftsController {
   /**
@@ -93,7 +94,11 @@ export default class AircraftsController {
     const limit = request.input('limit', 10)
     const searchText = request.input('searchText', '')
 
-    const query = Aircraft.query().whereNull('aircraftDeletedAt')
+    const query = Aircraft.query()
+      .preload('pilots', (pilotsQuery) => {
+        pilotsQuery.pivotColumns(['aircraft_pilot_role'])
+      })
+      .whereNull('aircraftDeletedAt')
     if (searchText) {
       query.where((builder) => {
         builder.where('aircraftRegistrationNumber', 'like', `%${searchText}%`)
@@ -139,6 +144,10 @@ export default class AircraftsController {
    *               airportId:
    *                 type: integer
    *               aircraftPropertiesId:
+   *                 type: integer
+   *               pilotPicId:
+   *                 type: integer
+   *               pilotSicId:
    *                 type: integer
    *               active:
    *                 type: integer
@@ -186,10 +195,29 @@ export default class AircraftsController {
     try {
       const data = await request.validateUsing(createAircraftValidator)
       const aircraft = await Aircraft.create(data)
+      const pilotSicId = request.input('pilotSicId')
+      const pilotPicId = request.input('pilotPicId')
+      // 3. Relacionar pilotos (PIC y/o SIC) si se proporcionaron
+      if (pilotPicId) {
+        await aircraft.related('pilots').attach({
+          [pilotPicId]: {
+            aircraft_pilot_role: 'pic',
+          },
+        })
+      }
+
+      if (pilotSicId) {
+        await aircraft.related('pilots').attach({
+          [pilotSicId]: {
+            aircraft_pilot_role: 'sic',
+          },
+        })
+      }
+      const aircraftResponse = await this.getAircraftWithPilots(aircraft.aircraftId)
       return response
         .status(201)
         .json(
-          formatResponse('success', 'Successfully action', 'Resource created', aircraft.toJSON())
+          formatResponse('success', 'Successfully action', 'Resource created', aircraftResponse)
         )
     } catch (error) {
       return response
@@ -198,6 +226,20 @@ export default class AircraftsController {
           formatResponse('error', 'Validation error', 'Invalid input, validation error 400', error)
         )
     }
+  }
+
+  async getAircraftWithPilots(aircraftId: number) {
+    const aircraft = await Aircraft.query()
+      .preload('pilots', (pilotsQuery) => {
+        pilotsQuery.pivotColumns(['aircraft_pilot_role'])
+      })
+      .where('aircraftId', aircraftId)
+      .whereNull('aircraftDeletedAt')
+      .first()
+    if (aircraft) {
+      return aircraft.toJSON()
+    }
+    return null
   }
   /**
    * @swagger
@@ -259,6 +301,9 @@ export default class AircraftsController {
     try {
       const aircraft = await Aircraft.query()
         .where('aircraftId', params.id)
+        .preload('pilots', (pilotsQuery) => {
+          pilotsQuery.pivotColumns(['aircraft_pilot_role'])
+        })
         .whereNull('aircraftDeletedAt')
         .firstOrFail()
       return response
@@ -299,6 +344,10 @@ export default class AircraftsController {
    *               aircraftSerialNumber:
    *                 type: string
    *               airportId:
+   *                 type: integer
+   *               pilotPicId:
+   *                 type: integer
+   *               pilotSicId:
    *                 type: integer
    *               aircraftPropertiesId:
    *                 type: integer
@@ -353,10 +402,47 @@ export default class AircraftsController {
       const aircraft = await Aircraft.findOrFail(params.id)
       aircraft.merge(data)
       await aircraft.save()
+      const pilotSicId = request.input('pilotSicId')
+      const pilotPicId = request.input('pilotPicId')
+
+      if (typeof pilotPicId !== 'undefined') {
+        // Eliminar cualquier relación previa con rol = pic
+        await Database.from('aircraft_pilots')
+          .where('aircraft_id', aircraft.aircraftId)
+          .where('aircraft_pilot_role', 'pic')
+          .delete()
+
+        // Si no es null, agregamos el nuevo PIC
+        if (pilotPicId !== null) {
+          await aircraft.related('pilots').attach({
+            [pilotPicId]: {
+              aircraft_pilot_role: 'pic',
+            },
+          })
+        }
+      }
+
+      if (typeof pilotSicId !== 'undefined') {
+        // Eliminar cualquier relación previa con rol = sic
+        await Database.from('aircraft_pilots')
+          .where('aircraft_id', aircraft.aircraftId)
+          .where('aircraft_pilot_role', 'sic')
+          .delete()
+
+        // Si no es null, agregamos el nuevo SIC
+        if (pilotSicId !== null) {
+          await aircraft.related('pilots').attach({
+            [pilotSicId]: {
+              aircraft_pilot_role: 'sic',
+            },
+          })
+        }
+      }
+      const aircraftResponse = await this.getAircraftWithPilots(aircraft.aircraftId)
       return response
         .status(200)
         .json(
-          formatResponse('success', 'Successfully action', 'Resource updated', aircraft.toJSON())
+          formatResponse('success', 'Successfully action', 'Resource updated', aircraftResponse)
         )
     } catch (error) {
       console.error('Update Aircraft Error:', error)
