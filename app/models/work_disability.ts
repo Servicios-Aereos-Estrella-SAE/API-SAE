@@ -1,10 +1,11 @@
 import { DateTime } from 'luxon'
-import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import Employee from './employee.js'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import InsuranceCoverageType from './insurance_coverage_type.js'
+import WorkDisabilityPeriod from './work_disability_period.js'
 /**
  * @swagger
  * components:
@@ -66,4 +67,12 @@ export default class WorkDisability extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'insuranceCoverageTypeId',
   })
   declare insuranceCoverageType: BelongsTo<typeof InsuranceCoverageType>
+
+  @hasMany(() => WorkDisabilityPeriod, {
+    foreignKey: 'workDisabilityId',
+    onQuery: (query) => {
+      query.preload('workDisabilityType')
+    },
+  })
+  declare workDisabilityPeriods: HasMany<typeof WorkDisabilityPeriod>
 }

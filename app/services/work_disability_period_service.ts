@@ -19,6 +19,15 @@ export default class WorkDisabilityPeriodService {
     return newWorkDisabilityPeriod
   }
 
+  async show(workDisabilityPeriodId: number) {
+    const workDisabilityPeriod = await WorkDisabilityPeriod.query()
+      .whereNull('work_disability_period_deleted_at')
+      .where('work_disability_period_id', workDisabilityPeriodId)
+      .preload('workDisabilityType')
+      .first()
+    return workDisabilityPeriod ? workDisabilityPeriod : null
+  }
+
   async verifyInfoExist(workDisabilityPeriod: WorkDisabilityPeriod) {
     const existWorkDisability = await WorkDisability.query()
       .whereNull('work_disability_deleted_at')

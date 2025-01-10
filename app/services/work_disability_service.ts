@@ -31,6 +31,7 @@ export default class WorkDisabilityService {
       .where('work_disability_id', workDisabilityId)
       .preload('insuranceCoverageType')
       .preload('employee')
+      .preload('workDisabilityPeriods')
       .first()
     return workDisability ? workDisability : null
   }
