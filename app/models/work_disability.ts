@@ -6,6 +6,7 @@ import Employee from './employee.js'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import InsuranceCoverageType from './insurance_coverage_type.js'
 import WorkDisabilityPeriod from './work_disability_period.js'
+import WorkDisabilityNote from './work_disability_note.js'
 /**
  * @swagger
  * components:
@@ -75,4 +76,9 @@ export default class WorkDisability extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare workDisabilityPeriods: HasMany<typeof WorkDisabilityPeriod>
+
+  @hasMany(() => WorkDisabilityNote, {
+    foreignKey: 'workDisabilityId',
+  })
+  declare workDisabilityNotes: HasMany<typeof WorkDisabilityNote>
 }

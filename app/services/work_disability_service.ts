@@ -32,6 +32,7 @@ export default class WorkDisabilityService {
       .preload('insuranceCoverageType')
       .preload('employee')
       .preload('workDisabilityPeriods')
+      .preload('workDisabilityNotes')
       .first()
     return workDisability ? workDisability : null
   }

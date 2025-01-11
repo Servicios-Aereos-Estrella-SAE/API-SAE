@@ -3,6 +3,11 @@ import WorkDisabilityPeriod from '#models/work_disability_period'
 import WorkDisabilityPeriodService from '#services/work_disability_period_service'
 import UploadService from '#services/upload_service'
 import { createWorkDisabilityPeriodValidator } from '#validators/work_disability_period'
+import { DateTime } from 'luxon'
+import ShiftException from '#models/shift_exception'
+import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
+import ExceptionType from '#models/exception_type'
+import ShiftExceptionService from '#services/shift_exception_service'
 
 export default class WorkDisabilityPeriodController {
   /**
@@ -134,7 +139,7 @@ export default class WorkDisabilityPeriodController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     try {
       const workDisabilityPeriodStartDate = request.input('workDisabilityPeriodStartDate')
       const workDisabilityPeriodEndDate = request.input('workDisabilityPeriodEndDate')
@@ -196,15 +201,85 @@ export default class WorkDisabilityPeriodController {
         )
         workDisabilityPeriod.workDisabilityPeriodFile = fileUrl
       }
-
+      const shiftExceptionsSaved = [] as Array<ShiftException>
+      const shiftExceptionsError = [] as Array<ShiftExceptionErrorInterface>
       const newWorkDisabilityPeriod = await workDisabilityPeriodService.create(workDisabilityPeriod)
       if (newWorkDisabilityPeriod) {
+        const workDisabilityExceptionType = await ExceptionType.query()
+          .whereNull('exception_type_deleted_at')
+          .where('exception_type_slug', 'falta-por-incapacidad')
+          .first()
+        if (workDisabilityExceptionType) {
+          await newWorkDisabilityPeriod.load('workDisability')
+          let currentDate = DateTime.fromISO(workDisabilityPeriodStartDate)
+          const endDate = DateTime.fromISO(workDisabilityPeriodEndDate)
+          for await (const date of workDisabilityPeriodService.iterateDates(currentDate, endDate)) {
+            const shiftException = {
+              employeeId: newWorkDisabilityPeriod.workDisability.employeeId,
+              shiftExceptionsDescription: '',
+              shiftExceptionsDate: date.toISODate(),
+              exceptionTypeId: workDisabilityExceptionType.exceptionTypeId,
+              vacationSettingId: null,
+              shiftExceptionCheckInTime: null,
+              shiftExceptionCheckOutTime: null,
+              shiftExceptionEnjoymentOfSalary: null,
+              shiftExceptionTimeByTime: null,
+            } as ShiftException
+            try {
+              const shiftExceptionService = new ShiftExceptionService()
+              const verifyInfoException = await shiftExceptionService.verifyInfo(shiftException)
+              if (verifyInfoException.status !== 200) {
+                shiftExceptionsError.push({
+                  shiftExceptionsDate: date.toISODate(),
+                  error: verifyInfoException.message,
+                })
+              } else {
+                const newShiftException = await shiftExceptionService.create(shiftException)
+                if (newShiftException) {
+                  const rawHeaders = request.request.rawHeaders
+                  const userId = auth.user?.userId
+                  if (userId) {
+                    const logShiftException = await shiftExceptionService.createActionLog(
+                      rawHeaders,
+                      'store'
+                    )
+                    logShiftException.user_id = userId
+                    logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+                    const exceptionType = await ExceptionType.query()
+                      .whereNull('exception_type_deleted_at')
+                      .where('exception_type_slug', 'vacation')
+                      .first()
+                    let table = 'log_shift_exceptions'
+                    if (exceptionType) {
+                      if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
+                        table = 'log_vacations'
+                      }
+                    }
+                    await shiftExceptionService.saveActionOnLog(logShiftException, table)
+                  }
+                  await newShiftException.load('exceptionType')
+                  await newShiftException.load('vacationSetting')
+                  shiftExceptionsSaved.push(newShiftException)
+                }
+              }
+            } catch (error) {
+              shiftExceptionsError.push({
+                shiftExceptionsDate: date.toISODate(),
+                error: error.message,
+              })
+            }
+          }
+        }
         response.status(201)
         return {
           type: 'success',
           title: 'Work disability periods',
           message: 'The work disability period was created successfully',
-          data: { workDisabilityPeriod: newWorkDisabilityPeriod },
+          data: {
+            workDisabilityPeriod: newWorkDisabilityPeriod,
+            shiftExceptionsSaved: shiftExceptionsSaved,
+            shiftExceptionsError: shiftExceptionsError,
+          },
         }
       }
     } catch (error) {

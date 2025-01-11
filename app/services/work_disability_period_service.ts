@@ -169,4 +169,11 @@ export default class WorkDisabilityPeriodService {
     } catch (error) {}
     return false
   }
+
+  async *iterateDates(startDate: DateTime, endDate: DateTime) {
+    while (startDate <= endDate) {
+      yield startDate
+      startDate = startDate.plus({ days: 1 })
+    }
+  }
 }
