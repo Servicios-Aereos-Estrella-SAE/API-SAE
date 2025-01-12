@@ -3,8 +3,6 @@ import Person from '#models/person'
 import { CustomerFilterSearchInterface } from '../interfaces/customer_filter_search_interface.js'
 import Employee from '#models/employee'
 import CustomerProceedingFile from '#models/customer_proceeding_file'
-import FlightAttendant from '#models/flight_attendant'
-import Pilot from '#models/pilot'
 
 export default class CustomerService {
   async index(filters: CustomerFilterSearchInterface) {
