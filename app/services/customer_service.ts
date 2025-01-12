@@ -137,20 +137,6 @@ export default class CustomerService {
           data: { ...customer },
         }
       }
-      const existPilotPersonId = await Pilot.query()
-        .whereNull('pilot_deleted_at')
-        .where('person_id', customer.personId)
-        .first()
-
-      if (existPilotPersonId && customer.personId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The customer person id exists for another pilot',
-          message: `The customer resource cannot be ${action} because the person id is already assigned to another pilot`,
-          data: { ...customer },
-        }
-      }
       const existEmployeePersonId = await Employee.query()
         .whereNull('employee_deleted_at')
         .where('person_id', customer.personId)
@@ -161,19 +147,6 @@ export default class CustomerService {
           type: 'warning',
           title: 'The person id exists for another employee',
           message: `The customer resource cannot be ${action} because the person id is already assigned to another employee`,
-          data: { ...customer },
-        }
-      }
-      const existFlightAttendantPersonId = await FlightAttendant.query()
-        .whereNull('flight_attendant_deleted_at')
-        .where('person_id', customer.personId)
-        .first()
-      if (existFlightAttendantPersonId) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The person id exists for another flight attendant',
-          message: `The customer resource cannot be ${action} because the person id is already assigned to another flight attendant`,
           data: { ...customer },
         }
       }
