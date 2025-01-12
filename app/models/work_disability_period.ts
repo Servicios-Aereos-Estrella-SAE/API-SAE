@@ -1,7 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import WorkDisability from './work_disability.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 /**
  * @swagger
  * components:
@@ -73,4 +75,9 @@ export default class WorkDisabilityPeriod extends compose(BaseModel, SoftDeletes
 
   @column.dateTime({ columnName: 'work_disability_period_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => WorkDisability, {
+    foreignKey: 'workDisabilityId',
+  })
+  declare workDisability: BelongsTo<typeof WorkDisability>
 }
