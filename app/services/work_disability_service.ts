@@ -31,6 +31,8 @@ export default class WorkDisabilityService {
       .where('work_disability_id', workDisabilityId)
       .preload('insuranceCoverageType')
       .preload('employee')
+      .preload('workDisabilityPeriods')
+      .preload('workDisabilityNotes')
       .first()
     return workDisability ? workDisability : null
   }
@@ -43,6 +45,17 @@ export default class WorkDisabilityService {
       })
       .orderBy('work_disability_id')
       .paginate(filters.page, filters.limit)
+    return workDisabilities
+  }
+
+  async getByEmployee(filters: WorkDisabilityFilterSearchInterface) {
+    const workDisabilities = await WorkDisability.query()
+      .whereNull('work_disability_deleted_at')
+      .if(filters.employeeId, (query) => {
+        query.where('employee_id', filters.employeeId)
+      })
+      .preload('insuranceCoverageType')
+      .orderBy('work_disability_id')
     return workDisabilities
   }
 

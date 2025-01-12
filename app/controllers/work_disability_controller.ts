@@ -596,4 +596,140 @@ export default class WorkDisabilityController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/work-disabilities/employee/{employeeId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Work Disabilities
+   *     summary: get work disabilities by employee
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getByEmployee({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { employeeId },
+        }
+      }
+      const filters = {
+        employeeId: employeeId,
+      } as WorkDisabilityFilterSearchInterface
+      const workDisabilityService = new WorkDisabilityService()
+      const workDisabilities = await workDisabilityService.getByEmployee(filters)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Work disabilities',
+        message: 'The work disabilities were found successfully',
+        data: {
+          workDisabilities: workDisabilities,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

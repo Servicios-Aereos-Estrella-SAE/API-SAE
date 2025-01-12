@@ -4,6 +4,7 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import WorkDisability from './work_disability.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import WorkDisabilityType from './work_disability_type.js'
 /**
  * @swagger
  * components:
@@ -80,4 +81,9 @@ export default class WorkDisabilityPeriod extends compose(BaseModel, SoftDeletes
     foreignKey: 'workDisabilityId',
   })
   declare workDisability: BelongsTo<typeof WorkDisability>
+
+  @belongsTo(() => WorkDisabilityType, {
+    foreignKey: 'workDisabilityTypeId',
+  })
+  declare workDisabilityType: BelongsTo<typeof WorkDisabilityType>
 }
