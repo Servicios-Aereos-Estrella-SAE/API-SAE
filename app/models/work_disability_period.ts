@@ -79,6 +79,9 @@ export default class WorkDisabilityPeriod extends compose(BaseModel, SoftDeletes
 
   @belongsTo(() => WorkDisability, {
     foreignKey: 'workDisabilityId',
+    onQuery: (query) => {
+      query.preload('insuranceCoverageType')
+    },
   })
   declare workDisability: BelongsTo<typeof WorkDisability>
 

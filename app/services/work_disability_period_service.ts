@@ -1,7 +1,12 @@
+import ExceptionType from '#models/exception_type'
+import ShiftException from '#models/shift_exception'
 import WorkDisability from '#models/work_disability'
 import WorkDisabilityPeriod from '#models/work_disability_period'
 import WorkDisabilityType from '#models/work_disability_type'
 import { DateTime } from 'luxon'
+import ShiftExceptionService from './shift_exception_service.js'
+import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
+import { WorkDisabilityPeriodAddShiftExceptionInterface } from '../interfaces/work_disability_period_add_shift_exception_interface.js'
 
 export default class WorkDisabilityPeriodService {
   async create(workDisabilityPeriod: WorkDisabilityPeriod) {
@@ -26,6 +31,69 @@ export default class WorkDisabilityPeriodService {
       .preload('workDisabilityType')
       .first()
     return workDisabilityPeriod ? workDisabilityPeriod : null
+  }
+
+  async addShiftExceptions(filters: WorkDisabilityPeriodAddShiftExceptionInterface) {
+    const shiftExceptionsSaved = [] as Array<ShiftException>
+    const shiftExceptionsError = [] as Array<ShiftExceptionErrorInterface>
+    const workDisabilityExceptionType = await ExceptionType.query()
+      .whereNull('exception_type_deleted_at')
+      .where('exception_type_slug', 'falta-por-incapacidad')
+      .first()
+    if (workDisabilityExceptionType) {
+      await filters.workDisabilityPeriod.load('workDisability')
+      await filters.workDisabilityPeriod.load('workDisabilityType')
+      let currentDate = DateTime.fromISO(filters.workDisabilityPeriod.workDisabilityPeriodStartDate)
+      const endDate = DateTime.fromISO(filters.workDisabilityPeriod.workDisabilityPeriodEndDate)
+      for await (const date of this.iterateDates(currentDate, endDate)) {
+        const shiftException = {
+          employeeId: filters.workDisabilityPeriod.workDisability.employeeId,
+          shiftExceptionsDescription: `${filters.workDisabilityPeriod.workDisability.insuranceCoverageType.insuranceCoverageTypeName}, ${filters.workDisabilityPeriod.workDisabilityType.workDisabilityTypeName}`,
+          shiftExceptionsDate: date.toISODate(),
+          exceptionTypeId: workDisabilityExceptionType.exceptionTypeId,
+          vacationSettingId: null,
+          shiftExceptionCheckInTime: null,
+          shiftExceptionCheckOutTime: null,
+          shiftExceptionEnjoymentOfSalary: 1,
+          shiftExceptionTimeByTime: null,
+        } as ShiftException
+        try {
+          const shiftExceptionService = new ShiftExceptionService()
+          const verifyInfoException = await shiftExceptionService.verifyInfo(shiftException)
+          if (verifyInfoException.status !== 200) {
+            shiftExceptionsError.push({
+              shiftExceptionsDate: date.toISODate(),
+              error: verifyInfoException.message,
+            })
+          } else {
+            const newShiftException = await shiftExceptionService.create(shiftException)
+            if (newShiftException) {
+              const rawHeaders = filters.request.request.rawHeaders
+              const userId = filters.auth.user?.userId
+              if (userId) {
+                const logShiftException = await shiftExceptionService.createActionLog(
+                  rawHeaders,
+                  'store'
+                )
+                logShiftException.user_id = userId
+                logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+                const table = 'log_shift_exceptions'
+                await shiftExceptionService.saveActionOnLog(logShiftException, table)
+              }
+              await newShiftException.load('exceptionType')
+              await newShiftException.load('vacationSetting')
+              shiftExceptionsSaved.push(newShiftException)
+            }
+          }
+        } catch (error) {
+          shiftExceptionsError.push({
+            shiftExceptionsDate: date.toISODate(),
+            error: error.message,
+          })
+        }
+      }
+    }
+    return { shiftExceptionsSaved, shiftExceptionsError }
   }
 
   async verifyInfoExist(workDisabilityPeriod: WorkDisabilityPeriod) {
