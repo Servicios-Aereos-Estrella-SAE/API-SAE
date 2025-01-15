@@ -2,6 +2,7 @@ import WorkDisability from '#models/work_disability'
 import InsuranceCoverageType from '#models/insurance_coverage_type'
 import Employee from '#models/employee'
 import { WorkDisabilityFilterSearchInterface } from '../interfaces/work_disability_filter_search_interface.js'
+import ShiftException from '#models/shift_exception'
 
 export default class WorkDisabilityService {
   async create(workDisability: WorkDisability) {
@@ -46,6 +47,19 @@ export default class WorkDisabilityService {
       .orderBy('work_disability_id')
       .paginate(filters.page, filters.limit)
     return workDisabilities
+  }
+
+  async updateShiftExceptions(workDisability: WorkDisability) {
+    for await (const workDisabilityPeriod of workDisability.workDisabilityPeriods) {
+      const shiftExceptions = await ShiftException.query()
+        .whereNull('shift_exception_deleted_at')
+        .where('work_disability_period_id', workDisabilityPeriod.workDisabilityPeriodId)
+        .orderBy('work_disability_period_id')
+      for await (const shiftException of shiftExceptions) {
+        shiftException.shiftExceptionsDescription = `${workDisabilityPeriod.workDisability.insuranceCoverageType.insuranceCoverageTypeName}, ${workDisabilityPeriod.workDisabilityType.workDisabilityTypeName}`
+        await shiftException.save()
+      }
+    }
   }
 
   async getByEmployee(filters: WorkDisabilityFilterSearchInterface) {
