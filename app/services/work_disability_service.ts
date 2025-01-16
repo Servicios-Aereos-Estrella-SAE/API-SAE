@@ -81,6 +81,7 @@ export default class WorkDisabilityService {
         query.where('employee_id', filters.employeeId)
       })
       .preload('insuranceCoverageType')
+      .preload('workDisabilityPeriods')
       .orderBy('work_disability_id')
     return workDisabilities
   }

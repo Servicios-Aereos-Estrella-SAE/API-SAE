@@ -203,7 +203,7 @@ export default class WorkDisabilityPeriodService {
       .whereNull('work_disability_deleted_at')
       .where('work_disability_id', workDisabilityPeriod.workDisabilityId)
       .first()
-    if (workDisability) {
+    if (workDisability && !workDisabilityPeriod.workDisabilityPeriodId) {
       const wortkDisabilities = await WorkDisability.query()
         .whereNull('work_disability_deleted_at')
         .where('employee_id', workDisability.employeeId)
