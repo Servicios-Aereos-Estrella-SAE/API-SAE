@@ -52,12 +52,24 @@ export default class WorkDisabilityService {
   async updateShiftExceptions(workDisability: WorkDisability) {
     for await (const workDisabilityPeriod of workDisability.workDisabilityPeriods) {
       const shiftExceptions = await ShiftException.query()
-        .whereNull('shift_exception_deleted_at')
+        .whereNull('shift_exceptions_deleted_at')
         .where('work_disability_period_id', workDisabilityPeriod.workDisabilityPeriodId)
         .orderBy('work_disability_period_id')
       for await (const shiftException of shiftExceptions) {
-        shiftException.shiftExceptionsDescription = `${workDisabilityPeriod.workDisability.insuranceCoverageType.insuranceCoverageTypeName}, ${workDisabilityPeriod.workDisabilityType.workDisabilityTypeName}`
+        shiftException.shiftExceptionsDescription = `${workDisability.insuranceCoverageType.insuranceCoverageTypeName}, ${workDisabilityPeriod.workDisabilityType.workDisabilityTypeName}`
         await shiftException.save()
+      }
+    }
+  }
+
+  async deleteShiftExceptions(workDisability: WorkDisability) {
+    for await (const workDisabilityPeriod of workDisability.workDisabilityPeriods) {
+      const shiftExceptions = await ShiftException.query()
+        .whereNull('shift_exceptions_deleted_at')
+        .where('work_disability_period_id', workDisabilityPeriod.workDisabilityPeriodId)
+        .orderBy('work_disability_period_id')
+      for await (const shiftException of shiftExceptions) {
+        await shiftException.delete()
       }
     }
   }

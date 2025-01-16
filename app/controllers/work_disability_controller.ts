@@ -335,6 +335,11 @@ export default class WorkDisabilityController {
    *           schema:
    *             type: object
    *             properties:
+   *               employeeId:
+   *                 type: number
+   *                 description: Employee id
+   *                 required: true
+   *                 default: ''
    *               insuranceCoverageTypeId:
    *                 type: number
    *                 description: Insurance coverage type Id
@@ -446,8 +451,10 @@ export default class WorkDisabilityController {
           data: { workDisabilityId },
         }
       }
+      const employeeId = request.input('employeeId')
       const insuranceCoverageTypeId = request.input('insuranceCoverageTypeId')
       const workDisability = {
+        employeeId: employeeId,
         workDisabilityId: workDisabilityId,
         insuranceCoverageTypeId: insuranceCoverageTypeId,
       } as WorkDisability
@@ -479,6 +486,7 @@ export default class WorkDisabilityController {
       )
       if (updateWorkDisability) {
         await updateWorkDisability.load('workDisabilityPeriods')
+        await updateWorkDisability.load('insuranceCoverageType')
         await workDisabilityService.updateShiftExceptions(updateWorkDisability)
         response.status(200)
         return {
@@ -626,8 +634,10 @@ export default class WorkDisabilityController {
         }
       }
       const workDisabilityService = new WorkDisabilityService()
+      await currentWorkDisability.load('workDisabilityPeriods')
       const deleteWorkDisability = await workDisabilityService.delete(currentWorkDisability)
       if (deleteWorkDisability) {
+        await workDisabilityService.deleteShiftExceptions(currentWorkDisability)
         response.status(200)
         return {
           type: 'success',

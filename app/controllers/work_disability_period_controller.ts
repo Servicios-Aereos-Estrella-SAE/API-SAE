@@ -4,6 +4,8 @@ import WorkDisabilityPeriodService from '#services/work_disability_period_servic
 import UploadService from '#services/upload_service'
 import { createWorkDisabilityPeriodValidator } from '#validators/work_disability_period'
 import { WorkDisabilityPeriodAddShiftExceptionInterface } from '../interfaces/work_disability_period_add_shift_exception_interface.js'
+import path from 'node:path'
+import Env from '#start/env'
 
 export default class WorkDisabilityPeriodController {
   /**
@@ -253,6 +255,18 @@ export default class WorkDisabilityPeriodController {
    *           schema:
    *             type: object
    *             properties:
+   *               workDisabilityPeriodStartDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Work disability period start date (YYYY-MM-DD)
+   *                 example: "2025-01-08"
+   *                 required: true
+   *               workDisabilityPeriodEndDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Work disability period end date (YYYY-MM-DD)
+   *                 example: "2025-01-08"
+   *                 required: true
    *               workDisabilityPeriodTicketFolio:
    *                 type: number
    *                 description: Work disability period ticket folio
@@ -262,6 +276,11 @@ export default class WorkDisabilityPeriodController {
    *                 type: string
    *                 format: binary
    *                 description: Work disability period file to upload
+   *               workDisabilityId:
+   *                 type: number
+   *                 description: Work disability id
+   *                 required: true
+   *                 default: ''
    *               workDisabilityTypeId:
    *                 type: number
    *                 description: Work disability type Id
@@ -373,9 +392,15 @@ export default class WorkDisabilityPeriodController {
           data: { workDisabilityPeriodId },
         }
       }
+      const workDisabilityPeriodStartDate = request.input('workDisabilityPeriodStartDate')
+      const workDisabilityPeriodEndDate = request.input('workDisabilityPeriodEndDate')
       const workDisabilityPeriodTicketFolio = request.input('workDisabilityPeriodTicketFolio')
+      const workDisabilityId = request.input('workDisabilityId')
       const workDisabilityTypeId = request.input('workDisabilityTypeId')
       const workDisabilityPeriod = {
+        workDisabilityPeriodStartDate: workDisabilityPeriodStartDate,
+        workDisabilityPeriodEndDate: workDisabilityPeriodEndDate,
+        workDisabilityId: workDisabilityId,
         workDisabilityPeriodId: workDisabilityPeriodId,
         workDisabilityPeriodTicketFolio: workDisabilityPeriodTicketFolio,
         workDisabilityTypeId: workDisabilityTypeId,
@@ -426,6 +451,13 @@ export default class WorkDisabilityPeriodController {
           'work-disability-files',
           fileName
         )
+        if (currentWorkDisabilityPeriod.workDisabilityPeriodFile) {
+          const fileNameWithExt = decodeURIComponent(
+            path.basename(currentWorkDisabilityPeriod.workDisabilityPeriodFile)
+          )
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/work-disability-files/${fileNameWithExt}`
+          await uploadService.deleteFile(fileKey)
+        }
         workDisabilityPeriod.workDisabilityPeriodFile = fileUrl
       }
       if (!workDisabilityPeriod.workDisabilityPeriodFile) {
@@ -439,7 +471,7 @@ export default class WorkDisabilityPeriodController {
       if (updateWorkDisabilityPeriod) {
         await updateWorkDisabilityPeriod.load('workDisability')
         await updateWorkDisabilityPeriod.load('workDisabilityType')
-        await workDisabilityPeriodService.updateShiftExceptions(workDisabilityPeriod)
+        await workDisabilityPeriodService.updateShiftExceptions(updateWorkDisabilityPeriod)
         response.status(200)
         return {
           type: 'success',
@@ -732,6 +764,7 @@ export default class WorkDisabilityPeriodController {
         currentWorkDisabilityPeriod
       )
       if (deleteWorkDisabilityPeriod) {
+        await workDisabilityPeriodService.deleteShiftExceptions(currentWorkDisabilityPeriod)
         response.status(200)
         return {
           type: 'success',
