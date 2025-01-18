@@ -90,7 +90,7 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
   declare employeeSyncId: number
 
   @column()
-  declare employeeCode: number
+  declare employeeCode: number | string
 
   @column()
   declare employeeFirstName: string
@@ -157,11 +157,17 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @belongsTo(() => Department, {
     foreignKey: 'departmentId',
+    onQuery: (query) => {
+      query.withTrashed()
+    },
   })
   declare department: BelongsTo<typeof Department>
 
   @belongsTo(() => Position, {
     foreignKey: 'positionId',
+    onQuery: (query) => {
+      query.withTrashed()
+    },
   })
   declare position: BelongsTo<typeof Position>
 
