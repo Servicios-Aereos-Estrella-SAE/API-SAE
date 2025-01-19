@@ -12,6 +12,21 @@ export default class WorkDisabilityNoteService {
     return newWorkDisabilityNote
   }
 
+  async update(
+    currentWorkDisabilityNote: WorkDisabilityNote,
+    workDisabilityNote: WorkDisabilityNote
+  ) {
+    currentWorkDisabilityNote.workDisabilityNoteDescription =
+      workDisabilityNote.workDisabilityNoteDescription
+    await currentWorkDisabilityNote.save()
+    return currentWorkDisabilityNote
+  }
+
+  async delete(currentWorkDisabilityNote: WorkDisabilityNote) {
+    await currentWorkDisabilityNote.delete()
+    return currentWorkDisabilityNote
+  }
+
   async show(workDisabilityNoteId: number) {
     const workDisabilityNote = await WorkDisabilityNote.query()
       .whereNull('work_disability_note_deleted_at')

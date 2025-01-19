@@ -24,6 +24,24 @@ export default class WorkDisabilityPeriodService {
     return newWorkDisabilityPeriod
   }
 
+  async update(
+    currentWorkDisabilityPeriod: WorkDisabilityPeriod,
+    workDisabilityPeriod: WorkDisabilityPeriod
+  ) {
+    currentWorkDisabilityPeriod.workDisabilityPeriodTicketFolio =
+      workDisabilityPeriod.workDisabilityPeriodTicketFolio
+    currentWorkDisabilityPeriod.workDisabilityPeriodFile =
+      workDisabilityPeriod.workDisabilityPeriodFile
+    currentWorkDisabilityPeriod.workDisabilityTypeId = workDisabilityPeriod.workDisabilityTypeId
+    await currentWorkDisabilityPeriod.save()
+    return currentWorkDisabilityPeriod
+  }
+
+  async delete(currentWorkDisabilityPeriod: WorkDisabilityPeriod) {
+    await currentWorkDisabilityPeriod.delete()
+    return currentWorkDisabilityPeriod
+  }
+
   async show(workDisabilityPeriodId: number) {
     const workDisabilityPeriod = await WorkDisabilityPeriod.query()
       .whereNull('work_disability_period_deleted_at')
@@ -56,6 +74,7 @@ export default class WorkDisabilityPeriodService {
           shiftExceptionCheckOutTime: null,
           shiftExceptionEnjoymentOfSalary: 1,
           shiftExceptionTimeByTime: null,
+          workDisabilityPeriodId: filters.workDisabilityPeriod.workDisabilityPeriodId,
         } as ShiftException
         try {
           const shiftExceptionService = new ShiftExceptionService()
@@ -94,6 +113,27 @@ export default class WorkDisabilityPeriodService {
       }
     }
     return { shiftExceptionsSaved, shiftExceptionsError }
+  }
+
+  async updateShiftExceptions(workDisabilityPeriod: WorkDisabilityPeriod) {
+    const shiftExceptions = await ShiftException.query()
+      .whereNull('shift_exceptions_deleted_at')
+      .where('work_disability_period_id', workDisabilityPeriod.workDisabilityPeriodId)
+      .orderBy('work_disability_period_id')
+    for await (const shiftException of shiftExceptions) {
+      shiftException.shiftExceptionsDescription = `${workDisabilityPeriod.workDisability.insuranceCoverageType.insuranceCoverageTypeName}, ${workDisabilityPeriod.workDisabilityType.workDisabilityTypeName}`
+      await shiftException.save()
+    }
+  }
+
+  async deleteShiftExceptions(workDisabilityPeriod: WorkDisabilityPeriod) {
+    const shiftExceptions = await ShiftException.query()
+      .whereNull('shift_exceptions_deleted_at')
+      .where('work_disability_period_id', workDisabilityPeriod.workDisabilityPeriodId)
+      .orderBy('work_disability_period_id')
+    for await (const shiftException of shiftExceptions) {
+      await shiftException.delete()
+    }
   }
 
   async verifyInfoExist(workDisabilityPeriod: WorkDisabilityPeriod) {
@@ -163,7 +203,7 @@ export default class WorkDisabilityPeriodService {
       .whereNull('work_disability_deleted_at')
       .where('work_disability_id', workDisabilityPeriod.workDisabilityId)
       .first()
-    if (workDisability) {
+    if (workDisability && !workDisabilityPeriod.workDisabilityPeriodId) {
       const wortkDisabilities = await WorkDisability.query()
         .whereNull('work_disability_deleted_at')
         .where('employee_id', workDisability.employeeId)

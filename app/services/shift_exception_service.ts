@@ -17,6 +17,7 @@ export default class ShiftExceptionService {
     newShiftException.shiftExceptionEnjoymentOfSalary =
       shiftException.shiftExceptionEnjoymentOfSalary
     newShiftException.shiftExceptionTimeByTime = shiftException.shiftExceptionTimeByTime
+    newShiftException.workDisabilityPeriodId = shiftException.workDisabilityPeriodId
     await newShiftException.save()
     return newShiftException
   }

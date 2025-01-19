@@ -6,6 +6,7 @@ router
     router.get('/', '#controllers/work_disability_controller.index')
     router.post('/', '#controllers/work_disability_controller.store')
     router.delete('/:workDisabilityId', '#controllers/work_disability_controller.delete')
+    router.put('/:workDisabilityId', '#controllers/work_disability_controller.update')
     router.get('/:workDisabilityId', '#controllers/work_disability_controller.show')
     router.get('/employee/:employeeId', '#controllers/work_disability_controller.getByEmployee')
   })
