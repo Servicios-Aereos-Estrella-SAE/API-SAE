@@ -212,6 +212,8 @@ export default class EmployeeService {
   }
 
   async delete(currentEmployee: Employee) {
+    currentEmployee.employeeCode = `${currentEmployee.employeeCode}-IN${DateTime.now().toSeconds().toFixed(0)}`
+    await currentEmployee.save()
     await currentEmployee.delete()
     return currentEmployee
   }

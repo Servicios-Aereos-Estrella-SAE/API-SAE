@@ -832,8 +832,8 @@ export default class SyncAssistsService {
     const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
     const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone('America/Mexico_City')
     const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
-
-    if (diffTime > 10) {
+    const now = DateTime.now().setZone('America/Mexico_City')
+    if (diffTime > 10 && (now > timeToEnd)) {
       checkAssistCopy.assist.checkOutStatus = 'delay'
     }
 
@@ -1474,6 +1474,7 @@ export default class SyncAssistsService {
       return checkAssist
     }
     const checkAssistCopy = checkAssist
+
     //if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
       if (checkAssist.assist.dateShift) {
       if (checkAssist.assist.exceptions.length > 0) {
@@ -1509,16 +1510,12 @@ export default class SyncAssistsService {
               }),
               'minutes'
             ).as('minutes')
-            if (diffTime > 10) {
-              checkAssistCopy.assist.checkOutStatus = 'delay'
-            }
-  
-            if (diffTime <= 10) {
-              checkAssistCopy.assist.checkOutStatus = 'tolerance'
-            }
-  
-            if (diffTime <= 0) {
+            if (diffTime > 0) {
               checkAssistCopy.assist.checkOutStatus = 'ontime'
+            } else if (diffTime >= -10) {
+              checkAssistCopy.assist.checkOutStatus = 'tolerance'
+            } else if (diffTime < -10) {
+              checkAssistCopy.assist.checkOutStatus = 'delay'
             }
           }
         }
