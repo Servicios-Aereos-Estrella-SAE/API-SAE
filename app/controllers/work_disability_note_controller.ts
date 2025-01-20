@@ -1,7 +1,10 @@
 import { HttpContext } from '@adonisjs/core/http'
 import WorkDisabilityNote from '#models/work_disability_note'
 import WorkDisabilityNoteService from '#services/work_disability_note_service'
-import { createWorkDisabilityNoteValidator } from '#validators/work_disability_note'
+import {
+  createWorkDisabilityNoteValidator,
+  updateWorkDisabilityNoteValidator,
+} from '#validators/work_disability_note'
 
 export default class WorkDisabilityNoteController {
   /**
@@ -284,6 +287,320 @@ export default class WorkDisabilityNoteController {
           title: 'Work disability notes',
           message: 'The work disability note was found successfully',
           data: { workDisabilityNote: showWorkDisabilityNote },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/work-disability-notes/{workDisabilityNoteId}:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Work Disability Notes
+   *     summary: update work disability note by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: workDisabilityNoteId
+   *         schema:
+   *           type: number
+   *         description: Work disability note id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               workDisabilityNoteDescription:
+   *                 type: string
+   *                 description: Work disability note description
+   *                 required: true
+   *                 default: ''
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ request, response }: HttpContext) {
+    try {
+      const workDisabilityNoteId = request.param('workDisabilityNoteId')
+      if (!workDisabilityNoteId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The work disability note Id was not found',
+          message: 'Missing data to process',
+          data: { workDisabilityNoteId },
+        }
+      }
+      const currentWorkDisabilityNote = await WorkDisabilityNote.query()
+        .whereNull('work_disability_note_deleted_at')
+        .where('work_disability_note_id', workDisabilityNoteId)
+        .first()
+      if (!currentWorkDisabilityNote) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The work disability note was not found',
+          message: 'The work disability note was not found with the entered ID',
+          data: { workDisabilityNoteId },
+        }
+      }
+      const workDisabilityNoteDescription = request.input('workDisabilityNoteDescription')
+      const workDisabilityNote = {
+        workDisabilityNoteDescription: workDisabilityNoteDescription,
+        workDisabilityNoteId: workDisabilityNoteId,
+      } as WorkDisabilityNote
+      const workDisabilityNoteService = new WorkDisabilityNoteService()
+      await request.validateUsing(updateWorkDisabilityNoteValidator)
+      const newWorkDisabilityNote = await workDisabilityNoteService.update(
+        currentWorkDisabilityNote,
+        workDisabilityNote
+      )
+      if (newWorkDisabilityNote) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Work disability notes',
+          message: 'The work disability note was updated successfully',
+          data: { workDisabilityNote: newWorkDisabilityNote },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+  /**
+   * @swagger
+   * /api/work-disability-notes/{workDisabilityNoteId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Work Disability Notes
+   *     summary: delete work disability note by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: workDisabilityNoteId
+   *         schema:
+   *           type: number
+   *         description: Work disability note id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async delete({ request, response }: HttpContext) {
+    try {
+      const workDisabilityNoteId = request.param('workDisabilityNoteId')
+      if (!workDisabilityNoteId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The work disability note Id was not found',
+          message: 'Missing data to process',
+          data: { workDisabilityNoteId },
+        }
+      }
+      const currentWorkDisabilityNote = await WorkDisabilityNote.query()
+        .whereNull('work_disability_note_deleted_at')
+        .where('work_disability_note_id', workDisabilityNoteId)
+        .first()
+      if (!currentWorkDisabilityNote) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The work disability note was not found',
+          message: 'The work disability note was not found with the entered ID',
+          data: { workDisabilityNoteId },
+        }
+      }
+      const workDisabilityNoteService = new WorkDisabilityNoteService()
+      const deleteWorkDisabilityNote =
+        await workDisabilityNoteService.delete(currentWorkDisabilityNote)
+      if (deleteWorkDisabilityNote) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Work disability notes',
+          message: 'The work disability note was deleted successfully',
+          data: { workDisabilityNote: deleteWorkDisabilityNote },
         }
       }
     } catch (error) {
