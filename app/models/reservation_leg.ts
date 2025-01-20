@@ -68,9 +68,6 @@ export default class ReservationLeg extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true, columnName: 'reservation_leg_id' })
   declare reservationLegId: number
 
-  @column({ columnName: 'reservation_leg_uuid' })
-  declare reservationLegUuid: string | null
-
   // Ubicación textual (nullable)
   @column({ columnName: 'reservation_leg_from_location' })
   declare reservationLegFromLocation: string | null

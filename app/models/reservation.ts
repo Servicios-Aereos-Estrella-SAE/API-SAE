@@ -1,12 +1,14 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
 import FlightAttendant from './flight_attendant.js'
 import Pilot from './pilot.js'
 import Aircraft from './aircraft.js'
 import Customer from './customer.js'
+import ReservationLeg from './reservation_leg.js'
+import ReservationNote from './reservation_note.js'
 
 /**
  * @swagger
@@ -179,4 +181,20 @@ export default class Reservation extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'flightAttendantId',
   })
   declare flightAttendant: BelongsTo<typeof FlightAttendant>
+
+  /**
+   * Relación hasMany con el modelo ReservationLeg.
+   */
+  @hasMany(() => ReservationLeg, {
+    foreignKey: 'reservationId',
+  })
+  declare reservationLegs: HasMany<typeof ReservationLeg>
+
+  /**
+   * Relación hasMany con el modelo ReservationNote.
+   */
+  @hasMany(() => ReservationNote, {
+    foreignKey: 'reservationId',
+  })
+  declare reservationNotes: HasMany<typeof ReservationNote>
 }
