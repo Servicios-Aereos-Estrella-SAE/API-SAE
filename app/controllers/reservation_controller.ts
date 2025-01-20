@@ -208,6 +208,7 @@ export default class ReservationController {
           data: { reservationId },
         }
       }
+      await request.validateUsing(createReservationValidator)
 
       const reservationData = {
         reservationId,

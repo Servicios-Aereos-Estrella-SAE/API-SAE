@@ -42,9 +42,6 @@ export default class ReservationNote extends compose(BaseModel, SoftDeletes) {
   declare reservationNoteId: number
 
   @column()
-  declare reservationNoteUuid: string | null
-
-  @column()
   declare reservationId: number
 
   @column()
