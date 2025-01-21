@@ -949,7 +949,7 @@ export default class SystemSettingController {
 
   /**
    * @swagger
-   * /api/system-settings/get-active:
+   * /api/system-settings-active:
    *   get:
    *     security:
    *       - bearerAuth: []
