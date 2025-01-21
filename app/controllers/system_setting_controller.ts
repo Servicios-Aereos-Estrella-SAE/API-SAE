@@ -167,10 +167,15 @@ export default class SystemSettingController {
    *           schema:
    *             type: object
    *             properties:
-   *               logo:
+   *               systemSettingLogo:
    *                 type: string
    *                 format: binary
    *                 description: System setting logo
+   *                 required: false
+   *               systemSettingBanner:
+   *                 type: string
+   *                 format: binary
+   *                 description: System setting banner
    *                 required: false
    *               systemSettingTradeName:
    *                 type: string
@@ -307,23 +312,55 @@ export default class SystemSettingController {
         types: ['image'],
         size: '',
       }
-      const photo = request.file('logo', validationOptions)
-      if (photo) {
+      const systemSettingLogo = request.file('systemSettingLogo', validationOptions)
+      if (systemSettingLogo) {
         const allowedExtensions = ['svg', 'png', 'webp']
-        if (!allowedExtensions.includes(photo.extname ? photo.extname : '')) {
+        if (
+          !allowedExtensions.includes(systemSettingLogo.extname ? systemSettingLogo.extname : '')
+        ) {
           response.status(400)
           return {
             status: 400,
             type: 'warning',
             title: 'Missing data to process',
             message: 'Please upload a image valid',
-            data: photo,
+            data: systemSettingLogo,
           }
         }
         const uploadService = new UploadService()
-        const fileName = `${new Date().getTime()}_${photo.clientName}`
-        const fileUrl = await uploadService.fileUpload(photo, 'system-settings', fileName)
+        const fileName = `${new Date().getTime()}_${systemSettingLogo.clientName}`
+        const fileUrl = await uploadService.fileUpload(
+          systemSettingLogo,
+          'system-settings',
+          fileName
+        )
         systemSetting.systemSettingLogo = fileUrl
+      }
+      const systemSettingBanner = request.file('systemSettingBanner', validationOptions)
+      if (systemSettingBanner) {
+        const allowedExtensions = ['svg', 'png', 'webp']
+        if (
+          !allowedExtensions.includes(
+            systemSettingBanner.extname ? systemSettingBanner.extname : ''
+          )
+        ) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Missing data to process',
+            message: 'Please upload a image valid',
+            data: systemSettingBanner,
+          }
+        }
+        const uploadService = new UploadService()
+        const fileName = `${new Date().getTime()}_${systemSettingBanner.clientName}`
+        const fileUrl = await uploadService.fileUpload(
+          systemSettingBanner,
+          'system-settings',
+          fileName
+        )
+        systemSetting.systemSettingBanner = fileUrl
       }
       const newSystemSetting = await systemSettingService.create(systemSetting)
       response.status(201)
@@ -370,10 +407,15 @@ export default class SystemSettingController {
    *           schema:
    *             type: object
    *             properties:
-   *               logo:
+   *               systemSettingLogo:
    *                 type: string
    *                 format: binary
    *                 description: System setting logo
+   *                 required: false
+   *               systemSettingBanner:
+   *                 type: string
+   *                 format: binary
+   *                 description: System setting banner
    *                 required: false
    *               systemSettingTradeName:
    *                 type: string
@@ -536,18 +578,20 @@ export default class SystemSettingController {
         types: ['image'],
         size: '',
       }
-      const photo = request.file('logo', validationOptions)
+      const systemSettingLogo = request.file('systemSettingLogo', validationOptions)
       systemSetting.systemSettingLogo = currentSystemSetting.systemSettingLogo
-      if (photo) {
+      if (systemSettingLogo) {
         const allowedExtensions = ['svg', 'png', 'webp']
-        if (!allowedExtensions.includes(photo.extname ? photo.extname : '')) {
+        if (
+          !allowedExtensions.includes(systemSettingLogo.extname ? systemSettingLogo.extname : '')
+        ) {
           response.status(400)
           return {
             status: 400,
             type: 'warning',
             title: 'Missing data to process',
             message: 'Please upload a image valid',
-            data: photo,
+            data: systemSettingLogo,
           }
         }
         const uploadService = new UploadService()
@@ -556,9 +600,39 @@ export default class SystemSettingController {
           const fileKey = `${Env.get('AWS_ROOT_PATH')}/system-settings/${fileNameWithExt}`
           await uploadService.deleteFile(fileKey)
         }
-        const fileName = `${new Date().getTime()}_${photo.clientName}`
-        const fileUrl = await uploadService.fileUpload(photo, 'system-settings', fileName)
+        const fileName = `${new Date().getTime()}_${systemSettingLogo.clientName}`
+        const fileUrl = await uploadService.fileUpload(
+          systemSettingLogo,
+          'system-settings',
+          fileName
+        )
         systemSetting.systemSettingLogo = fileUrl
+      }
+      const systemSettingBanner = request.file('systemSettingBanner', validationOptions)
+      if (systemSettingBanner) {
+        const allowedExtensions = ['svg', 'png', 'webp']
+        if (
+          !allowedExtensions.includes(
+            systemSettingBanner.extname ? systemSettingBanner.extname : ''
+          )
+        ) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Missing data to process',
+            message: 'Please upload a image valid',
+            data: systemSettingBanner,
+          }
+        }
+        const uploadService = new UploadService()
+        const fileName = `${new Date().getTime()}_${systemSettingBanner.clientName}`
+        const fileUrl = await uploadService.fileUpload(
+          systemSettingBanner,
+          'system-settings',
+          fileName
+        )
+        systemSetting.systemSettingBanner = fileUrl
       }
       const updateSystemSetting = await systemSettingService.update(
         currentSystemSetting,
