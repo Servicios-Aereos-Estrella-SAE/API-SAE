@@ -812,10 +812,7 @@ export default class SyncAssistsService {
     const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
     const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: timeToAdd })
 
-    if (discriminated) {
-      checkAssistCopy.assist.checkOutStatus = ''
-      return checkAssistCopy
-    }
+    const currentNowTime = DateTime.now().setZone('America/Mexico_City')
 
     if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
       checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
@@ -829,6 +826,17 @@ export default class SyncAssistsService {
     const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
     const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone('America/Mexico_City')
     const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
+    const diffTimeNow = currentNowTime.diff(timeToEnd, 'minutes').minutes
+
+    if (diffTime > 0 && diffTimeNow > 0) {
+      if (checkAssistCopy.assist.assitFlatList?.length === 3) {
+        checkAssistCopy.assist.checkEatOut = null
+      }
+
+      if (checkAssistCopy.assist.assitFlatList?.length === 2) {
+        checkAssistCopy.assist.checkEatIn = null
+      }
+    }
 
     if (diffTime > 10) {
       checkAssistCopy.assist.checkOutStatus = 'delay'
@@ -840,6 +848,11 @@ export default class SyncAssistsService {
 
     if (diffTime <= 0) {
       checkAssistCopy.assist.checkOutStatus = 'ontime'
+    }
+
+    if (discriminated) {
+      checkAssistCopy.assist.checkOutStatus = ''
+      return checkAssistCopy
     }
 
     return checkAssistCopy
@@ -1108,10 +1121,6 @@ export default class SyncAssistsService {
       assist = dayAssist[1]
     }
 
-    if (dayAssist.length <= 2) {
-      assist = null
-    }
-
     return assist
   }
 
@@ -1122,30 +1131,14 @@ export default class SyncAssistsService {
       assist = dayAssist[2]
     }
 
-    if (dayAssist.length <= 3) {
-      assist = null
-    }
-
     return assist
   }
 
   private getCheckOutDate(dayAssist: AssistInterface[]) {
     let assist = null
 
-    if (dayAssist.length > 0) {
-      assist = dayAssist[0]
-    }
-
     if (dayAssist.length > 1) {
-      assist = dayAssist[1]
-    }
-
-    if (dayAssist.length > 2) {
-      assist = dayAssist[2]
-    }
-
-    if (dayAssist.length > 3) {
-      assist = dayAssist[3]
+      assist = dayAssist[dayAssist.length - 1]
     }
 
     return assist
@@ -1191,7 +1184,9 @@ export default class SyncAssistsService {
     }
 
     if (isStartWorkday) {
-      if (checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) { // Validar si el check de salida debe ser al día siguiente
+      const checkOutShouldbeNextDay = checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')
+
+      if (checkOutShouldbeNextDay) { // Validar si el check de salida debe ser al día siguiente
 
         dateAssistItem.assist.checkIn = null
         dateAssistItem.assist.checkEatIn = null
