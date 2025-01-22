@@ -7,7 +7,6 @@ router
       '/assign-system-modules/:systemSettingId',
       '#controllers/system_setting_controller.assignSystemModules'
     )
-    router.get('/get-active', '#controllers/system_setting_controller.getActive')
     router.get('/', '#controllers/system_setting_controller.index')
     router.post('/', '#controllers/system_setting_controller.store')
     router.put('/:systemSettingId', '#controllers/system_setting_controller.update')
@@ -16,3 +15,8 @@ router
   })
   .prefix('/api/system-settings')
   .use(middleware.auth())
+router
+  .group(() => {
+    router.get('/', '#controllers/system_setting_controller.getActive')
+  })
+  .prefix('/api/system-settings-active')
