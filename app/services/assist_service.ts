@@ -1619,4 +1619,40 @@ export default class AssistsService {
     const index = headers.indexOf(headerName)
     return index !== -1 ? headers[index + 1] : null
   }
+
+  async getFormatPayRoll() {
+    try {
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Inc SA2 p01')
+      worksheet.columns = [{ key: 'inc' }, { key: 'sa2' }, { key: 'ordinary' }, { key: 'employee' }]
+      const employees = await Employee.query()
+        .whereNull('employee_deleted_at')
+        .orderBy('employee_id')
+      for await (const employee of employees) {
+        worksheet.addRow({
+          inc: 'INC',
+          sa2: 'SA2',
+          rdinary: 'ORDINARI',
+          employee: employee.employeeCode,
+        })
+      }
+      const buffer = await workbook.csv.writeBuffer()
+
+      return {
+        status: 201,
+        type: 'success',
+        title: 'CSV',
+        message: 'CSV was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }
