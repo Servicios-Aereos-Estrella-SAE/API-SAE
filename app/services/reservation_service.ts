@@ -11,23 +11,54 @@ export default class ReservationService {
    * Listado de reservations con paginación y/o filtros
    */
   async index(filters: ReservationFilterSearchInterface) {
-    const query = Reservation.query().whereNull('reservation_deleted_at')
+    const query = Reservation.query()
 
     // Filtro de búsqueda opcional
     if (filters.search) {
-      // query.where((subQuery) => {
-      //   subQuery.whereRaw('UPPER(reservation_uuid) LIKE ?', [`%${filters.search?.toUpperCase()}%`])
-      //   // Agrega tus orWhereHas(...) si deseas buscar en relaciones, igual que en customers
-      // })
+      query
+        .whereHas('reservationLegs', (queryLegs) => {
+          queryLegs
+            .whereHas('airportDeparture', (queryAirportDeparture) => {
+              queryAirportDeparture.where('airport_name', 'like', `%${filters.search}%`)
+            })
+            .orWhereHas('airportDestination', (queryAirportDestination) => {
+              queryAirportDestination.where('airport_name', 'like', `%${filters.search}%`)
+            })
+        })
+        .orWhereHas('customer', (queryCustomer) => {
+          queryCustomer.whereHas('person', (queryPerson) => {
+            queryPerson.where('person_firstname', 'like', `%${filters.search}%`)
+            queryPerson.orWhere('person_lastname', 'like', `%${filters.search}%`)
+            queryPerson.orWhere('person_second_lastname', 'like', `%${filters.search}%`)
+          })
+        })
     }
 
+    query
+      .whereHas('reservationLegs', (queryLegs) => {
+        queryLegs
+          .whereNull('reservation_leg_deleted_at')
+          .whereHas('airportDeparture', (queryAirportDeparture) => {
+            queryAirportDeparture.whereNull('airport_deleted_at')
+          })
+          .whereHas('airportDestination', (queryAirportDestination) => {
+            queryAirportDestination.whereNull('airport_deleted_at')
+          })
+      })
+      .whereNull('reservation_deleted_at')
+
     // Preloads opcionales, por ejemplo: .preload('customer'), .preload('pilotPic'), etc.
-    query.preload('customer')
+    query.preload('customer', (queryCustomer) => {
+      queryCustomer.preload('person')
+    })
     query.preload('pilotPic')
     query.preload('pilotSic')
     query.preload('flightAttendant')
     query.preload('aircraft')
-    query.preload('reservationLegs')
+    query.preload('reservationLegs', (queryLegs) => {
+      queryLegs.preload('airportDeparture')
+      queryLegs.preload('airportDestination')
+    })
     query.preload('reservationNotes')
     // ...
 

@@ -98,6 +98,9 @@ export default class AircraftsController {
       .preload('pilots', (pilotsQuery) => {
         pilotsQuery.pivotColumns(['aircraft_pilot_role'])
       })
+      .preload('aircraftProperty', (aircraftPropertyQuery) => {
+        aircraftPropertyQuery.preload('aircraftClass')
+      })
       .whereNull('aircraftDeletedAt')
     if (searchText) {
       query.where((builder) => {
