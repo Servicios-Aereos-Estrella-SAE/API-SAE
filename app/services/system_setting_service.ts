@@ -23,6 +23,7 @@ export default class SystemSettingService {
     newSystemSetting.systemSettingTradeName = systemSetting.systemSettingTradeName
     newSystemSetting.systemSettingSidebarColor = systemSetting.systemSettingSidebarColor
     newSystemSetting.systemSettingLogo = systemSetting.systemSettingLogo
+    newSystemSetting.systemSettingBanner = systemSetting.systemSettingBanner
     newSystemSetting.systemSettingActive = systemSetting.systemSettingActive
     await newSystemSetting.save()
     return newSystemSetting
@@ -32,6 +33,7 @@ export default class SystemSettingService {
     currentSystemSetting.systemSettingTradeName = systemSetting.systemSettingTradeName
     currentSystemSetting.systemSettingSidebarColor = systemSetting.systemSettingSidebarColor
     currentSystemSetting.systemSettingLogo = systemSetting.systemSettingLogo
+    currentSystemSetting.systemSettingBanner = systemSetting.systemSettingBanner
     currentSystemSetting.systemSettingActive = systemSetting.systemSettingActive
     await currentSystemSetting.save()
     return currentSystemSetting

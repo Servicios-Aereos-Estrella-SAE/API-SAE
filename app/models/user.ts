@@ -43,6 +43,9 @@ import Role from './role.js'
  *          personId:
  *            type: number
  *            description: Person id
+ *          userBusinessAccess:
+ *            type: string
+ *            description: Business access
  *          userCreatedAt:
  *            type: string
  *          userUpdatedAt:
@@ -86,6 +89,9 @@ export default class User extends compose(BaseModel, SoftDeletes, AuthFinder) {
 
   @column()
   declare userPinCodeExpiresAt: DateTime | null
+
+  @column()
+  declare userBusinessAccess: string
 
   @column()
   declare roleId: number
