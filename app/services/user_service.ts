@@ -9,27 +9,48 @@ import { DateTime } from 'luxon'
 import { LogStore } from '#models/MongoDB/log_store'
 import { LogUser } from '../interfaces/MongoDB/log_user.js'
 import env from '#start/env'
+import Role from '#models/role'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
     const systemBussines = env.get('SYSTEM_BUSINESS')
     const systemBussinesArray = systemBussines?.toString().split(',') as Array<string>
+
+    const roles = await Role.query()
+      .whereNull('role_deleted_at')
+      .andWhere((query) => {
+        query.whereNotNull('role_business_access')
+        query.andWhere((subQuery) => {
+          systemBussinesArray.forEach((business) => {
+            subQuery.orWhereRaw('FIND_IN_SET(?, role_business_access)', [business.trim()])
+          })
+        })
+      })
+    const rolesIds = roles.map((item) => item.roleId)
+
     const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
     const users = await User.query()
       .whereNull('user_deleted_at')
+      .whereIn('role_id', rolesIds)
       .andWhere((query) => {
-        systemBussinesArray.forEach((business) => {
-          query.orWhereRaw('FIND_IN_SET(?, user_business_access)', [business.trim()])
+        query.whereNotNull('user_business_access')
+        query.andWhere((subQuery) => {
+          systemBussinesArray.forEach((business) => {
+            subQuery.orWhereRaw('FIND_IN_SET(?, user_business_access)', [business.trim()])
+          })
         })
       })
       .if(filters.search, (query) => {
-        query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
-        query.orWhereHas('person', (queryPerson) => {
-          queryPerson.whereRaw(
-            'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
-            [`%${filters.search.toUpperCase()}%`]
-          )
+        query.andWhere((searchQuery) => {
+          searchQuery
+            .whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+            .orWhereHas('person', (queryPerson) => {
+              queryPerson.whereRaw(
+                'UPPER(CONCAT(person_firstname, " ", person_lastname, " ", person_second_lastname)) LIKE ?',
+                [`%${filters.search.toUpperCase()}%`]
+              )
+            })
         })
       })
       .if(filters.roleId > 0, (query) => {
@@ -43,6 +64,7 @@ export default class UserService {
       .select(selectedColumns)
       .orderBy('user_id')
       .paginate(filters.page, filters.limit)
+
     return users
   }
 

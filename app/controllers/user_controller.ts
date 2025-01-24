@@ -158,7 +158,7 @@ export default class UserController {
           return {
             type: 'warning',
             title: 'Login',
-            message: 'Incorrect email or password in systemBussinesArray',
+            message: 'Incorrect email or password',
             data: { user: {} },
           }
         }
@@ -170,7 +170,7 @@ export default class UserController {
           return {
             type: 'warning',
             title: 'Login',
-            message: 'Incorrect email or password not matches',
+            message: 'Incorrect email or password',
             data: { user: {} },
           }
         }
