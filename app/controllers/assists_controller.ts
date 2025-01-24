@@ -872,4 +872,153 @@ export default class AssistsController {
       }
     }
   }
+  /**
+   * @swagger
+   * /api/v1/assists/get-format-payroll:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Assists
+   *     summary: get format payroll
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: date
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2024-12-29"
+   *         description: Date from get format
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getFormatPayRoll({ request, response }: HttpContext) {
+    try {
+      const date = request.input('date')
+      if (!date) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The date was not found',
+          data: { date },
+        }
+      }
+      const assistService = new AssistsService()
+      const result = assistService.isPayThursday(date, '2025-01-09')
+      if (!result) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Date is not valid',
+          message: 'The date not is pay thursday',
+          data: { date },
+        }
+      }
+
+      const buffer = await assistService.getFormatPayRoll(date)
+      if (buffer.status === 201) {
+        response.header('Content-Type', 'text/csv')
+        response.header('Content-Disposition', 'attachment; filename="file.csv"')
+        response.status(201)
+        response.send(buffer.buffer)
+      } else {
+        response.status(500)
+        return {
+          type: buffer.type,
+          title: buffer.title,
+          message: buffer.message,
+          error: buffer.error,
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

@@ -18,6 +18,8 @@ import Assist from '#models/assist'
 import Tolerance from '#models/tolerance'
 import { LogStore } from '#models/MongoDB/log_store'
 import { LogAssist } from '../interfaces/MongoDB/log_assist.js'
+import BusinessUnit from '#models/business_unit'
+import env from '#start/env'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -1618,5 +1620,209 @@ export default class AssistsService {
   getHeaderValue(headers: Array<string>, headerName: string) {
     const index = headers.indexOf(headerName)
     return index !== -1 ? headers[index + 1] : null
+  }
+
+  async getFormatPayRoll(date: string) {
+    try {
+      const monthPeriod = Number.parseInt(DateTime.fromJSDate(new Date(date)).toFormat('LL'))
+      const yearPeriod = Number.parseInt(DateTime.fromJSDate(new Date(date)).toFormat('yyyy'))
+      const dayPeriod = Number.parseInt(DateTime.fromJSDate(new Date(date)).toFormat('dd'))
+      const dateLocal = DateTime.local(yearPeriod, monthPeriod, dayPeriod)
+      const startOfWeek = dateLocal.startOf('week')
+      const thursday = startOfWeek.plus({ days: 3 })
+      const start = thursday.minus({ days: 24 })
+      const firstDayPeriod = start.minus({ days: 1 }).startOf('day').setZone('utc')
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
+      const syncAssistsService = new SyncAssistsService()
+      const period = this.calculatePayPeriod(date)
+      const dateNew = new Date(date)
+      const year = dateNew.getFullYear()
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Inc SA2 p01')
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+      worksheet.columns = [
+        { key: 'inc' },
+        { key: 'sa2' },
+        { key: 'ordinary' },
+        { key: 'employee' },
+        { key: 'year' },
+        { key: 'period' },
+        { key: 'code' },
+        { key: 'date' },
+        { key: 'faults' },
+      ]
+      const employees = await Employee.query()
+        .whereIn('businessUnitId', businessUnitsList)
+        .whereNull('employee_deleted_at')
+        .orderBy('employee_id')
+      const firstDate = firstDayPeriod.toFormat('yyyy-MM-dd')
+      const lastDate = firstDayPeriod.plus({ days: 13 }).startOf('day').setZone('utc')
+      let faultsTotal = 0
+      for await (const employee of employees) {
+        const result = await syncAssistsService.index(
+          {
+            date: firstDate,
+            dateEnd: lastDate.toFormat('yyyy-MM-dd'),
+            employeeID: employee.employeeId,
+          },
+          { page: 1, limit: 100 }
+        )
+        const data: any = result.data
+        if (data) {
+          const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+          const faults = await this.getFaultsFromEmployeeCalendar(employeeCalendar, tardies)
+          faultsTotal += faults
+          if (faults > 0) {
+            worksheet.addRow({
+              inc: 'INC',
+              sa2: 'SA2',
+              ordinary: 'ORDINARI',
+              employee: employee.employeeCode,
+              year: year,
+              period: period,
+              code: 'faults',
+              date: firstDate,
+              faults: faults,
+            })
+          }
+        }
+      }
+      const buffer = await workbook.csv.writeBuffer()
+
+      return {
+        status: 201,
+        type: 'success',
+        title: 'CSV',
+        message: 'CSV was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getFaultsFromEmployeeCalendar(employeeCalendar: AssistDayInterface[], tardies: number) {
+    let daysWorked = 0
+    let daysOnTime = 0
+    let tolerances = 0
+    let delays = 0
+    let earlyOuts = 0
+    let rests = 0
+    let sundayBonus = 0
+    let vacations = 0
+    let holidaysWorked = 0
+    let restWorked = 0
+    let faults = 0
+    let delayFaults = 0
+    let earlyOutsFaults = 0
+    const exceptions = [] as ShiftExceptionInterface[]
+    for await (const calendar of employeeCalendar) {
+      if (!calendar.assist.isFutureDay) {
+        if (calendar.assist.exceptions.length > 0) {
+          for await (const exception of calendar.assist.exceptions) {
+            if (exception.exceptionType) {
+              const exceptionTypeSlug = exception.exceptionType.exceptionTypeSlug
+              if (exceptionTypeSlug !== 'rest-day' && exceptionTypeSlug !== 'vacation') {
+                exceptions.push(exception)
+              }
+              if (exceptionTypeSlug === 'descanso-laborado') {
+                restWorked += 1
+              }
+            }
+          }
+        }
+        const firstCheck = this.chekInTime(calendar)
+        if (calendar.assist.dateShift) {
+          daysWorked += 1
+          if (calendar.assist.checkInStatus !== 'fault') {
+            if (calendar.assist.checkInStatus === 'ontime') {
+              daysOnTime += 1
+            } else if (calendar.assist.checkInStatus === 'tolerance') {
+              tolerances += 1
+            } else if (calendar.assist.checkInStatus === 'delay') {
+              delays += 1
+            }
+          }
+          if (calendar.assist.checkOutStatus !== 'fault') {
+            if (calendar.assist.checkOutStatus === 'delay') {
+              earlyOuts += 1
+            }
+          }
+          if (
+            calendar.assist.isSundayBonus &&
+            (calendar.assist.checkIn || calendar.assist.checkOut)
+          ) {
+            sundayBonus += 1
+          }
+          if (calendar.assist.isRestDay && !firstCheck) {
+            rests += 1
+          }
+          if (calendar.assist.isVacationDate) {
+            vacations += 1
+          }
+          if (calendar.assist.checkInStatus === 'fault' && !calendar.assist.isRestDay) {
+            faults += 1
+          }
+        }
+        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
+          holidaysWorked += 1
+        }
+      }
+    }
+    delayFaults = this.getFaultsFromDelays(delays, tardies)
+    earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
+    faults = faults + delayFaults + earlyOutsFaults
+    return faults
+  }
+
+  isPayThursday(dateToCheck: string, referencePayDate: string): boolean {
+    const referenceDate = new Date(referencePayDate)
+    const targetDate = new Date(dateToCheck)
+    if (Number.isNaN(referenceDate.getTime())) {
+      return false
+    }
+    if (Number.isNaN(targetDate.getTime())) {
+      return false
+    }
+    const isThursday = targetDate.getDay() === 4
+    if (!isThursday) {
+      return false
+    }
+    const differenceInMilliseconds = targetDate.getTime() - referenceDate.getTime()
+    const differenceInDays = Math.abs(differenceInMilliseconds / (1000 * 60 * 60 * 24))
+
+    return differenceInDays % 14 === 0
+  }
+
+  calculatePayPeriod(datePay: string) {
+    const date = DateTime.fromISO(datePay)
+    if (!date.isValid) {
+      return 0
+    }
+    const dayOfYear = date.ordinal
+    const payPeriodNumber = Math.ceil(dayOfYear / 14)
+
+    return payPeriodNumber
   }
 }
