@@ -8,14 +8,21 @@ import Department from '#models/department'
 import { DateTime } from 'luxon'
 import { LogStore } from '#models/MongoDB/log_store'
 import { LogUser } from '../interfaces/MongoDB/log_user.js'
-// import env from '#start/env'
+import env from '#start/env'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
   async index(filters: UserFilterSearchInterface) {
+    const systemBussines = env.get('SYSTEM_BUSINESS')
+    const systemBussinesArray = systemBussines?.toString().split(',') as Array<string>
     const selectedColumns = ['user_id', 'user_email', 'user_active', 'role_id', 'person_id']
     const users = await User.query()
       .whereNull('user_deleted_at')
+      .andWhere((query) => {
+        systemBussinesArray.forEach((business) => {
+          query.orWhereRaw('FIND_IN_SET(?, user_business_access)', [business.trim()])
+        })
+      })
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(user_email) LIKE ?', [`%${filters.search.toUpperCase()}%`])
         query.orWhereHas('person', (queryPerson) => {
