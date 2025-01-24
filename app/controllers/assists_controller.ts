@@ -985,7 +985,18 @@ export default class AssistsController {
         }
       }
       const assistService = new AssistsService()
-      const buffer = await assistService.getFormatPayRoll()
+      const result = assistService.isPayThursday(date, '2025-01-09')
+      if (!result) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Date is not valid',
+          message: 'The date not is pay thursday',
+          data: { date },
+        }
+      }
+
+      const buffer = await assistService.getFormatPayRoll(date)
       if (buffer.status === 201) {
         response.header('Content-Type', 'text/csv')
         response.header('Content-Disposition', 'attachment; filename="file.csv"')

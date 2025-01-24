@@ -2,8 +2,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
-// import { middleware } from '../kernel.js'
-
 router
   .group(() => {
     router.get('/get-format-payroll', '#controllers/assists_controller.getFormatPayRoll')
