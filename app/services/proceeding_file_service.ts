@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import mail from '@adonisjs/mail/services/main'
 import env from '#start/env'
 import ProceedingFile from '#models/proceeding_file'
@@ -9,6 +10,7 @@ import ProceedingFileTypeService from './proceeding_file_type_service.js'
 import { ProceedingFileTypeEmailExpiredAndExpiringInterface } from '../interfaces/proceeding_file_type_email_expired_and_expiring_interface.js'
 import { SetProceedingFileToEmailInterface } from '../interfaces/set_proceeding_file_to_email_interface.js'
 import SystemSettingService from './system_setting_service.js'
+import SystemSetting from '#models/system_setting'
 
 export default class ProceedingFileService {
   async create(proceedingFile: ProceedingFile) {
@@ -312,7 +314,7 @@ export default class ProceedingFileService {
     if (userEmail) {
       let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
       const systemSettingService = new SystemSettingService()
-      const systemSettingActive = await systemSettingService.getActive()
+      const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
       if (systemSettingActive) {
         backgroundImageLogo = systemSettingActive.systemSettingLogo
       }
