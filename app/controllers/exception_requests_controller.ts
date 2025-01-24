@@ -117,18 +117,24 @@ export default class ExceptionRequestsController {
           if (user.userEmail) {
             const userEmail = env.get('SMTP_USERNAME')
             if (userEmail) {
+              let tradeName = 'BO'
               let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
               const systemSettingService = new SystemSettingService()
               const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
               if (systemSettingActive) {
-                backgroundImageLogo = systemSettingActive.systemSettingLogo
+                if ( systemSettingActive.systemSettingLogo) {
+                  backgroundImageLogo = systemSettingActive.systemSettingLogo
+                }
+                if ( systemSettingActive.systemSettingTradeName) {
+                  tradeName = systemSettingActive.systemSettingTradeName
+                }
               }
               await mail.send((message) => {
                 message
                   .to(user.userEmail)
-                  .from(userEmail, 'SAE')
+                  .from(userEmail, tradeName)
                   .subject(
-                    `SAE, Exception Request - ${`${exceptionRequest.exceptionRequestId}`.padStart(5, '0')}`
+                    `${tradeName}, Exception Request - ${`${exceptionRequest.exceptionRequestId}`.padStart(5, '0')}`
                   )
                   .htmlView('emails/update_status_mail', {
                     newStatus: status,
