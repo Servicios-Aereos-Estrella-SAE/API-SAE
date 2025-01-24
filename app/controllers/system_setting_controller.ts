@@ -118,18 +118,18 @@ export default class SystemSettingController {
    *                     error:
    *                       type: string
    */
-  async index({ request, response }: HttpContext) {
+  async index({ response }: HttpContext) {
     try {
-      const search = request.input('search')
-      const page = request.input('page', 1)
-      const limit = request.input('limit', 100)
-      const filters = {
-        search: search,
-        page: page,
-        limit: limit,
-      } as SystemSettingFilterSearchInterface
+      // const search = request.input('search')
+      // const page = request.input('page', 1)
+      // const limit = request.input('limit', 100)
+      // const filters = {
+      //   search: search,
+      //   page: page,
+      //   limit: limit,
+      // } as SystemSettingFilterSearchInterface
       const systemSettingService = new SystemSettingService()
-      const systemSettings = await systemSettingService.index(filters)
+      const systemSettings = await systemSettingService.index()
       response.status(200)
       return {
         type: 'success',

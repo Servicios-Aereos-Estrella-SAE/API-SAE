@@ -24,9 +24,15 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
  *          systemSettingBanner:
  *            type: string
  *            description: System setting banner
+ *          systemSettingFavicon:
+ *            type: string
+ *            description: System setting favicon
  *          systemSettingSidebarColor:
  *            type: string
  *            description: System setting sidebar color
+ *          system_setting_business_units:
+ *            type: string
+ *            description: Available business Units
  *          systemSettingActive:
  *            type: number
  *            description: System setting status
@@ -53,6 +59,12 @@ export default class SystemSetting extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare systemSettingSidebarColor: string
+
+  @column()
+  declare systemSettingBusinessUnits: string
+
+  @column()
+  declare systemSettingFavicon: string
 
   @column()
   declare systemSettingActive: number
