@@ -1894,6 +1894,8 @@ export default class EmployeeController {
   async getProceedingFiles({ request, response }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
+      const fileType = Number.parseInt(request.input('type'))
+
       if (!employeeId) {
         response.status(400)
         return {
@@ -1903,8 +1905,10 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
+
       const employeeService = new EmployeeService()
       const showEmployee = await employeeService.show(employeeId)
+
       if (!showEmployee) {
         response.status(404)
         return {
@@ -1914,13 +1918,15 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const proceedingFiles = await employeeService.getProceedingFiles(employeeId)
+
+      const proceedingFiles = await employeeService.getProceedingFiles(employeeId, fileType)
+
       response.status(200)
       return {
         type: 'success',
         title: 'Employees',
         message: 'The proceeding files were found successfully',
-        data: { proceedingFiles: proceedingFiles },
+        data: { data: proceedingFiles },
       }
     } catch (error) {
       response.status(500)

@@ -533,6 +533,7 @@ export default class SyncAssistsService {
             isSundayBonus: false,
             isRestDay: false,
             isVacationDate: false,
+            isWorkDisabilityDate: false,
             isHoliday: false,
             holiday: null,
             hasExceptions: false,
@@ -624,6 +625,7 @@ export default class SyncAssistsService {
           isSundayBonus: false,
           isRestDay: false,
           isVacationDate: false,
+          isWorkDisabilityDate: false,
           isHoliday: false,
           holiday: null,
           hasExceptions: false,
@@ -663,6 +665,7 @@ export default class SyncAssistsService {
       dateAssistItem = await this.isSundayBonus(dateAssistItem)
       dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
+      dateAssistItem = await this.isWorkDisabilityDate(employeeID, dateAssistItem)
 
       dateAssistItem = await this.validTime(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
@@ -838,7 +841,7 @@ export default class SyncAssistsService {
       }
     }
 
-    if (diffTime > 10) {
+    if (diffTime > 10 && (currentNowTime > timeToEnd)) {
       checkAssistCopy.assist.checkOutStatus = 'delay'
     }
 
@@ -1098,6 +1101,63 @@ export default class SyncAssistsService {
 
       if (absentException) {
         checkAssistCopy.assist.isVacationDate = true
+
+        if (!checkAssistCopy.assist.checkIn) {
+          checkAssistCopy.assist.checkInStatus = ''
+          checkAssistCopy.assist.checkOutStatus = ''
+        }
+      }
+    }
+
+    return checkAssistCopy
+  }
+
+  private async isWorkDisabilityDate(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+    if (!employeeID) {
+      return checkAssist
+    }
+
+    const employee = await Employee.query()
+      .where('employee_id', employeeID || 0)
+      .first()
+
+    if (!employee) {
+      return checkAssist
+    }
+
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const assignedShift = checkAssist.assist.dateShift
+
+    if (!assignedShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = assignedShift.shiftTimeStart
+    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
+      'America/Mexico_City'
+    )
+
+    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
+    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
+
+    await employee.load('shift_exceptions', (query) => {
+      query.where('shiftExceptionsDate', '>=', startDate)
+      query.where('shiftExceptionsDate', '<=', endDate)
+    })
+
+    if (employee.shift_exceptions.length > 0) {
+      const absentException = employee.shift_exceptions.find(
+        (ex) => ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad'
+      )
+
+      if (absentException) {
+        checkAssistCopy.assist.isWorkDisabilityDate = true
 
         if (!checkAssistCopy.assist.checkIn) {
           checkAssistCopy.assist.checkInStatus = ''
@@ -1409,6 +1469,7 @@ export default class SyncAssistsService {
       return checkAssist
     }
     const checkAssistCopy = checkAssist
+
     //if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
       if (checkAssist.assist.dateShift) {
       if (checkAssist.assist.exceptions.length > 0) {
@@ -1444,16 +1505,12 @@ export default class SyncAssistsService {
               }),
               'minutes'
             ).as('minutes')
-            if (diffTime > 10) {
-              checkAssistCopy.assist.checkOutStatus = 'delay'
-            }
-  
-            if (diffTime <= 10) {
-              checkAssistCopy.assist.checkOutStatus = 'tolerance'
-            }
-  
-            if (diffTime <= 0) {
+            if (diffTime > 0) {
               checkAssistCopy.assist.checkOutStatus = 'ontime'
+            } else if (diffTime >= -10) {
+              checkAssistCopy.assist.checkOutStatus = 'tolerance'
+            } else if (diffTime < -10) {
+              checkAssistCopy.assist.checkOutStatus = 'delay'
             }
           }
         }

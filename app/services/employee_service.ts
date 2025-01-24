@@ -212,6 +212,8 @@ export default class EmployeeService {
   }
 
   async delete(currentEmployee: Employee) {
+    currentEmployee.employeeCode = `${currentEmployee.employeeCode}-IN${DateTime.now().toSeconds().toFixed(0)}`
+    await currentEmployee.save()
     await currentEmployee.delete()
     return currentEmployee
   }
@@ -439,16 +441,43 @@ export default class EmployeeService {
     return workSchedules
   }
 
-  async getProceedingFiles(employeeId: number) {
+  async getProceedingFiles(employeeId: number, fileType: number) {
     const proceedingFiles = await EmployeeProceedingFile.query()
       .whereNull('employee_proceeding_file_deleted_at')
       .where('employee_id', employeeId)
+      .whereHas('proceedingFile', (fileQuery) => {
+        fileQuery.if(fileType, (query) => {
+          query.where('proceedingFileTypeId', fileType)
+        })
+      })
       .preload('proceedingFile', (query) => {
         query.preload('proceedingFileType')
         query.preload('proceedingFileStatus')
+        query.if(fileType, (subquery) => {
+          subquery.where('proceedingFileTypeId', fileType)
+        })
       })
       .orderBy('employee_id')
+      .paginate(1, 9999999)
+
     return proceedingFiles ? proceedingFiles : []
+
+    // AircraftProceedingFile.query()
+    //         .whereNull('deletedAt')
+    //         .where('aircraftId', aircraftId)
+    //         .whereHas('proceedingFile', (fileQuery) => {
+    //           fileQuery.if(fileType, (query) => {
+    //             query.where('proceedingFileTypeId', fileType)
+    //           })
+    //         })
+    //         .preload('proceedingFile', (fileQuery) => {
+    //           fileQuery.preload('proceedingFileType')
+    //           fileQuery.preload('proceedingFileStatus')
+    //           fileQuery.if(fileType, (query) => {
+    //             query.where('proceedingFileTypeId', fileType)
+    //           })
+    //         })
+    //         .orderBy('aircraftProceedingFileCreatedAt', 'desc')
   }
 
   async getVacationsUsed(employee: Employee) {

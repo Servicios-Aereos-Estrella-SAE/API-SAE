@@ -22,6 +22,7 @@ interface AssistDayInterface {
     isSundayBonus: boolean
     isRestDay: boolean
     isVacationDate: boolean
+    isWorkDisabilityDate: boolean
     isHoliday: boolean
     holiday: HolidayInterface | null
     hasExceptions: boolean

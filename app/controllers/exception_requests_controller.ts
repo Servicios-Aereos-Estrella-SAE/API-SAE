@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionRequest from '../models/exception_request.js'
 import { formatResponse } from '../helpers/responseFormatter.js'
@@ -15,6 +16,8 @@ import { DateTime } from 'luxon'
 import Ws from '#services/ws'
 import User from '#models/user'
 import { ExceptionRequestErrorInterface } from '../interfaces/exception_request_error_interface.js'
+import SystemSettingService from '#services/system_setting_service'
+import SystemSetting from '#models/system_setting'
 
 export default class ExceptionRequestsController {
   /**
@@ -114,6 +117,12 @@ export default class ExceptionRequestsController {
           if (user.userEmail) {
             const userEmail = env.get('SMTP_USERNAME')
             if (userEmail) {
+              let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
+              const systemSettingService = new SystemSettingService()
+              const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+              if (systemSettingActive) {
+                backgroundImageLogo = systemSettingActive.systemSettingLogo
+              }
               await mail.send((message) => {
                 message
                   .to(user.userEmail)
@@ -127,6 +136,7 @@ export default class ExceptionRequestsController {
                     userName: user.person
                       ? `${user.person.personFirstname} ${user.person.personLastname} ${user.person.personSecondLastname}`
                       : 'User',
+                    backgroundImageLogo,
                   })
               })
             }

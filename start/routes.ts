@@ -53,7 +53,14 @@ import './routes/exception_request_routes.js'
 import './routes/log_routes.js'
 import './routes/employee_type_routes.js'
 import './routes/aircraft_operator_routes.js'
-
+import './routes/work_disability_type_routes.js'
+import './routes/insurance_coverage_type_routes.js'
+import './routes/work_disability_routes.js'
+import './routes/work_disability_period_routes.js'
+import './routes/work_disability_note_routes.js'
+import './routes/reservations_routes.js'
+import './routes/reservation_leg_routes.js'
+import './routes/reservation_note_routes.js'
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
   return view.render('swagger', { specUrl })

@@ -1,21 +1,40 @@
 import SystemSetting from '#models/system_setting'
 import SystemSettingSystemModule from '#models/system_setting_system_module'
-import { SystemSettingFilterSearchInterface } from '../interfaces/system_setting_filter_search_interface.js'
+import env from '#start/env'
 
 export default class SystemSettingService {
-  async index(filters: SystemSettingFilterSearchInterface) {
-    const systemSettings = await SystemSetting.query()
-      .whereNull('system_setting_deleted_at')
-      .if(filters.search, (query) => {
-        query.where((subQuery) => {
-          subQuery.whereRaw('UPPER(system_setting_trade_name) LIKE ?', [
-            `%${filters.search.toUpperCase()}%`,
-          ])
-        })
-      })
-      .orderBy('system_setting_id')
-      .paginate(filters.page, filters.limit)
-    return systemSettings
+  async index(/* filters: SystemSettingFilterSearchInterface */) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    let systemSettingsList: SystemSetting[] = []
+
+    const systemSettings = await SystemSetting.query().whereNull('system_setting_deleted_at')
+
+    systemSettings.forEach((sistemSetting) => {
+      const units = sistemSetting.systemSettingBusinessUnits
+        ? sistemSetting.systemSettingBusinessUnits.split(',')
+        : []
+      const systemBussinesMatches = businessList.filter((value) => units.includes(value))
+      const matches = systemBussinesMatches.length
+
+      if (matches > 0) {
+        systemSettingsList.push(sistemSetting)
+      }
+    })
+
+    // const systemSettingsList = await SystemSetting.query()
+    //   .whereNull('system_setting_deleted_at')
+    //   // .if(filters.search, (query) => {
+    //   //   query.where((subQuery) => {
+    //   //     subQuery.whereRaw('UPPER(system_setting_trade_name) LIKE ?', [
+    //   //       `%${filters.search.toUpperCase()}%`,
+    //   //     ])
+    //   //   })
+    //   // })
+    //   .orderBy('system_setting_id')
+    //   .paginate(1, 999)
+
+    return { data: systemSettingsList }
   }
 
   async create(systemSetting: SystemSetting) {
@@ -23,6 +42,7 @@ export default class SystemSettingService {
     newSystemSetting.systemSettingTradeName = systemSetting.systemSettingTradeName
     newSystemSetting.systemSettingSidebarColor = systemSetting.systemSettingSidebarColor
     newSystemSetting.systemSettingLogo = systemSetting.systemSettingLogo
+    newSystemSetting.systemSettingBanner = systemSetting.systemSettingBanner
     newSystemSetting.systemSettingActive = systemSetting.systemSettingActive
     await newSystemSetting.save()
     return newSystemSetting
@@ -32,6 +52,7 @@ export default class SystemSettingService {
     currentSystemSetting.systemSettingTradeName = systemSetting.systemSettingTradeName
     currentSystemSetting.systemSettingSidebarColor = systemSetting.systemSettingSidebarColor
     currentSystemSetting.systemSettingLogo = systemSetting.systemSettingLogo
+    currentSystemSetting.systemSettingBanner = systemSetting.systemSettingBanner
     currentSystemSetting.systemSettingActive = systemSetting.systemSettingActive
     await currentSystemSetting.save()
     return currentSystemSetting
@@ -52,11 +73,25 @@ export default class SystemSettingService {
   }
 
   async getActive() {
-    const systemSetting = await SystemSetting.query()
-      .whereNull('system_setting_deleted_at')
-      .where('system_setting_active', 1)
-      .first()
-    return systemSetting
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    let sistemSettingActive = null
+
+    const systemSettings = await SystemSetting.query().whereNull('system_setting_deleted_at')
+
+    systemSettings.forEach((sistemSetting) => {
+      const units = sistemSetting.systemSettingBusinessUnits
+        ? sistemSetting.systemSettingBusinessUnits.split(',')
+        : []
+      const systemBussinesMatches = businessList.filter((value) => units.includes(value))
+      const matches = systemBussinesMatches.length
+
+      if (matches > 0 && sistemSetting.systemSettingActive === 1) {
+        sistemSettingActive = sistemSetting
+      }
+    })
+
+    return sistemSettingActive
   }
 
   async verifyInfo(systemSetting: SystemSetting) {

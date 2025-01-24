@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import User from '../models/user.js'
 import Ws from '#services/ws'
 import { HttpContext } from '@adonisjs/core/http'
@@ -11,6 +12,8 @@ import { UserFilterSearchInterface } from '../interfaces/user_filter_search_inte
 import { DateTime } from 'luxon'
 import { LogStore } from '#models/MongoDB/log_store'
 import { LogAuthentication } from '../interfaces/MongoDB/log_authentication.js'
+import SystemSettingService from '#services/system_setting_service'
+import SystemSetting from '#models/system_setting'
 
 export default class UserController {
   /**
@@ -146,7 +149,31 @@ export default class UserController {
       const userVerify = await User.verifyCredentials(userEmail, userPassword)
       const token = await User.accessTokens.create(user)
 
-      if (userVerify && token) {
+      if (userVerify && token && user.userBusinessAccess) {
+        const userBusinessAccessArray = user.userBusinessAccess.split(',')
+        const systemBussines = env.get('SYSTEM_BUSINESS')
+        const systemBussinesArray = systemBussines?.toString().split(',')
+        if (!systemBussinesArray) {
+          response.status(404)
+          return {
+            type: 'warning',
+            title: 'Login',
+            message: 'Incorrect email or password in systemBussinesArray',
+            data: { user: {} },
+          }
+        }
+        const systemBussinesMatches = systemBussinesArray.filter((value) =>
+          userBusinessAccessArray.includes(value)
+        )
+        if (systemBussinesMatches.length === 0) {
+          response.status(404)
+          return {
+            type: 'warning',
+            title: 'Login',
+            message: 'Incorrect email or password not matches',
+            data: { user: {} },
+          }
+        }
         const date = DateTime.local().setZone('utc').toISO()
         try {
           const rawHeaders = request.request.rawHeaders
@@ -541,10 +568,17 @@ export default class UserController {
         }
         user.userToken = encrypted
         user.save()
+        let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
+        const systemSettingService = new SystemSettingService()
+        const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+        if (systemSettingActive) {
+          backgroundImageLogo = systemSettingActive.systemSettingLogo
+        }
         const emailData = {
           user,
           token: user.userToken,
           host_data: hostData,
+          backgroundImageLogo,
         }
         const userEmail = env.get('SMTP_USERNAME')
         if (userEmail) {
