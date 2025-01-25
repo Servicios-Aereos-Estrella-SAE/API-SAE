@@ -27,6 +27,9 @@ import RoleDepartment from './role_department.js'
  *          roleActive:
  *            type: number
  *            description: Role status
+ *          roleBusinessAccess:
+ *            type: string
+ *            description: Business access
  *          roleCreatedAt:
  *            type: string
  *          roleUpdatedAt:
@@ -50,6 +53,9 @@ export default class Role extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare roleActive: number
+
+  @column()
+  declare roleBusinessAccess: string
 
   @column.dateTime({ autoCreate: true })
   declare roleCreatedAt: DateTime

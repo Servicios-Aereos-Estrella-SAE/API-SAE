@@ -158,7 +158,7 @@ export default class UserController {
           return {
             type: 'warning',
             title: 'Login',
-            message: 'Incorrect email or password in systemBussinesArray',
+            message: 'Incorrect email or password',
             data: { user: {} },
           }
         }
@@ -170,7 +170,7 @@ export default class UserController {
           return {
             type: 'warning',
             title: 'Login',
-            message: 'Incorrect email or password not matches',
+            message: 'Incorrect email or password',
             data: { user: {} },
           }
         }
@@ -568,11 +568,17 @@ export default class UserController {
         }
         user.userToken = encrypted
         user.save()
+        let tradeName = 'BO'
         let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
         const systemSettingService = new SystemSettingService()
         const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
         if (systemSettingActive) {
-          backgroundImageLogo = systemSettingActive.systemSettingLogo
+          if ( systemSettingActive.systemSettingLogo) {
+            backgroundImageLogo = systemSettingActive.systemSettingLogo
+          }
+          if ( systemSettingActive.systemSettingTradeName) {
+            tradeName = systemSettingActive.systemSettingTradeName
+          }
         }
         const emailData = {
           user,
@@ -585,7 +591,7 @@ export default class UserController {
           await mail.send((message) => {
             message
               .to(request.all().userEmail)
-              .from(userEmail, 'SAE')
+              .from(userEmail, tradeName)
               .subject('Recover password')
               .htmlView('emails/request_password', emailData)
           })

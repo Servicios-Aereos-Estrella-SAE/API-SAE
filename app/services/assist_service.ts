@@ -20,6 +20,8 @@ import { LogStore } from '#models/MongoDB/log_store'
 import { LogAssist } from '../interfaces/MongoDB/log_assist.js'
 import BusinessUnit from '#models/business_unit'
 import env from '#start/env'
+import SystemSettingService from './system_setting_service.js'
+import SystemSetting from '#models/system_setting'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -51,9 +53,8 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageUrl =
-        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageLogo = await this.getLogo()
+      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
       const imageBuffer = imageResponse.data
       const imageId = workbook.addImage({
         buffer: imageBuffer,
@@ -203,9 +204,8 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageUrl =
-        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageLogo = await this.getLogo()
+      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
       const imageBuffer = imageResponse.data
       const imageId = workbook.addImage({
         buffer: imageBuffer,
@@ -359,9 +359,8 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageUrl =
-        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageLogo = await this.getLogo()
+      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
       const imageBuffer = imageResponse.data
       const imageId = workbook.addImage({
         buffer: imageBuffer,
@@ -543,9 +542,8 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageUrl =
-        'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+      const imageLogo = await this.getLogo()
+      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
       const imageBuffer = imageResponse.data
       const imageId = workbook.addImage({
         buffer: imageBuffer,
@@ -1441,8 +1439,8 @@ export default class AssistsService {
     worksheet: ExcelJS.Worksheet,
     title: string
   ) {
-    const imageUrl = 'https://sae-assets.sfo3.cdn.digitaloceanspaces.com/general/logos/logo_sae.png'
-    const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+    const imageLogo = await this.getLogo()
+    const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
     const imageBuffer = imageResponse.data
     const imageId = workbook.addImage({
       buffer: imageBuffer,
@@ -1824,5 +1822,17 @@ export default class AssistsService {
     const payPeriodNumber = Math.ceil(dayOfYear / 14)
 
     return payPeriodNumber
+  }
+
+  async getLogo() {
+    let imageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
+    const systemSettingService = new SystemSettingService()
+    const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+    if (systemSettingActive) {
+      if (systemSettingActive.systemSettingLogo) {
+        imageLogo = systemSettingActive.systemSettingLogo
+      }
+    }
+    return imageLogo
   }
 }
