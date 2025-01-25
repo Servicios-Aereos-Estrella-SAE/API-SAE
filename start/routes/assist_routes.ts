@@ -2,10 +2,9 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
-// import { middleware } from '../kernel.js'
-
 router
   .group(() => {
+    router.get('/get-format-payroll', '#controllers/assists_controller.getFormatPayRoll')
     router.get('/get-excel-by-employee', '#controllers/assists_controller.getExcelByEmployee')
     router.get('/get-excel-by-position', '#controllers/assists_controller.getExcelByPosition')
     router.get('/get-excel-by-department', '#controllers/assists_controller.getExcelByDepartment')

@@ -176,6 +176,11 @@ export default class SystemSettingController {
    *                 format: binary
    *                 description: System setting banner
    *                 required: false
+   *               systemSettingFavicon:
+   *                 type: string
+   *                 format: binary
+   *                 description: System setting favicon
+   *                 required: false
    *               systemSettingTradeName:
    *                 type: string
    *                 description: System setting trade name
@@ -361,6 +366,32 @@ export default class SystemSettingController {
         )
         systemSetting.systemSettingBanner = fileUrl
       }
+      const systemSettingFavicon = request.file('systemSettingFavicon', validationOptions)
+      if (systemSettingFavicon) {
+        const allowedExtensions = ['svg', 'png', 'webp']
+        if (
+          !allowedExtensions.includes(
+            systemSettingFavicon.extname ? systemSettingFavicon.extname : ''
+          )
+        ) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Missing data to process',
+            message: 'Please upload a image valid',
+            data: systemSettingFavicon,
+          }
+        }
+        const uploadService = new UploadService()
+        const fileName = `${new Date().getTime()}_${systemSettingFavicon.clientName}`
+        const fileUrl = await uploadService.fileUpload(
+          systemSettingFavicon,
+          'system-settings',
+          fileName
+        )
+        systemSetting.systemSettingFavicon = fileUrl
+      }
       const newSystemSetting = await systemSettingService.create(systemSetting)
       response.status(201)
       return {
@@ -416,6 +447,10 @@ export default class SystemSettingController {
    *                 format: binary
    *                 description: System setting banner
    *                 required: false
+   *               systemSettingFavicon:
+   *                 type: string
+   *                 format: binary
+   *                 description: System setting favicon
    *               systemSettingTradeName:
    *                 type: string
    *                 description: System setting trade name
@@ -625,6 +660,11 @@ export default class SystemSettingController {
           }
         }
         const uploadService = new UploadService()
+        if (currentSystemSetting.systemSettingBanner) {
+          const fileNameWithExt = path.basename(currentSystemSetting.systemSettingBanner)
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/system-settings/${fileNameWithExt}`
+          await uploadService.deleteFile(fileKey)
+        }
         const fileName = `${new Date().getTime()}_${systemSettingBanner.clientName}`
         const fileUrl = await uploadService.fileUpload(
           systemSettingBanner,
@@ -632,6 +672,38 @@ export default class SystemSettingController {
           fileName
         )
         systemSetting.systemSettingBanner = fileUrl
+      }
+      const systemSettingFavicon = request.file('systemSettingFavicon', validationOptions)
+      systemSetting.systemSettingFavicon = currentSystemSetting.systemSettingFavicon
+      if (systemSettingFavicon) {
+        const allowedExtensions = ['svg', 'png', 'webp']
+        if (
+          !allowedExtensions.includes(
+            systemSettingFavicon.extname ? systemSettingFavicon.extname : ''
+          )
+        ) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Missing data to process',
+            message: 'Please upload a image valid',
+            data: systemSettingFavicon,
+          }
+        }
+        const uploadService = new UploadService()
+        if (currentSystemSetting.systemSettingFavicon) {
+          const fileNameWithExt = path.basename(currentSystemSetting.systemSettingFavicon)
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/system-settings/${fileNameWithExt}`
+          await uploadService.deleteFile(fileKey)
+        }
+        const fileName = `${new Date().getTime()}_${systemSettingFavicon.clientName}`
+        const fileUrl = await uploadService.fileUpload(
+          systemSettingFavicon,
+          'system-settings',
+          fileName
+        )
+        systemSetting.systemSettingFavicon = fileUrl
       }
       const updateSystemSetting = await systemSettingService.update(
         currentSystemSetting,
