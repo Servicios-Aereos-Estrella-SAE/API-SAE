@@ -120,9 +120,21 @@ export default class ReservationService {
     const reservation = await Reservation.query()
       .whereNull('reservation_deleted_at')
       .where('reservation_id', reservationId)
+      .preload('customer', (queryCustomer) => {
+        queryCustomer.preload('person')
+      })
+      .preload('pilotPic')
+      .preload('pilotSic')
+      .preload('flightAttendant')
+      .preload('aircraft')
+      .preload('reservationLegs', (queryLegs) => {
+        queryLegs.preload('airportDeparture')
+        queryLegs.preload('airportDestination')
+      })
+      .preload('reservationNotes')
       // .preload('customer') // si requieres
       .first()
-    return reservation ? reservation : null
+    return reservation
   }
 
   /**
