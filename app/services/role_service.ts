@@ -5,12 +5,26 @@ import RoleSystemPermission from '#models/role_system_permission'
 import SystemModule from '#models/system_module'
 import SystemPermission from '#models/system_permission'
 import { RoleFilterSearchInterface } from '../interfaces/role_filter_search_interface.js'
+import env from '#start/env'
 
 export default class RoleService {
   async index(filters: RoleFilterSearchInterface) {
+    const systemBussines = env.get('SYSTEM_BUSINESS')
+    const systemBussinesArray = systemBussines?.toString().split(',') as Array<string>
     const roles = await Role.query()
+      .whereNull('role_deleted_at')
+      .andWhere((query) => {
+        query.whereNotNull('role_business_access')
+        query.andWhere((subQuery) => {
+          systemBussinesArray.forEach((business) => {
+            subQuery.orWhereRaw('FIND_IN_SET(?, role_business_access)', [business.trim()])
+          })
+        })
+      })
       .if(filters.search, (query) => {
-        query.whereRaw('UPPER(role_name) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        query.andWhere((searchQuery) => {
+          searchQuery.whereRaw('UPPER(role_name) LIKE ?', [`%${filters.search.toUpperCase()}%`])
+        })
       })
       .preload('roleDepartments')
       .preload('roleSystemPermissions')
