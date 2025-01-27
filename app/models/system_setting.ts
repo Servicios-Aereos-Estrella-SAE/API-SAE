@@ -30,7 +30,7 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
  *          systemSettingSidebarColor:
  *            type: string
  *            description: System setting sidebar color
- *          system_setting_business_units:
+ *          systemSettingBusinessUnits:
  *            type: string
  *            description: Available business Units
  *          systemSettingActive:
