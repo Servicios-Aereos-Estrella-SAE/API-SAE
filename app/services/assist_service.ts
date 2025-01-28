@@ -137,7 +137,43 @@ export default class AssistsService {
       if (employee.deletedAt) {
         await this.paintEmployeeTerminated(worksheet, 'C', 4)
       }
-      // hasta aquí era lo de asistencia
+      // hasta aquí era lo de incidencias
+      // -------------------------------------
+      //const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
+      let tradeName = 'BO'
+      const systemSettingService = new SystemSettingService()
+      const systemSettingActive =
+        (await systemSettingService.getActive()) as unknown as SystemSetting
+      if (systemSettingActive) {
+        if (systemSettingActive.systemSettingTradeName) {
+          tradeName = systemSettingActive.systemSettingTradeName
+        }
+      }
+      worksheet = workbook.addWorksheet('Incident Summary Payroll')
+      const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
+      await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
+      this.addHeadRowIncidentPayroll(worksheet)
+      /*  const totalRowIncident = {} as AssistIncidentExcelRowInterface
+      await this.cleanTotalByDepartment(totalRowIncident)
+      const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
+      await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
+      if (data) {
+        const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+        let newRows = [] as AssistIncidentExcelRowInterface[]
+        newRows = await this.addRowIncidentCalendar(employee, employeeCalendar, tardies)
+        for await (const row of newRows) {
+          rowsIncident.push(row)
+          await this.addTotalByDepartment(totalRowByDepartmentIncident, row)
+        }
+      }
+      await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
+      await rowsIncident.push(totalRowByDepartmentIncident)
+      await rowsIncident.push(totalRowIncident)
+      await this.addRowIncidentPaToWorkSheet(rowsIncident, worksheet)
+      if (employee.deletedAt) {
+        await this.paintEmployeeTerminated(worksheet, 'C', 4)
+      } */
+
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -1834,5 +1870,146 @@ export default class AssistsService {
       }
     }
     return imageLogo
+  }
+
+  async addTitleIncidentPayrollToWorkSheet(
+    workbook: ExcelJS.Workbook,
+    worksheet: ExcelJS.Worksheet,
+    title: string
+  ) {
+    const imageLogo = await this.getLogo()
+    const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
+    const imageBuffer = imageResponse.data
+    const imageId = workbook.addImage({
+      buffer: imageBuffer,
+      extension: 'png',
+    })
+    // Agregar la imagen y centrarla en la celda
+    worksheet.addImage(imageId, {
+      tl: { col: 0.28, row: 0.7 },
+      ext: { width: 139, height: 49 }, // Tamaño de la imagen
+    })
+    worksheet.getRow(1).height = 60
+    const fgColor = '000000'
+    worksheet.getCell('B1').value = title
+    worksheet.getCell('B1').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' }
+    worksheet.mergeCells('B1:O1')
+    worksheet.views = [
+      { state: 'frozen', ySplit: 1 }, // Fija la primera fila
+      { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
+      { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+    ]
+    worksheet.addRow([])
+  }
+
+  addHeadRowIncidentPayroll(worksheet: ExcelJS.Worksheet) {
+    const headerRow = worksheet.addRow([
+      'NOMBRE COMPLETO',
+      'ID',
+      'DEPARTAMENTO',
+      'EMPRESA',
+      'FALTA',
+      'RETARDO',
+      'INC',
+      'HRS EX. DOB.',
+      'HRS EX. TRI.',
+      'P. DOM.',
+      'DESC. LAB.',
+      'P. VAC.',
+      'NIVELACION',
+      'BONO',
+      'OTROS',
+    ])
+    let fgColor = '000000'
+    let color = 'C9C9C9'
+    for (let col = 1; col <= 4; col++) {
+      const cell = worksheet.getCell(3, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    color = '305496'
+    for (let col = 5; col <= 7; col++) {
+      const cell = worksheet.getCell(3, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    color = 'A9D08E'
+    for (let col = 8; col <= 14; col++) {
+      const cell = worksheet.getCell(3, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    color = '305496'
+    for (let col = 15; col <= 15; col++) {
+      const cell = worksheet.getCell(3, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    headerRow.height = 30
+    fgColor = '000000'
+    headerRow.font = { bold: true, color: { argb: fgColor } }
+    fgColor = 'FFFFFF'
+    const columnA = worksheet.getColumn(1)
+    columnA.width = 23
+    columnA.alignment = { vertical: 'middle', horizontal: 'left' }
+    const columnB = worksheet.getColumn(2)
+    columnB.width = 16
+    columnB.alignment = { vertical: 'middle', horizontal: 'left' }
+    const columnC = worksheet.getColumn(3)
+    columnC.width = 32
+    columnC.alignment = { vertical: 'middle', horizontal: 'left' }
+    const columnD = worksheet.getColumn(4)
+    columnD.width = 16
+    columnD.alignment = { vertical: 'middle', horizontal: 'left' }
+    const columnE = worksheet.getColumn(5)
+    columnE.width = 16
+    columnE.font = { color: { argb: fgColor } }
+    columnE.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnF = worksheet.getColumn(6)
+    columnF.width = 16
+    columnF.font = { color: { argb: fgColor } }
+    columnF.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnG = worksheet.getColumn(7)
+    columnG.width = 16
+    columnG.font = { color: { argb: fgColor } }
+    columnG.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnH = worksheet.getColumn(8)
+    columnH.width = 16
+    columnH.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnI = worksheet.getColumn(9)
+    columnI.width = 16
+    columnI.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnJ = worksheet.getColumn(10)
+    columnJ.width = 16
+    columnJ.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnK = worksheet.getColumn(11)
+    columnK.width = 16
+    columnK.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnL = worksheet.getColumn(12)
+    columnL.width = 16
+    columnL.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnM = worksheet.getColumn(13)
+    columnM.width = 16
+    columnM.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnN = worksheet.getColumn(14)
+    columnN.width = 16
+    columnN.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnO = worksheet.getColumn(15)
+    columnO.width = 16
+    columnO.font = { color: { argb: fgColor } }
+    columnO.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 }
