@@ -9,6 +9,7 @@ interface ShiftExceptionInterface {
   shiftExceptionsDate: string | null | DateTime
   shiftExceptionCheckInTime: string | null
   shiftExceptionCheckOutTime: string | null
+  shiftExceptionEnjoymentOfSalary: number | null
   shiftExceptionsCreatedAt: Date | string | null
   shiftExceptionsUpdatedAt: Date | string | null
   shiftExceptionsDeletedAt: Date | string | null

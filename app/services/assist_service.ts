@@ -22,6 +22,7 @@ import BusinessUnit from '#models/business_unit'
 import env from '#start/env'
 import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
+import { AssistIncidentPayrollExcelRowInterface } from '../interfaces/assist_incident_payroll_excel_row_interface.js'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -139,41 +140,22 @@ export default class AssistsService {
       }
       // hasta aquí era lo de incidencias
       // -------------------------------------
-      //const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
-      let tradeName = 'BO'
-      const systemSettingService = new SystemSettingService()
-      const systemSettingActive =
-        (await systemSettingService.getActive()) as unknown as SystemSetting
-      if (systemSettingActive) {
-        if (systemSettingActive.systemSettingTradeName) {
-          tradeName = systemSettingActive.systemSettingTradeName
-        }
-      }
+      const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
+      const tradeName = await this.getTradeName()
       worksheet = workbook.addWorksheet('Incident Summary Payroll')
       const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       this.addHeadRowIncidentPayroll(worksheet)
-      /*  const totalRowIncident = {} as AssistIncidentExcelRowInterface
-      await this.cleanTotalByDepartment(totalRowIncident)
-      const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
-      await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-        let newRows = [] as AssistIncidentExcelRowInterface[]
-        newRows = await this.addRowIncidentCalendar(employee, employeeCalendar, tardies)
+        let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
+        newRows = await this.addRowIncidentPayrollCalendar(employee, employeeCalendar, tardies)
         for await (const row of newRows) {
-          rowsIncident.push(row)
-          await this.addTotalByDepartment(totalRowByDepartmentIncident, row)
+          rowsIncidentPayroll.push(row)
         }
       }
-      await this.addTotalRow(totalRowIncident, totalRowByDepartmentIncident)
-      await rowsIncident.push(totalRowByDepartmentIncident)
-      await rowsIncident.push(totalRowIncident)
-      await this.addRowIncidentPaToWorkSheet(rowsIncident, worksheet)
-      if (employee.deletedAt) {
-        await this.paintEmployeeTerminated(worksheet, 'C', 4)
-      } */
-
+      await this.addRowIncidentPayrollToWorkSheet(rowsIncidentPayroll, worksheet)
+      await this.paintBorderAll(worksheet, rowsIncidentPayroll.length)
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -503,6 +485,51 @@ export default class AssistsService {
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
+      // hasta aquí era lo de incidencias
+      // -------------------------------------
+      const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
+      const tradeName = await this.getTradeName()
+      worksheet = workbook.addWorksheet('Incident Summary Payroll')
+      const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
+      await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
+      this.addHeadRowIncidentPayroll(worksheet)
+      for await (const position of resultPositions) {
+        const employeeService = new EmployeeService()
+        const resultEmployes = await employeeService.index(
+          {
+            search: '',
+            departmentId: departmentId,
+            positionId: position.positionId,
+            employeeWorkSchedule: '',
+            page: page,
+            limit: limit,
+            ignoreDiscriminated: 0,
+          },
+          [departmentId]
+        )
+        const dataEmployes: any = resultEmployes
+        for await (const employee of dataEmployes) {
+          const result = await syncAssistsService.index(
+            {
+              date: filterDate,
+              dateEnd: filterDateEnd,
+              employeeID: employee.employeeId,
+            },
+            { page, limit }
+          )
+          const data: any = result.data
+          if (data) {
+            const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+            let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
+            newRows = await this.addRowIncidentPayrollCalendar(employee, employeeCalendar, tardies)
+            for await (const row of newRows) {
+              rowsIncidentPayroll.push(row)
+            }
+          }
+        }
+      }
+      await this.addRowIncidentPayrollToWorkSheet(rowsIncidentPayroll, worksheet)
+      await this.paintBorderAll(worksheet, rowsIncidentPayroll.length)
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -692,6 +719,63 @@ export default class AssistsService {
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de asistencia
+      // hasta aquí era lo de incidencias
+      // -------------------------------------
+      const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
+      const tradeName = await this.getTradeName()
+      worksheet = workbook.addWorksheet('Incident Summary Payroll')
+      const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
+      await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
+      this.addHeadRowIncidentPayroll(worksheet)
+      for await (const departmentRow of departments) {
+        const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
+        await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
+        const departmentId = departmentRow.departmentId
+        const page = 1
+        const limit = 999999999999999
+        const resultPositions = await departmentService.getPositions(departmentId)
+        const syncAssistsService = new SyncAssistsService()
+        for await (const position of resultPositions) {
+          const resultEmployes = await employeeService.index(
+            {
+              search: '',
+              departmentId: departmentId,
+              positionId: position.positionId,
+              employeeWorkSchedule: '',
+              page: page,
+              limit: limit,
+              ignoreDiscriminated: 0,
+            },
+            [departmentId]
+          )
+          const dataEmployes: any = resultEmployes
+          for await (const employee of dataEmployes) {
+            const result = await syncAssistsService.index(
+              {
+                date: filterDate,
+                dateEnd: filterDateEnd,
+                employeeID: employee.employeeId,
+              },
+              { page, limit }
+            )
+            const data: any = result.data
+            if (data) {
+              const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+              let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
+              newRows = await this.addRowIncidentPayrollCalendar(
+                employee,
+                employeeCalendar,
+                tardies
+              )
+              for await (const row of newRows) {
+                rowsIncidentPayroll.push(row)
+              }
+            }
+          }
+        }
+      }
+      await this.addRowIncidentPayrollToWorkSheet(rowsIncidentPayroll, worksheet)
+      await this.paintBorderAll(worksheet, rowsIncidentPayroll.length)
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -1886,21 +1970,44 @@ export default class AssistsService {
     })
     // Agregar la imagen y centrarla en la celda
     worksheet.addImage(imageId, {
-      tl: { col: 0.28, row: 0.7 },
+      tl: { col: 14.2, row: 1.2 },
       ext: { width: 139, height: 49 }, // Tamaño de la imagen
     })
-    worksheet.getRow(1).height = 60
+    worksheet.getRow(2).height = 60
     const fgColor = '000000'
-    worksheet.getCell('B1').value = title
-    worksheet.getCell('B1').font = { bold: true, size: 18, color: { argb: fgColor } }
-    worksheet.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet.mergeCells('B1:O1')
+    worksheet.getCell('D2').value = title
+    worksheet.getCell('D3').font = { bold: true, size: 18, color: { argb: fgColor } }
+    const cell = worksheet.getCell(2, 4)
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '203864' },
+    }
+    //cell.font = { bold: true, size: 66, color: { argb: fgColor } }
+    worksheet.getCell('D2').alignment = { horizontal: 'center', vertical: 'middle' }
+    /*  worksheet.mergeCells('D1:L1')
+    worksheet.mergeCells('M1:O2')
+    worksheet.mergeCells('A1:C2') */
+    worksheet.mergeCells('D2:L2')
+    worksheet.mergeCells('A3:O4')
+    /* for (let rowIndex = 1; rowIndex <= 5; rowIndex++) {
+      const row = worksheet.getRow(rowIndex)
+      for (let colNumber = 1; colNumber <= 15; colNumber++) {
+        const cell = row.getCell(colNumber)
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFFFFF' } },
+          left: { style: 'thin', color: { argb: 'FFFFFF' } },
+          bottom: { style: 'thin', color: { argb: 'FFFFFF' } },
+          right: { style: 'thin', color: { argb: 'FFFFFF' } },
+        }
+      }
+    } */
     worksheet.views = [
       { state: 'frozen', ySplit: 1 }, // Fija la primera fila
       { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
       { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
+      { state: 'frozen', ySplit: 5 }, // Fija la tercer fila
     ]
-    worksheet.addRow([])
   }
 
   addHeadRowIncidentPayroll(worksheet: ExcelJS.Worksheet) {
@@ -1924,7 +2031,7 @@ export default class AssistsService {
     let fgColor = '000000'
     let color = 'C9C9C9'
     for (let col = 1; col <= 4; col++) {
-      const cell = worksheet.getCell(3, col)
+      const cell = worksheet.getCell(5, col)
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
@@ -1933,7 +2040,7 @@ export default class AssistsService {
     }
     color = '305496'
     for (let col = 5; col <= 7; col++) {
-      const cell = worksheet.getCell(3, col)
+      const cell = worksheet.getCell(5, col)
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
@@ -1942,7 +2049,7 @@ export default class AssistsService {
     }
     color = 'A9D08E'
     for (let col = 8; col <= 14; col++) {
-      const cell = worksheet.getCell(3, col)
+      const cell = worksheet.getCell(5, col)
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
@@ -1951,65 +2058,259 @@ export default class AssistsService {
     }
     color = '305496'
     for (let col = 15; col <= 15; col++) {
-      const cell = worksheet.getCell(3, col)
+      const cell = worksheet.getCell(5, col)
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: color },
       }
     }
-    headerRow.height = 30
+    headerRow.height = 50
     fgColor = '000000'
     headerRow.font = { bold: true, color: { argb: fgColor } }
     fgColor = 'FFFFFF'
     const columnA = worksheet.getColumn(1)
-    columnA.width = 23
-    columnA.alignment = { vertical: 'middle', horizontal: 'left' }
+    columnA.width = 42
+    columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
-    columnB.width = 16
-    columnB.alignment = { vertical: 'middle', horizontal: 'left' }
+    columnB.width = 10
+    columnB.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnC = worksheet.getColumn(3)
-    columnC.width = 32
-    columnC.alignment = { vertical: 'middle', horizontal: 'left' }
+    columnC.width = 17
+    columnC.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnD = worksheet.getColumn(4)
-    columnD.width = 16
-    columnD.alignment = { vertical: 'middle', horizontal: 'left' }
+    columnD.width = 13
+    columnD.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnE = worksheet.getColumn(5)
-    columnE.width = 16
+    columnE.width = 10
     columnE.font = { color: { argb: fgColor } }
     columnE.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnF = worksheet.getColumn(6)
-    columnF.width = 16
+    columnF.width = 10
     columnF.font = { color: { argb: fgColor } }
     columnF.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnG = worksheet.getColumn(7)
-    columnG.width = 16
+    columnG.width = 10
     columnG.font = { color: { argb: fgColor } }
     columnG.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnH = worksheet.getColumn(8)
-    columnH.width = 16
+    columnH.width = 14
     columnH.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnI = worksheet.getColumn(9)
-    columnI.width = 16
+    columnI.width = 14
     columnI.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnJ = worksheet.getColumn(10)
-    columnJ.width = 16
+    columnJ.width = 14
     columnJ.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnK = worksheet.getColumn(11)
-    columnK.width = 16
+    columnK.width = 14
     columnK.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnL = worksheet.getColumn(12)
-    columnL.width = 16
+    columnL.width = 14
     columnL.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnM = worksheet.getColumn(13)
-    columnM.width = 16
+    columnM.width = 14
     columnM.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnN = worksheet.getColumn(14)
-    columnN.width = 16
+    columnN.width = 14
     columnN.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnO = worksheet.getColumn(15)
-    columnO.width = 16
+    columnO.width = 40
     columnO.font = { color: { argb: fgColor } }
     columnO.alignment = { vertical: 'middle', horizontal: 'center' }
+  }
+
+  async addRowIncidentPayrollCalendar(
+    employee: Employee,
+    employeeCalendar: AssistDayInterface[],
+    tardies: number
+  ) {
+    const rows = [] as AssistIncidentPayrollExcelRowInterface[]
+    let department = employee.department.departmentAlias ? employee.department.departmentAlias : ''
+    department =
+      department === '' && employee.department?.departmentName
+        ? employee.department.departmentName
+        : department
+    let daysWorked = 0
+    let daysOnTime = 0
+    let tolerances = 0
+    let delays = 0
+    let earlyOuts = 0
+    let rests = 0
+    let sundayBonus = 0
+    let laborRest = 0
+    let overtimeDouble = 0
+    let vacations = 0
+    let holidaysWorked = 0
+    let restWorked = 0
+    let faults = 0
+    let delayFaults = 0
+    let earlyOutsFaults = 0
+    const exceptions = [] as ShiftExceptionInterface[]
+    for await (const calendar of employeeCalendar) {
+      if (!calendar.assist.isFutureDay) {
+        if (calendar.assist.exceptions.length > 0) {
+          for await (const exception of calendar.assist.exceptions) {
+            if (exception.exceptionType) {
+              const exceptionTypeSlug = exception.exceptionType.exceptionTypeSlug
+              if (exceptionTypeSlug !== 'rest-day' && exceptionTypeSlug !== 'vacation') {
+                exceptions.push(exception)
+              }
+              if (exceptionTypeSlug === 'descanso-laborado') {
+                restWorked += 1
+                if (
+                  exception.shiftExceptionEnjoymentOfSalary &&
+                  exception.shiftExceptionEnjoymentOfSalary === 1
+                ) {
+                  laborRest += 1
+                }
+              } else if (
+                exceptionTypeSlug === 'working-during-non-working-hours' &&
+                exception.shiftExceptionEnjoymentOfSalary
+              ) {
+                if (exception.shiftExceptionCheckInTime && exception.shiftExceptionCheckOutTime) {
+                  const checkIn = DateTime.fromFormat(
+                    exception.shiftExceptionCheckInTime,
+                    'HH:mm:ss'
+                  )
+                  const checkOut = DateTime.fromFormat(
+                    exception.shiftExceptionCheckOutTime,
+                    'HH:mm:ss'
+                  )
+                  const duration = checkOut.diff(checkIn, 'hours')
+                  overtimeDouble += Math.floor(duration.hours)
+                }
+              }
+            }
+          }
+        }
+        const firstCheck = this.chekInTime(calendar)
+        if (calendar.assist.dateShift) {
+          daysWorked += 1
+          if (calendar.assist.checkInStatus !== 'fault') {
+            if (calendar.assist.checkInStatus === 'ontime') {
+              daysOnTime += 1
+            } else if (calendar.assist.checkInStatus === 'tolerance') {
+              tolerances += 1
+            } else if (calendar.assist.checkInStatus === 'delay') {
+              delays += 1
+            }
+          }
+          if (calendar.assist.checkOutStatus !== 'fault') {
+            if (calendar.assist.checkOutStatus === 'delay') {
+              earlyOuts += 1
+            }
+          }
+          if (
+            calendar.assist.isSundayBonus &&
+            (calendar.assist.checkIn || calendar.assist.checkOut)
+          ) {
+            sundayBonus += 1
+          }
+          if (calendar.assist.isRestDay && !firstCheck) {
+            rests += 1
+          }
+          if (calendar.assist.isVacationDate) {
+            vacations += 1
+          }
+          if (calendar.assist.checkInStatus === 'fault' && !calendar.assist.isRestDay) {
+            faults += 1
+          }
+        }
+        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
+          holidaysWorked += 1
+        }
+      }
+    }
+    delayFaults = this.getFaultsFromDelays(delays, tardies)
+    earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
+    faults = faults + delayFaults + earlyOutsFaults
+    let company = ''
+    if (employee.businessUnitId) {
+      const businessUnit = await BusinessUnit.query()
+        .whereNull('business_unit_deleted_at')
+        .where('business_unit_id', employee.businessUnitId)
+        .first()
+      if (businessUnit) {
+        company = businessUnit.businessUnitName
+      }
+    }
+    rows.push({
+      employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+      employeeId: employee.employeeCode.toString(),
+      department: department,
+      company: company,
+      faults: faults,
+      delays: delays,
+      inc: '',
+      overtimeDouble: overtimeDouble,
+      overtimeTriple: '',
+      sundayBonus: sundayBonus,
+      laborRest: laborRest,
+      vacationBonus: '',
+      leveling: '',
+      bonus: '',
+      others: '',
+    })
+    return rows
+  }
+
+  async addRowIncidentPayrollToWorkSheet(
+    rows: AssistIncidentPayrollExcelRowInterface[],
+    worksheet: ExcelJS.Worksheet
+  ) {
+    let rowCount = 5
+    for await (const rowData of rows) {
+      if (rowData.employeeName !== 'null') {
+        const fgColor = '000000'
+        worksheet.addRow([
+          rowData.employeeName,
+          rowData.employeeId,
+          rowData.department,
+          rowData.company,
+          rowData.faults,
+          rowData.delays,
+          rowData.inc,
+          rowData.overtimeDouble,
+          rowData.overtimeTriple,
+          rowData.sundayBonus,
+          rowData.laborRest,
+          rowData.vacationBonus,
+          rowData.leveling,
+          rowData.bonus,
+          rowData.others,
+        ]).font = { color: { argb: fgColor } }
+        const cell = worksheet.getCell(rowCount - 1, 4)
+        cell.font = { bold: true }
+        rowCount += 1
+      }
+    }
+  }
+
+  async getTradeName() {
+    let tradeName = 'BO'
+    const systemSettingService = new SystemSettingService()
+    const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+    if (systemSettingActive) {
+      if (systemSettingActive.systemSettingTradeName) {
+        tradeName = systemSettingActive.systemSettingTradeName
+      }
+    }
+    return tradeName
+  }
+
+  paintBorderAll(worksheet: ExcelJS.Worksheet, rowCount: number) {
+    for (let rowIndex = 6; rowIndex <= rowCount + 1; rowIndex++) {
+      const row = worksheet.getRow(rowIndex)
+      for (let colNumber = 1; colNumber <= 15; colNumber++) {
+        const cell = row.getCell(colNumber)
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } },
+        }
+      }
+    }
   }
 }

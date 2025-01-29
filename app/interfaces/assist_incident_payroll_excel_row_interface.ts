@@ -5,14 +5,14 @@ interface AssistIncidentPayrollExcelRowInterface {
   company: string
   faults: number
   delays: number
-  inc: number
+  inc: string
   overtimeDouble: number
-  overtimeTriple: number
+  overtimeTriple: string
   sundayBonus: number
   laborRest: number
-  vacationBonus: number
-  leveling: number
-  bonus: number
-  others: number
+  vacationBonus: string
+  leveling: string
+  bonus: string
+  others: string
 }
 export type { AssistIncidentPayrollExcelRowInterface }
