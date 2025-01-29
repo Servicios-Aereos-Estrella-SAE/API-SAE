@@ -194,6 +194,7 @@ export default class AssistsService {
           page: page,
           limit: limit,
           ignoreDiscriminated: 0,
+          ignoreExternal: 1,
         },
         [departmentId]
       )
@@ -350,6 +351,7 @@ export default class AssistsService {
             page: page,
             limit: limit,
             ignoreDiscriminated: 0,
+            ignoreExternal: 1,
           },
           [departmentId]
         )
@@ -455,6 +457,7 @@ export default class AssistsService {
             page: page,
             limit: limit,
             ignoreDiscriminated: 0,
+            ignoreExternal: 1,
           },
           [departmentId]
         )
@@ -484,7 +487,6 @@ export default class AssistsService {
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
-      // hasta aquí era lo de asistencia
       // hasta aquí era lo de incidencias
       // -------------------------------------
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
@@ -504,6 +506,7 @@ export default class AssistsService {
             page: page,
             limit: limit,
             ignoreDiscriminated: 0,
+            ignoreExternal: 1,
           },
           [departmentId]
         )
@@ -577,6 +580,7 @@ export default class AssistsService {
               limit: limit,
               employeeWorkSchedule: '',
               ignoreDiscriminated: 0,
+              ignoreExternal: 1,
             },
             [departmentId]
           )
@@ -688,6 +692,7 @@ export default class AssistsService {
               page: page,
               limit: limit,
               ignoreDiscriminated: 0,
+              ignoreExternal: 1,
             },
             [departmentId]
           )
@@ -745,6 +750,7 @@ export default class AssistsService {
               page: page,
               limit: limit,
               ignoreDiscriminated: 0,
+              ignoreExternal: 1,
             },
             [departmentId]
           )
@@ -1968,6 +1974,8 @@ export default class AssistsService {
       buffer: imageBuffer,
       extension: 'png',
     })
+    worksheet.addRow([title])
+    worksheet.addRow(['', '', '', title])
     // Agregar la imagen y centrarla en la celda
     worksheet.addImage(imageId, {
       tl: { col: 14.2, row: 1.2 },
@@ -1975,21 +1983,27 @@ export default class AssistsService {
     })
     worksheet.getRow(2).height = 60
     const fgColor = '000000'
-    worksheet.getCell('D2').value = title
-    worksheet.getCell('D3').font = { bold: true, size: 18, color: { argb: fgColor } }
+
+    worksheet.getCell('D2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('F2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('G2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('H2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('I2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('J2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('K2').font = { bold: true, size: 18, color: { argb: fgColor } }
+    worksheet.getCell('L2').font = { bold: true, size: 18, color: { argb: fgColor } }
     const cell = worksheet.getCell(2, 4)
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: '203864' },
     }
-    //cell.font = { bold: true, size: 66, color: { argb: fgColor } }
     worksheet.getCell('D2').alignment = { horizontal: 'center', vertical: 'middle' }
-    /*  worksheet.mergeCells('D1:L1')
-    worksheet.mergeCells('M1:O2')
-    worksheet.mergeCells('A1:C2') */
     worksheet.mergeCells('D2:L2')
+    worksheet.mergeCells('A1:O1')
     worksheet.mergeCells('A3:O4')
+    // Fusionamos las celdas D2:L2
+    // Fusionamos las celdas D2:L2
     /* for (let rowIndex = 1; rowIndex <= 5; rowIndex++) {
       const row = worksheet.getRow(rowIndex)
       for (let colNumber = 1; colNumber <= 15; colNumber++) {
@@ -2071,16 +2085,20 @@ export default class AssistsService {
     fgColor = 'FFFFFF'
     const columnA = worksheet.getColumn(1)
     columnA.width = 42
-    columnA.alignment = { vertical: 'middle', horizontal: 'center' }
+    //columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
     columnB.width = 10
-    columnB.alignment = { vertical: 'middle', horizontal: 'center' }
+    //columnB.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnC = worksheet.getColumn(3)
     columnC.width = 17
-    columnC.alignment = { vertical: 'middle', horizontal: 'center' }
+    //columnC.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnD = worksheet.getColumn(4)
     columnD.width = 13
-    columnD.alignment = { vertical: 'middle', horizontal: 'center' }
+    //columnD.alignment = { vertical: 'middle', horizontal: 'center' }
+    for (let index = 1; index <= 4; index++) {
+      const cell = worksheet.getCell(5, index)
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    }
     const columnE = worksheet.getColumn(5)
     columnE.width = 10
     columnE.font = { color: { argb: fgColor } }
@@ -2268,20 +2286,65 @@ export default class AssistsService {
           rowData.employeeId,
           rowData.department,
           rowData.company,
-          rowData.faults,
-          rowData.delays,
+          rowData.faults ? rowData.faults : '',
+          rowData.delays ? rowData.delays : '',
           rowData.inc,
-          rowData.overtimeDouble,
+          rowData.overtimeDouble ? rowData.overtimeDouble : '',
           rowData.overtimeTriple,
-          rowData.sundayBonus,
-          rowData.laborRest,
+          rowData.sundayBonus ? rowData.sundayBonus : '',
+          rowData.laborRest ? rowData.laborRest : '',
           rowData.vacationBonus,
           rowData.leveling,
           rowData.bonus,
           rowData.others,
         ]).font = { color: { argb: fgColor } }
-        const cell = worksheet.getCell(rowCount - 1, 4)
+        let cell = worksheet.getCell(rowCount + 1, 4)
         cell.font = { bold: true }
+        if (rowData.faults > 0) {
+          cell = worksheet.getCell(rowCount + 1, 5)
+          cell.font = { color: { argb: '9C0006' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFC7CE' },
+          }
+        }
+        if (rowData.delays > 0) {
+          cell = worksheet.getCell(rowCount + 1, 6)
+          cell.font = { color: { argb: '9C0006' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFC7CE' },
+          }
+        }
+        if (rowData.overtimeDouble > 0) {
+          cell = worksheet.getCell(rowCount + 1, 8)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
+          }
+        }
+        if (rowData.sundayBonus > 0) {
+          cell = worksheet.getCell(rowCount + 1, 10)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
+          }
+        }
+        if (rowData.laborRest > 0) {
+          cell = worksheet.getCell(rowCount + 1, 11)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
+          }
+        }
         rowCount += 1
       }
     }
@@ -2300,7 +2363,7 @@ export default class AssistsService {
   }
 
   paintBorderAll(worksheet: ExcelJS.Worksheet, rowCount: number) {
-    for (let rowIndex = 6; rowIndex <= rowCount + 1; rowIndex++) {
+    for (let rowIndex = 6; rowIndex <= rowCount + 5; rowIndex++) {
       const row = worksheet.getRow(rowIndex)
       for (let colNumber = 1; colNumber <= 15; colNumber++) {
         const cell = row.getCell(colNumber)
