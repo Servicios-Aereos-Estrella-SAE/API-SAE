@@ -430,7 +430,7 @@ export default class SyncAssistsService {
 
     const stringEndDate = `${params.dateEnd}T23:59:59.000-06:00`
     const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
-    const timeEndCST = timeEnd.setZone('America/Mexico_City').plus({ days: 1 }).minus({ hours: 23 , minutes: 59})
+    const timeEndCST = timeEnd.setZone('America/Mexico_City').plus({ days: 1 })
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
     const query = Assist.query()
 
@@ -439,8 +439,6 @@ export default class SyncAssistsService {
     }
 
     if (params.dateEnd && params.date) {
-      // console.log(filterInitialDate)
-      // console.log(filterEndDate)
       query.where('assist_punch_time_origin', '>=', filterInitialDate)
       query.where('assist_punch_time_origin', '<', filterEndDate)
     }
@@ -460,21 +458,15 @@ export default class SyncAssistsService {
           data: null,
         }
       }
-      // console.log(employee.employeeCode)
       query.where('assist_emp_code', employee.employeeCode)
     }
 
     query.orderBy('assist_punch_time_origin', 'desc')
    
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
-    /*  console.log(query.toSQL())
-     console.log('registros encontrados:' + assistList.length) */
-    /*  for await (const iterator of assistList) {
-      console.log(iterator)
-    } */
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
-
+    const endDate = timeEndCST.minus({ days: 1 })
     const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(
       {
         dateStart: intialSyncDate,
@@ -504,14 +496,12 @@ export default class SyncAssistsService {
       const existDay = assistDayCollection.find(
         (itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd')
       )
-      // console.log(existDay)
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
         assistListFlat.forEach((dayItem: AssistInterface, index) => {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeOrigin}`, { setZone: true })
             .setZone('America/Mexico_city')
             .toFormat('yyyy-LL-dd')
-          // console.log(currentDay)
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
             dayAssist.push(assistListFlat[index])
           }
@@ -551,7 +541,7 @@ export default class SyncAssistsService {
         })
       }
     })
-    const endDate = timeEndCST.minus({ days: 1 }).plus({ hours: 23 , minutes: 59})
+
     const employeeCalendar = await this.getEmployeeCalendar(
       timeCST,
       endDate,
