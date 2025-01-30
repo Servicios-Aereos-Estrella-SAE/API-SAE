@@ -965,6 +965,9 @@ export default class AssistsService {
       } else if (calendar.assist.isHoliday) {
         status = 'HOLIDAY'
       }
+      if (!calendar.assist.dateShift) {
+        status = ''
+      }
       let department = employee.department.departmentAlias
         ? employee.department.departmentAlias
         : ''
