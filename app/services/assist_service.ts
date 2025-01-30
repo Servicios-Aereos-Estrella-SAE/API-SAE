@@ -139,13 +139,12 @@ export default class AssistsService {
         await this.paintEmployeeTerminated(worksheet, 'C', 4)
       }
       // hasta aquí era lo de incidencias
-      // -------------------------------------
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
       worksheet = workbook.addWorksheet('Incident Summary Payroll')
       const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
-      this.addHeadRowIncidentPayroll(worksheet)
+      await this.addHeadRowIncidentPayroll(worksheet)
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
@@ -488,7 +487,6 @@ export default class AssistsService {
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
       // hasta aquí era lo de incidencias
-      // -------------------------------------
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
       worksheet = workbook.addWorksheet('Incident Summary Payroll')
@@ -723,9 +721,7 @@ export default class AssistsService {
       }
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
-      // hasta aquí era lo de asistencia
       // hasta aquí era lo de incidencias
-      // -------------------------------------
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
       worksheet = workbook.addWorksheet('Incident Summary Payroll')
@@ -1976,13 +1972,12 @@ export default class AssistsService {
     })
     worksheet.addRow([title])
     worksheet.addRow(['', '', '', title])
-    // Agregar la imagen y centrarla en la celda
     worksheet.addImage(imageId, {
       tl: { col: 14.2, row: 1.2 },
-      ext: { width: 139, height: 49 }, // Tamaño de la imagen
+      ext: { width: 160, height: 65 },
     })
-    worksheet.getRow(2).height = 60
-    const fgColor = '000000'
+    worksheet.getRow(2).height = 45
+    const fgColor = 'FFFFFF'
 
     worksheet.getCell('D2').font = { bold: true, size: 18, color: { argb: fgColor } }
     worksheet.getCell('F2').font = { bold: true, size: 18, color: { argb: fgColor } }
@@ -1992,7 +1987,7 @@ export default class AssistsService {
     worksheet.getCell('J2').font = { bold: true, size: 18, color: { argb: fgColor } }
     worksheet.getCell('K2').font = { bold: true, size: 18, color: { argb: fgColor } }
     worksheet.getCell('L2').font = { bold: true, size: 18, color: { argb: fgColor } }
-    const cell = worksheet.getCell(2, 4)
+    let cell = worksheet.getCell(2, 4)
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -2000,22 +1995,16 @@ export default class AssistsService {
     }
     worksheet.getCell('D2').alignment = { horizontal: 'center', vertical: 'middle' }
     worksheet.mergeCells('D2:L2')
+    worksheet.mergeCells('A2:C4')
+    worksheet.mergeCells('M2:O4')
     worksheet.mergeCells('A1:O1')
-    worksheet.mergeCells('A3:O4')
-    // Fusionamos las celdas D2:L2
-    // Fusionamos las celdas D2:L2
-    /* for (let rowIndex = 1; rowIndex <= 5; rowIndex++) {
-      const row = worksheet.getRow(rowIndex)
-      for (let colNumber = 1; colNumber <= 15; colNumber++) {
-        const cell = row.getCell(colNumber)
-        cell.border = {
-          top: { style: 'thin', color: { argb: 'FFFFFF' } },
-          left: { style: 'thin', color: { argb: 'FFFFFF' } },
-          bottom: { style: 'thin', color: { argb: 'FFFFFF' } },
-          right: { style: 'thin', color: { argb: 'FFFFFF' } },
-        }
-      }
-    } */
+    worksheet.mergeCells('D3:L4')
+    cell = worksheet.getCell(3, 4)
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFFFF' },
+    }
     worksheet.views = [
       { state: 'frozen', ySplit: 1 }, // Fija la primera fila
       { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
@@ -2079,37 +2068,34 @@ export default class AssistsService {
         fgColor: { argb: color },
       }
     }
-    headerRow.height = 50
+    headerRow.height = 40
     fgColor = '000000'
     headerRow.font = { bold: true, color: { argb: fgColor } }
     fgColor = 'FFFFFF'
     const columnA = worksheet.getColumn(1)
     columnA.width = 42
-    //columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
     columnB.width = 10
-    //columnB.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnC = worksheet.getColumn(3)
     columnC.width = 17
-    //columnC.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnD = worksheet.getColumn(4)
     columnD.width = 13
-    //columnD.alignment = { vertical: 'middle', horizontal: 'center' }
     for (let index = 1; index <= 4; index++) {
       const cell = worksheet.getCell(5, index)
       cell.alignment = { vertical: 'middle', horizontal: 'center' }
     }
     const columnE = worksheet.getColumn(5)
     columnE.width = 10
-    columnE.font = { color: { argb: fgColor } }
+    for (let col = 5; col <= 7; col++) {
+      const cell = worksheet.getCell(5, col)
+      cell.font = { color: { argb: fgColor } }
+    }
     columnE.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnF = worksheet.getColumn(6)
     columnF.width = 10
-    columnF.font = { color: { argb: fgColor } }
     columnF.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnG = worksheet.getColumn(7)
     columnG.width = 10
-    columnG.font = { color: { argb: fgColor } }
     columnG.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnH = worksheet.getColumn(8)
     columnH.width = 14
