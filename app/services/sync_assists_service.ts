@@ -430,7 +430,7 @@ export default class SyncAssistsService {
 
     const stringEndDate = `${params.dateEnd}T23:59:59.000-06:00`
     const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
-    const timeEndCST = timeEnd.setZone('America/Mexico_City').plus({ days: 1 })
+    const timeEndCST = timeEnd.setZone('America/Mexico_City').plus({ days: 1 }).minus({ hours: 23 , minutes: 59})
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
     const query = Assist.query()
 
@@ -439,8 +439,8 @@ export default class SyncAssistsService {
     }
 
     if (params.dateEnd && params.date) {
-      //console.log(filterInitialDate)
-      //console.log(filterEndDate)
+      // console.log(filterInitialDate)
+      // console.log(filterEndDate)
       query.where('assist_punch_time_origin', '>=', filterInitialDate)
       query.where('assist_punch_time_origin', '<', filterEndDate)
     }
@@ -467,9 +467,9 @@ export default class SyncAssistsService {
     query.orderBy('assist_punch_time_origin', 'desc')
    
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
-    // console.log(query.toSQL())
-    // console.log('registros encontrados:' + assistList.length)
-   /*  for await (const iterator of assistList) {
+    /*  console.log(query.toSQL())
+     console.log('registros encontrados:' + assistList.length) */
+    /*  for await (const iterator of assistList) {
       console.log(iterator)
     } */
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
@@ -501,7 +501,6 @@ export default class SyncAssistsService {
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeOrigin}`, {
         setZone: true,
       }).setZone('America/Mexico_city')
-      // console.log(assistDate)
       const existDay = assistDayCollection.find(
         (itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd')
       )
@@ -552,15 +551,14 @@ export default class SyncAssistsService {
         })
       }
     })
-
+    const endDate = timeEndCST.minus({ days: 1 }).plus({ hours: 23 , minutes: 59})
     const employeeCalendar = await this.getEmployeeCalendar(
       timeCST,
-      timeEndCST,
+      endDate,
       assistDayCollection,
       employeeShifts,
       params.employeeID
     )
-
     return {
       status: 200,
       type: 'success',
