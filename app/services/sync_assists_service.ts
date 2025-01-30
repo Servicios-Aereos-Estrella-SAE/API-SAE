@@ -430,7 +430,7 @@ export default class SyncAssistsService {
 
     const stringEndDate = `${params.dateEnd}T23:59:59.000-06:00`
     const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
-    const timeEndCST = timeEnd.setZone('America/Mexico_City')
+    const timeEndCST = timeEnd.setZone('America/Mexico_City').plus({ days: 1 })
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
     const query = Assist.query()
 
@@ -440,7 +440,7 @@ export default class SyncAssistsService {
 
     if (params.dateEnd && params.date) {
       query.where('assist_punch_time_origin', '>=', filterInitialDate)
-      query.where('assist_punch_time_origin', '<=', filterEndDate)
+      query.where('assist_punch_time_origin', '<', filterEndDate)
     }
 
     if (params.employeeID) {
@@ -458,15 +458,15 @@ export default class SyncAssistsService {
           data: null,
         }
       }
-
       query.where('assist_emp_code', employee.employeeCode)
     }
 
     query.orderBy('assist_punch_time_origin', 'desc')
+   
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
-
+    const endDate = timeEndCST.minus({ days: 1 })
     const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(
       {
         dateStart: intialSyncDate,
@@ -493,11 +493,9 @@ export default class SyncAssistsService {
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeOrigin}`, {
         setZone: true,
       }).setZone('America/Mexico_city')
-
       const existDay = assistDayCollection.find(
         (itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd')
       )
-
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
         assistListFlat.forEach((dayItem: AssistInterface, index) => {
@@ -546,12 +544,11 @@ export default class SyncAssistsService {
 
     const employeeCalendar = await this.getEmployeeCalendar(
       timeCST,
-      timeEndCST,
+      endDate,
       assistDayCollection,
       employeeShifts,
       params.employeeID
     )
-
     return {
       status: 200,
       type: 'success',
