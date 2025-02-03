@@ -2597,16 +2597,46 @@ export default class EmployeeController {
    *       - Employees
    *     summary: Generate an Excel report of employees
    *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
    *       - in: query
    *         name: departmentId
    *         schema:
    *           type: integer
    *         description: ID of the department to filter
    *       - in: query
+   *         name: positionId
+   *         schema:
+   *           type: integer
+   *         description: ID of the position to filter
+   *       - in: query
    *         name: employeeId
    *         schema:
    *           type: integer
    *         description: ID of the employee to filter
+   *       - name: workSchedule
+   *         in: query
+   *         required: false
+   *         description: Employee work schedule
+   *         schema:
+   *           type: string
+   *       - name: onlyInactive
+   *         in: query
+   *         required: false
+   *         description: Include only inactive
+   *         default: false
+   *         schema:
+   *           type: boolean
+   *       - name: employeeTypeId
+   *         in: query
+   *         required: false
+   *         description: Employee Type Id
+   *         schema:
+   *           type: integer
    *       - in: query
    *         name: startDate
    *         schema:
@@ -2635,20 +2665,57 @@ export default class EmployeeController {
         .where('business_unit_active', 1)
         .whereIn('business_unit_slug', businessList)
       const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-      const filterDepartmentId = request.qs().departmentId
-      const filterEmployeeId = request.qs().employeeId
+      const search = request.qs().search
+      const departmentId = request.qs().departmentId
+      const positionId = request.qs().positionId
+      const employeeId = request.qs().employeeId
       const filterStartDate = request.qs().startDate
       const filterEndDate = request.qs().endDate
+      const employeeTypeId = request.qs().employeeTypeId
+      const workSchedule = request.qs().workSchedule
+      const onlyInactive = request.qs().onlyInactive
 
-      let query = Employee.query().whereNull('employee_deleted_at')
-
-      if (filterDepartmentId) {
-        query = query.where('departmentId', filterDepartmentId)
-      }
-
-      if (filterEmployeeId) {
-        query = query.where('employeeId', filterEmployeeId)
-      }
+      let queryEmployees = Employee.query()
+        .if(search, (query) => {
+          query.where((subQuery) => {
+            subQuery
+              .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+                `%${search.toUpperCase()}%`,
+              ])
+              .orWhereRaw('UPPER(employee_code) = ?', [`${search.toUpperCase()}`])
+              .orWhereHas('person', (personQuery) => {
+                personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [`%${search.toUpperCase()}%`])
+                personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [`%${search.toUpperCase()}%`])
+                personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                  `%${search.toUpperCase()}%`,
+                ])
+              })
+          })
+        })
+        .if(workSchedule, (query) => {
+          query.where((subQuery) => {
+            subQuery.whereRaw('UPPER(employee_work_schedule) LIKE ?', [
+              `%${workSchedule.toUpperCase()}%`,
+            ])
+          })
+        })
+        .if(employeeId, (query) => {
+          query.where('employee_id', employeeId)
+        })
+        .if(departmentId, (query) => {
+          query.where('department_id', departmentId)
+        })
+        .if(departmentId && positionId, (query) => {
+          query.where('department_id', departmentId)
+          query.where('position_id', positionId)
+        })
+        .if(onlyInactive && (onlyInactive === 'true' || onlyInactive === true), (query) => {
+          query.whereNotNull('employee_deleted_at')
+          query.withTrashed()
+        })
+        .if(employeeTypeId, (query) => {
+          query.where('employee_type_id', employeeTypeId ? employeeTypeId : 0)
+        })
 
       if (filterStartDate && filterEndDate) {
         const startDate = DateTime.fromISO(filterStartDate)
@@ -2657,11 +2724,13 @@ export default class EmployeeController {
         const endDateSQL = endDate?.toSQLDate()
 
         if (startDateSQL && endDateSQL) {
-          query = query.whereBetween('employeeHireDate', [startDateSQL, endDateSQL])
+          queryEmployees = queryEmployees.whereBetween('employeeHireDate', [
+            startDateSQL,
+            endDateSQL,
+          ])
         }
       }
-
-      const employees = await query
+      const employees = await queryEmployees
         .whereIn('businessUnitId', businessUnitsList)
         .preload('department')
         .preload('position')
