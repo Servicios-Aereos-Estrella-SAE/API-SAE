@@ -3,7 +3,6 @@ import ReservationLeg from '#models/reservation_leg'
 import ReservationLegService from '#services/reservation_leg_service'
 import { createReservationLegValidator } from '#validators/reservation_leg'
 import Airport from '#models/airport'
-import { DateTime } from 'luxon'
 import Reservation from '#models/reservation'
 import db from '@adonisjs/lucid/services/db'
 
