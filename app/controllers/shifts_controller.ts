@@ -2,6 +2,8 @@ import { HttpContext } from '@adonisjs/core/http'
 import Shift from '../models/shift.js'
 import { createShiftValidator, updateShiftValidator } from '../validators/shift.js'
 import { DateTime } from 'luxon'
+import env from '#start/env'
+import ShiftService from '#services/shift_service'
 /**
  * @swagger
  * /api/shift:
@@ -60,12 +62,22 @@ export default class ShiftController {
   async store({ request, response }: HttpContext) {
     try {
       const data = await request.validateUsing(createShiftValidator)
-      const shift = await Shift.create(data)
+      const shiftService = new ShiftService()
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const shift = {
+        shiftName: data.shiftName,
+        shiftDayStart: data.shiftDayStart,
+        shiftTimeStart: data.shiftTimeStart,
+        shiftActiveHours: data.shiftActiveHours,
+        shiftRestDays: data.shiftRestDays,
+        shiftBusinessUnits: businessConf,
+      } as Shift
+      const newShift = await shiftService.create(shift)
       return response.status(201).json({
         type: 'success',
         title: 'Successfully action',
         message: 'Resource created',
-        data: shift.toJSON(),
+        data: newShift.toJSON(),
       })
     } catch (error) {
       return response.status(400).json({
@@ -134,7 +146,6 @@ export default class ShiftController {
         page = 1,
         limit = 10,
       } = request.qs()
-
       const query = Shift.query()
         .whereNull('shiftDeletedAt')
         .withCount('employees', (employeeQuery) => {
@@ -214,24 +225,33 @@ export default class ShiftController {
   }
   async index({ request, response }: HttpContext) {
     try {
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
       const { shiftDayStart, shiftName, shiftActiveHours, page = 1, limit = 10 } = request.qs()
 
-      const query = Shift.query().whereNull('shiftDeletedAt')
-
+      const shiftQuery = Shift.query()
+        .whereNull('shiftDeletedAt')
+        .andWhere((query) => {
+          query.whereNotNull('shift_business_units')
+          query.andWhere((subQuery) => {
+            businessList.forEach((business) => {
+              subQuery.orWhereRaw('FIND_IN_SET(?, shift_business_units)', [business.trim()])
+            })
+          })
+        })
       if (shiftDayStart) {
-        query.where('shiftDayStart', shiftDayStart)
+        shiftQuery.where('shiftDayStart', shiftDayStart)
       }
 
       if (shiftName) {
-        query.where('shiftName', 'LIKE', `%${shiftName}%`)
+        shiftQuery.where('shiftName', 'LIKE', `%${shiftName}%`)
       }
 
       if (shiftActiveHours) {
-        query.where('shiftActiveHours', shiftActiveHours)
+        shiftQuery.where('shiftActiveHours', shiftActiveHours)
       }
 
-      const shifts = await query.orderBy('shiftName', 'asc').paginate(page, limit)
-
+      const shifts = await shiftQuery.orderBy('shiftName', 'asc').paginate(page, limit)
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',

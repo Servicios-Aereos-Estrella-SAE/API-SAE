@@ -7,6 +7,7 @@ interface EmployeeFilterSearchInterface {
   employeeWorkSchedule: string
   employeeTypeId?: number
   ignoreDiscriminated?: number
+  ignoreExternal?: number
   onlyInactive?: boolean | string
 }
 
