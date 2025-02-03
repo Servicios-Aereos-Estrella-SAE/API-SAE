@@ -209,7 +209,6 @@ export default class ReservationController {
         }
       }
       await request.validateUsing(createReservationValidator)
-
       const reservationData = {
         reservationId,
         customerId: request.input('customerId'),

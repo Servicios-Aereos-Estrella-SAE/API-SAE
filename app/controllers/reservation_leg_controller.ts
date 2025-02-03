@@ -151,22 +151,31 @@ export default class ReservationLegController {
     try {
       const reservationLegId = params.reservationLegId
       const data = await request.validateUsing(createReservationLegValidator)
+      let reservationLegDepartureDate = request.input('reservationLegDepartureDate')
+      reservationLegDepartureDate = (
+        reservationLegDepartureDate.split('T')[0] + ' 00:000:00'
+      ).replace('"', '')
+      let reservationLegArriveDate = request.input('reservationLegArriveDate')
+      reservationLegArriveDate = (reservationLegArriveDate.split('T')[0] + ' 00:000:00').replace(
+        '"',
+        ''
+      )
+      const reservationLegDepartureTime = request.input('reservationLegDepartureTime')
+      const reservationLegArriveTime = request.input('reservationLegArriveTime')
       const requestData = request.only([
         'airportDepartureId',
         'airportDestinationId',
         'reservationId',
-        'reservationLegFromLocation',
-        'reservationLegToLocation',
-        'reservationLegDepartureDate',
-        'reservationLegDepartureTime',
-        'reservationLegArriveDate',
-        'reservationLegArriveTime',
         'reservationLegPax',
         'reservationLegTravelTime',
         'reservationLegDistanceMn',
       ])
       const reservationLegData = {
         ...requestData,
+        reservationLegDepartureDate,
+        reservationLegDepartureTime,
+        reservationLegArriveDate,
+        reservationLegArriveTime,
       } as ReservationLeg
 
       const reservationLegService = new ReservationLegService()
