@@ -1,11 +1,12 @@
 import { DateTime } from 'luxon'
-import { BaseModel, belongsTo, column, manyToMany } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column, manyToMany, hasMany } from '@adonisjs/lucid/orm'
 import Airport from './airport.js'
 import * as relations from '@adonisjs/lucid/types/relations'
 import AircraftProperty from './aircraft_property.js'
-import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, ManyToMany, HasMany } from '@adonisjs/lucid/types/relations'
 import Pilot from './pilot.js'
 import AircraftOperator from './aircraft_operator.js'
+import Reservation from './reservation.js'
 
 export default class Aircraft extends BaseModel {
   static table = 'aircrafts'
@@ -61,4 +62,9 @@ export default class Aircraft extends BaseModel {
 
   @column.dateTime()
   aircraftDeletedAt!: DateTime | null
+
+  @hasMany(() => Reservation, {
+    foreignKey: 'aircraftId',
+  })
+  declare reservations: HasMany<typeof Reservation>
 }

@@ -3,6 +3,9 @@ import ReservationLeg from '#models/reservation_leg'
 import ReservationLegService from '#services/reservation_leg_service'
 import { createReservationLegValidator } from '#validators/reservation_leg'
 import Airport from '#models/airport'
+import { DateTime } from 'luxon'
+import Reservation from '#models/reservation'
+import db from '@adonisjs/lucid/services/db'
 
 export default class ReservationLegController {
   /**
@@ -109,6 +112,70 @@ export default class ReservationLegController {
     // }
   }
 
+  async validateLegDates({ request, response }: HttpContext) {
+    let reservationLegDepartureDate = request.input('reservationLegDepartureDate')
+    reservationLegDepartureDate = reservationLegDepartureDate.split('T')[0].replace('"', '')
+    let reservationLegArriveDate = request.input('reservationLegArriveDate')
+    reservationLegArriveDate = reservationLegArriveDate.split('T')[0].replace('"', '')
+    const resservationLegDepartureTime = request.input('reservationLegDepartureTime')
+    const reservationLegArriveTime = request.input('reservationLegArriveTime')
+    const newDeparture = `${reservationLegDepartureDate} ${resservationLegDepartureTime}`
+    const newArrival = `${reservationLegArriveDate} ${reservationLegArriveTime}`
+    const reservationId = request.input('reservationId')
+    const aircraftId = request.input('aircraftId')
+    const overlapping = await ReservationLeg.query()
+      .join('reservations', 'reservations.reservation_id', 'reservation_legs.reservation_id')
+      // if reservationLegId is provided, exclude it from the query
+      .where('reservations.aircraft_id', aircraftId)
+      .whereNull('reservation_leg_deleted_at')
+      .whereNull('reservation_deleted_at')
+      .whereNot('reservation_legs.reservation_id', reservationId)
+      .select('reservation_legs.reservation_id')
+      // Usamos RAW para combinar la fecha y hora: TIMESTAMP(fecha, hora)
+      // MIN y MAX devuelven el más temprano y el más tardío
+      .select(
+        db.raw(
+          'MIN(TIMESTAMP(reservation_leg_departure_date, reservation_leg_departure_time)) as earliest_departure'
+        )
+      )
+      .select(
+        db.raw(
+          'MAX(TIMESTAMP(reservation_leg_arrive_date, reservation_leg_arrive_time)) as latest_arrival'
+        )
+      )
+      .groupBy('reservation_id')
+      // Ahora filtramos aquellas reservas cuyo rango se traslapa con (newDep, newArr).
+      // Con agregaciones (MIN, MAX) se debe usar HAVING, no WHERE.
+      .havingRaw(
+        'MIN(TIMESTAMP(reservation_leg_departure_date, reservation_leg_departure_time)) <= ?',
+        [newArrival]
+      )
+      .havingRaw('MAX(TIMESTAMP(reservation_leg_arrive_date, reservation_leg_arrive_time)) >= ?', [
+        newDeparture,
+      ])
+
+    const reservation = await Reservation.query()
+      .whereIn(
+        'reservation_id',
+        overlapping.map((r) => r.reservationId)
+      )
+      .preload('customer', (queryCustomer) => {
+        queryCustomer.preload('person')
+      })
+      .first()
+    response.status(200)
+    return {
+      type: !reservation ? 'success' : 'warning',
+      title: !reservation
+        ? 'Reservation Leg is validate successfully'
+        : 'Reservation Leg is not validate',
+      message: !reservation
+        ? 'Reservation Leg is validate successfully'
+        : 'Reservation Leg is not validate',
+      data: { reservation },
+    }
+  }
+
   /**
    * @swagger
    * /api/reservation-legs/{reservationLegId}:
@@ -157,16 +224,25 @@ export default class ReservationLegController {
         'reservationId',
         'reservationLegFromLocation',
         'reservationLegToLocation',
-        'reservationLegDepartureDate',
         'reservationLegDepartureTime',
-        'reservationLegArriveDate',
         'reservationLegArriveTime',
         'reservationLegPax',
         'reservationLegTravelTime',
         'reservationLegDistanceMn',
       ])
+      let reservationLegDepartureDate = request.input('reservationLegDepartureDate')
+      reservationLegDepartureDate = (
+        reservationLegDepartureDate.split('T')[0] + ' 00:000:00'
+      ).replace('"', '')
+      let reservationLegArriveDate = request.input('reservationLegArriveDate')
+      reservationLegArriveDate = (reservationLegArriveDate.split('T')[0] + ' 00:000:00').replace(
+        '"',
+        ''
+      )
       const reservationLegData = {
         ...requestData,
+        reservationLegDepartureDate,
+        reservationLegArriveDate,
       } as ReservationLeg
 
       const reservationLegService = new ReservationLegService()
