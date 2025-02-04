@@ -130,6 +130,9 @@ export default class ReservationService {
       .preload('reservationLegs', (queryLegs) => {
         queryLegs.preload('airportDeparture')
         queryLegs.preload('airportDestination')
+        queryLegs
+          .orderBy('reservationLegDepartureDate', 'asc')
+          .orderBy('reservationLegDepartureTime', 'asc')
       })
       .preload('reservationNotes')
       // .preload('customer') // si requieres

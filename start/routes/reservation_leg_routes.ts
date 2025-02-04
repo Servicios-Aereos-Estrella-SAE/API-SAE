@@ -15,6 +15,7 @@ router
      * DELETE /api/reservations/:reservationId
      */
     router.delete('/:reservationLegId', '#controllers/reservation_leg_controller.delete')
+    router.post('/validate', '#controllers/reservation_leg_controller.validateLegDates')
   })
   .prefix('/api/reservation-legs')
   .use(middleware.auth())
