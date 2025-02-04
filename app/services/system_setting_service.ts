@@ -45,6 +45,7 @@ export default class SystemSettingService {
     newSystemSetting.systemSettingBanner = systemSetting.systemSettingBanner
     newSystemSetting.systemSettingFavicon = systemSetting.systemSettingFavicon
     newSystemSetting.systemSettingActive = systemSetting.systemSettingActive
+    newSystemSetting.systemSettingBusinessUnits = systemSetting.systemSettingBusinessUnits
     await newSystemSetting.save()
     return newSystemSetting
   }
@@ -125,11 +126,18 @@ export default class SystemSettingService {
   }
 
   async verifyActiveStore(systemSetting: SystemSetting) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
     const action = systemSetting.systemSettingId > 0 ? 'updated' : 'created'
     if (systemSetting.systemSettingActive) {
       const activeItem = await SystemSetting.query()
         .where('system_setting_active', 1)
         .whereNull('system_setting_deleted_at')
+        .andWhere((query) => {
+          businessList.forEach((business) => {
+            query.orWhereRaw('FIND_IN_SET(?, system_setting_business_units)', [business.trim()])
+          })
+        })
         .first()
       if (activeItem) {
         return {
@@ -151,12 +159,19 @@ export default class SystemSettingService {
   }
 
   async verifyActiveUpdate(systemSetting: SystemSetting, currentSystemSetting: SystemSetting) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
     const action = systemSetting.systemSettingId > 0 ? 'updated' : 'created'
     if (systemSetting.systemSettingId > 0) {
       if (systemSetting.systemSettingActive && !currentSystemSetting.systemSettingActive) {
         const activeItem = await SystemSetting.query()
           .where('system_setting_active', 1)
           .whereNull('system_setting_deleted_at')
+          .andWhere((query) => {
+            businessList.forEach((business) => {
+              query.orWhereRaw('FIND_IN_SET(?, system_setting_business_units)', [business.trim()])
+            })
+          })
           .first()
         if (activeItem && activeItem.systemSettingId !== currentSystemSetting.systemSettingId) {
           return {

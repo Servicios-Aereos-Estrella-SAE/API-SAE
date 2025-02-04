@@ -300,15 +300,38 @@ export default class AircraftsController {
    *       404:
    *         description: "Aircraft not found"
    */
-  async show({ params, response }: HttpContext) {
+  async show({ params, response, request }: HttpContext) {
     try {
-      const aircraft = await Aircraft.query()
+      const date = request.input('date')
+      const aircraftQuery = Aircraft.query()
         .where('aircraftId', params.id)
         .preload('pilots', (pilotsQuery) => {
           pilotsQuery.pivotColumns(['aircraft_pilot_role'])
         })
+        .preload('aircraftProperty', (aircraftPropertyQuery) => {
+          aircraftPropertyQuery.preload('aircraftClass')
+        })
         .whereNull('aircraftDeletedAt')
-        .firstOrFail()
+      if (date) {
+        const { startOfMonth, endOfMonth } = this.getDateMonthRangeFromDateString(date)
+        aircraftQuery.preload('reservations', (reservationsQuery) => {
+          reservationsQuery.preload('reservationLegs', (reservationLegsQuery) => {
+            reservationLegsQuery
+              .whereBetween('reservationLegDepartureDate', [startOfMonth, endOfMonth])
+              .orWhereBetween('reservationLegArriveDate', [startOfMonth, endOfMonth])
+            reservationLegsQuery.preload('airportDeparture')
+            reservationLegsQuery.preload('airportDestination')
+          })
+          reservationsQuery.whereHas('reservationLegs', (reservationLegsQuery) => {
+            reservationLegsQuery
+              .whereBetween('reservationLegDepartureDate', [startOfMonth, endOfMonth])
+              .orWhereBetween('reservationLegArriveDate', [startOfMonth, endOfMonth])
+          })
+        })
+        // aplicar filtro de fecha
+      }
+      const aircraft = await aircraftQuery.firstOrFail()
+
       return response
         .status(200)
         .json(
@@ -319,6 +342,13 @@ export default class AircraftsController {
         .status(404)
         .json(formatResponse('error', 'Not Found', 'Resource not found', 'NO DATA'))
     }
+  }
+
+  getDateMonthRangeFromDateString(date: string): { startOfMonth: string; endOfMonth: string } {
+    const dateObj = DateTime.fromISO(date)
+    const startOfMonth = dateObj.startOf('month').toISODate() ?? ''
+    const endOfMonth = dateObj.endOf('month').toISODate() ?? ''
+    return { startOfMonth, endOfMonth }
   }
   /**
    * @swagger

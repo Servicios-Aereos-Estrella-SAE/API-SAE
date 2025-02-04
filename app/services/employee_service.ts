@@ -131,6 +131,9 @@ export default class EmployeeService {
       .if(filters.ignoreDiscriminated === 1, (query) => {
         query.where('employeeAssistDiscriminator', 0)
       })
+      .if(filters.ignoreExternal === 1, (query) => {
+        query.where('employee_type_of_contract', 'Internal')
+      })
       .if(
         filters.onlyInactive && (filters.onlyInactive === 'true' || filters.onlyInactive === true),
         (query) => {

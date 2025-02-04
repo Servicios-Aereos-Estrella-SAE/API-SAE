@@ -392,6 +392,8 @@ export default class SystemSettingController {
         )
         systemSetting.systemSettingFavicon = fileUrl
       }
+      const businessConf = `${Env.get('SYSTEM_BUSINESS')}`
+      systemSetting.systemSettingBusinessUnits = businessConf
       const newSystemSetting = await systemSettingService.create(systemSetting)
       response.status(201)
       return {
