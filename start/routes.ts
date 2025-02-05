@@ -61,6 +61,9 @@ import './routes/work_disability_note_routes.js'
 import './routes/reservations_routes.js'
 import './routes/reservation_leg_routes.js'
 import './routes/reservation_note_routes.js'
+import './routes/address_type_routes.js'
+import './routes/address_routes.js'
+import './routes/employee_address_routes.js'
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
   return view.render('swagger', { specUrl })
