@@ -49,6 +49,11 @@ export default class PersonService {
     newPerson.personCurp = person.personCurp
     newPerson.personRfc = person.personRfc
     newPerson.personImssNss = person.personImssNss
+    newPerson.personPhoneSecondary = person.personPhoneSecondary
+    newPerson.personMaritalStatus = person.personMaritalStatus
+    newPerson.personPlaceOfBirthCountry = person.personPlaceOfBirthCountry
+    newPerson.personPlaceOfBirthState = person.personPlaceOfBirthState
+    newPerson.personPlaceOfBirthCity = person.personPlaceOfBirthCity
     await newPerson.save()
     return newPerson
   }
@@ -63,6 +68,11 @@ export default class PersonService {
     currentPerson.personCurp = person.personCurp
     currentPerson.personRfc = person.personRfc
     currentPerson.personImssNss = person.personImssNss
+    currentPerson.personPhoneSecondary = person.personPhoneSecondary
+    currentPerson.personMaritalStatus = person.personMaritalStatus
+    currentPerson.personPlaceOfBirthCountry = person.personPlaceOfBirthCountry
+    currentPerson.personPlaceOfBirthState = person.personPlaceOfBirthState
+    currentPerson.personPlaceOfBirthCity = person.personPlaceOfBirthCity
     await currentPerson.save()
     return currentPerson
   }
@@ -167,5 +177,22 @@ export default class PersonService {
       message: 'Info verifiy successfully',
       data: { ...person },
     }
+  }
+
+  async getPlacesOfBirth(search: string, field: 'countries' | 'states' | 'cities') {
+    const fieldMap: { [key in 'countries' | 'states' | 'cities']: string } = {
+      countries: 'person_place_of_birth_country',
+      states: 'person_place_of_birth_state',
+      cities: 'person_place_of_birth_city',
+    }
+    const column = fieldMap[field]
+    if (!column) return []
+    const persons = await Person.query()
+      .distinct(column)
+      .orWhereRaw('UPPER(??) LIKE ?', [column, `%${search.toUpperCase()}%`])
+      .withTrashed()
+      .orderBy(column)
+
+    return persons
   }
 }
