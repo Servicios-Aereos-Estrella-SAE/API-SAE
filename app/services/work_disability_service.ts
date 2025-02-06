@@ -33,7 +33,11 @@ export default class WorkDisabilityService {
       .preload('insuranceCoverageType')
       .preload('employee')
       .preload('workDisabilityPeriods')
-      .preload('workDisabilityNotes')
+      .preload('workDisabilityNotes', (query) => {
+        query.preload('user', (userQuery) => {
+          userQuery.preload('person')
+        })
+      })
       .first()
     return workDisability ? workDisability : null
   }
