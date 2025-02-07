@@ -2,7 +2,7 @@ import vine from '@vinejs/vine'
 
 export const createAddressValidator = vine.compile(
   vine.object({
-    addressZipcode: vine.string().trim().minLength(1).maxLength(10),
+    addressZipcode: vine.number(),
     addressCountry: vine.string().trim().minLength(1).maxLength(50),
     addressState: vine.string().trim().minLength(1).maxLength(50),
     addressTownship: vine.string().trim().minLength(1).maxLength(50),
@@ -20,7 +20,7 @@ export const createAddressValidator = vine.compile(
 
 export const updateAddressValidator = vine.compile(
   vine.object({
-    addressZipcode: vine.string().trim().minLength(1).maxLength(10),
+    addressZipcode: vine.number(),
     addressCountry: vine.string().trim().minLength(1).maxLength(50),
     addressState: vine.string().trim().minLength(1).maxLength(50),
     addressTownship: vine.string().trim().minLength(1).maxLength(50),

@@ -35,29 +35,32 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
  *            description: Settlement address
  *          addressSettlementType:
  *            type: string
- *            description: Settlement Type address
+ *            description: Settlement type address
  *          addressStreet:
  *            type: string
  *            description: Street address
  *          addressInternalNumber:
  *            type: string
- *            description: Interna lNumber address
+ *            description: Interna number address
  *          addressExternalNumber:
  *            type: string
- *            description: External Number address
+ *            description: ExternalnNumber address
  *          addressBetweenStreet1:
  *            type: string
- *            description: Between Street 1 address
+ *            description: Between street 1 address
  *          addressBetweenStreet2:
  *            type: string
- *            description: Between Street 2 address
- *          addressTypecreatedAt:
+ *            description: Between street 2 address
+ *          addressTypeId:
+ *            type: number
+ *            description: Address type id
+ *          addresscreatedAt:
  *            type: string
  *            description: Date of creation
- *          addressTypeUpdatedAt:
+ *          addressUpdatedAt:
  *            type: string
  *            description: Date of last update
- *          addressTypeDeletedAt:
+ *          addressDeletedAt:
  *            type: string
  *            description: Date of logic delete
  *
@@ -106,10 +109,10 @@ export default class Address extends compose(BaseModel, SoftDeletes) {
   declare addressTypeId: number
 
   @column.dateTime({ autoCreate: true })
-  declare addressTypeCreatedAt: DateTime | null
+  declare addressCreatedAt: DateTime | null
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare addressTypeUpdatedAt: DateTime | null
+  declare addressUpdatedAt: DateTime | null
 
   @column.dateTime({ columnName: 'address_deleted_at' })
   declare deletedAt: DateTime | null

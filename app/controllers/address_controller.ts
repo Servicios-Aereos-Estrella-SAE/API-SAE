@@ -475,9 +475,9 @@ export default class AddressController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Persons',
-          message: 'The person was updated successfully',
-          data: { person: updateAddress },
+          title: 'Address',
+          message: 'The address was updated successfully',
+          data: { address: updateAddress },
         }
       }
     } catch (error) {
@@ -489,6 +489,135 @@ export default class AddressController {
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/address-get-places:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Persons
+   *     summary: get all
+   *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: field
+   *         in: query
+   *         required: true
+   *         description: Field
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getPlaces({ request, response }: HttpContext) {
+    try {
+      const search = request.input('search')
+      const field = request.input('field')
+      const addressService = new AddressService()
+      const places = await addressService.getPlaces(search, field)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Address',
+        message: 'The address places were found successfully',
+        data: {
+          places,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
       }
     }
   }

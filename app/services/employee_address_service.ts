@@ -8,6 +8,7 @@ export default class EmployeeAddressService {
     newEmployeeAddress.employeeId = employeeAddress.employeeId
     newEmployeeAddress.addressId = employeeAddress.addressId
     await newEmployeeAddress.save()
+    await newEmployeeAddress.load('address')
     return newEmployeeAddress
   }
 

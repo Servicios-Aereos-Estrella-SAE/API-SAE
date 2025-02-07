@@ -8,3 +8,9 @@ router
   })
   .prefix('/api/address')
   .use(middleware.auth())
+router
+  .group(() => {
+    router.get('/', '#controllers/address_controller.getPlaces')
+  })
+  .prefix('/api/address-get-places')
+  .use(middleware.auth())

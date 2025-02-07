@@ -602,7 +602,7 @@ export default class EmployeeAddressController {
   }
   /**
    * @swagger
-   * /api/employees-address/{employeeAddressId}:
+   * /api/employee-address/{employeeAddressId}:
    *   get:
    *     security:
    *       - bearerAuth: []

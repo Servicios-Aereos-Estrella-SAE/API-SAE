@@ -35,7 +35,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
  */
 export default class AddressType extends compose(BaseModel, SoftDeletes) {
   @column({ isPrimary: true })
-  declare addressId: number
+  declare addressTypeId: number
 
   @column()
   declare addressTypeName: string

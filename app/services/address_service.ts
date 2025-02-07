@@ -64,4 +64,21 @@ export default class AddressService {
       data: { ...address },
     }
   }
+
+  async getPlaces(search: string, field: 'countries' | 'states' | 'cities') {
+    const fieldMap: { [key in 'countries' | 'states' | 'cities']: string } = {
+      countries: 'address_country',
+      states: 'address_state',
+      cities: 'address_city',
+    }
+    const column = fieldMap[field]
+    if (!column) return []
+    const address = await Address.query()
+      .distinct(column)
+      .orWhereRaw('UPPER(??) LIKE ?', [column, `%${search.toUpperCase()}%`])
+      .withTrashed()
+      .orderBy(column)
+
+    return address
+  }
 }
