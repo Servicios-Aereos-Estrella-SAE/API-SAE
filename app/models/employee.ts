@@ -9,6 +9,7 @@ import Person from './person.js'
 import ShiftException from './shift_exception.js'
 import BusinessUnit from './business_unit.js'
 import EmployeeType from './employee_type.js'
+import EmployeeAddress from './employee_address.js'
 
 /**
  * @swagger
@@ -194,4 +195,13 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare shift_exceptions: HasMany<typeof ShiftException>
+
+  @hasMany(() => EmployeeAddress, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('employee_address_deleted_at')
+      query.preload('address')
+    },
+  })
+  declare address: HasMany<typeof EmployeeAddress>
 }
