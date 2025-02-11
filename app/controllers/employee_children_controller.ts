@@ -502,7 +502,7 @@ export default class EmployeeChildrenController {
         }
       }
       const currentEmployeeChildren = await EmployeeChildren.query()
-        .whereNull('emoloyee_children_deleted_at')
+        .whereNull('employee_children_deleted_at')
         .where('employee_children_id', employeeChildrenId)
         .first()
       if (!currentEmployeeChildren) {

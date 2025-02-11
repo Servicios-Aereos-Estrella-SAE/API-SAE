@@ -11,6 +11,7 @@ import BusinessUnit from './business_unit.js'
 import EmployeeType from './employee_type.js'
 import EmployeeAddress from './employee_address.js'
 import EmployeeSpouse from './employee_spouse.js'
+import EmployeeChildren from './employee_children.js'
 
 /**
  * @swagger
@@ -213,4 +214,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare spouse: HasOne<typeof EmployeeSpouse>
+
+  @hasMany(() => EmployeeChildren, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('employee_children_deleted_at')
+    },
+  })
+  declare children: HasMany<typeof EmployeeChildren>
 }

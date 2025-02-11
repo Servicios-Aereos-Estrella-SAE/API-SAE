@@ -230,6 +230,7 @@ export default class EmployeeService {
       .preload('person')
       .preload('businessUnit')
       .preload('spouse')
+      .preload('children')
       .withTrashed()
       .first()
     return employee ? employee : null
