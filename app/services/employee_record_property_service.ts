@@ -30,7 +30,7 @@ export default class EmployeeRecordPropertyService {
       [key: string]: {
         name: string
         type: string
-        value: string
+        value: string | number
         employeeRecordPropertyId: number
         employeeRecordId: number | null
         files: []
@@ -47,22 +47,30 @@ export default class EmployeeRecordPropertyService {
       if (!categories[employeeRecordPropertyCategoryName]) {
         categories[employeeRecordPropertyCategoryName] = []
       }
-
+      const numericTypes = ['Number', 'Decimal', 'Currency']
       const employeeRecordProperty = await EmployeeRecordProperty.query()
         .where('employeeRecordPropertyCategoryName', employeeRecordPropertyCategoryName)
         .where('employeeRecordPropertyName', employeeRecordPropertyName)
         .where('employeeRecordPropertyType', employeeRecordPropertyType)
         .first()
-      let value = ''
+      let value = '' as string | number
+      if (numericTypes.includes(employeeRecordPropertyType)) {
+        value = 0
+      }
       let employeeRecordId = null
       if (employeeRecordProperty) {
         const employeeRecord = await EmployeeRecord.query()
           .whereNull('employee_record_deleted_at')
           .where('employeeId', employeeId)
           .where('employeeRecordPropertyId', employeeRecordProperty.employeeRecordPropertyId)
+          .where('employeeRecordActive', 1)
           .first()
         if (employeeRecord) {
-          value = employeeRecord.employeeRecordValue
+          value = numericTypes.includes(employeeRecordPropertyType)
+            ? employeeRecord.employeeRecordValue
+              ? Number.parseFloat(employeeRecord.employeeRecordValue)
+              : 0
+            : employeeRecord.employeeRecordValue
           employeeRecordId = employeeRecord.employeeRecordId
         }
         categories[employeeRecordPropertyCategoryName].push({
