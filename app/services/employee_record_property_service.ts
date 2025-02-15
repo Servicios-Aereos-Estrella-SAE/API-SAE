@@ -1,6 +1,7 @@
 import EmployeeRecord from '#models/employee_record'
 import EmployeeRecordProperty from '#models/employee_record_property'
 import { EmployeeRecordPropertyFilterSearchInterface } from '../interfaces/employee_record_property_filter_search_interface.js'
+import { EmployeeRecordValueInterface } from '../interfaces/employee_record_value_interface.js'
 
 export default class EmployeeRecordPropertyService {
   async index(filters: EmployeeRecordPropertyFilterSearchInterface) {
@@ -30,9 +31,8 @@ export default class EmployeeRecordPropertyService {
       [key: string]: {
         name: string
         type: string
-        value: string | number
+        values: EmployeeRecordValueInterface[]
         employeeRecordPropertyId: number
-        employeeRecordId: number | null
         files: []
       }[]
     } = {}
@@ -53,32 +53,32 @@ export default class EmployeeRecordPropertyService {
         .where('employeeRecordPropertyName', employeeRecordPropertyName)
         .where('employeeRecordPropertyType', employeeRecordPropertyType)
         .first()
-      let value = '' as string | number
-      if (numericTypes.includes(employeeRecordPropertyType)) {
-        value = 0
-      }
-      let employeeRecordId = null
+      const values = [] as Array<EmployeeRecordValueInterface>
       if (employeeRecordProperty) {
-        const employeeRecord = await EmployeeRecord.query()
+        const employeeRecords = await EmployeeRecord.query()
           .whereNull('employee_record_deleted_at')
           .where('employeeId', employeeId)
           .where('employeeRecordPropertyId', employeeRecordProperty.employeeRecordPropertyId)
           .where('employeeRecordActive', 1)
-          .first()
-        if (employeeRecord) {
-          value = numericTypes.includes(employeeRecordPropertyType)
-            ? employeeRecord.employeeRecordValue
-              ? Number.parseFloat(employeeRecord.employeeRecordValue)
-              : 0
-            : employeeRecord.employeeRecordValue
-          employeeRecordId = employeeRecord.employeeRecordId
+          .orderBy('employeeRecordPropertyId')
+        if (employeeRecords) {
+          for await (const employeeRecord of employeeRecords) {
+            const newValue = {
+              employeeRecordValue: numericTypes.includes(employeeRecordPropertyType)
+                ? employeeRecord.employeeRecordValue
+                  ? Number.parseFloat(employeeRecord.employeeRecordValue)
+                  : 0
+                : employeeRecord.employeeRecordValue,
+              employeeRecordId: employeeRecord.employeeRecordId,
+            }
+            values.push(newValue)
+          }
         }
         categories[employeeRecordPropertyCategoryName].push({
           name: employeeRecordPropertyName,
           type: employeeRecordPropertyType,
-          value: value,
+          values: values,
           employeeRecordPropertyId: employeeRecordProperty.employeeRecordPropertyId,
-          employeeRecordId: employeeRecordId,
           files: [],
         })
       }
