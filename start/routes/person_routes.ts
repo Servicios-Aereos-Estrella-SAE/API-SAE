@@ -10,9 +10,16 @@ router
     router.get('/:personId', '#controllers/person_controller.show')
   })
   .prefix('/api/persons')
+  .use(middleware.auth())
 router
   .group(() => {
     router.get('/:personId', '#controllers/person_controller.getEmployee')
   })
   .prefix('/api/person-get-employee')
+  .use(middleware.auth())
+router
+  .group(() => {
+    router.get('/', '#controllers/person_controller.getPlacesOfBirth')
+  })
+  .prefix('/api/persons-get-places-of-birth')
   .use(middleware.auth())
