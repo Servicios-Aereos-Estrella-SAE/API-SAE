@@ -33,7 +33,6 @@ export default class EmployeeRecordPropertyService {
         type: string
         values: EmployeeRecordValueInterface[]
         employeeRecordPropertyId: number
-        files: []
       }[]
     } = {}
 
@@ -70,6 +69,7 @@ export default class EmployeeRecordPropertyService {
                   : 0
                 : employeeRecord.employeeRecordValue,
               employeeRecordId: employeeRecord.employeeRecordId,
+              files: [],
             }
             values.push(newValue)
           }
@@ -79,7 +79,6 @@ export default class EmployeeRecordPropertyService {
           type: employeeRecordPropertyType,
           values: values,
           employeeRecordPropertyId: employeeRecordProperty.employeeRecordPropertyId,
-          files: [],
         })
       }
     }

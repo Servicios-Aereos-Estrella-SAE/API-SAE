@@ -435,7 +435,7 @@ export default class EmployeeRecordController {
    *         description: Employee record id
    *         required: true
    *     responses:
-   *       '201':
+   *       '200':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -543,7 +543,7 @@ export default class EmployeeRecordController {
       const employeeRecordService = new EmployeeRecordService()
       const deleteEmployeeRecord = await employeeRecordService.delete(currentEmployeeRecord)
       if (deleteEmployeeRecord) {
-        response.status(201)
+        response.status(200)
         return {
           type: 'success',
           title: 'Employee Records',
