@@ -23,6 +23,8 @@ import env from '#start/env'
 import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
 import { AssistIncidentPayrollExcelRowInterface } from '../interfaces/assist_incident_payroll_excel_row_interface.js'
+import sharp from 'sharp'
+import { AssistExcelImageInterface } from '../interfaces/assist_excel_image_interface.js'
 
 export default class AssistsService {
   async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
@@ -54,17 +56,13 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageLogo = await this.getLogo()
-      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
-      const imageBuffer = imageResponse.data
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: 'png',
-      })
-      worksheet.addImage(imageId, {
-        tl: { col: 0.28, row: 0.7 },
-        ext: { width: 139, height: 49 },
-      })
+      const assistExcelImageInterface = {
+        workbook: workbook,
+        worksheet: worksheet,
+        col: 0.28,
+        row: 0.7,
+      } as AssistExcelImageInterface
+      await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
@@ -222,17 +220,13 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageLogo = await this.getLogo()
-      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
-      const imageBuffer = imageResponse.data
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: 'png',
-      })
-      worksheet.addImage(imageId, {
-        tl: { col: 0.28, row: 0.7 },
-        ext: { width: 139, height: 49 },
-      })
+      const assistExcelImageInterface = {
+        workbook: workbook,
+        worksheet: worksheet,
+        col: 0.28,
+        row: 0.7,
+      } as AssistExcelImageInterface
+      await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
@@ -378,17 +372,13 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageLogo = await this.getLogo()
-      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
-      const imageBuffer = imageResponse.data
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: 'png',
-      })
-      worksheet.addImage(imageId, {
-        tl: { col: 0.28, row: 0.7 },
-        ext: { width: 139, height: 49 },
-      })
+      const assistExcelImageInterface = {
+        workbook: workbook,
+        worksheet: worksheet,
+        col: 0.28,
+        row: 0.7,
+      } as AssistExcelImageInterface
+      await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
@@ -607,17 +597,13 @@ export default class AssistsService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
-      const imageLogo = await this.getLogo()
-      const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
-      const imageBuffer = imageResponse.data
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: 'png',
-      })
-      worksheet.addImage(imageId, {
-        tl: { col: 0.28, row: 0.7 },
-        ext: { width: 139, height: 49 },
-      })
+      const assistExcelImageInterface = {
+        workbook: workbook,
+        worksheet: worksheet,
+        col: 0.28,
+        row: 0.7,
+      } as AssistExcelImageInterface
+      await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
       const titleRow = worksheet.addRow(['Assistance Report'])
@@ -1564,18 +1550,13 @@ export default class AssistsService {
     worksheet: ExcelJS.Worksheet,
     title: string
   ) {
-    const imageLogo = await this.getLogo()
-    const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
-    const imageBuffer = imageResponse.data
-    const imageId = workbook.addImage({
-      buffer: imageBuffer,
-      extension: 'png',
-    })
-    // Agregar la imagen y centrarla en la celda
-    worksheet.addImage(imageId, {
-      tl: { col: 0.28, row: 0.7 },
-      ext: { width: 139, height: 49 }, // Tamaño de la imagen
-    })
+    const assistExcelImageInterface = {
+      workbook: workbook,
+      worksheet: worksheet,
+      col: 0.28,
+      row: 0.7,
+    } as AssistExcelImageInterface
+    await this.addImageLogo(assistExcelImageInterface)
     worksheet.getRow(1).height = 60
     const fgColor = '000000'
     worksheet.getCell('B1').value = title
@@ -1966,19 +1947,15 @@ export default class AssistsService {
     worksheet: ExcelJS.Worksheet,
     title: string
   ) {
-    const imageLogo = await this.getLogo()
-    const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
-    const imageBuffer = imageResponse.data
-    const imageId = workbook.addImage({
-      buffer: imageBuffer,
-      extension: 'png',
-    })
     worksheet.addRow([title])
     worksheet.addRow(['', '', '', title])
-    worksheet.addImage(imageId, {
-      tl: { col: 14.2, row: 1.2 },
-      ext: { width: 160, height: 65 },
-    })
+    const assistExcelImageInterface = {
+      workbook: workbook,
+      worksheet: worksheet,
+      col: 14.2,
+      row: 1.2,
+    } as AssistExcelImageInterface
+    await this.addImageLogo(assistExcelImageInterface)
     worksheet.getRow(2).height = 45
     const fgColor = 'FFFFFF'
 
@@ -2364,5 +2341,39 @@ export default class AssistsService {
         }
       }
     }
+  }
+
+  async addImageLogo(assistExcelImageInterface: AssistExcelImageInterface) {
+    const imageLogo = await this.getLogo()
+    const imageResponse = await axios.get(imageLogo, { responseType: 'arraybuffer' })
+    const imageBuffer = imageResponse.data
+
+    const metadata = await sharp(imageBuffer).metadata()
+    const imageWidth = metadata.width ? metadata.width : 0
+    const imageHeight = metadata.height ? metadata.height : 0
+
+    const targetWidth = 139
+    const targetHeight = 49
+
+    const scale = Math.min(targetWidth / imageWidth, targetHeight / imageHeight)
+
+    let adjustedWidth = imageWidth * scale
+    let adjustedHeight = imageHeight * scale
+
+    if (assistExcelImageInterface.col === 14.2) {
+      const increaseFactor = 1.3
+      adjustedWidth *= increaseFactor
+      adjustedHeight *= increaseFactor
+    }
+
+    const imageId = assistExcelImageInterface.workbook.addImage({
+      buffer: imageBuffer,
+      extension: 'png',
+    })
+
+    assistExcelImageInterface.worksheet.addImage(imageId, {
+      tl: { col: assistExcelImageInterface.col, row: assistExcelImageInterface.row },
+      ext: { width: adjustedWidth, height: adjustedHeight },
+    })
   }
 }
