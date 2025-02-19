@@ -900,15 +900,18 @@ export default class SyncAssistsService {
     return diff < 0
   }
 
-  private isSundayBonus(checkAssist: AssistDayInterface) {
+  private async isSundayBonus(checkAssist: AssistDayInterface) {
     const currentDate = DateTime.fromISO(`${checkAssist.day}T00:00:00.000-06:00`, { setZone: true }).setZone('America/Mexico_City')
     const naturalDay = currentDate.toFormat('c')
     checkAssist.assist.isSundayBonus = Number.parseInt(`${naturalDay}`) === 7 && ( !!checkAssist?.assist?.checkIn || !!checkAssist?.assist?.checkOut )
 
-    if (!checkAssist.assist.isSundayBonus && checkAssist?.assist?.checkOut) {
-      const checkOutDate = DateTime.fromISO(`${checkAssist?.assist?.checkOut?.assistPunchTime}`, { setZone: true }).setZone('America/Mexico_City')
-      const checkOutNaturalDay = checkOutDate.toFormat('c')
-      checkAssist.assist.isSundayBonus = Number.parseInt(`${checkOutNaturalDay}`) === 7
+    if (!checkAssist.assist.isSundayBonus && checkAssist?.assist?.assitFlatList) {
+      for await (const assistFlat of checkAssist?.assist?.assitFlatList) {
+        const checkOutDate = DateTime.fromISO(`${assistFlat.assistPunchTime}`, { setZone: true }).setZone('America/Mexico_City')
+        const checkOutNaturalDay = checkOutDate.toFormat('c')
+        checkAssist.assist.isSundayBonus = Number.parseInt(`${checkOutNaturalDay}`) === 7
+        break
+      }
     }
 
     return checkAssist
