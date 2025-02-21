@@ -1346,6 +1346,7 @@ export default class AssistsService {
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
+        let laborRestCounted = false
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
             if (exception.exceptionType) {
@@ -1354,7 +1355,13 @@ export default class AssistsService {
                 exceptions.push(exception)
               }
               if (exceptionTypeSlug === 'descanso-laborado') {
-                restWorked += 1
+                if (
+                  exception.shiftExceptionEnjoymentOfSalary &&
+                  exception.shiftExceptionEnjoymentOfSalary === 1
+                ) {
+                  restWorked += 1
+                  laborRestCounted = true
+                }
               }
             }
           }
@@ -1394,6 +1401,9 @@ export default class AssistsService {
         }
         if (calendar.assist.isHoliday && calendar.assist.checkIn) {
           holidaysWorked += 1
+          if (!laborRestCounted) {
+            restWorked += 1
+          }
         }
       }
     }
@@ -1843,6 +1853,7 @@ export default class AssistsService {
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
+        let laborRestCounted = false
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
             if (exception.exceptionType) {
@@ -1851,7 +1862,13 @@ export default class AssistsService {
                 exceptions.push(exception)
               }
               if (exceptionTypeSlug === 'descanso-laborado') {
-                restWorked += 1
+                if (
+                  exception.shiftExceptionEnjoymentOfSalary &&
+                  exception.shiftExceptionEnjoymentOfSalary === 1
+                ) {
+                  restWorked += 1
+                  laborRestCounted = true
+                }
               }
             }
           }
@@ -1891,6 +1908,9 @@ export default class AssistsService {
         }
         if (calendar.assist.isHoliday && calendar.assist.checkIn) {
           holidaysWorked += 1
+          if (!laborRestCounted) {
+            restWorked += 1
+          }
         }
       }
     }
@@ -2126,13 +2146,13 @@ export default class AssistsService {
     let overtimeDouble = 0
     let vacations = 0
     let holidaysWorked = 0
-    let restWorked = 0
     let faults = 0
     let delayFaults = 0
     let earlyOutsFaults = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
+        let laborRestCounted = false
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
             if (exception.exceptionType) {
@@ -2141,16 +2161,16 @@ export default class AssistsService {
                 exceptions.push(exception)
               }
               if (exceptionTypeSlug === 'descanso-laborado') {
-                restWorked += 1
                 if (
                   exception.shiftExceptionEnjoymentOfSalary &&
                   exception.shiftExceptionEnjoymentOfSalary === 1
                 ) {
                   laborRest += 1
+                  laborRestCounted = true
                 }
               } else if (
                 exceptionTypeSlug === 'working-during-non-working-hours' &&
-                exception.shiftExceptionEnjoymentOfSalary
+                exception.shiftExceptionEnjoymentOfSalary === 1
               ) {
                 if (exception.shiftExceptionCheckInTime && exception.shiftExceptionCheckOutTime) {
                   const checkIn = DateTime.fromFormat(
@@ -2203,12 +2223,14 @@ export default class AssistsService {
         }
         if (calendar.assist.isHoliday && calendar.assist.checkIn) {
           holidaysWorked += 1
+          if (!laborRestCounted) {
+            laborRest += 1
+          }
         }
       }
     }
     delayFaults = this.getFaultsFromDelays(delays, tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
-    faults = faults + delayFaults + earlyOutsFaults
     let company = ''
     if (employee.businessUnitId) {
       const businessUnit = await BusinessUnit.query()
@@ -2225,7 +2247,7 @@ export default class AssistsService {
       department: department,
       company: company,
       faults: faults,
-      delays: delays,
+      delays: delayFaults + earlyOutsFaults,
       inc: '',
       overtimeDouble: overtimeDouble,
       overtimeTriple: '',

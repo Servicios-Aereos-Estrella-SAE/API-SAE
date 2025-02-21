@@ -729,14 +729,14 @@ export default class SyncAssistsService {
       }
 
       if (checkAssist.assist.exceptions.length > 0) {
-        const absentException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+        const absentException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
 
         if (absentException) {
           checkAssistCopy.assist.checkInStatus = ''
           return checkAssistCopy
         }
 
-        const changeShiftException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'change-shift')
+        const changeShiftException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'change-shift')
 
         if (changeShiftException) {
           checkAssistCopy.assist.checkInStatus = ''
@@ -768,7 +768,7 @@ export default class SyncAssistsService {
       }
 
       if (checkAssist.assist.exceptions.length > 0) {
-        const vacationException = checkAssist.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation')
+        const vacationException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
 
         if (vacationException) {
           checkAssistCopy.assist.checkInStatus = ''
@@ -1032,16 +1032,23 @@ export default class SyncAssistsService {
     })
 
     if (employee.shift_exceptions.length > 0) {
-      const restException = employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day')
-      const exWrongSystem = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'error-de-horario-en-sistema')
-      const exNewWorker = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'nuevo-ingreso')
-      const exIncapacity = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
-      const exMaternity = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'incapacidad-por-maternidad')
-      const exAbsentWork = !!employee.shift_exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
-
+      const restException = employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'rest-day')
+      const exWrongSystem = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'error-de-horario-en-sistema')
+      const exNewWorker = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'nuevo-ingreso')
+      const exIncapacity = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
+      const exMaternity = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'incapacidad-por-maternidad')
+      const exAbsentWork = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+      
       if (exWrongSystem || exNewWorker || exIncapacity || exMaternity || exAbsentWork) {
         checkAssistCopy.assist.checkInStatus = 'exception'
         checkAssistCopy.assist.checkOutStatus = 'exception'
+      }
+      const exAbsentWorkWithOutSalary = employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary === 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+      if (exAbsentWorkWithOutSalary) {
+        checkAssistCopy.assist.checkIn = null
+        checkAssistCopy.assist.checkEatIn = null
+        checkAssistCopy.assist.checkOut = null
+        checkAssistCopy.assist.checkEatOut = null
       }
 
       if (restException) {
@@ -1093,7 +1100,7 @@ export default class SyncAssistsService {
 
     if (employee.shift_exceptions.length > 0) {
       const absentException = employee.shift_exceptions.find(
-        (ex) => ex.exceptionType?.exceptionTypeSlug === 'vacation'
+        (ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation'
       )
 
       if (absentException) {
@@ -1150,7 +1157,7 @@ export default class SyncAssistsService {
 
     if (employee.shift_exceptions.length > 0) {
       const absentException = employee.shift_exceptions.find(
-        (ex) => ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad'
+        (ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad'
       )
 
       if (absentException) {
@@ -1217,8 +1224,7 @@ export default class SyncAssistsService {
     dateAssistItem.assist.isFutureDay = calendarDayStatus.isNextDay
 
     if (dateAssistItem.assist.exceptions.length > 0) {
-      const workRestDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado')
-
+      const workRestDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'descanso-laborado')
       if (workRestDay) {
         isStartWorkday = true
         isRestWorkday = false
@@ -1228,7 +1234,7 @@ export default class SyncAssistsService {
         }
       }
 
-      const coverShiftDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'cover-shift')
+      const coverShiftDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'cover-shift')
 
       if (coverShiftDay) {
         isStartWorkday = true
