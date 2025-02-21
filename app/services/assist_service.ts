@@ -1357,7 +1357,8 @@ export default class AssistsService {
               if (exceptionTypeSlug === 'descanso-laborado') {
                 if (
                   exception.shiftExceptionEnjoymentOfSalary &&
-                  exception.shiftExceptionEnjoymentOfSalary === 1
+                  exception.shiftExceptionEnjoymentOfSalary === 1 &&
+                  calendar.assist.checkIn
                 ) {
                   restWorked += 1
                   laborRestCounted = true
@@ -1864,7 +1865,8 @@ export default class AssistsService {
               if (exceptionTypeSlug === 'descanso-laborado') {
                 if (
                   exception.shiftExceptionEnjoymentOfSalary &&
-                  exception.shiftExceptionEnjoymentOfSalary === 1
+                  exception.shiftExceptionEnjoymentOfSalary === 1 &&
+                  calendar.assist.checkIn
                 ) {
                   restWorked += 1
                   laborRestCounted = true
@@ -2163,7 +2165,8 @@ export default class AssistsService {
               if (exceptionTypeSlug === 'descanso-laborado') {
                 if (
                   exception.shiftExceptionEnjoymentOfSalary &&
-                  exception.shiftExceptionEnjoymentOfSalary === 1
+                  exception.shiftExceptionEnjoymentOfSalary === 1 &&
+                  calendar.assist.checkIn
                 ) {
                   laborRest += 1
                   laborRestCounted = true
