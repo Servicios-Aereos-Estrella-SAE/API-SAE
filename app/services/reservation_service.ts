@@ -142,7 +142,10 @@ export default class ReservationService {
       .preload('pilotPic')
       .preload('pilotSic')
       .preload('flightAttendant')
-      .preload('aircraft')
+      .preload('aircraft', (aircraftQuery) => {
+        aircraftQuery.preload('aircraftOperator')
+        aircraftQuery.preload('aircraftProperty')
+      })
       .preload('reservationLegs', (queryLegs) => {
         queryLegs.preload('airportDeparture')
         queryLegs.preload('airportDestination')

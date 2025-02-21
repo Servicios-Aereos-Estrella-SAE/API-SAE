@@ -101,6 +101,7 @@ export default class AircraftsController {
       .preload('aircraftProperty', (aircraftPropertyQuery) => {
         aircraftPropertyQuery.preload('aircraftClass')
       })
+      .preload('aircraftOperator')
       .whereNull('aircraftDeletedAt')
     if (searchText) {
       query.where((builder) => {
