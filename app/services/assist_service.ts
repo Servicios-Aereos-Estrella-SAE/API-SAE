@@ -27,7 +27,10 @@ import sharp from 'sharp'
 import { AssistExcelImageInterface } from '../interfaces/assist_excel_image_interface.js'
 
 export default class AssistsService {
-  async getExcelByEmployee(employee: Employee, filters: AssistEmployeeExcelFilterInterface) {
+  async getExcelByEmployeeAssistance(
+    employee: Employee,
+    filters: AssistEmployeeExcelFilterInterface
+  ) {
     try {
       const employeeId = filters.employeeId
       const filterDate = filters.filterDate
@@ -53,7 +56,6 @@ export default class AssistsService {
           rows.push(row)
         }
       }
-      // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       let worksheet = workbook.addWorksheet('Assistance Report')
       const assistExcelImageInterface = {
@@ -95,13 +97,60 @@ export default class AssistsService {
         { state: 'frozen', ySplit: 3 }, // Fija la tercer fila
         { state: 'frozen', ySplit: 4 }, // Fija la cuarta fila
       ]
-      // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
       const status = employee.deletedAt ? 'Terminated' : 'Active'
       await this.addRowToWorkSheet(rows, worksheet, status)
-      // hasta aquí era lo de asistencia
+      const buffer = await workbook.xlsx.writeBuffer()
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Excel was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getExcelByEmployeeIncidentSummary(
+    employee: Employee,
+    filters: AssistEmployeeExcelFilterInterface
+  ) {
+    try {
+      const employeeId = filters.employeeId
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const page = 1
+      const limit = 999999999999999
+      const syncAssistsService = new SyncAssistsService()
+      const result = await syncAssistsService.index(
+        {
+          date: filterDate,
+          dateEnd: filterDateEnd,
+          employeeID: employeeId,
+        },
+        { page, limit }
+      )
+      const data: any = result.data
+      const rows = [] as AssistExcelRowInterface[]
+      if (data) {
+        const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+        let newRows = [] as AssistExcelRowInterface[]
+        newRows = await this.addRowCalendar(employee, employeeCalendar)
+        for await (const row of newRows) {
+          rows.push(row)
+        }
+      }
+      const workbook = new ExcelJS.Workbook()
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      worksheet = workbook.addWorksheet('Incident Summary')
+      const worksheet = workbook.addWorksheet('Incident Summary')
       const title = `Summary Report ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
@@ -136,13 +185,73 @@ export default class AssistsService {
       if (employee.deletedAt) {
         await this.paintEmployeeTerminated(worksheet, 'C', 4)
       }
-      // hasta aquí era lo de incidencias
+      const buffer = await workbook.xlsx.writeBuffer()
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Excel was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getExcelByEmployeeIncidentSummaryPayroll(
+    employee: Employee,
+    filters: AssistEmployeeExcelFilterInterface
+  ) {
+    try {
+      const employeeId = filters.employeeId
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const page = 1
+      const limit = 999999999999999
+      const syncAssistsService = new SyncAssistsService()
+      const result = await syncAssistsService.index(
+        {
+          date: filterDate,
+          dateEnd: filterDateEnd,
+          employeeID: employeeId,
+        },
+        { page, limit }
+      )
+      const data: any = result.data
+      const rows = [] as AssistExcelRowInterface[]
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
+      if (data) {
+        const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+        let newRows = [] as AssistExcelRowInterface[]
+        newRows = await this.addRowCalendar(employee, employeeCalendar)
+        for await (const row of newRows) {
+          rows.push(row)
+        }
+      }
+      const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
-      worksheet = workbook.addWorksheet('Incident Summary Payroll')
+      const worksheet = workbook.addWorksheet('Incident Summary Payroll')
       const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       await this.addHeadRowIncidentPayroll(worksheet)
+
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
@@ -153,7 +262,6 @@ export default class AssistsService {
       }
       await this.addRowIncidentPayrollToWorkSheet(rowsIncidentPayroll, worksheet)
       await this.paintBorderAll(worksheet, rowsIncidentPayroll.length)
-      // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
         status: 201,
@@ -322,7 +430,7 @@ export default class AssistsService {
     }
   }
 
-  async getExcelByDepartment(filters: AssistDepartmentExcelFilterInterface) {
+  async getExcelByDepartmentAssistance(filters: AssistDepartmentExcelFilterInterface) {
     try {
       const departmentId = filters.departmentId
       const filterDate = filters.filterDate
@@ -414,9 +522,76 @@ export default class AssistsService {
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
       await this.addRowToWorkSheet(rows, worksheet)
-      // hasta aquí era lo de asistencia
+      const buffer = await workbook.xlsx.writeBuffer()
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Excel was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getExcelByDepartmentIncidentSummary(filters: AssistDepartmentExcelFilterInterface) {
+    try {
+      const departmentId = filters.departmentId
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const page = 1
+      const limit = 999999999999999
+      const departmentService = new DepartmentService()
+      const resultPositions = await departmentService.getPositions(departmentId)
+      const syncAssistsService = new SyncAssistsService()
+      const rows = [] as AssistExcelRowInterface[]
+      for await (const position of resultPositions) {
+        const employeeService = new EmployeeService()
+        const resultEmployes = await employeeService.index(
+          {
+            search: '',
+            departmentId: departmentId,
+            positionId: position.positionId,
+            employeeWorkSchedule: '',
+            page: page,
+            limit: limit,
+            ignoreDiscriminated: 0,
+            ignoreExternal: 1,
+          },
+          [departmentId]
+        )
+        const dataEmployes: any = resultEmployes
+        for await (const employee of dataEmployes) {
+          const result = await syncAssistsService.index(
+            {
+              date: filterDate,
+              dateEnd: filterDateEnd,
+              employeeID: employee.employeeId,
+            },
+            { page, limit }
+          )
+          const data: any = result.data
+          if (data) {
+            const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+            let newRows = [] as AssistExcelRowInterface[]
+            newRows = await this.addRowCalendar(employee, employeeCalendar)
+            for await (const row of newRows) {
+              rows.push(row)
+            }
+          }
+        }
+      }
+      // Crear un nuevo libro de Excel
+      const workbook = new ExcelJS.Workbook()
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      worksheet = workbook.addWorksheet('Incident Summary')
+      const worksheet = workbook.addWorksheet('Incident Summary')
       const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
@@ -476,13 +651,90 @@ export default class AssistsService {
       await rowsIncident.push(totalRowByDepartmentIncident)
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
-      // hasta aquí era lo de incidencias
+      const buffer = await workbook.xlsx.writeBuffer()
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Excel was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getExcelByDepartmentIncidentSummaryPayRoll(filters: AssistDepartmentExcelFilterInterface) {
+    try {
+      const departmentId = filters.departmentId
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const page = 1
+      const limit = 999999999999999
+      const departmentService = new DepartmentService()
+      const resultPositions = await departmentService.getPositions(departmentId)
+      const syncAssistsService = new SyncAssistsService()
+      const rows = [] as AssistExcelRowInterface[]
+      for await (const position of resultPositions) {
+        const employeeService = new EmployeeService()
+        const resultEmployes = await employeeService.index(
+          {
+            search: '',
+            departmentId: departmentId,
+            positionId: position.positionId,
+            employeeWorkSchedule: '',
+            page: page,
+            limit: limit,
+            ignoreDiscriminated: 0,
+            ignoreExternal: 1,
+          },
+          [departmentId]
+        )
+        const dataEmployes: any = resultEmployes
+        for await (const employee of dataEmployes) {
+          const result = await syncAssistsService.index(
+            {
+              date: filterDate,
+              dateEnd: filterDateEnd,
+              employeeID: employee.employeeId,
+            },
+            { page, limit }
+          )
+          const data: any = result.data
+          if (data) {
+            const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+            let newRows = [] as AssistExcelRowInterface[]
+            newRows = await this.addRowCalendar(employee, employeeCalendar)
+            for await (const row of newRows) {
+              rows.push(row)
+            }
+          }
+        }
+      }
+      const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
-      worksheet = workbook.addWorksheet('Incident Summary Payroll')
+      const worksheet = workbook.addWorksheet('Incident Summary Payroll')
       const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       this.addHeadRowIncidentPayroll(worksheet)
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
       for await (const position of resultPositions) {
         const employeeService = new EmployeeService()
         const resultEmployes = await employeeService.index(
@@ -541,7 +793,7 @@ export default class AssistsService {
     }
   }
 
-  async getExcelAll(filters: AssistExcelFilterInterface, departmentsList: Array<number>) {
+  async getExcelAllAssistance(filters: AssistExcelFilterInterface, departmentsList: Array<number>) {
     try {
       const departments = await Department.query()
         .whereNull('department_deleted_at')
@@ -639,9 +891,86 @@ export default class AssistsService {
       // Añadir columnas de datos (encabezados)
       this.addHeadRow(worksheet)
       await this.addRowToWorkSheet(rows, worksheet)
+      const buffer = await workbook.xlsx.writeBuffer()
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Excel was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getExcelAllIncidentSummary(
+    filters: AssistExcelFilterInterface,
+    departmentsList: Array<number>
+  ) {
+    try {
+      const departments = await Department.query()
+        .whereNull('department_deleted_at')
+        .whereIn('departmentId', departmentsList)
+        .orderBy('departmentId')
+      const rows = [] as AssistExcelRowInterface[]
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const departmentService = new DepartmentService()
+      const employeeService = new EmployeeService()
+      for await (const departmentRow of departments) {
+        const departmentId = departmentRow.departmentId
+        const page = 1
+        const limit = 999999999999999
+        const resultPositions = await departmentService.getPositions(departmentId)
+        const syncAssistsService = new SyncAssistsService()
+        for await (const position of resultPositions) {
+          const resultEmployes = await employeeService.index(
+            {
+              search: '',
+              departmentId: departmentId,
+              positionId: position.positionId,
+              page: page,
+              limit: limit,
+              employeeWorkSchedule: '',
+              ignoreDiscriminated: 0,
+              ignoreExternal: 1,
+            },
+            [departmentId]
+          )
+          const dataEmployes: any = resultEmployes
+          for await (const employee of dataEmployes) {
+            const result = await syncAssistsService.index(
+              {
+                date: filterDate,
+                dateEnd: filterDateEnd,
+                employeeID: employee.employeeId,
+              },
+              { page, limit }
+            )
+            const data: any = result.data
+            if (data) {
+              const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+              let newRows = [] as AssistExcelRowInterface[]
+              newRows = await this.addRowCalendar(employee, employeeCalendar)
+              for await (const row of newRows) {
+                rows.push(row)
+              }
+            }
+          }
+        }
+      }
+      // Crear un nuevo libro de Excel
+      const workbook = new ExcelJS.Workbook()
       // hasta aquí era lo de asistencia
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      worksheet = workbook.addWorksheet('Incident Summary')
+      const worksheet = workbook.addWorksheet('Incident Summary')
       const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
@@ -707,10 +1036,98 @@ export default class AssistsService {
       }
       await rowsIncident.push(totalRowIncident)
       await this.addRowIncidentToWorkSheet(rowsIncident, worksheet)
+      const buffer = await workbook.xlsx.writeBuffer()
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Excel was created successfully',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  async getExcelAllIncidentSummaryPayRoll(
+    filters: AssistExcelFilterInterface,
+    departmentsList: Array<number>
+  ) {
+    try {
+      const departments = await Department.query()
+        .whereNull('department_deleted_at')
+        .whereIn('departmentId', departmentsList)
+        .orderBy('departmentId')
+      const rows = [] as AssistExcelRowInterface[]
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const departmentService = new DepartmentService()
+      const employeeService = new EmployeeService()
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .first()
+      let tardies = 0
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+      if (tardies === 0) {
+        tardies = 3
+      }
+      for await (const departmentRow of departments) {
+        const departmentId = departmentRow.departmentId
+        const page = 1
+        const limit = 999999999999999
+        const resultPositions = await departmentService.getPositions(departmentId)
+        const syncAssistsService = new SyncAssistsService()
+        for await (const position of resultPositions) {
+          const resultEmployes = await employeeService.index(
+            {
+              search: '',
+              departmentId: departmentId,
+              positionId: position.positionId,
+              page: page,
+              limit: limit,
+              employeeWorkSchedule: '',
+              ignoreDiscriminated: 0,
+              ignoreExternal: 1,
+            },
+            [departmentId]
+          )
+          const dataEmployes: any = resultEmployes
+          for await (const employee of dataEmployes) {
+            const result = await syncAssistsService.index(
+              {
+                date: filterDate,
+                dateEnd: filterDateEnd,
+                employeeID: employee.employeeId,
+              },
+              { page, limit }
+            )
+            const data: any = result.data
+            if (data) {
+              const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
+              let newRows = [] as AssistExcelRowInterface[]
+              newRows = await this.addRowCalendar(employee, employeeCalendar)
+              for await (const row of newRows) {
+                rows.push(row)
+              }
+            }
+          }
+        }
+      }
+      // Crear un nuevo libro de Excel
+      const workbook = new ExcelJS.Workbook()
       // hasta aquí era lo de incidencias
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
-      worksheet = workbook.addWorksheet('Incident Summary Payroll')
+      const worksheet = workbook.addWorksheet('Incident Summary Payroll')
       const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       this.addHeadRowIncidentPayroll(worksheet)
