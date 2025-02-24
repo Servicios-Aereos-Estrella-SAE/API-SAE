@@ -33,6 +33,9 @@ import Employee from './employee.js'
  *          personPhone:
  *            type: string
  *            description: Person phone
+ *          personPhoneSecundary:
+ *            type: string
+ *            description: Person phone secundary
  *          personCurp:
  *            type: string
  *            description: Person CURP unique
@@ -42,6 +45,18 @@ import Employee from './employee.js'
  *          personImssNss:
  *            type: string
  *            description: Person social security number
+ *          personMaritalStatus:
+ *            type: string
+ *            description: Person marital status
+ *          personPlaceOfBirthCountry:
+ *            type: string
+ *            description: Person place of birth country
+ *          personPlaceOfBirthState:
+ *            type: string
+ *            description: Person place of birth state
+ *          personPlaceOfCity:
+ *            type: string
+ *            description: Person place of birth city
  *          personCreatedAt:
  *            type: string
  *          personUpdatedAt:
@@ -74,6 +89,9 @@ export default class Person extends compose(BaseModel, SoftDeletes) {
   declare personPhone: string
 
   @column()
+  declare personPhoneSecondary: string
+
+  @column()
   declare personCurp: string
 
   @column()
@@ -81,6 +99,18 @@ export default class Person extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare personImssNss: string
+
+  @column()
+  declare personMaritalStatus: string
+
+  @column()
+  declare personPlaceOfBirthCountry: string
+
+  @column()
+  declare personPlaceOfBirthState: string
+
+  @column()
+  declare personPlaceOfBirthCity: string
 
   @column.dateTime({ autoCreate: true })
   declare personCreatedAt: DateTime

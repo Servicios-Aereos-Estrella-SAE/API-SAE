@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
-import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, belongsTo, column, hasMany, hasOne } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import Department from './department.js'
 import Position from './position.js'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
@@ -9,6 +9,9 @@ import Person from './person.js'
 import ShiftException from './shift_exception.js'
 import BusinessUnit from './business_unit.js'
 import EmployeeType from './employee_type.js'
+import EmployeeAddress from './employee_address.js'
+import EmployeeSpouse from './employee_spouse.js'
+import EmployeeChildren from './employee_children.js'
 
 /**
  * @swagger
@@ -194,4 +197,29 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare shift_exceptions: HasMany<typeof ShiftException>
+
+  @hasMany(() => EmployeeAddress, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('employee_address_deleted_at')
+      query.preload('address')
+    },
+  })
+  declare address: HasMany<typeof EmployeeAddress>
+
+  @hasOne(() => EmployeeSpouse, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('employee_spouse_deleted_at')
+    },
+  })
+  declare spouse: HasOne<typeof EmployeeSpouse>
+
+  @hasMany(() => EmployeeChildren, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('employee_children_deleted_at')
+    },
+  })
+  declare children: HasMany<typeof EmployeeChildren>
 }
