@@ -51,10 +51,26 @@ export default class ReservationService {
     query.preload('customer', (queryCustomer) => {
       queryCustomer.preload('person')
     })
-    query.preload('pilotPic')
-    query.preload('pilotSic')
-    query.preload('flightAttendant')
-    query.preload('aircraft')
+
+    query.preload('pilotPic', (queryPilot) => {
+      queryPilot.preload('employee', (queryEmp) => {
+        queryEmp.preload('person')
+      })
+    })
+    query.preload('pilotSic', (queryPilot) => {
+      queryPilot.preload('employee', (queryEmp) => {
+        queryEmp.preload('person')
+      })
+    })
+    query.preload('flightAttendant', (queryAttendant) => {
+      queryAttendant.preload('employee', (queryEmp) => {
+        queryEmp.preload('person')
+      })
+    })
+    query.preload('aircraft', (aircraftQuery) => {
+      aircraftQuery.preload('aircraftOperator')
+      aircraftQuery.preload('aircraftProperty')
+    })
     query.preload('reservationLegs', (queryLegs) => {
       queryLegs.preload('airportDeparture')
       queryLegs.preload('airportDestination')
@@ -126,7 +142,10 @@ export default class ReservationService {
       .preload('pilotPic')
       .preload('pilotSic')
       .preload('flightAttendant')
-      .preload('aircraft')
+      .preload('aircraft', (aircraftQuery) => {
+        aircraftQuery.preload('aircraftOperator')
+        aircraftQuery.preload('aircraftProperty')
+      })
       .preload('reservationLegs', (queryLegs) => {
         queryLegs.preload('airportDeparture')
         queryLegs.preload('airportDestination')
