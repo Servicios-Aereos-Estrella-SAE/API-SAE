@@ -2,7 +2,6 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
   protected tableName = 'reservation_legs'
-
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('reservation_leg_id').notNullable()

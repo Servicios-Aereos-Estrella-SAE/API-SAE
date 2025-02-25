@@ -37,7 +37,7 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           type: string
  *           description: Rest days for the shift (comma-separated values)
  *           nullable: false
- *          shiftBusinessUnits:
+ *         shiftBusinessUnits:
  *            type: string
  *            description: Available business Units
  *         shiftCreatedAt:
