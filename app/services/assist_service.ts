@@ -1343,9 +1343,9 @@ export default class AssistsService {
       setZone: true,
     })
     const timeDate = time.toFormat('yyyy-LL-dd')
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const dateYear = time.toFormat('yyyy')
+    const dateMonth = time.toFormat('LL')
+    const dateDay = time.toFormat('dd')
     const timeCST = time.setZone('America/Mexico_city')
     const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
@@ -1357,7 +1357,6 @@ export default class AssistsService {
       checkAssist.assist.checkOutStatus = ''
       return ''
     }
-
     return timeCheckOut.toFormat('MMM d, yyyy, h:mm:ss a')
   }
 
@@ -1803,7 +1802,9 @@ export default class AssistsService {
           }
           if (
             calendar.assist.isSundayBonus &&
-            (calendar.assist.checkIn || calendar.assist.checkOut)
+            (calendar.assist.checkIn ||
+              calendar.assist.checkOut ||
+              (calendar.assist.assitFlatList && calendar.assist.assitFlatList.length > 0))
           ) {
             sundayBonus += 1
           }
@@ -2311,7 +2312,9 @@ export default class AssistsService {
           }
           if (
             calendar.assist.isSundayBonus &&
-            (calendar.assist.checkIn || calendar.assist.checkOut)
+            (calendar.assist.checkIn ||
+              calendar.assist.checkOut ||
+              (calendar.assist.assitFlatList && calendar.assist.assitFlatList.length > 0))
           ) {
             sundayBonus += 1
           }
@@ -2627,7 +2630,9 @@ export default class AssistsService {
           }
           if (
             calendar.assist.isSundayBonus &&
-            (calendar.assist.checkIn || calendar.assist.checkOut)
+            (calendar.assist.checkIn ||
+              calendar.assist.checkOut ||
+              (calendar.assist.assitFlatList && calendar.assist.assitFlatList.length > 0))
           ) {
             sundayBonus += 1
           }
