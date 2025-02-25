@@ -94,6 +94,8 @@ export default class AircraftMaintenanceService {
       aircraftMaintenance.aircraftMaintenanceStatusId
     currentAircraftMaintenance.aircraftMaintenanceNotes =
       aircraftMaintenance.aircraftMaintenanceNotes
+    currentAircraftMaintenance.aircraftMaintenanceFinishDate =
+      aircraftMaintenance.aircraftMaintenanceFinishDate
     await currentAircraftMaintenance.save()
     return currentAircraftMaintenance
   }
@@ -191,10 +193,10 @@ export default class AircraftMaintenanceService {
     }
     let dateStartString = aircraftMaintenance.aircraftMaintenanceStartDate.toString()
     // replace time
-    dateStartString = dateStartString.split(' ')[0]
+    // dateStartString = dateStartString.split(' ')[0]
     let dateEndString = aircraftMaintenance.aircraftMaintenanceEndDate.toString()
     // replace time
-    dateEndString = dateEndString.split(' ')[0]
+    // dateEndString = dateEndString.split(' ')[0]
     // verify that not exist other maintenance in the same date
     const maintenance = await AircraftMaintenance.query()
       .where('aircraft_id', aircraftMaintenance.aircraftId)

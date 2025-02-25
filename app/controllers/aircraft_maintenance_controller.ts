@@ -135,12 +135,16 @@ export default class AircraftMaintenanceController {
     try {
       let aircraftMaintenanceStartDate = request.input('aircraftMaintenanceStartDate')
       aircraftMaintenanceStartDate = (
-        aircraftMaintenanceStartDate.split('T')[0] + ' 00:000:00'
+        aircraftMaintenanceStartDate.split('T')[0] +
+        ' ' +
+        aircraftMaintenanceStartDate.split('T')[1].split('.')[0]
       ).replace('"', '')
 
       let aircraftMaintenanceEndDate = request.input('aircraftMaintenanceEndDate')
       aircraftMaintenanceEndDate = (
-        aircraftMaintenanceEndDate.split('T')[0] + ' 00:000:00'
+        aircraftMaintenanceEndDate.split('T')[0] +
+        ' ' +
+        aircraftMaintenanceEndDate.split('T')[1].split('.')[0]
       ).replace('"', '')
       // Creamos el objeto parcial para la nueva reservación
       const aircraftMaintenanceData = {
@@ -259,12 +263,24 @@ export default class AircraftMaintenanceController {
       await request.validateUsing(createAircraftMaintenanceValidator)
       let aircraftMaintenanceStartDate = request.input('aircraftMaintenanceStartDate')
       aircraftMaintenanceStartDate = (
-        aircraftMaintenanceStartDate.split('T')[0] + ' 00:000:00'
+        aircraftMaintenanceStartDate.split('T')[0] +
+        ' ' +
+        aircraftMaintenanceStartDate.split('T')[1].split('.')[0]
       ).replace('"', '')
+      let aircraftMaintenanceFinishDate = request.input('aircraftMaintenanceFinishDate')
+      if (aircraftMaintenanceFinishDate) {
+        aircraftMaintenanceFinishDate = (
+          aircraftMaintenanceFinishDate.split('T')[0] +
+          ' ' +
+          aircraftMaintenanceFinishDate.split('T')[1].split('.')[0]
+        ).replace('"', '')
+      }
 
       let aircraftMaintenanceEndDate = request.input('aircraftMaintenanceEndDate')
       aircraftMaintenanceEndDate = (
-        aircraftMaintenanceEndDate.split('T')[0] + ' 00:000:00'
+        aircraftMaintenanceEndDate.split('T')[0] +
+        ' ' +
+        aircraftMaintenanceEndDate.split('T')[1].split('.')[0]
       ).replace('"', '')
       // Creamos el objeto parcial para la nueva reservación
       const aircraftMaintenanceData = {
@@ -272,6 +288,7 @@ export default class AircraftMaintenanceController {
         maintenanceTypeId: request.input('maintenanceTypeId'),
         aircraftMaintenanceStartDate,
         aircraftMaintenanceEndDate,
+        aircraftMaintenanceFinishDate,
         maintenanceUrgencyLevelId: request.input('maintenanceUrgencyLevelId'),
         aircraftMaintenanceStatusId: request.input('aircraftMaintenanceStatusId'),
         aircraftMaintenanceNotes: request.input('aircraftMaintenanceNotes'),

@@ -30,6 +30,9 @@ import AircraftMaintenanceStatus from './aircraft_maintenance_status.js'
  *         aircraftMaintenanceEndDate:
  *           type: date-time
  *           description: End date of the maintenance
+ *         aircraftMaintenanceFinishDate:
+ *           type: date-time
+ *           description: Finish date of the maintenance
  *         maintenanceUrgencyLevelId:
  *           type: number
  *           description: Urgency Level ID
@@ -64,6 +67,9 @@ export default class AircraftMaintenance extends compose(BaseModel, SoftDeletes)
 
   @column({ columnName: 'aircraft_maintenance_end_date' })
   declare aircraftMaintenanceEndDate: DateTime
+
+  @column({ columnName: 'aircraft_maintenance_finish_date' })
+  declare aircraftMaintenanceFinishDate: DateTime | null
 
   @column({ columnName: 'maintenance_urgency_level_id' })
   declare maintenanceUrgencyLevelId: number
