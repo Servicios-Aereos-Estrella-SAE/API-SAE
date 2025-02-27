@@ -66,7 +66,7 @@ export default class AssistsService {
       } as AssistExcelImageInterface
       await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
-      worksheet.mergeCells('A1:P1')
+      worksheet.mergeCells('A1:Q1')
       const titleRow = worksheet.addRow(['Assistance Report'])
       let color = '244062'
       let fgColor = 'FFFFFFF'
@@ -78,7 +78,7 @@ export default class AssistsService {
       titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
       titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:P2')
+      worksheet.mergeCells('A2:Q2')
       color = '366092'
       let periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
       periodRow.font = { size: 15, color: { argb: fgColor } }
@@ -90,7 +90,7 @@ export default class AssistsService {
       }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       periodRow.height = 30
-      worksheet.mergeCells('A3:P3')
+      worksheet.mergeCells('A3:Q3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
@@ -1229,12 +1229,12 @@ export default class AssistsService {
     } else if (value === 'EXCEPTION') {
       fgColor = '000000'
     }
-    worksheet.getCell('O' + row).fill = {
+    worksheet.getCell('P' + row).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: color }, // Color de fondo rojo
     }
-    worksheet.getCell('O' + row).font = {
+    worksheet.getCell('P' + row).font = {
       color: { argb: fgColor }, // Color de fondo rojo
     }
   }
@@ -1317,19 +1317,10 @@ export default class AssistsService {
     if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
       return ''
     }
-
-    const time = DateTime.fromISO(checkAssist.assist.checkIn.assistPunchTimeOrigin.toString(), {
-      setZone: true,
-    })
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const timeCST = time.setZone('America/Mexico_city')
-    const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
-    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
-    const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
+    const timeCheckIn = DateTime.fromISO(
+      checkAssist.assist.checkIn.assistPunchTimeOrigin.toString(),
+      { setZone: true }
+    ).setZone('America/Mexico_City')
     return timeCheckIn.toFormat('MMM d, yyyy, h:mm:ss a')
   }
 
@@ -1339,21 +1330,11 @@ export default class AssistsService {
     }
 
     const now = DateTime.now().toFormat('yyyy-LL-dd')
-    const time = DateTime.fromISO(checkAssist.assist.checkOut.assistPunchTimeOrigin.toString(), {
-      setZone: true,
-    })
-    const timeDate = time.toFormat('yyyy-LL-dd')
-    const dateYear = time.toFormat('yyyy')
-    const dateMonth = time.toFormat('LL')
-    const dateDay = time.toFormat('dd')
-    const timeCST = time.setZone('America/Mexico_city')
-    const checkTimeTime = timeCST.toFormat('yyyy-LL-dd TT').split(' ')[1]
-    const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime}.000-06:00`
-    const timeCheckOut = DateTime.fromISO(stringInDateString, { setZone: true }).setZone(
-      'America/Mexico_City'
-    )
-
-    if (timeDate === now) {
+    const timeCheckOut = DateTime.fromISO(
+      checkAssist.assist.checkOut.assistPunchTimeOrigin.toString(),
+      { setZone: true }
+    ).setZone('America/Mexico_City')
+    if (timeCheckOut.toFormat('yyyy-LL-dd') === now) {
       checkAssist.assist.checkOutStatus = ''
       return ''
     }
@@ -1376,6 +1357,7 @@ export default class AssistsService {
       'Check go Eat',
       'Check back from Eat',
       'Check-out',
+      'Hours worked',
       'Status',
       'Exception Notes',
     ])
@@ -1399,7 +1381,7 @@ export default class AssistsService {
       }
     }
     color = '538DD5'
-    for (let col = 10; col <= 16; col++) {
+    for (let col = 10; col <= 17; col++) {
       const cell = worksheet.getCell(4, col)
       cell.fill = {
         type: 'pattern',
@@ -1452,7 +1434,7 @@ export default class AssistsService {
     columnN.width = 25
     columnN.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnO = worksheet.getColumn(15)
-    columnO.width = 30
+    columnO.width = 25
     columnO.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnP = worksheet.getColumn(16)
     columnP.width = 30
@@ -1505,6 +1487,7 @@ export default class AssistsService {
       let shiftName = ''
       let shiftStartDate = ''
       let shiftEndsDate = ''
+      let hoursWorked = 0
       if (calendar && calendar.assist && calendar.assist.dateShift) {
         shiftName = calendar.assist.dateShift.shiftName
         shiftStartDate = calendar.assist.dateShift.shiftTimeStart
@@ -1515,6 +1498,36 @@ export default class AssistsService {
         const newTime = time.plus({ hours: hoursToAddParsed })
         shiftEndsDate = newTime.toFormat('HH:mm:ss')
       }
+
+      const checkInTime = calendar.assist.checkIn?.assistPunchTimeUtc
+      const checkOutTime = calendar.assist.checkOut?.assistPunchTimeUtc
+
+      const firstCheckTime = checkInTime
+        ? DateTime.fromISO(checkInTime instanceof Date ? checkInTime.toISOString() : checkInTime, {
+            zone: 'America/Mexico_City',
+          })
+        : null
+      const lastCheckTime = checkOutTime
+        ? DateTime.fromISO(
+            checkOutTime instanceof Date ? checkOutTime.toISOString() : checkOutTime,
+            {
+              zone: 'America/Mexico_City',
+            }
+          )
+        : null
+
+      if (firstCheckTime && lastCheckTime && firstCheckTime.isValid && lastCheckTime.isValid) {
+        const durationInMinutes = lastCheckTime.diff(firstCheckTime, 'minutes').as('minutes')
+        let hours = Math.floor(durationInMinutes / 60)
+        let minutes = Math.round(durationInMinutes % 60)
+        if (minutes >= 60) {
+          hours += Math.floor(minutes / 60)
+          minutes = minutes % 60
+        }
+        const timeInDecimal = hours + minutes / 60
+        hoursWorked += timeInDecimal
+      }
+
       rows.push({
         code: employee.employeeCode.toString(),
         name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
@@ -1552,6 +1565,7 @@ export default class AssistsService {
                 .toFormat('ff')
             : '',
         lastCheck: lastCheck,
+        hoursWorked: hoursWorked,
         incidents: status,
         notes: '',
         sundayPremium: '',
@@ -1578,7 +1592,7 @@ export default class AssistsService {
         { text: `\n${description}\n`, font: { italic: true, size: 10, color: { argb: '000000' } } }
       )
     }
-    const cell = worksheet.getCell('P' + rowCount)
+    const cell = worksheet.getCell('Q' + rowCount)
     cell.value = {
       richText: richText,
     }
@@ -1615,6 +1629,7 @@ export default class AssistsService {
         rowData.lunchTime,
         rowData.returnLunchTime,
         rowData.lastCheck,
+        this.decimalToTimeString(rowData.hoursWorked),
         incidents,
         rowData.notes,
       ])
@@ -1630,7 +1645,7 @@ export default class AssistsService {
       }
       if (!rowData.name && rowData.code !== '0') {
         const color = 'FDE9D9'
-        for (let col = 1; col <= 16; col++) {
+        for (let col = 1; col <= 17; col++) {
           const cell = worksheet.getCell(rowCount, col)
           const row = worksheet.getRow(rowCount)
           row.height = 21
@@ -1666,10 +1681,11 @@ export default class AssistsService {
       'Delays Faults',
       'Early Outs Faults',
       'Total Faults',
+      'Total Hours Worked',
     ])
     let fgColor = 'FFFFFFF'
     let color = '30869C'
-    for (let col = 1; col <= 18; col++) {
+    for (let col = 1; col <= 19; col++) {
       const cell = worksheet.getCell(3, col)
       cell.fill = {
         type: 'pattern',
@@ -1733,6 +1749,9 @@ export default class AssistsService {
     const columnR = worksheet.getColumn(18)
     columnR.width = 16
     columnR.alignment = { vertical: 'middle', horizontal: 'center' }
+    const columnS = worksheet.getColumn(19)
+    columnS.width = 16
+    columnS.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 
   async addRowIncidentCalendar(
@@ -1759,6 +1778,7 @@ export default class AssistsService {
     let faults = 0
     let delayFaults = 0
     let earlyOutsFaults = 0
+    let hoursWorked = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
@@ -1824,8 +1844,35 @@ export default class AssistsService {
             restWorked += 1
           }
         }
+        const checkInTime = calendar.assist.checkIn?.assistPunchTimeUtc
+        const checkOutTime = calendar.assist.checkOut?.assistPunchTimeUtc
+
+        const firstCheckTime = checkInTime
+          ? DateTime.fromISO(
+              checkInTime instanceof Date ? checkInTime.toISOString() : checkInTime,
+              {
+                zone: 'America/Mexico_City',
+              }
+            )
+          : null
+        const lastCheckTime = checkOutTime
+          ? DateTime.fromISO(
+              checkOutTime instanceof Date ? checkOutTime.toISOString() : checkOutTime,
+              {
+                zone: 'America/Mexico_City',
+              }
+            )
+          : null
+
+        if (firstCheckTime && lastCheckTime && firstCheckTime.isValid && lastCheckTime.isValid) {
+          const duration = lastCheckTime.diff(firstCheckTime, 'minutes')
+          const hours = Math.floor(duration.as('minutes') / 60)
+          const minutes = duration.as('minutes') % 60
+          hoursWorked += hours + minutes / 60
+        }
       }
     }
+
     delayFaults = this.getFaultsFromDelays(delays, tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
     rows.push({
@@ -1847,6 +1894,7 @@ export default class AssistsService {
       delayFaults: delayFaults,
       earlyOutsFaults: earlyOutsFaults,
       totalFaults: faults + delayFaults + earlyOutsFaults,
+      hoursWorked: hoursWorked,
     })
     return rows
   }
@@ -1871,6 +1919,7 @@ export default class AssistsService {
       delayFaults: 0,
       earlyOutsFaults: 0,
       totalFaults: 0,
+      hoursWorked: 0,
     })
   }
 
@@ -1894,6 +1943,7 @@ export default class AssistsService {
       delayFaults: 0,
       earlyOutsFaults: 0,
       totalFaults: 0,
+      hoursWorked: 0,
     })
   }
 
@@ -1942,10 +1992,11 @@ export default class AssistsService {
           rowData.delayFaults,
           rowData.earlyOutsFaults,
           rowData.totalFaults,
+          this.decimalToTimeString(rowData.hoursWorked),
         ])
         if (!rowData.employeeName && rowData.employeeId === '') {
           const color = '93CDDC'
-          for (let col = 1; col <= 18; col++) {
+          for (let col = 1; col <= 19; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
             cell.fill = {
               type: 'pattern',
@@ -1957,7 +2008,7 @@ export default class AssistsService {
         }
         if (rowData.department === 'TOTALS') {
           const color = '30869C'
-          for (let col = 1; col <= 18; col++) {
+          for (let col = 1; col <= 19; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
             const row = worksheet.getRow(rowCount - 1)
             row.height = 30
@@ -1991,7 +2042,7 @@ export default class AssistsService {
     worksheet.getCell('B1').value = title
     worksheet.getCell('B1').font = { bold: true, size: 18, color: { argb: fgColor } }
     worksheet.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet.mergeCells('B1:O1')
+    worksheet.mergeCells('B1:R1')
     worksheet.views = [
       { state: 'frozen', ySplit: 1 }, // Fija la primera fila
       { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
@@ -2020,6 +2071,7 @@ export default class AssistsService {
     totalRowIncident.delayFaults += row.delayFaults
     totalRowIncident.earlyOutsFaults += row.earlyOutsFaults
     totalRowIncident.totalFaults += row.totalFaults
+    totalRowIncident.hoursWorked += row.hoursWorked
   }
 
   addTotalRow(
@@ -2043,6 +2095,7 @@ export default class AssistsService {
     totalRowIncident.delayFaults += rowByDepartment.delayFaults
     totalRowIncident.earlyOutsFaults += rowByDepartment.earlyOutsFaults
     totalRowIncident.totalFaults += rowByDepartment.totalFaults
+    totalRowIncident.hoursWorked += rowByDepartment.hoursWorked
   }
 
   cleanTotalByDepartment(totalRowIncident: AssistIncidentExcelRowInterface) {
@@ -2062,6 +2115,7 @@ export default class AssistsService {
     totalRowIncident.delayFaults = 0
     totalRowIncident.earlyOutsFaults = 0
     totalRowIncident.totalFaults = 0
+    totalRowIncident.hoursWorked = 0
   }
 
   getFaultsFromDelays(delays: number, tardies: number) {
@@ -2822,5 +2876,11 @@ export default class AssistsService {
       tl: { col: assistExcelImageInterface.col, row: assistExcelImageInterface.row },
       ext: { width: adjustedWidth, height: adjustedHeight },
     })
+  }
+
+  decimalToTimeString(decimal: number): string {
+    const hours = Math.floor(decimal)
+    const minutes = Math.round((decimal - hours) * 60)
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
   }
 }
