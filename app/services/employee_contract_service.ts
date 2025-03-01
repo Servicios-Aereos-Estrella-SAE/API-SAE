@@ -42,6 +42,7 @@ export default class EmployeeContractService {
     const employeeContract = await EmployeeContract.query()
       .whereNull('employee_contract_deleted_at')
       .where('employee_contract_id', employeeContractId)
+      .preload('employeeContractType')
       .first()
     return employeeContract ? employeeContract : null
   }

@@ -147,100 +147,87 @@ export default class EmployeeContractController {
    */
   @inject()
   async store({ request, response }: HttpContext) {
-    const employeeContractService = new EmployeeContractService()
-    await request.validateUsing(createEmployeeContractValidator)
-    const validationOptions = {
-      types: ['image', 'document'],
-      size: '',
-    }
-    const employeeContractFile = request.file('employeeContractFile', validationOptions)
-    // validate file required
-    if (!employeeContractFile) {
-      response.status(400)
-      return {
-        status: 400,
-        type: 'warning',
-        title: 'Missing data to process',
-        message: 'Please upload a file valid',
-        data: employeeContractFile,
-      }
-    }
-    const disallowedExtensions = [
-      'mp4',
-      'avi',
-      'mkv',
-      'mov',
-      'wmv',
-      'flv', // Video
-      'mp3',
-      'wav',
-      'flac',
-      'aac',
-      'ogg', // Audio
-    ]
-    // Verificar si la extensión del archivo está en la lista de no permitidas
-    if (
-      disallowedExtensions.includes(
-        employeeContractFile.extname ? employeeContractFile.extname : ''
-      )
-    ) {
-      response.status(400)
-      return {
-        status: 400,
-        type: 'warning',
-        title: 'Missing data to process',
-        message: 'Please upload a file valid',
-        data: employeeContractFile,
-      }
-    }
-    const employeeContractFolio = request.input('employeeContractFolio')
-    const employeeContractStatus = request.input('employeeContractStatus')
-    const employeeContractMonthlyNetSalary = request.input('employeeContractMonthlyNetSalary')
-    const employeeContractTypeId = request.input('employeeContractTypeId')
-    const employeeId = request.input('employeeId')
-    let employeeContractStartDate = request.input('employeeContractStartDate')
-    employeeContractStartDate = employeeContractStartDate
-      ? DateTime.fromJSDate(new Date(employeeContractStartDate)).setZone('UTC').toJSDate()
-      : null
-    let employeeContractEndDate = request.input('employeeContractEndDate')
-    employeeContractEndDate = employeeContractEndDate
-      ? DateTime.fromJSDate(new Date(employeeContractEndDate)).setZone('UTC').toJSDate()
-      : null
-    const employeeContractUuid = cuid()
-    const employeeContract = {
-      employeeContractUuid: employeeContractUuid,
-      employeeContractFolio: employeeContractFolio,
-      employeeContractStartDate: employeeContractStartDate,
-      employeeContractEndDate: employeeContractEndDate,
-      employeeContractStatus: employeeContractStatus,
-      employeeContractMonthlyNetSalary: employeeContractMonthlyNetSalary,
-      employeeContractTypeId: employeeContractTypeId,
-      employeeId: employeeId,
-    } as EmployeeContract
-    const verifyExist = await employeeContractService.verifyInfoExist(employeeContract)
-    if (verifyExist.status !== 200) {
-      response.status(verifyExist.status)
-      return {
-        type: verifyExist.type,
-        title: verifyExist.title,
-        message: verifyExist.message,
-        data: { ...employeeContract },
-      }
-    }
-    const verifyInfo = await employeeContractService.verifyInfo(employeeContract)
-    if (verifyInfo.status !== 200) {
-      response.status(verifyInfo.status)
-      return {
-        type: verifyInfo.type,
-        title: verifyInfo.title,
-        message: verifyInfo.message,
-        data: { ...employeeContract },
-      }
-    }
-    // get file name and extension
-    const fileName = `${new Date().getTime()}_${employeeContractFile.clientName}`
-    const uploadService = new UploadService()
     try {
+      const employeeContractService = new EmployeeContractService()
+      await request.validateUsing(createEmployeeContractValidator)
+      const validationOptions = {
+        types: ['image', 'document'],
+        size: '',
+      }
+      const employeeContractFile = request.file('employeeContractFile', validationOptions)
+      // validate file required
+      if (!employeeContractFile) {
+        response.status(400)
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'Please upload a file valid (image, .doc, .docx)',
+          data: employeeContractFile,
+        }
+      }
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'doc', 'docx']
+      const fileExtension = employeeContractFile.extname
+        ? employeeContractFile.extname.toLowerCase()
+        : ''
+      if (!allowedExtensions.includes(fileExtension)) {
+        response.status(400)
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'Invalid file type',
+          message: 'Please upload a valid file (image, .doc, .docx)',
+          data: employeeContractFile,
+        }
+      }
+      const employeeContractFolio = request.input('employeeContractFolio')
+      const employeeContractStatus = request.input('employeeContractStatus')
+      const employeeContractMonthlyNetSalary = request.input('employeeContractMonthlyNetSalary')
+      const employeeContractTypeId = request.input('employeeContractTypeId')
+      const employeeId = request.input('employeeId')
+      let employeeContractStartDate = request.input('employeeContractStartDate')
+      employeeContractStartDate = employeeContractStartDate
+        ? DateTime.fromJSDate(new Date(employeeContractStartDate)).setZone('UTC').toJSDate()
+        : null
+      let employeeContractEndDate = request.input('employeeContractEndDate')
+      employeeContractEndDate = employeeContractEndDate
+        ? DateTime.fromJSDate(new Date(employeeContractEndDate)).setZone('UTC').toJSDate()
+        : null
+      const employeeContractUuid = cuid()
+      const employeeContract = {
+        employeeContractUuid: employeeContractUuid,
+        employeeContractFolio: employeeContractFolio,
+        employeeContractStartDate: employeeContractStartDate,
+        employeeContractEndDate: employeeContractEndDate,
+        employeeContractStatus: employeeContractStatus,
+        employeeContractMonthlyNetSalary: employeeContractMonthlyNetSalary,
+        employeeContractTypeId: employeeContractTypeId,
+        employeeId: employeeId,
+      } as EmployeeContract
+      const verifyExist = await employeeContractService.verifyInfoExist(employeeContract)
+      if (verifyExist.status !== 200) {
+        response.status(verifyExist.status)
+        return {
+          type: verifyExist.type,
+          title: verifyExist.title,
+          message: verifyExist.message,
+          data: { ...employeeContract },
+        }
+      }
+      const verifyInfo = await employeeContractService.verifyInfo(employeeContract)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...employeeContract },
+        }
+      }
+      // get file name and extension
+      const fileName = `${new Date().getTime()}_${employeeContractFile.clientName}`
+      const uploadService = new UploadService()
+
       const fileUrl = await uploadService.fileUpload(
         employeeContractFile,
         'employee-contracts',
@@ -488,31 +475,18 @@ export default class EmployeeContractController {
         }
       }
       if (employeeContractFile) {
-        const disallowedExtensions = [
-          'mp4',
-          'avi',
-          'mkv',
-          'mov',
-          'wmv',
-          'flv', // Video
-          'mp3',
-          'wav',
-          'flac',
-          'aac',
-          'ogg', // Audio
-        ]
-        if (
-          disallowedExtensions.includes(
-            employeeContractFile.extname ? employeeContractFile.extname : ''
-          )
-        ) {
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'doc', 'docx']
+        const fileExtension = employeeContractFile.extname
+          ? employeeContractFile.extname.toLowerCase()
+          : ''
+        if (!allowedExtensions.includes(fileExtension)) {
           response.status(400)
           return {
             status: 400,
             type: 'warning',
-            title: 'Missing data to process',
-            message: 'Please upload a file valid',
-            data: employeeContract,
+            title: 'Invalid file type',
+            message: 'Please upload a valid file (image, .doc, .docx)',
+            data: employeeContractFile,
           }
         }
         const fileName = `${new Date().getTime()}_${employeeContractFile.clientName}`
@@ -683,7 +657,7 @@ export default class EmployeeContractController {
       const employeeContractService = new EmployeeContractService()
       const deleteEmployeeContract = await employeeContractService.delete(currentEmployeeContract)
       if (deleteEmployeeContract) {
-        response.status(201)
+        response.status(200)
         return {
           type: 'success',
           title: 'Employee contracts',

@@ -19,6 +19,7 @@ import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 import EmployeeType from '#models/employee_type'
 import axios from 'axios'
+import EmployeeContract from '#models/employee_contract'
 
 export default class EmployeeService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -813,5 +814,16 @@ export default class EmployeeService {
       }
     } catch (error) {}
     return false
+  }
+
+  async getContracts(employeeId: number) {
+    const employeeContracts = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_id', employeeId)
+      .orderBy('employee_id')
+      .preload('employeeContractType')
+      .paginate(1, 9999999)
+
+    return employeeContracts ? employeeContracts : []
   }
 }
