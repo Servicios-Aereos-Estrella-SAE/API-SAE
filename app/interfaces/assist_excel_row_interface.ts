@@ -14,6 +14,7 @@ interface AssistExcelRowInterface {
   lunchTime: string
   returnLunchTime: string
   checkOutTime: string
+  hoursWorked: number
   lastCheck: string
   incidents: string
   notes: string
