@@ -47,7 +47,7 @@ import Reservation from './reservation.js'
  *           description: Cantidad de pasajeros
  *         reservationLegTravelTime:
  *           type: string
- *           description: Duración estimada del vuelo (ej. "02:30" para 2h 30m)
+ *           description: Duración estimada del vuelo en minutos
  *         reservationLegDistanceMn:
  *           type: number
  *           description: Distancia en millas náuticas
@@ -100,9 +100,9 @@ export default class ReservationLeg extends compose(BaseModel, SoftDeletes) {
   @column({ columnName: 'reservation_leg_pax' })
   declare reservationLegPax: number | null
 
-  // Duración y distancia
+  // Duración
   @column({ columnName: 'reservation_leg_travel_time' })
-  declare reservationLegTravelTime: string | null
+  declare reservationLegTravelTime: number
 
   @column({ columnName: 'reservation_leg_distance_mn' })
   declare reservationLegDistanceMn: number | null

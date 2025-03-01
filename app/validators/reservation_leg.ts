@@ -16,7 +16,7 @@ export const createReservationLegValidator = vine.compile(
     //   formats: ['HH:mm:ss', 'x'],
     // }),
     reservationLegPax: vine.number().min(1),
-    reservationLegTravelTime: vine.string().trim().minLength(1).maxLength(255),
+    reservationLegTravelTime: vine.number().min(1),
     reservationLegDistanceMn: vine.number().min(1),
     airportDestinationId: vine.number().min(1),
     airportDepartureId: vine.number().min(1),
