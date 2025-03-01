@@ -47,6 +47,7 @@ export default class WorkDisabilityPeriodService {
       .whereNull('work_disability_period_deleted_at')
       .where('work_disability_period_id', workDisabilityPeriodId)
       .preload('workDisabilityType')
+      .preload('workDisabilityPeriodExpenses')
       .first()
     return workDisabilityPeriod ? workDisabilityPeriod : null
   }
