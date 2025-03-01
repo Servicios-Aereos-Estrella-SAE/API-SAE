@@ -179,26 +179,33 @@ export default class WorkDisabilityPeriodController {
         size: '',
       }
       const workDisabilityPeriodFile = request.file('workDisabilityPeriodFile', validationOptions)
-      if (workDisabilityPeriodFile) {
-        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']
-        if (!allowedExtensions.includes(workDisabilityPeriodFile.extname || '')) {
-          response.status(400)
-          return {
-            status: 400,
-            type: 'warning',
-            title: 'Please upload a valid file',
-            message: 'Only PDF or image files are allowed',
-          }
+      if (!workDisabilityPeriodFile) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The file was not found',
+          data: { workDisabilityPeriodFile },
         }
-        const fileName = `${new Date().getTime()}_${workDisabilityPeriodFile.clientName}`
-        const uploadService = new UploadService()
-        const fileUrl = await uploadService.fileUpload(
-          workDisabilityPeriodFile,
-          'work-disability-files',
-          fileName
-        )
-        workDisabilityPeriod.workDisabilityPeriodFile = fileUrl
       }
+      const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']
+      if (!allowedExtensions.includes(workDisabilityPeriodFile.extname || '')) {
+        response.status(400)
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'Please upload a valid file',
+          message: 'Only PDF or image files are allowed',
+        }
+      }
+      const fileName = `${new Date().getTime()}_${workDisabilityPeriodFile.clientName}`
+      const uploadService = new UploadService()
+      const fileUrl = await uploadService.fileUpload(
+        workDisabilityPeriodFile,
+        'work-disability-files',
+        fileName
+      )
+      workDisabilityPeriod.workDisabilityPeriodFile = fileUrl
 
       const newWorkDisabilityPeriod = await workDisabilityPeriodService.create(workDisabilityPeriod)
       if (newWorkDisabilityPeriod) {
