@@ -124,32 +124,6 @@ export default class PilotService {
           data: { ...pilot },
         }
       }
-      // const existFlightAttendantPersonId = await FlightAttendant.query()
-      //   .whereNull('flight_attendant_deleted_at')
-      //   .where('person_id', pilot.employeeId)
-      //   .first()
-      // if (existFlightAttendantPersonId) {
-      //   return {
-      //     status: 400,
-      //     type: 'warning',
-      //     title: 'The person id exists for another flight attendant',
-      //     message: `The pilot resource cannot be ${action} because the person id is already assigned to another flight attendant`,
-      //     data: { ...pilot },
-      //   }
-      // }
-      // const existCustomerPersonId = await Customer.query()
-      //   .whereNull('customer_deleted_at')
-      //   .where('person_id', pilot.employeeId)
-      //   .first()
-      // if (existCustomerPersonId) {
-      //   return {
-      //     status: 400,
-      //     type: 'warning',
-      //     title: 'The person id exists for another customer',
-      //     message: `The pilot resource cannot be ${action} because the person id is already assigned to another customer`,
-      //     data: { ...pilot },
-      //   }
-      // }
     }
     return {
       status: 200,

@@ -65,6 +65,8 @@ import './routes/aircraft_maintenance_status_routes.js'
 import './routes/maintenance_urgency_level_routes.js'
 import './routes/maintenance_type_routes.js'
 import './routes/aircraft_maintenance_routes.js'
+import './routes/maintenance_expense_routes.js'
+import './routes/maintenance_expense_category_routes.js'
 import './routes/employee_children_routes.js'
 import './routes/employee_spouse_routes.js'
 import './routes/address_type_routes.js'
@@ -72,7 +74,6 @@ import './routes/address_routes.js'
 import './routes/employee_address_routes.js'
 import './routes/employee_record_routes.js'
 import './routes/employee_record_property_routes.js'
-
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
   return view.render('swagger', { specUrl })
