@@ -47,6 +47,7 @@ export default class WorkDisabilityPeriodService {
       .whereNull('work_disability_period_deleted_at')
       .where('work_disability_period_id', workDisabilityPeriodId)
       .preload('workDisabilityType')
+      .preload('workDisabilityPeriodExpenses')
       .first()
     return workDisabilityPeriod ? workDisabilityPeriod : null
   }
@@ -249,6 +250,36 @@ export default class WorkDisabilityPeriodService {
             title: 'Validation error',
             message: message,
             data: workDisabilityPeriodEndDate,
+          }
+        }
+      }
+    }
+    if (workDisabilityPeriod.workDisabilityPeriodTicketFolio) {
+      const action = workDisabilityPeriod.workDisabilityPeriodId > 0 ? 'updated' : 'created'
+      const workDisabilities = await WorkDisability.query()
+        .whereNull('work_disability_deleted_at')
+        .orderBy('work_disability_id')
+
+      for await (const itemWorkDisability of workDisabilities) {
+        const existTicketFolio = await WorkDisabilityPeriod.query()
+          .where('work_disability_id', itemWorkDisability.workDisabilityId)
+          .whereNull('work_disability_period_deleted_at')
+          .where(
+            'work_disability_period_ticket_folio',
+            workDisabilityPeriod.workDisabilityPeriodTicketFolio
+          )
+          .if(workDisabilityPeriod.workDisabilityPeriodId > 0, (query) => {
+            query.whereNot('work_disability_period_id', workDisabilityPeriod.workDisabilityPeriodId)
+          })
+          .first()
+
+        if (existTicketFolio) {
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'The ticket folio already exists for another period',
+            message: `The period resource cannot be ${action} because the ticket folio is already assigned to another period`,
+            data: { ...workDisabilityPeriod },
           }
         }
       }

@@ -31,6 +31,7 @@ export default class WorkDisabilityNoteService {
     const workDisabilityNote = await WorkDisabilityNote.query()
       .whereNull('work_disability_note_deleted_at')
       .where('work_disability_note_id', workDisabilityNoteId)
+      .preload('user')
       .first()
     return workDisabilityNote ? workDisabilityNote : null
   }

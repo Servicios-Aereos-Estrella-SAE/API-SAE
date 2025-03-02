@@ -73,6 +73,7 @@ export default class WorkDisability extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'workDisabilityId',
     onQuery: (query) => {
       query.preload('workDisabilityType')
+      query.preload('workDisability')
     },
   })
   declare workDisabilityPeriods: HasMany<typeof WorkDisabilityPeriod>

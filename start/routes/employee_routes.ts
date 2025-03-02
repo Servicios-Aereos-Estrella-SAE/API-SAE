@@ -19,6 +19,7 @@ router
       '/:employeeId/proceeding-files',
       '#controllers/employee_controller.getProceedingFiles'
     )
+    router.get('/:employeeId/contracts', '#controllers/employee_controller.getContracts')
     router.get(
       '/:employeeId/get-vacations-used',
       '#controllers/employee_controller.getVacationsUsed'

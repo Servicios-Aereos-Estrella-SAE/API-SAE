@@ -58,6 +58,9 @@ export default class WorkDisabilityNote extends compose(BaseModel, SoftDeletes) 
 
   @belongsTo(() => User, {
     foreignKey: 'userId',
+    onQuery: (query) => {
+      query.preload('person')
+    },
   })
   declare user: BelongsTo<typeof User>
 }

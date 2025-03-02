@@ -280,6 +280,12 @@ export default class AssistsController {
    *         schema:
    *           type: number
    *         description: Employee id
+   *       - name: reportType
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Report type
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -300,6 +306,7 @@ export default class AssistsController {
       const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
+      const reportType = request.input('reportType')
       const employee = await Employee.query()
         .withTrashed()
         .where('employee_id', employeeId)
@@ -315,28 +322,56 @@ export default class AssistsController {
           data: { employeeId },
         }
       }
+      const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
+
+      if (!validReportTypes.includes(reportType)) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The report type was not found',
+          message: 'The report type is not valid',
+          data: { reportType },
+        }
+      }
       const filters = {
         employeeId: employeeId,
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
       } as AssistEmployeeExcelFilterInterface
       const assistService = new AssistsService()
-      const buffer = await assistService.getExcelByEmployee(employee, filters)
-      if (buffer.status === 201) {
-        response.header(
-          'Content-Type',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.status(201)
-        response.send(buffer.buffer)
+      let buffer
+      if (reportType === 'Assistance Report') {
+        buffer = await assistService.getExcelByEmployeeAssistance(employee, filters)
+      } else if (reportType === 'Incident Summary') {
+        buffer = await assistService.getExcelByEmployeeIncidentSummary(employee, filters)
+      } else if (reportType === 'Incident Summary Payroll') {
+        buffer = await assistService.getExcelByEmployeeIncidentSummaryPayroll(employee, filters)
+      }
+      if (buffer) {
+        if (buffer.status === 201) {
+          response.header(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          )
+          response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+          response.status(201)
+          response.send(buffer.buffer)
+        } else {
+          response.status(500)
+          return {
+            type: buffer.type,
+            title: buffer.title,
+            message: buffer.message,
+            error: buffer.error,
+          }
+        }
       } else {
-        response.status(500)
+        response.status(400)
         return {
-          type: buffer.type,
-          title: buffer.title,
-          message: buffer.message,
-          error: buffer.error,
+          type: 'warning',
+          title: 'Server Error',
+          message: 'An unexpected error has occurred on the server buffer not found',
+          data: { employeeId },
         }
       }
     } catch (error) {
@@ -470,9 +505,9 @@ export default class AssistsController {
 
   /**
    * @swagger
-   * /api/v1/assists/get-excel-by-position:
+   * /api/v1/assists/get-excel-by-department:
    *   get:
-   *     summary: get assists excel by position
+   *     summary: get assists excel by department
    *     security:
    *       - bearerAuth: []
    *     tags: [Assists]
@@ -503,6 +538,12 @@ export default class AssistsController {
    *         schema:
    *           type: number
    *         description: Position id
+   *       - name: reportType
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Report type
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -523,6 +564,7 @@ export default class AssistsController {
       const departmentId = request.input('departmentId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
+      const reportType = request.input('reportType')
       const department = await Department.query()
         .whereNull('department_deleted_at')
         .where('department_id', departmentId)
@@ -536,28 +578,56 @@ export default class AssistsController {
           data: { departmentId },
         }
       }
+      const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
+
+      if (!validReportTypes.includes(reportType)) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The report type was not found',
+          message: 'The report type is not valid',
+          data: { reportType },
+        }
+      }
       const filters = {
         departmentId: departmentId,
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
-      const buffer = await assistService.getExcelByDepartment(filters)
-      if (buffer.status === 201) {
-        response.header(
-          'Content-Type',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.status(201)
-        response.send(buffer.buffer)
+      let buffer
+      if (reportType === 'Assistance Report') {
+        buffer = await assistService.getExcelByDepartmentAssistance(filters)
+      } else if (reportType === 'Incident Summary') {
+        buffer = await assistService.getExcelByDepartmentIncidentSummary(filters)
+      } else if (reportType === 'Incident Summary Payroll') {
+        buffer = await assistService.getExcelByDepartmentIncidentSummaryPayRoll(filters)
+      }
+      if (buffer) {
+        if (buffer.status === 201) {
+          response.header(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          )
+          response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+          response.status(201)
+          response.send(buffer.buffer)
+        } else {
+          response.status(500)
+          return {
+            type: buffer.type,
+            title: buffer.title,
+            message: buffer.message,
+            error: buffer.error,
+          }
+        }
       } else {
-        response.status(500)
+        response.status(400)
         return {
-          type: buffer.type,
-          title: buffer.title,
-          message: buffer.message,
-          error: buffer.error,
+          type: 'warning',
+          title: 'Server Error',
+          message: 'An unexpected error has occurred on the server buffer not found',
+          data: { filters },
         }
       }
     } catch (error) {
@@ -606,6 +676,12 @@ export default class AssistsController {
    *         schema:
    *           type: number
    *         description: Position id
+   *       - name: reportType
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Report type
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -632,27 +708,56 @@ export default class AssistsController {
       }
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
+      const reportType = request.input('reportType')
+      const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
+
+      if (!validReportTypes.includes(reportType)) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The report type was not found',
+          message: 'The report type is not valid',
+          data: { reportType },
+        }
+      }
       const filters = {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
-      const buffer = await assistService.getExcelAll(filters, departmentsList)
-      if (buffer.status === 201) {
-        response.header(
-          'Content-Type',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
-        response.status(201)
-        response.send(buffer.buffer)
+      let buffer
+      if (reportType === 'Assistance Report') {
+        buffer = await assistService.getExcelAllAssistance(filters, departmentsList)
+      } else if (reportType === 'Incident Summary') {
+        buffer = await assistService.getExcelAllIncidentSummary(filters, departmentsList)
+      } else if (reportType === 'Incident Summary Payroll') {
+        buffer = await assistService.getExcelAllIncidentSummaryPayRoll(filters, departmentsList)
+      }
+      if (buffer) {
+        if (buffer.status === 201) {
+          response.header(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          )
+          response.header('Content-Disposition', 'attachment; filename=datos.xlsx')
+          response.status(201)
+          response.send(buffer.buffer)
+        } else {
+          response.status(500)
+          return {
+            type: buffer.type,
+            title: buffer.title,
+            message: buffer.message,
+            error: buffer.error,
+          }
+        }
       } else {
-        response.status(500)
+        response.status(400)
         return {
-          type: buffer.type,
-          title: buffer.title,
-          message: buffer.message,
-          error: buffer.error,
+          type: 'warning',
+          title: 'Server Error',
+          message: 'An unexpected error has occurred on the server buffer not found',
+          data: { filters },
         }
       }
     } catch (error) {

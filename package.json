@@ -81,6 +81,7 @@
     "phc-argon2": "^1.1.4",
     "phc-bcrypt": "^1.0.8",
     "reflect-metadata": "^0.2.2",
+    "sharp": "^0.33.5",
     "socket.io": "^4.7.5",
     "uuidv4": "^6.2.13",
     "v-calendar": "^2.4.2"
