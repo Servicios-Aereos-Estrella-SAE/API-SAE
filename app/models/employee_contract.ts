@@ -44,6 +44,12 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
  *          employeeId:
  *            type: number
  *            description: Employee id
+ *          departmentId:
+ *            type: number
+ *            description: Department id
+ *          positionId:
+ *            type: number
+ *            description: Position id
  *          employeeContractCreatedAt:
  *            type: string
  *            format: date-time
@@ -85,6 +91,12 @@ export default class EmployeeContract extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeId: number
+
+  @column()
+  declare departmentId: number
+
+  @column()
+  declare positionId: number
 
   @column.dateTime({ autoCreate: true })
   declare employeeContractCreatedAt: DateTime

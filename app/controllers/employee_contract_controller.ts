@@ -54,6 +54,7 @@ export default class EmployeeContractController {
    *                 type: string
    *                 format: binary
    *                 description: The file to upload
+   *                 required: false
    *               employeeContractTypeId:
    *                 type: number
    *                 description: Employee contract type id
@@ -62,6 +63,16 @@ export default class EmployeeContractController {
    *               employeeId:
    *                 type: number
    *                 description: Employee id
+   *                 required: true
+   *                 default: ''
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
+   *                 required: true
+   *                 default: ''
+   *               positionId:
+   *                 type: number
+   *                 description: Position id
    *                 required: true
    *                 default: ''
    *     responses:
@@ -155,36 +166,13 @@ export default class EmployeeContractController {
         size: '',
       }
       const employeeContractFile = request.file('employeeContractFile', validationOptions)
-      // validate file required
-      if (!employeeContractFile) {
-        response.status(400)
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'Missing data to process',
-          message: 'Please upload a file valid (image, .doc, .docx)',
-          data: employeeContractFile,
-        }
-      }
-      const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'doc', 'docx']
-      const fileExtension = employeeContractFile.extname
-        ? employeeContractFile.extname.toLowerCase()
-        : ''
-      if (!allowedExtensions.includes(fileExtension)) {
-        response.status(400)
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'Invalid file type',
-          message: 'Please upload a valid file (image, .doc, .docx)',
-          data: employeeContractFile,
-        }
-      }
       const employeeContractFolio = request.input('employeeContractFolio')
       const employeeContractStatus = request.input('employeeContractStatus')
       const employeeContractMonthlyNetSalary = request.input('employeeContractMonthlyNetSalary')
       const employeeContractTypeId = request.input('employeeContractTypeId')
       const employeeId = request.input('employeeId')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
       let employeeContractStartDate = request.input('employeeContractStartDate')
       employeeContractStartDate = employeeContractStartDate
         ? DateTime.fromJSDate(new Date(employeeContractStartDate)).setZone('UTC').toJSDate()
@@ -203,6 +191,8 @@ export default class EmployeeContractController {
         employeeContractMonthlyNetSalary: employeeContractMonthlyNetSalary,
         employeeContractTypeId: employeeContractTypeId,
         employeeId: employeeId,
+        departmentId: departmentId,
+        positionId: positionId,
       } as EmployeeContract
       const verifyExist = await employeeContractService.verifyInfoExist(employeeContract)
       if (verifyExist.status !== 200) {
@@ -224,16 +214,32 @@ export default class EmployeeContractController {
           data: { ...employeeContract },
         }
       }
-      // get file name and extension
-      const fileName = `${new Date().getTime()}_${employeeContractFile.clientName}`
-      const uploadService = new UploadService()
+      if (employeeContractFile) {
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'doc', 'docx']
+        const fileExtension = employeeContractFile.extname
+          ? employeeContractFile.extname.toLowerCase()
+          : ''
+        if (!allowedExtensions.includes(fileExtension)) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Invalid file type',
+            message: 'Please upload a valid file (image, .doc, .docx)',
+            data: employeeContractFile,
+          }
+        }
+        // get file name and extension
+        const fileName = `${new Date().getTime()}_${employeeContractFile.clientName}`
+        const uploadService = new UploadService()
 
-      const fileUrl = await uploadService.fileUpload(
-        employeeContractFile,
-        'employee-contracts',
-        fileName
-      )
-      employeeContract.employeeContractFile = fileUrl
+        const fileUrl = await uploadService.fileUpload(
+          employeeContractFile,
+          'employee-contracts',
+          fileName
+        )
+        employeeContract.employeeContractFile = fileUrl
+      }
       const newEmployeeContract = await employeeContractService.create(employeeContract)
       response.status(201)
       return {
@@ -307,6 +313,7 @@ export default class EmployeeContractController {
    *                 type: string
    *                 format: binary
    *                 description: The file to upload
+   *                 required: false
    *               employeeContractTypeId:
    *                 type: number
    *                 description: Employee contract type id
@@ -315,6 +322,16 @@ export default class EmployeeContractController {
    *               employeeId:
    *                 type: number
    *                 description: Employee id
+   *                 required: true
+   *                 default: ''
+   *               departmentId:
+   *                 type: number
+   *                 description: Department id
+   *                 required: true
+   *                 default: ''
+   *               positionId:
+   *                 type: number
+   *                 description: Position id
    *                 required: true
    *                 default: ''
    *     responses:
@@ -436,6 +453,8 @@ export default class EmployeeContractController {
       const employeeContractMonthlyNetSalary = request.input('employeeContractMonthlyNetSalary')
       const employeeContractTypeId = request.input('employeeContractTypeId')
       const employeeId = request.input('employeeId')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
       let employeeContractStartDate = request.input('employeeContractStartDate')
       employeeContractStartDate = employeeContractStartDate
         ? DateTime.fromJSDate(new Date(employeeContractStartDate)).setZone('UTC').toJSDate()
@@ -453,6 +472,8 @@ export default class EmployeeContractController {
         employeeContractMonthlyNetSalary: employeeContractMonthlyNetSalary,
         employeeContractTypeId: employeeContractTypeId,
         employeeId: employeeId,
+        departmentId: departmentId,
+        positionId: positionId,
       } as EmployeeContract
       const verifyExist = await employeeContractService.verifyInfoExist(employeeContract)
       if (verifyExist.status !== 200) {

@@ -7,6 +7,8 @@ export const createEmployeeContractValidator = vine.compile(
     employeeContractMonthlyNetSalary: vine.number().min(1),
     employeeContractTypeId: vine.number().min(1),
     employeeId: vine.number().min(1),
+    departmentId: vine.number().min(1),
+    positionId: vine.number().min(1),
   })
 )
 
@@ -17,5 +19,7 @@ export const updateEmployeeContractValidator = vine.compile(
     employeeContractMonthlyNetSalary: vine.number().min(1),
     employeeContractTypeId: vine.number().min(1),
     employeeId: vine.number().min(1),
+    departmentId: vine.number().min(1),
+    positionId: vine.number().min(1),
   })
 )
