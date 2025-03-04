@@ -419,8 +419,6 @@ export default class SystemSettingController {
    * @swagger
    * /api/system-settings/{systemSettingId}:
    *   put:
-   *     security:
-   *       - bearerAuth: []
    *     tags:
    *       - System Settings
    *     summary: update system setting
