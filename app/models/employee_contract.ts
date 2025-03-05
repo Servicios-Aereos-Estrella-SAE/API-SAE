@@ -6,6 +6,7 @@ import EmployeeContractType from './employee_contract_type.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Department from './department.js'
 import Position from './position.js'
+import BusinessUnit from './business_unit.js'
 /**
  * @swagger
  * components:
@@ -52,6 +53,9 @@ import Position from './position.js'
  *          positionId:
  *            type: number
  *            description: Position id
+ *          payrollBusinessUnitId:
+ *            type: number
+ *            description: payroll business unit id
  *          employeeContractCreatedAt:
  *            type: string
  *            format: date-time
@@ -100,6 +104,9 @@ export default class EmployeeContract extends compose(BaseModel, SoftDeletes) {
   @column()
   declare positionId: number
 
+  @column()
+  declare payrollBusinessUnitId: number
+
   @column.dateTime({ autoCreate: true })
   declare employeeContractCreatedAt: DateTime
 
@@ -123,4 +130,9 @@ export default class EmployeeContract extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'positionId',
   })
   declare position: BelongsTo<typeof Position>
+
+  @belongsTo(() => BusinessUnit, {
+    foreignKey: 'payrollBusinessUnitId',
+  })
+  declare payrollBusinessUnit: BelongsTo<typeof BusinessUnit>
 }

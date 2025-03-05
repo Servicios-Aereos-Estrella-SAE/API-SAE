@@ -845,7 +845,8 @@ export default class EmployeeService {
       .preload('employeeContractType')
       .preload('department')
       .preload('position')
-      .paginate(1, 9999999)
+      .preload('payrollBusinessUnit')
+      .orderBy('employee_contract_start_date')
 
     return employeeContracts ? employeeContracts : []
   }

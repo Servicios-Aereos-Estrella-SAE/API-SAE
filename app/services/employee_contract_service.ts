@@ -5,6 +5,7 @@ import Employee from '#models/employee'
 import Department from '#models/department'
 import Position from '#models/position'
 import { DateTime } from 'luxon'
+import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeContractService {
   async create(employeeContract: EmployeeContract) {
@@ -20,6 +21,7 @@ export default class EmployeeContractService {
     newEmployeeContract.employeeId = employeeContract.employeeId
     newEmployeeContract.departmentId = employeeContract.departmentId
     newEmployeeContract.positionId = employeeContract.positionId
+    newEmployeeContract.payrollBusinessUnitId = employeeContract.payrollBusinessUnitId
     await newEmployeeContract.save()
     await this.setHireDateFromFirstContract(employeeContract)
     await this.setDepartmentAndPositionFromLastContract(employeeContract)
@@ -38,6 +40,7 @@ export default class EmployeeContractService {
     currentEmployeeContract.employeeId = employeeContract.employeeId
     currentEmployeeContract.departmentId = employeeContract.departmentId
     currentEmployeeContract.positionId = employeeContract.positionId
+    currentEmployeeContract.payrollBusinessUnitId = employeeContract.payrollBusinessUnitId
     await currentEmployeeContract.save()
     await this.setHireDateFromFirstContract(employeeContract)
     await this.setDepartmentAndPositionFromLastContract(employeeContract)
@@ -58,6 +61,7 @@ export default class EmployeeContractService {
       .preload('employeeContractType')
       .preload('department')
       .preload('position')
+      .preload('payrollBusinessUnit')
       .first()
     return employeeContract ? employeeContract : null
   }
@@ -116,6 +120,20 @@ export default class EmployeeContractService {
         type: 'warning',
         title: 'The position was not found',
         message: 'The position was not found with the entered ID',
+        data: { ...employeeContract },
+      }
+    }
+    const existPayrollBusinessUnit = await BusinessUnit.query()
+      .whereNull('business_unit_deleted_at')
+      .where('business_unit_id', employeeContract.payrollBusinessUnitId)
+      .first()
+
+    if (!existPayrollBusinessUnit && employeeContract.payrollBusinessUnitId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The business unit was not found',
+        message: 'The business unit was not found with the entered ID',
         data: { ...employeeContract },
       }
     }

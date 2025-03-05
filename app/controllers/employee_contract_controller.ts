@@ -75,6 +75,11 @@ export default class EmployeeContractController {
    *                 description: Position id
    *                 required: true
    *                 default: ''
+   *               payrollBusinessUnitId:
+   *                 type: number
+   *                 description: Payroll Business Unit id
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -173,6 +178,7 @@ export default class EmployeeContractController {
       const employeeId = request.input('employeeId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
+      const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       let employeeContractStartDate = request.input('employeeContractStartDate')
       employeeContractStartDate = employeeContractStartDate
         ? DateTime.fromJSDate(new Date(employeeContractStartDate)).setZone('UTC').toJSDate()
@@ -193,6 +199,7 @@ export default class EmployeeContractController {
         employeeId: employeeId,
         departmentId: departmentId,
         positionId: positionId,
+        payrollBusinessUnitId: payrollBusinessUnitId,
       } as EmployeeContract
       const verifyExist = await employeeContractService.verifyInfoExist(employeeContract)
       if (verifyExist.status !== 200) {
@@ -334,6 +341,11 @@ export default class EmployeeContractController {
    *                 description: Position id
    *                 required: true
    *                 default: ''
+   *               payrollBusinessUnitId:
+   *                 type: number
+   *                 description: Payroll Business Unit id
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -455,6 +467,7 @@ export default class EmployeeContractController {
       const employeeId = request.input('employeeId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
+      const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       let employeeContractStartDate = request.input('employeeContractStartDate')
       employeeContractStartDate = employeeContractStartDate
         ? DateTime.fromJSDate(new Date(employeeContractStartDate)).setZone('UTC').toJSDate()
@@ -474,6 +487,7 @@ export default class EmployeeContractController {
         employeeId: employeeId,
         departmentId: departmentId,
         positionId: positionId,
+        payrollBusinessUnitId: payrollBusinessUnitId,
       } as EmployeeContract
       const verifyExist = await employeeContractService.verifyInfoExist(employeeContract)
       if (verifyExist.status !== 200) {
