@@ -270,6 +270,15 @@ export default class EmployeeService {
   }
 
   async verifyInfoExist(employee: Employee) {
+    if (!employee.departmentId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The department was not found',
+        message: 'The department was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
     const existDepartment = await Department.query()
       .whereNull('department_deleted_at')
       .where('department_id', employee.departmentId)
@@ -281,6 +290,15 @@ export default class EmployeeService {
         type: 'warning',
         title: 'The department was not found',
         message: 'The department was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+    if (!employee.positionId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The position was not found',
+        message: 'The position was not found with the entered ID',
         data: { ...employee },
       }
     }
@@ -591,6 +609,9 @@ export default class EmployeeService {
   }
 
   private getCurrentVacationPeriod(employee: Employee) {
+    if (!employee.employeeHireDate) {
+      return null
+    }
     const currentDate = DateTime.now()
     const startDate = DateTime.fromISO(employee.employeeHireDate.toString())
     if (!startDate.isValid) {
@@ -822,6 +843,8 @@ export default class EmployeeService {
       .where('employee_id', employeeId)
       .orderBy('employee_id')
       .preload('employeeContractType')
+      .preload('department')
+      .preload('position')
       .paginate(1, 9999999)
 
     return employeeContracts ? employeeContracts : []

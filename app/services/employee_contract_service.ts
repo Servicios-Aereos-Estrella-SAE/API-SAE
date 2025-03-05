@@ -46,6 +46,8 @@ export default class EmployeeContractService {
 
   async delete(currentEmployeeContract: EmployeeContract) {
     await currentEmployeeContract.delete()
+    await this.setHireDateFromFirstContract(currentEmployeeContract)
+    await this.setDepartmentAndPositionFromLastContract(currentEmployeeContract)
     return currentEmployeeContract
   }
 
@@ -54,6 +56,8 @@ export default class EmployeeContractService {
       .whereNull('employee_contract_deleted_at')
       .where('employee_contract_id', employeeContractId)
       .preload('employeeContractType')
+      .preload('department')
+      .preload('position')
       .first()
     return employeeContract ? employeeContract : null
   }
@@ -160,20 +164,24 @@ export default class EmployeeContractService {
       .where('employee_id', employeeContract.employeeId)
       .orderBy('employeeContractStartDate', 'asc')
       .first()
-    if (firstEmployeeContract) {
-      const employee = await Employee.query()
-        .whereNull('employee_deleted_at')
-        .where('employee_id', employeeContract.employeeId)
-        .first()
-      if (employee) {
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .first()
+    if (employee) {
+      if (firstEmployeeContract) {
         const hireDate =
           DateTime.fromISO(firstEmployeeContract.employeeContractStartDate).isValid
             ? DateTime.fromISO(firstEmployeeContract.employeeContractStartDate) // Deja hireDate como DateTime
             : DateTime.fromJSDate(new Date(firstEmployeeContract.employeeContractStartDate))
         employee.employeeHireDate = hireDate
         await employee.save()
+      } else {
+        employee.employeeHireDate = null
+        await employee.save()
       }
     }
+    
   }
 
   async setDepartmentAndPositionFromLastContract(employeeContract: EmployeeContract) {
@@ -182,14 +190,36 @@ export default class EmployeeContractService {
       .where('employee_id', employeeContract.employeeId)
       .orderBy('employeeContractStartDate', 'desc')
       .first()
-    if (firstEmployeeContract) {
-      const employee = await Employee.query()
-        .whereNull('employee_deleted_at')
-        .where('employee_id', employeeContract.employeeId)
-        .first()
-      if (employee) {
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .first()
+    if (employee) {
+      if (firstEmployeeContract) {
         employee.departmentId = firstEmployeeContract.departmentId
         employee.positionId = firstEmployeeContract.positionId
+        await employee.save()
+      } else {
+        const department = await Department.query()
+          .whereNull('department_deleted_at')
+          .where('department_name', 'Sin departamento')
+          .first()
+        if (department) {
+          employee.departmentId = department.departmentId
+        } else {
+          employee.departmentId = null
+        }
+        const position = await Position.query()
+          .whereNull('position_deleted_at')
+          .where('position_name', 'Sin posición')
+          .first()
+        if (position) {
+          employee.positionId = position.positionId
+        } else {
+          employee.positionId = null
+        }
+        
+       
         await employee.save()
       }
     }

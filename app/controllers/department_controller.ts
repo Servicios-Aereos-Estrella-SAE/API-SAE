@@ -314,11 +314,13 @@ export default class DepartmentController {
         .orderBy('position_id')
       const departmentPositionService = new DepartmentPositionService()
       for await (const employee of employees) {
-        await this.verifyRelatedPosition(
-          departmentId,
-          employee.positionId,
-          departmentPositionService
-        )
+        if (employee.positionId) {
+          await this.verifyRelatedPosition(
+            departmentId,
+            employee.positionId,
+            departmentPositionService
+          )
+        }
       }
       response.status(200)
       return {

@@ -4,6 +4,8 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import EmployeeContractType from './employee_contract_type.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Department from './department.js'
+import Position from './position.js'
 /**
  * @swagger
  * components:
@@ -111,4 +113,14 @@ export default class EmployeeContract extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'employeeContractTypeId',
   })
   declare employeeContractType: BelongsTo<typeof EmployeeContractType>
+
+  @belongsTo(() => Department, {
+    foreignKey: 'departmentId',
+  })
+  declare department: BelongsTo<typeof Department>
+
+  @belongsTo(() => Position, {
+    foreignKey: 'positionId',
+  })
+  declare position: BelongsTo<typeof Position>
 }

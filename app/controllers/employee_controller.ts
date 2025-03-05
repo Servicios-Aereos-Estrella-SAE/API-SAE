@@ -660,11 +660,13 @@ export default class EmployeeController {
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
-      employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      employeeHireDate = employeeHireDate
+        ? (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+        : null
       const personId = request.input('personId')
       const companyId = request.input('companyId')
-      const departmentId = request.input('departmentId')
-      const positionId = request.input('positionId')
+      const departmentId = request.input('departmentId', null)
+      const positionId = request.input('positionId', null)
       const workSchedule = request.input('employeeWorkSchedule')
       const employeeTypeId = request.input('employeeTypeId')
       const employee = {
@@ -683,6 +685,24 @@ export default class EmployeeController {
         employeeTypeId: employeeTypeId,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
       } as Employee
+      if (!employee.departmentId || employee.departmentId.toString() === '0') {
+        const department = await Department.query()
+          .whereNull('department_deleted_at')
+          .where('department_name', 'Sin departamento')
+          .first()
+        if (department) {
+          employee.departmentId = department.departmentId
+        }
+      }
+      if (!employee.positionId || employee.positionId.toString() === '0') {
+        const position = await Position.query()
+          .whereNull('position_deleted_at')
+          .where('position_name', 'Sin posición')
+          .first()
+        if (position) {
+          employee.positionId = position.positionId
+        }
+      }
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(createEmployeeValidator)
       const exist = await employeeService.verifyInfoExist(employee)
@@ -2787,7 +2807,9 @@ export default class EmployeeController {
       for (const employee of employees) {
         const department = await Department.find(employee.departmentId)
         const departmentName = department?.departmentName || 'N/A'
-        const hireDate = employee.employeeHireDate.toFormat('yyyy-MM-dd')
+        const hireDate = employee.employeeHireDate
+          ? employee.employeeHireDate.toFormat('yyyy-MM-dd')
+          : ''
         worksheet.addRow({
           employeeId: employee.employeeId,
           employeeFirstName: employee.employeeFirstName,
@@ -3009,6 +3031,16 @@ export default class EmployeeController {
           shiftExceptionsQuery.whereNull('shift_exceptions_deleted_at')
         })
         .firstOrFail()
+
+      if (!employee.employeeHireDate) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee hire date was not found',
+          data: { employee },
+        }
+      }
 
       const hireDate =
         employee.employeeHireDate instanceof DateTime
