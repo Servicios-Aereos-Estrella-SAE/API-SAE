@@ -236,6 +236,7 @@ export default class EmployeeService {
       .preload('person')
       .preload('businessUnit')
       .preload('spouse')
+      .preload('emergencyContact')
       .preload('children')
       .withTrashed()
       .first()
