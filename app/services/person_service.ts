@@ -46,6 +46,7 @@ export default class PersonService {
     newPerson.personBirthday = person.personBirthday
     newPerson.personGender = person.personGender
     newPerson.personPhone = person.personPhone
+    newPerson.personEmail = person.personEmail
     newPerson.personCurp = person.personCurp
     newPerson.personRfc = person.personRfc
     newPerson.personImssNss = person.personImssNss
@@ -65,6 +66,7 @@ export default class PersonService {
     currentPerson.personBirthday = person.personBirthday
     currentPerson.personGender = person.personGender
     currentPerson.personPhone = person.personPhone
+    currentPerson.personEmail = person.personEmail
     currentPerson.personCurp = person.personCurp
     currentPerson.personRfc = person.personRfc
     currentPerson.personImssNss = person.personImssNss
@@ -167,6 +169,23 @@ export default class PersonService {
         type: 'warning',
         title: 'The person imss nss already exists for another person',
         message: `The person resource cannot be ${action} because the imss nss is already assigned to another person`,
+        data: { ...person },
+      }
+    }
+    const existEmail = await Person.query()
+      .if(person.personId > 0, (query) => {
+        query.whereNot('person_id', person.personId)
+      })
+      .whereNull('person_deleted_at')
+      .where('person_email', person.personEmail)
+      .first()
+
+    if (existEmail && person.personEmail) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The person email already exists for another person',
+        message: `The person resource cannot be ${action} because the email is already assigned to another person`,
         data: { ...person },
       }
     }

@@ -7,8 +7,9 @@ export default class EmployeeSpouseService {
     newEmployeeSpouse.employeeSpouseFirstname = employeeSpouse.employeeSpouseFirstname
     newEmployeeSpouse.employeeSpouseLastname = employeeSpouse.employeeSpouseLastname
     newEmployeeSpouse.employeeSpouseSecondLastname = employeeSpouse.employeeSpouseSecondLastname
-    newEmployeeSpouse.employeeSpouseBirthday = employeeSpouse.employeeSpouseBirthday
     newEmployeeSpouse.employeeSpouseOcupation = employeeSpouse.employeeSpouseOcupation
+    newEmployeeSpouse.employeeSpouseBirthday = employeeSpouse.employeeSpouseBirthday
+    newEmployeeSpouse.employeeSpousePhone = employeeSpouse.employeeSpousePhone
     newEmployeeSpouse.employeeId = employeeSpouse.employeeId
     await newEmployeeSpouse.save()
     return newEmployeeSpouse
@@ -18,8 +19,9 @@ export default class EmployeeSpouseService {
     currentEmployeeSpouse.employeeSpouseFirstname = employeeSpouse.employeeSpouseFirstname
     currentEmployeeSpouse.employeeSpouseLastname = employeeSpouse.employeeSpouseLastname
     currentEmployeeSpouse.employeeSpouseSecondLastname = employeeSpouse.employeeSpouseSecondLastname
-    currentEmployeeSpouse.employeeSpouseBirthday = employeeSpouse.employeeSpouseBirthday
     currentEmployeeSpouse.employeeSpouseOcupation = employeeSpouse.employeeSpouseOcupation
+    currentEmployeeSpouse.employeeSpouseBirthday = employeeSpouse.employeeSpouseBirthday
+    currentEmployeeSpouse.employeeSpousePhone = employeeSpouse.employeeSpousePhone
     await currentEmployeeSpouse.save()
     return currentEmployeeSpouse
   }

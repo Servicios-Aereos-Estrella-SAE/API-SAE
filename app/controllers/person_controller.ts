@@ -196,6 +196,11 @@ export default class PersonController {
    *                 description: Person phone
    *                 required: false
    *                 default: ''
+   *               personEmail:
+   *                 type: string
+   *                 description: Person email
+   *                 required: false
+   *                 default: ''
    *               personCurp:
    *                 type: string
    *                 description: Person CURP
@@ -302,8 +307,8 @@ export default class PersonController {
       personBirthday = personBirthday
         ? (personBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
         : null
-      // personBirthday = personBirthday ? personBirthday.toFormat('yyyy-MM-dd') : null
       const personPhone = request.input('personPhone')
+      const personEmail = request.input('personEmail')
       const personCurp = request.input('personCurp')
       const personRfc = request.input('personRfc')
       const personImssNss = request.input('personImssNss')
@@ -314,6 +319,7 @@ export default class PersonController {
         personGender: personGender,
         personBirthday: personBirthday,
         personPhone: personPhone,
+        personEmail: personEmail,
         personCurp: personCurp,
         personRfc: personRfc,
         personImssNss: personImssNss,
@@ -396,6 +402,11 @@ export default class PersonController {
    *               personPhone:
    *                 type: string
    *                 description: Person phone
+   *                 required: false
+   *                 default: ''
+   *               personEmail:
+   *                 type: string
+   *                 description: Person email
    *                 required: false
    *                 default: ''
    *               personCurp:
@@ -506,6 +517,7 @@ export default class PersonController {
         ? (personBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
         : null
       const personPhone = request.input('personPhone')
+      const personEmail = request.input('personEmail')
       const personCurp = request.input('personCurp')
       const personRfc = request.input('personRfc')
       const personImssNss = request.input('personImssNss')
@@ -522,6 +534,7 @@ export default class PersonController {
         personGender: personGender,
         personBirthday: personBirthday,
         personPhone: personPhone,
+        personEmail: personEmail,
         personCurp: personCurp,
         personRfc: personRfc,
         personImssNss: personImssNss,

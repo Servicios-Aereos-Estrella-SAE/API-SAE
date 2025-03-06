@@ -18,10 +18,6 @@ export const createEmployeeValidator = vine.compile(
       }),
     employeeFirstName: vine.string().trim().minLength(0).maxLength(25).optional(),
     employeeLastName: vine.string().trim().minLength(0).maxLength(25).optional(),
-    // employeePayrollNum: vine.string().trim().minLength(1).maxLength(50),
-    // employeeHireDate: vine.date({
-    //   formats: ['YYYY-MM-DD', 'x'],
-    // }),
     companyId: vine.number().min(1),
     departmentId: vine.number().min(1),
     departmentSyncId: vine.number().min(0).optional(),
@@ -39,6 +35,19 @@ export const createEmployeeValidator = vine.compile(
         return !existingPersonId
       }),
     employeeTypeId: vine.number().min(1),
+    employeeBusinessEmail: vine
+      .string()
+      .trim()
+      .minLength(0)
+      .maxLength(200)
+      .unique(async (_db, value) => {
+        const existingEmail = await Employee.query()
+          .whereNull('employee_deleted_at')
+          .where('employee_business_email', value)
+          .first()
+        return !existingEmail
+      })
+      .optional(),
   })
 )
 
@@ -48,15 +57,12 @@ export const updateEmployeeValidator = vine.compile(
     employeeCode: vine.string().trim().minLength(1).maxLength(200),
     employeeFirstName: vine.string().trim().minLength(0).maxLength(25).optional(),
     employeeLastName: vine.string().trim().minLength(0).maxLength(25).optional(),
-    // employeePayrollNum: vine.string().trim().minLength(1).maxLength(50),
-    // employeeHireDate: vine.date({
-    //   formats: ['YYYY-MM-DD', 'x'],
-    // }),
     companyId: vine.number().min(1),
     departmentId: vine.number().min(1),
     departmentSyncId: vine.number().min(0).optional(),
     positionId: vine.number().min(1),
     positionSyncId: vine.number().min(0).optional(),
     employeeTypeId: vine.number().min(1),
+    employeeBusinessEmail: vine.string().trim().minLength(0).maxLength(200),
   })
 )

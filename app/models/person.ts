@@ -33,6 +33,9 @@ import Employee from './employee.js'
  *          personPhone:
  *            type: string
  *            description: Person phone
+ *          personEmail:
+ *            type: string
+ *            description: Person email
  *          personPhoneSecundary:
  *            type: string
  *            description: Person phone secundary
@@ -87,6 +90,9 @@ export default class Person extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare personPhone: string
+
+  @column()
+  declare personEmail: string
 
   @column()
   declare personPhoneSecondary: string

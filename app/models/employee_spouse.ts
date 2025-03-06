@@ -28,6 +28,9 @@ import { DateTime } from 'luxon'
  *          employeeSpouseBirthday:
  *            type: string
  *            description: Employee spouse birthday (YYYY-MM-DD)
+ *          employeeSpousePhone:
+ *            type: string
+ *            description: Employee spouse phone
  *          employeeId:
  *            type: number
  *            description: Employee id
@@ -58,6 +61,9 @@ export default class EmployeeSpouse extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeSpouseBirthday: string
+
+  @column()
+  declare employeeSpousePhone: string
 
   @column()
   declare employeeId: number

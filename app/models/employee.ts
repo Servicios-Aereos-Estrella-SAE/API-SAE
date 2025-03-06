@@ -74,6 +74,9 @@ import EmployeeChildren from './employee_children.js'
  *          employeeTypeId:
  *            type: number
  *            description: Employee type id
+ *          employeeBusinessEmail:
+ *            type: string
+ *            description: Employee business email
  *          employeeTerminatedDate:
  *            type: string
  *            description: Employee terminated date
@@ -142,6 +145,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeTypeId: number
+
+  @column()
+  declare employeeBusinessEmail: string
 
   @column()
   declare employeeTypeOfContract: string
