@@ -76,7 +76,7 @@ export default class Shift extends BaseModel {
   declare shiftCalculateFlag: string
 
   @column()
-  declare shiftDayStart: number
+  declare shiftDayStart: number | null
 
   @column()
   declare shiftTimeStart: string
