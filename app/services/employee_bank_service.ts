@@ -1,5 +1,6 @@
 import Employee from '#models/employee'
 import EmployeeBank from '#models/employee_bank'
+import crypto from 'node:crypto'
 
 export default class EmployeeBankService {
   async create(employeeBank: EmployeeBank) {
@@ -11,6 +12,7 @@ export default class EmployeeBankService {
     newEmployeeBank.employeeBankAccountNumberLastNumbers =
       employeeBank.employeeBankAccountNumberLastNumbers
     newEmployeeBank.employeeBankAccountType = employeeBank.employeeBankAccountType
+    newEmployeeBank.employeeBankAccountCurrencyType = employeeBank.employeeBankAccountCurrencyType
     newEmployeeBank.employeeId = employeeBank.employeeId
     newEmployeeBank.bankId = employeeBank.bankId
     await newEmployeeBank.save()
@@ -25,6 +27,8 @@ export default class EmployeeBankService {
     currentEmployeeBank.employeeBankAccountNumberLastNumbers =
       employeeBank.employeeBankAccountNumberLastNumbers
     currentEmployeeBank.employeeBankAccountType = employeeBank.employeeBankAccountType
+    currentEmployeeBank.employeeBankAccountCurrencyType =
+      employeeBank.employeeBankAccountCurrencyType
     currentEmployeeBank.bankId = employeeBank.bankId
     await currentEmployeeBank.save()
     return currentEmployeeBank
@@ -39,6 +43,7 @@ export default class EmployeeBankService {
     const employeeBank = await EmployeeBank.query()
       .whereNull('employee_bank_deleted_at')
       .where('employee_bank_id', employeeBankId)
+      .preload('bank')
       .first()
     return employeeBank ? employeeBank : null
   }
@@ -65,5 +70,20 @@ export default class EmployeeBankService {
       message: 'Info verify successfully',
       data: { ...employeeBank },
     }
+  }
+
+  encrypt(value: string, secretKey: string): string {
+    // Generate a random initialization vector (IV)
+    const iv = crypto.randomBytes(16)
+
+    // Create the cipher using AES-256-CTR
+    const cipher = crypto.createCipheriv('aes-256-ctr', Buffer.from(secretKey, 'utf-8'), iv)
+
+    // Perform the encryption
+    let encrypted = cipher.update(value, 'utf8', 'hex')
+    encrypted += cipher.final('hex')
+
+    // Return the IV along with the encrypted value so it can be decrypted later
+    return `${iv.toString('hex')}:${encrypted}`
   }
 }

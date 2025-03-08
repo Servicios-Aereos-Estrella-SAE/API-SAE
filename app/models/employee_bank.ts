@@ -1,8 +1,10 @@
 /* eslint-disable max-len */
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
+import Bank from './bank.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 /**
  * @swagger
  * components:
@@ -28,6 +30,9 @@ import { DateTime } from 'luxon'
  *          employeeBankAccountType:
  *            type: string
  *            description: Employee bank account type
+ *          employeeBankAccountCurrencyType:
+ *            type: string
+ *            description: Employee bank account currency type
  *          employeeId:
  *            type: number
  *            description: Employee id
@@ -63,6 +68,9 @@ export default class EmployeeBank extends compose(BaseModel, SoftDeletes) {
   declare employeeBankAccountType: string
 
   @column()
+  declare employeeBankAccountCurrencyType: string
+
+  @column()
   declare employeeId: number
 
   @column()
@@ -76,4 +84,9 @@ export default class EmployeeBank extends compose(BaseModel, SoftDeletes) {
 
   @column.dateTime({ columnName: 'employee_bank_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => Bank, {
+    foreignKey: 'bankId',
+  })
+  declare bank: BelongsTo<typeof Bank>
 }

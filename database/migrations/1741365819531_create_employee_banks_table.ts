@@ -11,6 +11,7 @@ export default class extends BaseSchema {
       table.string('employee_bank_account_number', 250).notNullable()
       table.string('employee_bank_account_number_last_numbers', 4).notNullable()
       table.string('employee_bank_account_type', 50).nullable()
+      table.enum('employee_bank_account_currency_type', ['MXN', 'USD']).defaultTo('MXN')
 
       table.integer('employee_id').unsigned().notNullable()
       table.integer('bank_id').unsigned().notNullable()

@@ -20,6 +20,7 @@ import BusinessUnit from '#models/business_unit'
 import EmployeeType from '#models/employee_type'
 import axios from 'axios'
 import EmployeeContract from '#models/employee_contract'
+import EmployeeBank from '#models/employee_bank'
 
 export default class EmployeeService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -825,5 +826,16 @@ export default class EmployeeService {
       .paginate(1, 9999999)
 
     return employeeContracts ? employeeContracts : []
+  }
+
+  async getBanks(employeeId: number) {
+    const employeeBanks = await EmployeeBank.query()
+      .whereNull('employee_bank_deleted_at')
+      .where('employee_id', employeeId)
+      .preload('bank')
+      .orderBy('employee_id')
+      .paginate(1, 9999999)
+
+    return employeeBanks ? employeeBanks : []
   }
 }
