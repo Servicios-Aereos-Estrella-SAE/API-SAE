@@ -111,19 +111,19 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
   declare employeePhoto: string
 
   @column.date()
-  declare employeeHireDate: DateTime
+  declare employeeHireDate: DateTime | null
 
   @column()
   declare companyId: number
 
   @column()
-  declare departmentId: number
+  declare departmentId: number | null
 
   @column()
   declare departmentSyncId: number
 
   @column()
-  declare positionId: number
+  declare positionId: number | null
 
   @column()
   declare positionSyncId: number

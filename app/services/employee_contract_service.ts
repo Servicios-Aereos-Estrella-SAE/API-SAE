@@ -2,6 +2,10 @@
 import EmployeeContract from '#models/employee_contract'
 import EmployeeContractType from '#models/employee_contract_type'
 import Employee from '#models/employee'
+import Department from '#models/department'
+import Position from '#models/position'
+import { DateTime } from 'luxon'
+import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeContractService {
   async create(employeeContract: EmployeeContract) {
@@ -15,7 +19,12 @@ export default class EmployeeContractService {
     newEmployeeContract.employeeContractFile = employeeContract.employeeContractFile
     newEmployeeContract.employeeContractTypeId = employeeContract.employeeContractTypeId
     newEmployeeContract.employeeId = employeeContract.employeeId
+    newEmployeeContract.departmentId = employeeContract.departmentId
+    newEmployeeContract.positionId = employeeContract.positionId
+    newEmployeeContract.payrollBusinessUnitId = employeeContract.payrollBusinessUnitId
     await newEmployeeContract.save()
+    await this.setHireDateFromFirstContract(employeeContract)
+    await this.setDepartmentAndPositionFromLastContract(employeeContract)
     return newEmployeeContract
   }
 
@@ -29,12 +38,19 @@ export default class EmployeeContractService {
     currentEmployeeContract.employeeContractFile = employeeContract.employeeContractFile
     currentEmployeeContract.employeeContractTypeId = employeeContract.employeeContractTypeId
     currentEmployeeContract.employeeId = employeeContract.employeeId
+    currentEmployeeContract.departmentId = employeeContract.departmentId
+    currentEmployeeContract.positionId = employeeContract.positionId
+    currentEmployeeContract.payrollBusinessUnitId = employeeContract.payrollBusinessUnitId
     await currentEmployeeContract.save()
+    await this.setHireDateFromFirstContract(employeeContract)
+    await this.setDepartmentAndPositionFromLastContract(employeeContract)
     return currentEmployeeContract
   }
 
   async delete(currentEmployeeContract: EmployeeContract) {
     await currentEmployeeContract.delete()
+    await this.setHireDateFromFirstContract(currentEmployeeContract)
+    await this.setDepartmentAndPositionFromLastContract(currentEmployeeContract)
     return currentEmployeeContract
   }
 
@@ -43,6 +59,9 @@ export default class EmployeeContractService {
       .whereNull('employee_contract_deleted_at')
       .where('employee_contract_id', employeeContractId)
       .preload('employeeContractType')
+      .preload('department')
+      .preload('position')
+      .preload('payrollBusinessUnit')
       .first()
     return employeeContract ? employeeContract : null
   }
@@ -73,6 +92,48 @@ export default class EmployeeContractService {
         type: 'warning',
         title: 'The employee was not found',
         message: 'The employee was not found with the entered ID',
+        data: { ...employeeContract },
+      }
+    }
+    const existDepartment = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', employeeContract.departmentId)
+      .first()
+
+    if (!existDepartment && employeeContract.departmentId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The department was not found',
+        message: 'The department was not found with the entered ID',
+        data: { ...employeeContract },
+      }
+    }
+    const existPosition = await Position.query()
+      .whereNull('position_deleted_at')
+      .where('position_id', employeeContract.positionId)
+      .first()
+
+    if (!existPosition && employeeContract.positionId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The position was not found',
+        message: 'The position was not found with the entered ID',
+        data: { ...employeeContract },
+      }
+    }
+    const existPayrollBusinessUnit = await BusinessUnit.query()
+      .whereNull('business_unit_deleted_at')
+      .where('business_unit_id', employeeContract.payrollBusinessUnitId)
+      .first()
+
+    if (!existPayrollBusinessUnit && employeeContract.payrollBusinessUnitId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The business unit was not found',
+        message: 'The business unit was not found with the entered ID',
         data: { ...employeeContract },
       }
     }
@@ -112,6 +173,73 @@ export default class EmployeeContractService {
       title: 'Info verifiy successfully',
       message: 'Info verifiy successfully',
       data: { ...employeeContract },
+    }
+  }
+
+  async setHireDateFromFirstContract(employeeContract: EmployeeContract) {
+    const firstEmployeeContract = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .orderBy('employeeContractStartDate', 'asc')
+      .first()
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .first()
+    if (employee) {
+      if (firstEmployeeContract) {
+        const hireDate =
+          DateTime.fromISO(firstEmployeeContract.employeeContractStartDate).isValid
+            ? DateTime.fromISO(firstEmployeeContract.employeeContractStartDate) // Deja hireDate como DateTime
+            : DateTime.fromJSDate(new Date(firstEmployeeContract.employeeContractStartDate))
+        employee.employeeHireDate = hireDate
+        await employee.save()
+      } else {
+        employee.employeeHireDate = null
+        await employee.save()
+      }
+    }
+    
+  }
+
+  async setDepartmentAndPositionFromLastContract(employeeContract: EmployeeContract) {
+    const firstEmployeeContract = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .orderBy('employeeContractStartDate', 'desc')
+      .first()
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .first()
+    if (employee) {
+      if (firstEmployeeContract) {
+        employee.departmentId = firstEmployeeContract.departmentId
+        employee.positionId = firstEmployeeContract.positionId
+        await employee.save()
+      } else {
+        const department = await Department.query()
+          .whereNull('department_deleted_at')
+          .where('department_name', 'Sin departamento')
+          .first()
+        if (department) {
+          employee.departmentId = department.departmentId
+        } else {
+          employee.departmentId = null
+        }
+        const position = await Position.query()
+          .whereNull('position_deleted_at')
+          .where('position_name', 'Sin posición')
+          .first()
+        if (position) {
+          employee.positionId = position.positionId
+        } else {
+          employee.positionId = null
+        }
+        
+       
+        await employee.save()
+      }
     }
   }
 }
