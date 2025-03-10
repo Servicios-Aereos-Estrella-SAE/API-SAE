@@ -112,6 +112,9 @@ export default class EmployeeService {
               personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
                 `%${filters.search.toUpperCase()}%`,
               ])
+              personQuery.orWhereRaw('UPPER(person_business_email) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
             })
         })
       })
@@ -173,6 +176,7 @@ export default class EmployeeService {
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     newEmployee.employeeTypeId = employee.employeeTypeId
+    newEmployee.employeeBusinessEmail = employee.employeeBusinessEmail
     await newEmployee.save()
     await newEmployee.load('businessUnit')
     return newEmployee
@@ -193,6 +197,7 @@ export default class EmployeeService {
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     currentEmployee.employeeTypeId = employee.employeeTypeId
+    currentEmployee.employeeBusinessEmail = employee.employeeBusinessEmail
     await currentEmployee.save()
     await currentEmployee.load('businessUnit')
     return currentEmployee
@@ -231,6 +236,7 @@ export default class EmployeeService {
       .preload('person')
       .preload('businessUnit')
       .preload('spouse')
+      .preload('emergencyContact')
       .preload('children')
       .withTrashed()
       .first()
@@ -373,6 +379,23 @@ export default class EmployeeService {
         type: 'warning',
         title: 'The employee code already exists for another employee',
         message: `The employee resource cannot be ${action} because the code is already assigned to another employee`,
+        data: { ...employee },
+      }
+    }
+    const existBusinessEmail = await Employee.query()
+      .if(employee.employeeId > 0, (query) => {
+        query.whereNot('employee_id', employee.employeeId)
+      })
+      .whereNull('employee_deleted_at')
+      .where('employee_business_email', employee.employeeBusinessEmail)
+      .first()
+
+    if (existBusinessEmail && employee.employeeBusinessEmail) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee business email already exists for another employee',
+        message: `The employee resource cannot be ${action} because the business email is already assigned to another employee`,
         data: { ...employee },
       }
     }

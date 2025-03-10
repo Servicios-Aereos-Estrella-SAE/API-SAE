@@ -12,6 +12,7 @@ import EmployeeType from './employee_type.js'
 import EmployeeAddress from './employee_address.js'
 import EmployeeSpouse from './employee_spouse.js'
 import EmployeeChildren from './employee_children.js'
+import EmployeeEmergencyContact from './employee_emergency_contact.js'
 
 /**
  * @swagger
@@ -74,6 +75,9 @@ import EmployeeChildren from './employee_children.js'
  *          employeeTypeId:
  *            type: number
  *            description: Employee type id
+ *          employeeBusinessEmail:
+ *            type: string
+ *            description: Employee business email
  *          employeeTerminatedDate:
  *            type: string
  *            description: Employee terminated date
@@ -142,6 +146,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeTypeId: number
+
+  @column()
+  declare employeeBusinessEmail: string
 
   @column()
   declare employeeTypeOfContract: string
@@ -222,4 +229,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare children: HasMany<typeof EmployeeChildren>
+
+  @hasOne(() => EmployeeEmergencyContact, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.whereNull('employee_emergency_contact_deleted_at')
+    },
+  })
+  declare emergencyContact: HasOne<typeof EmployeeEmergencyContact>
 }

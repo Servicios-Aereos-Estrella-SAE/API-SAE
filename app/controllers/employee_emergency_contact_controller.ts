@@ -1,21 +1,21 @@
-import EmployeeSpouse from '#models/employee_spouse'
-import EmployeeSpouseService from '#services/employee_spouse_service'
+import EmployeeEmergencyContact from '#models/employee_emergency_contact'
+import EmployeeEmergencyContactService from '#services/employee_emergency_contact_service'
 import {
-  createEmployeeSpouseValidator,
-  updateEmployeeSpouseValidator,
-} from '#validators/employee_spouse'
+  createEmployeeEmergencyContactValidator,
+  updateEmployeeEmergencyContactValidator,
+} from '#validators/employee_emergency_contact'
 import { HttpContext } from '@adonisjs/core/http'
 
-export default class EmployeeSpouseController {
+export default class EmployeeEmergencyContactController {
   /**
    * @swagger
-   * /api/employee-spouses:
+   * /api/employee-emergency-contacts:
    *   post:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Employee Spouses
-   *     summary: create new employee spouse
+   *       - Employee Emergency Contacts
+   *     summary: create new employee emergency contact
    *     produces:
    *       - application/json
    *     requestBody:
@@ -24,35 +24,29 @@ export default class EmployeeSpouseController {
    *           schema:
    *             type: object
    *             properties:
-   *               employeeSpouseFirstname:
+   *               employeeEmergencyContactFirstname:
    *                 type: string
-   *                 description: Employee spouse first name
+   *                 description: Employee emergency contact first name
    *                 required: true
    *                 default: ''
-   *               employeeSpouseLastname:
+   *               employeeEmergencyContactLastname:
    *                 type: string
-   *                 description: Employee spouse last name
+   *                 description: Employee emergency contact last name
    *                 required: true
    *                 default: ''
-   *               employeeSpouseSecondLastname:
+   *               employeeEmergencyContactSecondLastname:
    *                 type: string
-   *                 description: Employee spouse second last name
+   *                 description: Employee emergency contact second last name
    *                 required: true
    *                 default: ''
-   *               employeeSpouseOcupation:
+   *               employeeEmergencyContactRelationship:
    *                 type: string
-   *                 description: Employee spouse ocupation
+   *                 description: Employee emergency contact relationship
    *                 required: false
    *                 default: ''
-   *               employeeSpouseBirthday:
+   *               employeeEmergencyContactPhone:
    *                 type: string
-   *                 format: date
-   *                 description: Employee spouse birthday (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               employeeSpousePhone:
-   *                 type: string
-   *                 description: Employee spouse phone
+   *                 description: Employee emergency contact phone
    *                 required: false
    *                 default: ''
    *               employeeId:
@@ -143,45 +137,49 @@ export default class EmployeeSpouseController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const employeeSpouseFirstname = request.input('employeeSpouseFirstname')
-      const employeeSpouseLastname = request.input('employeeSpouseLastname')
-      const employeeSpouseSecondLastname = request.input('employeeSpouseSecondLastname')
-      const employeeSpouseOcupation = request.input('employeeSpouseOcupation')
+      const employeeEmergencyContactFirstname = request.input('employeeEmergencyContactFirstname')
+      const employeeEmergencyContactLastname = request.input('employeeEmergencyContactLastname')
+      const employeeEmergencyContactSecondLastname = request.input(
+        'employeeEmergencyContactSecondLastname'
+      )
+      const employeeEmergencyContactRelationship = request.input(
+        'employeeEmergencyContactRelationship'
+      )
       const employeeId = request.input('employeeId')
-      let employeeSpouseBirthday = request.input('employeeSpouseBirthday')
-      employeeSpouseBirthday = employeeSpouseBirthday
-        ? (employeeSpouseBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
+      let employeeEmergencyContactBirthday = request.input('employeeEmergencyContactBirthday')
+      employeeEmergencyContactBirthday = employeeEmergencyContactBirthday
+        ? (employeeEmergencyContactBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
         : null
-      const employeeSpousePhone = request.input('employeeSpousePhone')
-      const employeeSpouse = {
-        employeeSpouseFirstname: employeeSpouseFirstname,
-        employeeSpouseLastname: employeeSpouseLastname,
-        employeeSpouseSecondLastname: employeeSpouseSecondLastname,
-        employeeSpouseOcupation: employeeSpouseOcupation,
-        employeeSpouseBirthday: employeeSpouseBirthday,
-        employeeSpousePhone: employeeSpousePhone,
+      const employeeEmergencyContactPhone = request.input('employeeEmergencyContactPhone')
+      const employeeEmergencyContact = {
+        employeeEmergencyContactFirstname: employeeEmergencyContactFirstname,
+        employeeEmergencyContactLastname: employeeEmergencyContactLastname,
+        employeeEmergencyContactSecondLastname: employeeEmergencyContactSecondLastname,
+        employeeEmergencyContactRelationship: employeeEmergencyContactRelationship,
+        employeeEmergencyContactPhone: employeeEmergencyContactPhone,
         employeeId: employeeId,
-      } as EmployeeSpouse
-      const employeeSpouseService = new EmployeeSpouseService()
-      const exist = await employeeSpouseService.verifyInfoExist(employeeSpouse)
+      } as EmployeeEmergencyContact
+      const employeeEmergencyContactService = new EmployeeEmergencyContactService()
+      const exist = await employeeEmergencyContactService.verifyInfoExist(employeeEmergencyContact)
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
           type: exist.type,
           title: exist.title,
           message: exist.message,
-          data: { ...employeeSpouse },
+          data: { ...employeeEmergencyContact },
         }
       }
-      await request.validateUsing(createEmployeeSpouseValidator)
-      const newEmployeeSpouse = await employeeSpouseService.create(employeeSpouse)
-      if (newEmployeeSpouse) {
+      await request.validateUsing(createEmployeeEmergencyContactValidator)
+      const newEmployeeEmergencyContact =
+        await employeeEmergencyContactService.create(employeeEmergencyContact)
+      if (newEmployeeEmergencyContact) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Employee Spouse',
-          message: 'The employee spouse was created successfully',
-          data: { employeeSpouse: newEmployeeSpouse },
+          title: 'Employee emergency contact',
+          message: 'The employee emergency contact was created successfully',
+          data: { employeeEmergencyContact: newEmployeeEmergencyContact },
         }
       }
     } catch (error) {
@@ -199,21 +197,21 @@ export default class EmployeeSpouseController {
 
   /**
    * @swagger
-   * /api/employee-spouses/{employeeSpouseId}:
+   * /api/employee-emergency-contacts/{employeeEmergencyContactId}:
    *   put:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Employee Spouses
-   *     summary: update empoyee spouse
+   *       - Employee Emergency Contacts
+   *     summary: update empoyee emergency contact
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: employeeSpouseId
+   *         name: employeeEmergencyContactId
    *         schema:
    *           type: number
-   *         description: Employee spouse id
+   *         description: Employee emergency contact id
    *         required: true
    *     requestBody:
    *       content:
@@ -221,35 +219,29 @@ export default class EmployeeSpouseController {
    *           schema:
    *             type: object
    *             properties:
-   *               employeeSpouseFirstname:
+   *               employeeEmergencyContactFirstname:
    *                 type: string
-   *                 description: Employee spouse first name
+   *                 description: Employee emergency contact first name
    *                 required: true
    *                 default: ''
-   *               employeeSpouseLastname:
+   *               employeeEmergencyContactLastname:
    *                 type: string
-   *                 description: Employee spouse last name
+   *                 description: Employee emergency contact last name
    *                 required: true
    *                 default: ''
-   *               employeeSpouseSecondLastname:
+   *               employeeEmergencyContactSecondLastname:
    *                 type: string
-   *                 description: Employee spouse second last name
+   *                 description: Employee emergency contact second last name
    *                 required: true
    *                 default: ''
-   *               employeeSpouseOcupation:
+   *               employeeEmergencyContactRelationship:
    *                 type: string
-   *                 description: Employee spouse ocupation
+   *                 description: Employee emergency contact relationship
    *                 required: false
    *                 default: ''
-   *               employeeSpouseBirthday:
+   *               employeeEmergencyContactPhone:
    *                 type: string
-   *                 format: date
-   *                 description: Employee spouse birthday (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               employeeSpousePhone:
-   *                 type: string
-   *                 description: Employee spouse phone
+   *                 description: Employee emergency contact phone
    *                 required: false
    *                 default: ''
    *     responses:
@@ -335,61 +327,63 @@ export default class EmployeeSpouseController {
    */
   async update({ request, response }: HttpContext) {
     try {
-      const employeeSpouseId = request.param('employeeSpouseId')
-      const employeeSpouseFirstname = request.input('employeeSpouseFirstname')
-      const employeeSpouseLastname = request.input('employeeSpouseLastname')
-      const employeeSpouseSecondLastname = request.input('employeeSpouseSecondLastname')
-      const employeeSpouseOcupation = request.input('employeeSpouseOcupation')
-      let employeeSpouseBirthday = request.input('employeeSpouseBirthday')
-      employeeSpouseBirthday = employeeSpouseBirthday
-        ? (employeeSpouseBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
+      const employeeEmergencyContactId = request.param('employeeEmergencyContactId')
+      const employeeEmergencyContactFirstname = request.input('employeeEmergencyContactFirstname')
+      const employeeEmergencyContactLastname = request.input('employeeEmergencyContactLastname')
+      const employeeEmergencyContactSecondLastname = request.input(
+        'employeeEmergencyContactSecondLastname'
+      )
+      const employeeEmergencyContactRelationship = request.input(
+        'employeeEmergencyContactRelationship'
+      )
+      let employeeEmergencyContactBirthday = request.input('employeeEmergencyContactBirthday')
+      employeeEmergencyContactBirthday = employeeEmergencyContactBirthday
+        ? (employeeEmergencyContactBirthday.split('T')[0] + ' 00:000:00').replace('"', '')
         : null
-      const employeeSpousePhone = request.input('employeeSpousePhone')
-      const employeeSpouse = {
-        employeeSpouseId: employeeSpouseId,
-        employeeSpouseFirstname: employeeSpouseFirstname,
-        employeeSpouseLastname: employeeSpouseLastname,
-        employeeSpouseSecondLastname: employeeSpouseSecondLastname,
-        employeeSpouseOcupation: employeeSpouseOcupation,
-        employeeSpouseBirthday: employeeSpouseBirthday,
-        employeeSpousePhone: employeeSpousePhone,
-      } as EmployeeSpouse
-      if (!employeeSpouseId) {
+      const employeeEmergencyContactPhone = request.input('employeeEmergencyContactPhone')
+      const employeeEmergencyContact = {
+        employeeEmergencyContactId: employeeEmergencyContactId,
+        employeeEmergencyContactFirstname: employeeEmergencyContactFirstname,
+        employeeEmergencyContactLastname: employeeEmergencyContactLastname,
+        employeeEmergencyContactSecondLastname: employeeEmergencyContactSecondLastname,
+        employeeEmergencyContactRelationship: employeeEmergencyContactRelationship,
+        employeeEmergencyContactPhone: employeeEmergencyContactPhone,
+      } as EmployeeEmergencyContact
+      if (!employeeEmergencyContactId) {
         response.status(400)
         return {
           type: 'warning',
           title: 'Missing data to process',
-          message: 'The employee spouse Id was not found',
-          data: { ...employeeSpouse },
+          message: 'The employee emergency contact Id was not found',
+          data: { ...employeeEmergencyContact },
         }
       }
-
-      const currentEmployeeSpouse = await EmployeeSpouse.query()
-        .whereNull('employee_spouse_deleted_at')
-        .where('employee_spouse_id', employeeSpouseId)
+      const currentEmployeeEmergencyContact = await EmployeeEmergencyContact.query()
+        .whereNull('employee_emergency_contact_deleted_at')
+        .where('employee_emergency_contact_id', employeeEmergencyContactId)
         .first()
-      if (!currentEmployeeSpouse) {
+      if (!currentEmployeeEmergencyContact) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The employee spouse was not found',
-          message: 'The employee spouse was not found with the entered ID',
-          data: { ...employeeSpouse },
+          title: 'The employee emergency contact was not found',
+          message: 'The employee emergency contact was not found with the entered ID',
+          data: { ...employeeEmergencyContact },
         }
       }
-      const employeeSpouseService = new EmployeeSpouseService()
-      await request.validateUsing(updateEmployeeSpouseValidator)
-      const updateEmployeeSpouse = await employeeSpouseService.update(
-        currentEmployeeSpouse,
-        employeeSpouse
+      const employeeEmergencyContactService = new EmployeeEmergencyContactService()
+      await request.validateUsing(updateEmployeeEmergencyContactValidator)
+      const updateEmployeeEmergencyContact = await employeeEmergencyContactService.update(
+        currentEmployeeEmergencyContact,
+        employeeEmergencyContact
       )
-      if (updateEmployeeSpouse) {
+      if (updateEmployeeEmergencyContact) {
         response.status(200)
         return {
           type: 'success',
-          title: 'Employee spouses',
-          message: 'The employee spouse was updated successfully',
-          data: { employeeSpouse: updateEmployeeSpouse },
+          title: 'Employee emergency contacts',
+          message: 'The employee emergency contact was updated successfully',
+          data: { employeeEmergencyContact: updateEmployeeEmergencyContact },
         }
       }
     } catch (error) {
@@ -407,21 +401,21 @@ export default class EmployeeSpouseController {
 
   /**
    * @swagger
-   * /api/employee-spouses/{employeeSpouseId}:
+   * /api/employee-emergency-contacts/{employeeEmergencyContactId}:
    *   delete:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Employee Spouses
-   *     summary: delete employee spouse
+   *       - Employee Emergency Contacts
+   *     summary: delete employee emergency contact
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: employeeSpouseId
+   *         name: employeeEmergencyContactId
    *         schema:
    *           type: number
-   *         description: Employee spouse id
+   *         description: Employee emergency contact id
    *         required: true
    *     responses:
    *       '201':
@@ -506,38 +500,41 @@ export default class EmployeeSpouseController {
    */
   async delete({ request, response }: HttpContext) {
     try {
-      const employeeSpouseId = request.param('employeeSpouseId')
-      if (!employeeSpouseId) {
+      const employeeEmergencyContactId = request.param('employeeEmergencyContactId')
+      if (!employeeEmergencyContactId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The employee spouse Id was not found',
+          title: 'The employee emergency contact Id was not found',
           message: 'Missing data to process',
-          data: { employeeSpouseId },
+          data: { employeeEmergencyContactId },
         }
       }
-      const currentEmployeeSpouse = await EmployeeSpouse.query()
-        .whereNull('emoloyee_spouse_deleted_at')
-        .where('employee_spouse_id', employeeSpouseId)
+
+      const currentEmployeeEmergencyContact = await EmployeeEmergencyContact.query()
+        .whereNull('employee_emergency_contact_deleted_at')
+        .where('employee_emergency_contact_id', employeeEmergencyContactId)
         .first()
-      if (!currentEmployeeSpouse) {
+      if (!currentEmployeeEmergencyContact) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The employee spouse was not found',
-          message: 'The employee spouse was not found with the entered ID',
-          data: { employeeSpouseId },
+          title: 'The employee emergency contact was not found',
+          message: 'The employee emergency contact was not found with the entered ID',
+          data: { employeeEmergencyContactId },
         }
       }
-      const employeeSpouseService = new EmployeeSpouseService()
-      const deleteEmployeeSpouse = await employeeSpouseService.delete(currentEmployeeSpouse)
-      if (deleteEmployeeSpouse) {
+      const employeeEmergencyContactService = new EmployeeEmergencyContactService()
+      const deleteEmployeeEmergencyContact = await employeeEmergencyContactService.delete(
+        currentEmployeeEmergencyContact
+      )
+      if (deleteEmployeeEmergencyContact) {
         response.status(201)
         return {
           type: 'success',
-          title: 'Employee spouse',
-          message: 'The employee spouse was deleted successfully',
-          data: { employeeSpouse: deleteEmployeeSpouse },
+          title: 'Employee emergency contacts',
+          message: 'The employee emergency contact was deleted successfully',
+          data: { employeeEmergencyContact: deleteEmployeeEmergencyContact },
         }
       }
     } catch (error) {
@@ -553,21 +550,21 @@ export default class EmployeeSpouseController {
 
   /**
    * @swagger
-   * /api/employee-spouses/{employeeSpouseId}:
+   * /api/employee-emergency-contacts/{employeeEmergencyContactId}:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - Employee Spouses
-   *     summary: get employee spouse by id
+   *       - Employee Emergency Contacts
+   *     summary: get employee emergency contact by id
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: employeeSpouseId
+   *         name: employeeEmergencyContactId
    *         schema:
    *           type: number
-   *         description: Employee spouse id
+   *         description: Employee emergency contact id
    *         required: true
    *     responses:
    *       '200':
@@ -652,33 +649,35 @@ export default class EmployeeSpouseController {
    */
   async show({ request, response }: HttpContext) {
     try {
-      const employeeSpouseId = request.param('employeeSpouseId')
-      if (!employeeSpouseId) {
+      const employeeEmergencyContactId = request.param('employeeEmergencyContactId')
+      if (!employeeEmergencyContactId) {
         response.status(400)
         return {
           type: 'warning',
           title: 'Missing data to process',
-          message: 'The employee spouse Id was not found',
-          data: { employeeSpouseId },
+          message: 'The employee emergency contact Id was not found',
+          data: { employeeEmergencyContactId },
         }
       }
-      const employeeSpouseService = new EmployeeSpouseService()
-      const showEmployeeSpouse = await employeeSpouseService.show(employeeSpouseId)
-      if (!showEmployeeSpouse) {
+      const employeeEmergencyContactService = new EmployeeEmergencyContactService()
+      const showEmployeeEmergencyContact = await employeeEmergencyContactService.show(
+        employeeEmergencyContactId
+      )
+      if (!showEmployeeEmergencyContact) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The employee spouse was not found',
-          message: 'The employee spouse was not found with the entered ID',
-          data: { employeeSpouseId },
+          title: 'The employee emergency contact was not found',
+          message: 'The employee emergency contact was not found with the entered ID',
+          data: { employeeEmergencyContactId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: 'Employee spouse',
-          message: 'The employee spouse was found successfully',
-          data: { employeeSpouse: showEmployeeSpouse },
+          title: 'Employee emergency contacts',
+          message: 'The employee emergency contact was found successfully',
+          data: { employeeEmergencyContact: showEmployeeEmergencyContact },
         }
       }
     } catch (error) {

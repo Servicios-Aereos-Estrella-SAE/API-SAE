@@ -35,6 +35,19 @@ export const createEmployeeValidator = vine.compile(
         return !existingPersonId
       }),
     employeeTypeId: vine.number().min(1),
+    employeeBusinessEmail: vine
+      .string()
+      .trim()
+      .minLength(0)
+      .maxLength(200)
+      .unique(async (_db, value) => {
+        const existingEmail = await Employee.query()
+          .whereNull('employee_deleted_at')
+          .where('employee_business_email', value)
+          .first()
+        return !existingEmail
+      })
+      .optional(),
   })
 )
 
@@ -50,5 +63,6 @@ export const updateEmployeeValidator = vine.compile(
     positionId: vine.number().min(1),
     positionSyncId: vine.number().min(0).optional(),
     employeeTypeId: vine.number().min(1),
+    employeeBusinessEmail: vine.string().trim().minLength(0).maxLength(200),
   })
 )

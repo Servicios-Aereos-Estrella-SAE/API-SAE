@@ -20,6 +20,7 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *           type: string
  *           nullable: true
  *           description: Employee record property type
+ *           enum: [Text, File, Currency, Decimal, Number]
  *         employeeRecordPropertyCategoryName:
  *           type: string
  *           nullable: true
@@ -40,7 +41,7 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *       example:
  *         employeeRecordPropertyId: 1
  *         employeeRecordPropertyName: 'Idioma/Nivel'
- *         employeeRecordPropertyType: 'Texto'
+ *         employeeRecordPropertyType: 'Text'
  *         employeeRecordPropertyCategoryName: 'Idiomas'
  *         employeeRecordPropertyCreatedAt: '2025-02-12T12:00:00Z'
  *         employeeRecordPropertyUpdatedAt: '2025-02-12T13:00:00Z'

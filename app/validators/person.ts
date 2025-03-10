@@ -7,12 +7,20 @@ export const createPersonValidator = vine.compile(
     personLastname: vine.string().trim().minLength(0).maxLength(150),
     personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
+    personEmail: vine
+      .string()
+      .trim()
+      .minLength(0)
+      .maxLength(200)
+      .unique(async (_db, value) => {
+        const existingEmail = await Person.query()
+          .whereNull('person_deleted_at')
+          .where('person_email', value)
+          .first()
+        return !existingEmail
+      })
+      .optional(),
     personGender: vine.string().trim().minLength(0).maxLength(10).optional(),
-    // personBirthday: vine
-    //   .date({
-    //     formats: ['YYYY-MM-DD'],
-    //   })
-    //   .optional(),
     personCurp: vine
       .string()
       .trim()
@@ -67,12 +75,8 @@ export const updatePersonValidator = vine.compile(
     personLastname: vine.string().trim().minLength(0).maxLength(150),
     personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
+    personEmail: vine.string().trim().minLength(0).maxLength(200),
     personGender: vine.string().trim().minLength(0).maxLength(10).optional(),
-    // personBirthday: vine
-    //   .date({
-    //     formats: ['YYYY-MM-DD', 'x'],
-    //   })
-    //   .optional(),
     personCurp: vine.string().trim().minLength(0).maxLength(45).optional(),
     personRfc: vine.string().trim().minLength(0).maxLength(45).optional(),
     personImssNss: vine.string().trim().minLength(0).maxLength(45).optional(),
