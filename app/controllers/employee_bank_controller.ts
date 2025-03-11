@@ -432,7 +432,7 @@ export default class EmployeeBankController {
    *         description: Employee bank id
    *         required: true
    *     responses:
-   *       '201':
+   *       '200':
    *         description: Resource processed successfully
    *         content:
    *           application/json:
@@ -540,7 +540,7 @@ export default class EmployeeBankController {
       const employeeBankService = new EmployeeBankService()
       const deleteEmployeeBank = await employeeBankService.delete(currentEmployeeBank)
       if (deleteEmployeeBank) {
-        response.status(201)
+        response.status(200)
         return {
           type: 'success',
           title: 'Employee bank',
