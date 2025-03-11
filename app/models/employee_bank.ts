@@ -27,6 +27,12 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
  *          employeeBankAccountNumberLastNumbers:
  *            type: string
  *            description: Employee bank account number last 4 numbers
+ *          employeeBankAccountCardNumber:
+ *            type: string
+ *            description: Employee bank account card number
+ *          employeeBankAccountCardNumberLastNumbers:
+ *            type: string
+ *            description: Employee bank account card number last 4 numbers
  *          employeeBankAccountType:
  *            type: string
  *            description: Employee bank account type
@@ -63,6 +69,12 @@ export default class EmployeeBank extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeBankAccountNumberLastNumbers: string
+
+  @column()
+  declare employeeBankAccountCardNumber: string
+
+  @column()
+  declare employeeBankAccountCardNumberLastNumbers: string
 
   @column()
   declare employeeBankAccountType: string

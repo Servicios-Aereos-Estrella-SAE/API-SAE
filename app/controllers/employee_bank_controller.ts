@@ -30,7 +30,12 @@ export default class EmployeeBankController {
    *               employeeBankAccountNumber:
    *                 type: string
    *                 description: Employee bank account number
-   *                 required: true
+   *                 required: false
+   *                 default: ''
+   *               employeeBankAccountCardNumber:
+   *                 type: string
+   *                 description: Employee bank account card number
+   *                 required: false
    *                 default: ''
    *               employeeBankAccountType:
    *                 type: string
@@ -140,16 +145,16 @@ export default class EmployeeBankController {
     try {
       await request.validateUsing(createEmployeeBankValidator)
       const employeeBankService = new EmployeeBankService()
-      const employeeBankAccountClabe = request
-        .input('employeeBankAccountClabe')
-        .toString()
-        .replace(/\s+/g, '')
+      const employeeBankAccountClabe = request.input('employeeBankAccountClabe')
       const employeeBankAccountClabeLastNumbers = employeeBankAccountClabe.slice(-4)
-      const employeeBankAccountNumber = request
-        .input('employeeBankAccountNumber')
-        .toString()
-        .replace(/\s+/g, '')
-      const employeeBankAccountNumberLastNumbers = employeeBankAccountNumber.slice(-4)
+      const employeeBankAccountNumber = request.input('employeeBankAccountNumber')
+      const employeeBankAccountNumberLastNumbers = employeeBankAccountNumber
+        ? employeeBankAccountNumber.slice(-4)
+        : ''
+      const employeeBankAccountCardNumber = request.input('employeeBankAccountCardNumber')
+      const employeeBankAccountCardNumberLastNumbers = employeeBankAccountCardNumber
+        ? employeeBankAccountCardNumber.slice(-4)
+        : ''
       const employeeBankAccountType = request.input('employeeBankAccountType')
       const employeeBankAccountCurrencyType = request.input('employeeBankAccountCurrencyType')
       const employeeId = request.input('employeeId')
@@ -163,6 +168,11 @@ export default class EmployeeBankController {
           secretKey
         ),
         employeeBankAccountNumberLastNumbers: employeeBankAccountNumberLastNumbers,
+        employeeBankAccountCardNumber: employeeBankService.encrypt(
+          employeeBankAccountCardNumber,
+          secretKey
+        ),
+        employeeBankAccountCardNumberLastNumbers: employeeBankAccountCardNumberLastNumbers,
         employeeBankAccountType: employeeBankAccountType,
         employeeBankAccountCurrencyType: employeeBankAccountCurrencyType,
         employeeId: employeeId,
@@ -234,7 +244,12 @@ export default class EmployeeBankController {
    *               employeeBankAccountNumber:
    *                 type: string
    *                 description: Employee bank account number
-   *                 required: true
+   *                 required: false
+   *                 default: ''
+   *               employeeBankAccountCardNumber:
+   *                 type: string
+   *                 description: Employee bank account card number
+   *                 required: false
    *                 default: ''
    *               employeeBankAccountType:
    *                 type: string
@@ -339,16 +354,16 @@ export default class EmployeeBankController {
     try {
       const employeeBankService = new EmployeeBankService()
       const employeeBankId = request.param('employeeBankId')
-      const employeeBankAccountClabe = request
-        .input('employeeBankAccountClabe')
-        .toString()
-        .replace(/\s+/g, '')
+      const employeeBankAccountClabe = request.input('employeeBankAccountClabe')
       const employeeBankAccountClabeLastNumbers = employeeBankAccountClabe.slice(-4)
-      const employeeBankAccountNumber = request
-        .input('employeeBankAccountNumber')
-        .toString()
-        .replace(/\s+/g, '')
-      const employeeBankAccountNumberLastNumbers = employeeBankAccountNumber.slice(-4)
+      const employeeBankAccountNumber = request.input('employeeBankAccountNumber')
+      const employeeBankAccountNumberLastNumbers = employeeBankAccountNumber
+        ? employeeBankAccountNumber.slice(-4)
+        : ''
+      const employeeBankAccountCardNumber = request.input('employeeBankAccountCardNumber')
+      const employeeBankAccountCardNumberLastNumbers = employeeBankAccountCardNumber
+        ? employeeBankAccountCardNumber.slice(-4)
+        : ''
       const employeeBankAccountType = request.input('employeeBankAccountType')
       const employeeBankAccountCurrencyType = request.input('employeeBankAccountCurrencyType')
       const bankId = request.input('bankId')
@@ -362,6 +377,11 @@ export default class EmployeeBankController {
           secretKey
         ),
         employeeBankAccountNumberLastNumbers: employeeBankAccountNumberLastNumbers,
+        employeeBankAccountCardNumber: employeeBankService.encrypt(
+          employeeBankAccountCardNumber,
+          secretKey
+        ),
+        employeeBankAccountCardNumberLastNumbers: employeeBankAccountCardNumberLastNumbers,
         employeeBankAccountType: employeeBankAccountType,
         employeeBankAccountCurrencyType: employeeBankAccountCurrencyType,
         bankId: bankId,

@@ -11,6 +11,9 @@ export default class EmployeeBankService {
     newEmployeeBank.employeeBankAccountNumber = employeeBank.employeeBankAccountNumber
     newEmployeeBank.employeeBankAccountNumberLastNumbers =
       employeeBank.employeeBankAccountNumberLastNumbers
+    newEmployeeBank.employeeBankAccountCardNumber = employeeBank.employeeBankAccountCardNumber
+    newEmployeeBank.employeeBankAccountCardNumberLastNumbers =
+      employeeBank.employeeBankAccountCardNumberLastNumbers
     newEmployeeBank.employeeBankAccountType = employeeBank.employeeBankAccountType
     newEmployeeBank.employeeBankAccountCurrencyType = employeeBank.employeeBankAccountCurrencyType
     newEmployeeBank.employeeId = employeeBank.employeeId
@@ -26,6 +29,9 @@ export default class EmployeeBankService {
     currentEmployeeBank.employeeBankAccountNumber = employeeBank.employeeBankAccountNumber
     currentEmployeeBank.employeeBankAccountNumberLastNumbers =
       employeeBank.employeeBankAccountNumberLastNumbers
+    currentEmployeeBank.employeeBankAccountCardNumber = employeeBank.employeeBankAccountCardNumber
+    currentEmployeeBank.employeeBankAccountCardNumberLastNumbers =
+      employeeBank.employeeBankAccountCardNumberLastNumbers
     currentEmployeeBank.employeeBankAccountType = employeeBank.employeeBankAccountType
     currentEmployeeBank.employeeBankAccountCurrencyType =
       employeeBank.employeeBankAccountCurrencyType
@@ -73,6 +79,9 @@ export default class EmployeeBankService {
   }
 
   encrypt(value: string, secretKey: string): string {
+    if (!value) {
+      return ''
+    }
     // Generate a random initialization vector (IV)
     const iv = crypto.randomBytes(16)
 
