@@ -27,16 +27,6 @@ export default class ProceedingFileTypePropertyValueController {
    *           schema:
    *             type: object
    *             properties:
-   *               proceedingFileTypePropertyId:
-   *                 type: number
-   *                 description: proceeding file type property id
-   *                 required: true
-   *                 default: ''
-   *               employeeId:
-   *                 type: number
-   *                 description: Employee id
-   *                 required: true
-   *                 default: ''
    *               proceedingFileTypePropertyValueValueFile:
    *                 type: string
    *                 format: binary
@@ -53,6 +43,21 @@ export default class ProceedingFileTypePropertyValueController {
    *                 description: Proceeding file type property value active
    *                 required: true
    *                 default: true
+   *               proceedingFileTypePropertyId:
+   *                 type: number
+   *                 description: proceeding file type property id
+   *                 required: true
+   *                 default: ''
+   *               employeeId:
+   *                 type: number
+   *                 description: Employee id
+   *                 required: true
+   *                 default: ''
+   *               proceedingFileId:
+   *                 type: number
+   *                 description: Proceeding file id
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -136,17 +141,16 @@ export default class ProceedingFileTypePropertyValueController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      const proceedingFileTypePropertyId = request.input('proceedingFileTypePropertyId')
-      const employeeId = request.input('employeeId')
       const proceedingFileTypePropertyValueValue = request.input(
         'proceedingFileTypePropertyValueValue'
       )
       const proceedingFileTypePropertyValueActive = request.input(
         'proceedingFileTypePropertyValueActive'
       )
+      const proceedingFileTypePropertyId = request.input('proceedingFileTypePropertyId')
+      const employeeId = request.input('employeeId')
+      const proceedingFileId = request.input('proceedingFileId')
       const proceedingFileTypePropertyValue = {
-        proceedingFileTypePropertyId: proceedingFileTypePropertyId,
-        employeeId: employeeId,
         proceedingFileTypePropertyValueValue: proceedingFileTypePropertyValueValue,
         proceedingFileTypePropertyValueActive:
           proceedingFileTypePropertyValueActive &&
@@ -154,6 +158,9 @@ export default class ProceedingFileTypePropertyValueController {
             proceedingFileTypePropertyValueActive === '1')
             ? 1
             : 0,
+        proceedingFileTypePropertyId: proceedingFileTypePropertyId,
+        employeeId: employeeId,
+        proceedingFileId: proceedingFileId,
       } as ProceedingFileTypePropertyValue
       const proceedingFileTypePropertyValueService = new ProceedingFileTypePropertyValueService()
       const data = await request.validateUsing(createProceedingFileTypePropertyValueValidator)
@@ -350,7 +357,10 @@ export default class ProceedingFileTypePropertyValueController {
       )
       const proceedingFileTypePropertyValue = {
         proceedingFileTypePropertyValueId: proceedingFileTypePropertyValueId,
-        proceedingFileTypePropertyValueValue: proceedingFileTypePropertyValueValue,
+        proceedingFileTypePropertyValueValue:
+          proceedingFileTypePropertyValueValue !== 'null'
+            ? proceedingFileTypePropertyValueValue
+            : null,
         proceedingFileTypePropertyValueActive:
           proceedingFileTypePropertyValueActive &&
           (proceedingFileTypePropertyValueActive === 'true' ||
@@ -362,8 +372,8 @@ export default class ProceedingFileTypePropertyValueController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The proceeding file type property value Id was not found',
-          message: 'Missing data to process',
+          title: 'Missing data to process',
+          message: 'The proceeding file type property value Id was not found',
           data: { ...proceedingFileTypePropertyValue },
         }
       }

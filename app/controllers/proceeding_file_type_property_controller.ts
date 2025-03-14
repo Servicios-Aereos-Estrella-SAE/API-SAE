@@ -1,6 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { ProceedingFileTypePropertyFilterSearchInterface } from '../interfaces/proceeding_file_type_property_filter_search_interface.js'
 import ProceedingFileTypePropertyService from '#services/proceeding_file_type_property_service'
+import { ProceedingFileTypePropertyCategoryFilterInterface } from '../interfaces/proceeding_file_type_property_category_filter_interface.js'
 
 export default class ProceedingFileTypePropertyController {
   /**
@@ -159,6 +160,12 @@ export default class ProceedingFileTypePropertyController {
    *         description: Employee id
    *         schema:
    *           type: number
+   *       - name: proceedingFileId
+   *         in: query
+   *         required: true
+   *         description: Proceeding file id
+   *         schema:
+   *           type: number
    *       - name: proceedingFileTypeId
    *         in: query
    *         required: true
@@ -252,10 +259,18 @@ export default class ProceedingFileTypePropertyController {
   async getCategories({ request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
+      const proceedingFileId = request.input('proceedingFileId')
       const proceedingFileTypeId = request.input('proceedingFileTypeId')
       const proceedingFileTypePropertyService = new ProceedingFileTypePropertyService()
+      const proceedingFileTypePropertyCategoryFilter = {
+        employeeId,
+        proceedingFileId,
+        proceedingFileTypeId,
+      } as ProceedingFileTypePropertyCategoryFilterInterface
       const proceedingFileTypePropertiesCategories =
-        await proceedingFileTypePropertyService.getCategories(employeeId, proceedingFileTypeId)
+        await proceedingFileTypePropertyService.getCategories(
+          proceedingFileTypePropertyCategoryFilter
+        )
       response.status(200)
       return {
         type: 'success',

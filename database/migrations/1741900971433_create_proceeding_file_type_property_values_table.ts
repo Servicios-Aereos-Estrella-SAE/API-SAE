@@ -12,6 +12,9 @@ export default class extends BaseSchema {
         .foreign('proceeding_file_type_property_id', 'pf_type_property_fk')
         .references('proceeding_file_type_properties.proceeding_file_type_property_id')
 
+      table.integer('proceeding_file_id').unsigned().notNullable()
+      table.foreign('proceeding_file_id').references('proceeding_files.proceeding_file_id')
+
       table.integer('employee_id').unsigned().notNullable()
       table.foreign('employee_id').references('employees.employee_id')
 

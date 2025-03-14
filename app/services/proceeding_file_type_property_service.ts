@@ -1,5 +1,6 @@
 import ProceedingFileTypeProperty from '#models/proceeding_file_type_property'
 import ProceedingFileTypePropertyValue from '#models/proceeding_file_type_property_value'
+import { ProceedingFileTypePropertyCategoryFilterInterface } from '../interfaces/proceeding_file_type_property_category_filter_interface.js'
 import { ProceedingFileTypePropertyFilterSearchInterface } from '../interfaces/proceeding_file_type_property_filter_search_interface.js'
 import { ProceedingFileTypePropertyValueValueInterface } from '../interfaces/proceeding_file_type_property_value_value_interface.js'
 
@@ -19,14 +20,19 @@ export default class ProceedingFileTypePropertyService {
     return proceedingFileTypeProperties
   }
 
-  async getCategories(employeeId: number, proceedingFileTypeId: number) {
+  async getCategories(
+    proceedingFileTypePropertyCategoryFilter: ProceedingFileTypePropertyCategoryFilterInterface
+  ) {
     const proceedingFileTypePropertyValueCategories = await ProceedingFileTypeProperty.query()
       .select(
         'proceedingFileTypePropertyCategoryName',
         'proceedingFileTypePropertyName',
         'proceedingFileTypePropertyType'
       )
-      .where('proceeding_file_type_id', proceedingFileTypeId)
+      .where(
+        'proceeding_file_type_id',
+        proceedingFileTypePropertyCategoryFilter.proceedingFileTypeId
+      )
       .orderBy('proceedingFileTypePropertyCategoryName', 'asc')
     const categories: {
       [key: string]: {
@@ -57,14 +63,15 @@ export default class ProceedingFileTypePropertyService {
       if (proceedingFileTypeProperty) {
         const proceedingFileTypePropertyValues = await ProceedingFileTypePropertyValue.query()
           .whereNull('proceeding_file_type_property_value_deleted_at')
-          .where('employeeId', employeeId)
+          .where('employeeId', proceedingFileTypePropertyCategoryFilter.employeeId)
+          .where('proceedingFileId', proceedingFileTypePropertyCategoryFilter.proceedingFileId)
           .where(
             'proceedingFileTypePropertyId',
             proceedingFileTypeProperty.proceedingFileTypePropertyId
           )
           .where('proceedingFileTypePropertyValueActive', 1)
           .orderBy('proceedingFileTypePropertyId')
-        if (proceedingFileTypePropertyValues) {
+        if (proceedingFileTypePropertyValues && proceedingFileTypePropertyValues.length > 0) {
           for await (const proceedingFileTypePropertyValue of proceedingFileTypePropertyValues) {
             const newValue = {
               proceedingFileTypePropertyValueValue: numericTypes.includes(
@@ -82,6 +89,17 @@ export default class ProceedingFileTypePropertyService {
             }
             values.push(newValue)
           }
+        } else {
+          const newValue = {
+            proceedingFileTypePropertyValueValue: numericTypes.includes(
+              proceedingFileTypePropertyType
+            )
+              ? 0
+              : '',
+            proceedingFileTypePropertyValueId: 0,
+            files: [],
+          }
+          values.push(newValue)
         }
         categories[proceedingFileTypePropertyCategoryName].push({
           name: proceedingFileTypePropertyName,

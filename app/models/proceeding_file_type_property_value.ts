@@ -12,6 +12,13 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *         proceedingFileTypePropertyValueId:
  *           type: number
  *           description: Proceeding file type property value ID
+ *         proceedingFileTypePropertyValueValue:
+ *           type: string
+ *           nullable: true
+ *           description: Proceeding file type property value value
+ *         proceedingFileTypePropertyValueActive:
+ *           type: number
+ *           nullable: true
  *         proceedingFileTypePropertyId:
  *           type: number
  *           nullable: true
@@ -20,13 +27,10 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *           type: number
  *           nullable: true
  *           description: Employee id
- *         proceedingFileTypePropertyValueValue:
- *           type: string
- *           nullable: true
- *           description: Proceeding file type property value value
- *         proceedingFileTypePropertyValueActive:
+ *         proceedingFileId:
  *           type: number
  *           nullable: true
+ *           description: Proceeding file id
  *           description: Proceeding file type property value active
  *         proceedingFileTypePropertyValueCreatedAt:
  *           type: string
@@ -43,10 +47,11 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *           description: Date and time when the proceeding file type property value was soft-deleted
  *       example:
  *         proceedingFileTypePropertyValueId: 1
- *         proceedingFileTypePropertyId: 1
- *         employeeId: 1
  *         proceedingFileTypePropertyValueValue: 'Ingles'
  *         proceedingFileTypePropertyValueActive: 1
+ *         proceedingFileTypePropertyId: 1
+ *         employeeId: 1
+ *         proceedingFileId: 1
  *         proceedingFileTypePropertyValueCreatedAt: '2025-03-12T12:00:00Z'
  *         proceedingFileTypePropertyValueUpdatedAt: '2025-03-12T13:00:00Z'
  *         proceedingFileTypePropertyValueDeletedAt: null
@@ -57,16 +62,19 @@ export default class ProceedingFileTypePropertyValue extends compose(BaseModel, 
   declare proceedingFileTypePropertyValueId: number
 
   @column()
+  declare proceedingFileTypePropertyValueValue: string
+
+  @column()
+  declare proceedingFileTypePropertyValueActive: number
+
+  @column()
   declare proceedingFileTypePropertyId: number
 
   @column()
   declare employeeId: number
 
   @column()
-  declare proceedingFileTypePropertyValueValue: string
-
-  @column()
-  declare proceedingFileTypePropertyValueActive: number
+  declare proceedingFileId: number
 
   @column.dateTime({ autoCreate: true })
   declare proceedingFileTypePropertyValueCreatedAt: DateTime
