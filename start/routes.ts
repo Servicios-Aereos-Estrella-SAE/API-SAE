@@ -80,6 +80,8 @@ import './routes/employee_contract_routes.js'
 import './routes/employee_emergency_contact_routes.js'
 import './routes/bank_routes.js'
 import './routes/employee_bank_routes.js'
+import './routes/proceeding_file_type_property_routes.js'
+import './routes/proceeding_file_type_property_value_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'

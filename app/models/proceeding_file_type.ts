@@ -29,6 +29,9 @@ import ProceedingFileTypeEmail from './proceeding_file_type_email.js'
  *         parentId:
  *           type: number
  *           description: Recursive id, dependence by other proceeding file type (Same area to use)
+ *         proceedingFileTypeBusinessUnits:
+ *           type: string
+ *           description: Business units
  *         proceedingFileTypeCreatedAt:
  *           type: string
  *           format: date-time
@@ -55,6 +58,9 @@ export default class ProceedingFileType extends compose(BaseModel, SoftDeletes) 
 
   @column()
   declare proceedingFileTypeActive: number
+
+  @column()
+  declare proceedingFileTypeBusinessUnits: string
 
   @column()
   declare parentId: number

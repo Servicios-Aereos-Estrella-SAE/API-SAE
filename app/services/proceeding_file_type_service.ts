@@ -1,13 +1,26 @@
 import ProceedingFileType from '#models/proceeding_file_type'
 import { ProceedingFileTypeFilterSearchInterface } from '../interfaces/proceeding_file_type_filter_search_interface.js'
+import env from '#start/env'
 
 export default class ProceedingFileTypeService {
   async index(filters: ProceedingFileTypeFilterSearchInterface) {
+    const systemBussines = env.get('SYSTEM_BUSINESS')
+    const systemBussinesArray = systemBussines?.toString().split(',') as Array<string>
     const proceedingFileTypes = await ProceedingFileType.query()
       .if(filters.search, (query) => {
         query.whereRaw('UPPER(proceeding_file_type_name) LIKE ?', [
           `%${filters.search.toUpperCase()}%`,
         ])
+      })
+      .andWhere((query) => {
+        query.whereNotNull('proceeding_file_type_business_units')
+        query.andWhere((subQuery) => {
+          systemBussinesArray.forEach((business) => {
+            subQuery.orWhereRaw('FIND_IN_SET(?, proceeding_file_type_business_units)', [
+              business.trim(),
+            ])
+          })
+        })
       })
       .orderBy('proceeding_file_type_name', 'asc')
       .whereNull('parent_id')
@@ -16,9 +29,21 @@ export default class ProceedingFileTypeService {
   }
 
   async indexByArea(areaToUse: string) {
+    const systemBussines = env.get('SYSTEM_BUSINESS')
+    const systemBussinesArray = systemBussines?.toString().split(',') as Array<string>
     const proceedingFileTypes = await ProceedingFileType.query()
       .if(areaToUse, (query) => {
         query.where('proceeding_file_type_area_to_use', areaToUse)
+      })
+      .andWhere((query) => {
+        query.whereNotNull('proceeding_file_type_business_units')
+        query.andWhere((subQuery) => {
+          systemBussinesArray.forEach((business) => {
+            subQuery.orWhereRaw('FIND_IN_SET(?, proceeding_file_type_business_units)', [
+              business.trim(),
+            ])
+          })
+        })
       })
       .whereNull('parent_id')
       .preload('children')
