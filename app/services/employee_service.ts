@@ -113,7 +113,7 @@ export default class EmployeeService {
               personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
                 `%${filters.search.toUpperCase()}%`,
               ])
-              personQuery.orWhereRaw('UPPER(person_business_email) LIKE ?', [
+              personQuery.orWhereRaw('UPPER(person_email) LIKE ?', [
                 `%${filters.search.toUpperCase()}%`,
               ])
             })
