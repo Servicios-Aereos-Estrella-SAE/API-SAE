@@ -78,6 +78,8 @@ import './routes/work_disability_period_expense_routes.js'
 import './routes/employee_contract_type_routes.js'
 import './routes/employee_contract_routes.js'
 import './routes/employee_emergency_contact_routes.js'
+import './routes/bank_routes.js'
+import './routes/employee_bank_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
