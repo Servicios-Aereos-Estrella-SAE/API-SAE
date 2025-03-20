@@ -9,7 +9,6 @@ import FlightAttendantProceedingFile from './flight_attendant_proceeding_file.js
 import PilotProceedingFile from './pilot_proceeding_file.js'
 import CustomerProceedingFile from './customer_proceeding_file.js'
 import AircraftProceedingFile from './aircraft_proceeding_file.js'
-import ProceedingFileHasStatus from './proceeding_file_has_status.js'
 /**
  * @swagger
  * components:
@@ -35,36 +34,12 @@ import ProceedingFileHasStatus from './proceeding_file_has_status.js'
  *         proceedingFileActive:
  *           type: number
  *           description: Proceeding file status
- *         proceedingFileIdentify:
- *           type: string
- *           description: Proceeding file identify
  *         proceedingFileUuid:
  *           type: string
  *           description: Proceeding file uuid
  *         proceedingFileObservations:
  *           type: string
  *           description: Proceeding file observations
- *         proceedingFileAfacRights:
- *           type: string
- *           description: Proceeding file AFAC rights
- *         proceedingFileSignatureDate:
- *           type: string
- *           description: Proceeding file signature date
- *         proceedingFileEffectiveStartDate:
- *           type: string
- *           description: Proceeding file effective start date
- *         proceedingFileEffectiveEndDate:
- *           type: string
- *           description: Proceeding file effective end date
- *         proceedingFileInclusionInTheFilesDate:
- *           type: string
- *           description: Proceeding file inclusion in the files date
- *         proceedingFileOperationCost:
- *           type: number
- *           description: Proceeding file operation Cost
- *         proceedingFileCompleteProcess:
- *           type: number
- *           description: Proceeding file complete process
  *         proceedingFileCreatedAt:
  *           type: string
  *           format: date-time
@@ -96,34 +71,10 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
   declare proceedingFileActive: number
 
   @column()
-  declare proceedingFileIdentify: string
-
-  @column()
   declare proceedingFileUuid: string
 
   @column()
   declare proceedingFileObservations: string
-
-  @column()
-  declare proceedingFileAfacRights: string
-
-  @column()
-  declare proceedingFileSignatureDate: Date
-
-  @column()
-  declare proceedingFileEffectiveStartDate: Date
-
-  @column()
-  declare proceedingFileEffectiveEndDate: Date
-
-  @column()
-  declare proceedingFileInclusionInTheFilesDate: Date
-
-  @column()
-  declare proceedingFileOperationCost: number
-
-  @column()
-  declare proceedingFileCompleteProcess: number
 
   @column.dateTime({ autoCreate: true })
   declare proceedingFileCreatedAt: DateTime
@@ -138,15 +89,6 @@ export default class ProceedingFile extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'proceedingFileTypeId',
   })
   declare proceedingFileType: BelongsTo<typeof ProceedingFileType>
-
-  @hasOne(() => ProceedingFileHasStatus, {
-    foreignKey: 'proceedingFileId',
-    localKey: 'proceedingFileId',
-    onQuery: (query) => {
-      query.whereNull('deletedAt')
-    },
-  })
-  declare proceedingFileStatus: HasOne<typeof ProceedingFileHasStatus>
 
   @hasOne(() => AircraftProceedingFile, {
     foreignKey: 'proceedingFileId',
