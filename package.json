@@ -70,7 +70,8 @@
     "adonisjs-scheduler": "^1.0.5",
     "argon2": "^0.40.3",
     "aws-sdk": "^2.1176.0",
-    "axios": "^1.7.2",
+    "axios": "^1.8.4",
+    "axios-cookiejar-support": "^5.0.5",
     "edge.js": "^6.0.2",
     "exceljs": "^4.4.0",
     "husky": "^9.0.11",
@@ -83,6 +84,7 @@
     "reflect-metadata": "^0.2.2",
     "sharp": "^0.33.5",
     "socket.io": "^4.7.5",
+    "tough-cookie": "^5.1.2",
     "uuidv4": "^6.2.13",
     "v-calendar": "^2.4.2"
   },
