@@ -20,22 +20,11 @@ export default class ProceedingFileService {
     newProceedingFile.proceedingFileTypeId = proceedingFile.proceedingFileTypeId
     newProceedingFile.proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
     newProceedingFile.proceedingFileActive = proceedingFile.proceedingFileActive
-    newProceedingFile.proceedingFileIdentify = proceedingFile.proceedingFileIdentify
     newProceedingFile.proceedingFileUuid = proceedingFile.proceedingFileUuid
     newProceedingFile.proceedingFileObservations = proceedingFile.proceedingFileObservations
-    newProceedingFile.proceedingFileAfacRights = proceedingFile.proceedingFileAfacRights
-    newProceedingFile.proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
-    newProceedingFile.proceedingFileEffectiveStartDate =
-      proceedingFile.proceedingFileEffectiveStartDate
-    newProceedingFile.proceedingFileEffectiveEndDate = proceedingFile.proceedingFileEffectiveEndDate
-    newProceedingFile.proceedingFileInclusionInTheFilesDate =
-      proceedingFile.proceedingFileInclusionInTheFilesDate
-    newProceedingFile.proceedingFileOperationCost = proceedingFile.proceedingFileOperationCost
-    newProceedingFile.proceedingFileCompleteProcess = proceedingFile.proceedingFileCompleteProcess
     await newProceedingFile.save()
 
     await newProceedingFile.load('proceedingFileType')
-    await newProceedingFile.load('proceedingFileStatus')
     return newProceedingFile
   }
 
@@ -45,20 +34,8 @@ export default class ProceedingFileService {
     currentProceedingFile.proceedingFileTypeId = proceedingFile.proceedingFileTypeId
     currentProceedingFile.proceedingFileExpirationAt = proceedingFile.proceedingFileExpirationAt
     currentProceedingFile.proceedingFileActive = proceedingFile.proceedingFileActive
-    currentProceedingFile.proceedingFileIdentify = proceedingFile.proceedingFileIdentify
     currentProceedingFile.proceedingFileUuid = proceedingFile.proceedingFileUuid
     currentProceedingFile.proceedingFileObservations = proceedingFile.proceedingFileObservations
-    currentProceedingFile.proceedingFileAfacRights = proceedingFile.proceedingFileAfacRights
-    currentProceedingFile.proceedingFileSignatureDate = proceedingFile.proceedingFileSignatureDate
-    currentProceedingFile.proceedingFileEffectiveStartDate =
-      proceedingFile.proceedingFileEffectiveStartDate
-    currentProceedingFile.proceedingFileEffectiveEndDate =
-      proceedingFile.proceedingFileEffectiveEndDate
-    currentProceedingFile.proceedingFileInclusionInTheFilesDate =
-      proceedingFile.proceedingFileInclusionInTheFilesDate
-    currentProceedingFile.proceedingFileOperationCost = proceedingFile.proceedingFileOperationCost
-    currentProceedingFile.proceedingFileCompleteProcess =
-      proceedingFile.proceedingFileCompleteProcess
     await currentProceedingFile.save()
     return currentProceedingFile
   }
@@ -73,7 +50,6 @@ export default class ProceedingFileService {
       .whereNull('proceeding_file_deleted_at')
       .where('proceeding_file_id', proceedingFileId)
       .preload('proceedingFileType')
-      .preload('proceedingFileStatus')
       .first()
     return proceedingFile ? proceedingFile : null
   }
@@ -147,22 +123,6 @@ export default class ProceedingFileService {
       data: { ...proceedingFile },
     }
   }
-
-  /* private isValidDate(date: string) {
-    try {
-      date = date.replaceAll('"', '')
-      let dt = DateTime.fromISO(date)
-      if (dt.isValid) {
-        return true
-      } else {
-        dt = DateTime.fromFormat(date, 'yyyy-MM-dd HH:mm:ss')
-        if (dt.isValid) {
-          return true
-        }
-      }
-    } catch (error) {}
-    return false
-  } */
 
   formatDate(date: string) {
     const dateOrigin = new Date(date.toString())

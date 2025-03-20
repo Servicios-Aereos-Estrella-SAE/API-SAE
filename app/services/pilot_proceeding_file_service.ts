@@ -38,7 +38,6 @@ export default class PilotProceedingFileService {
       .where('pilot_proceeding_file_id', pilotProceedingFileId)
       .preload('proceedingFile', async (query) => {
         query.preload('proceedingFileType')
-        query.preload('proceedingFileStatus')
       })
       .first()
     return pilotProceedingFile ? pilotProceedingFile : null
