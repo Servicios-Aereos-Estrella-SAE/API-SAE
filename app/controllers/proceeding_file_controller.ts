@@ -10,8 +10,6 @@ import {
 } from '#validators/proceeding_file'
 import { cuid } from '@adonisjs/core/helpers'
 import path from 'node:path'
-import ProceedingFileHasStatus from '#models/proceeding_file_has_status'
-import ProceedingFileHasStatusService from '#services/proceeding_file_has_status_service'
 import { DateTime } from 'luxon'
 import { ProceedingFileExpiredFilterInterface } from '../interfaces/proceeding_file_expired_filter_interface.js'
 export default class ProceedingFileController {
@@ -163,58 +161,9 @@ export default class ProceedingFileController {
    *                 description: Proceeding file status
    *                 required: false
    *                 default: true
-   *               proceedingFileIdentify:
-   *                 type: string
-   *                 description: Proceeding file identify
-   *                 required: false
-   *                 default: ''
    *               proceedingFileObservations:
    *                 type: string
    *                 description: Proceeding file observations
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileAfacRights:
-   *                 type: string
-   *                 description: Proceeding file AFAC rights
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileSignatureDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file signature date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileEffectiveStartDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file effective start date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileEffectiveEndDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file effective end date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileInclusionInTheFilesDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file inclusion in the files date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileOperationCost:
-   *                 type: number
-   *                 description: Proceeding file operation cost
-   *                 required: false
-   *                 default: 0
-   *               proceedingFileCompleteProcess:
-   *                 type: boolean
-   *                 description: Proceeding file complete process
-   *                 required: false
-   *                 default: false
-   *               proceedingFileStatusId:
-   *                 type: number
-   *                 description: Proceeding file status id
    *                 required: false
    *                 default: ''
    *     responses:
@@ -351,32 +300,7 @@ export default class ProceedingFileController {
       ? DateTime.fromJSDate(new Date(proceedingFileExpirationAt)).setZone('UTC').toJSDate()
       : null
     const proceedingFileActive = inputs['proceedingFileActive']
-    const proceedingFileIdentify = inputs['proceedingFileIdentify']
     const proceedingFileObservations = inputs['proceedingFileObservations']
-    const proceedingFileAfacRights = inputs['proceedingFileAfacRights']
-    let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-    proceedingFileSignatureDate = proceedingFileSignatureDate
-      ? DateTime.fromJSDate(new Date(proceedingFileSignatureDate)).setZone('UTC').toJSDate()
-      : null
-    let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-    proceedingFileEffectiveStartDate = proceedingFileEffectiveStartDate
-      ? DateTime.fromJSDate(new Date(proceedingFileEffectiveStartDate)).setZone('UTC').toJSDate()
-      : null
-    let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-    proceedingFileEffectiveEndDate = proceedingFileEffectiveEndDate
-      ? DateTime.fromJSDate(new Date(proceedingFileEffectiveEndDate)).setZone('UTC').toJSDate()
-      : null
-    let proceedingFileInclusionInTheFilesDate = request.input(
-      'proceedingFileInclusionInTheFilesDate'
-    )
-    proceedingFileInclusionInTheFilesDate = proceedingFileInclusionInTheFilesDate
-      ? DateTime.fromJSDate(new Date(proceedingFileInclusionInTheFilesDate))
-          .setZone('UTC')
-          .toJSDate()
-      : null
-    const proceedingFileOperationCost = inputs['proceedingFileOperationCost']
-    const proceedingFileCompleteProcess = inputs['proceedingFileCompleteProcess']
-    const proceedingFileStatusId = inputs['proceedingFileStatusId']
     const proceedingFileUuid = cuid()
     const proceedingFile = {
       proceedingFileName: proceedingFileName,
@@ -387,20 +311,8 @@ export default class ProceedingFileController {
         proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
           ? 1
           : 0,
-      proceedingFileIdentify: proceedingFileIdentify,
       proceedingFileUuid: proceedingFileUuid,
       proceedingFileObservations: proceedingFileObservations,
-      proceedingFileAfacRights: proceedingFileAfacRights,
-      proceedingFileSignatureDate: proceedingFileSignatureDate,
-      proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate,
-      proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
-      proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
-      proceedingFileOperationCost: proceedingFileOperationCost,
-      proceedingFileCompleteProcess:
-        proceedingFileCompleteProcess &&
-        (proceedingFileCompleteProcess === 'true' || proceedingFileCompleteProcess === '1')
-          ? 1
-          : 0,
     } as ProceedingFile
     // get file name and extension
     const fileName = `${new Date().getTime()}_${file.clientName}`
@@ -423,34 +335,6 @@ export default class ProceedingFileController {
         proceedingFile.proceedingFileName = fileName
       }
       const newProceedingFile = await proceedingFileService.create(proceedingFile)
-      if (proceedingFileStatusId > 0) {
-        const proceedingFileHasStatus = {
-          proceedingFileId: newProceedingFile.proceedingFileId,
-          proceedingFileStatusId: proceedingFileStatusId,
-        } as ProceedingFileHasStatus
-        const proceedingFileHasStatusService = new ProceedingFileHasStatusService()
-        const exist = await proceedingFileHasStatusService.verifyInfoExist(proceedingFileHasStatus)
-        if (exist.status !== 200) {
-          response.status(exist.status)
-          return {
-            type: exist.type,
-            title: exist.title,
-            message: exist.message,
-            data: { ...proceedingFileHasStatus },
-          }
-        }
-        const verifyInfo = await proceedingFileHasStatusService.verifyInfo(proceedingFileHasStatus)
-        if (verifyInfo.status !== 200) {
-          response.status(verifyInfo.status)
-          return {
-            type: verifyInfo.type,
-            title: verifyInfo.title,
-            message: verifyInfo.message,
-            data: { ...proceedingFileHasStatus },
-          }
-        }
-        await proceedingFileHasStatusService.create(proceedingFileHasStatus)
-      }
       response.status(201)
       return {
         type: 'success',
@@ -516,58 +400,9 @@ export default class ProceedingFileController {
    *                 description: Proceeding file status
    *                 required: false
    *                 default: true
-   *               proceedingFileIdentify:
-   *                 type: string
-   *                 description: Proceeding file identify
-   *                 required: false
-   *                 default: ''
    *               proceedingFileObservations:
    *                 type: string
    *                 description: Proceeding file observations
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileAfacRights:
-   *                 type: string
-   *                 description: Proceeding file AFAC rights
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileSignatureDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file signature date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileEffectiveStartDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file effective start date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileEffectiveEndDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file effective end date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileInclusionInTheFilesDate:
-   *                 type: string
-   *                 format: date
-   *                 description: Proceeding file inclusion in the files date (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               proceedingFileOperationCost:
-   *                 type: number
-   *                 description: Proceeding file operation cost
-   *                 required: false
-   *                 default: 0
-   *               proceedingFileCompleteProcess:
-   *                 type: boolean
-   *                 description: Proceeding file complete process
-   *                 required: false
-   *                 default: false
-   *               proceedingFileStatusId:
-   *                 type: number
-   *                 description: Proceeding file status id
    *                 required: false
    *                 default: ''
    *     responses:
@@ -693,32 +528,7 @@ export default class ProceedingFileController {
         ? DateTime.fromJSDate(new Date(proceedingFileExpirationAt)).setZone('UTC').toJSDate()
         : null
       const proceedingFileActive = inputs['proceedingFileActive']
-      const proceedingFileIdentify = inputs['proceedingFileIdentify']
       const proceedingFileObservations = inputs['proceedingFileObservations']
-      const proceedingFileAfacRights = inputs['proceedingFileAfacRights']
-      let proceedingFileSignatureDate = request.input('proceedingFileSignatureDate')
-      proceedingFileSignatureDate = proceedingFileSignatureDate
-        ? DateTime.fromJSDate(new Date(proceedingFileSignatureDate)).setZone('UTC').toJSDate()
-        : null
-      let proceedingFileEffectiveStartDate = request.input('proceedingFileEffectiveStartDate')
-      proceedingFileEffectiveStartDate = proceedingFileEffectiveStartDate
-        ? DateTime.fromJSDate(new Date(proceedingFileEffectiveStartDate)).setZone('UTC').toJSDate()
-        : null
-      let proceedingFileEffectiveEndDate = request.input('proceedingFileEffectiveEndDate')
-      proceedingFileEffectiveEndDate = proceedingFileEffectiveEndDate
-        ? DateTime.fromJSDate(new Date(proceedingFileEffectiveEndDate)).setZone('UTC').toJSDate()
-        : null
-      let proceedingFileInclusionInTheFilesDate = request.input(
-        'proceedingFileInclusionInTheFilesDate'
-      )
-      proceedingFileInclusionInTheFilesDate = proceedingFileInclusionInTheFilesDate
-        ? DateTime.fromJSDate(new Date(proceedingFileInclusionInTheFilesDate))
-            .setZone('UTC')
-            .toJSDate()
-        : null
-      const proceedingFileOperationCost = inputs['proceedingFileOperationCost']
-      const proceedingFileCompleteProcess = inputs['proceedingFileCompleteProcess']
-      const proceedingFileStatusId = inputs['proceedingFileStatusId']
       const proceedingFile = {
         proceedingFileId: proceedingFileId,
         proceedingFileName: proceedingFileName
@@ -735,21 +545,7 @@ export default class ProceedingFileController {
           proceedingFileActive && (proceedingFileActive === 'true' || proceedingFileActive === '1')
             ? 1
             : 0,
-        proceedingFileIdentify: proceedingFileIdentify
-          ? proceedingFileIdentify
-          : currentProceedingFile.proceedingFileIdentify,
         proceedingFileObservations: proceedingFileObservations,
-        proceedingFileAfacRights: proceedingFileAfacRights,
-        proceedingFileSignatureDate: proceedingFileSignatureDate,
-        proceedingFileEffectiveStartDate: proceedingFileEffectiveStartDate,
-        proceedingFileEffectiveEndDate: proceedingFileEffectiveEndDate,
-        proceedingFileInclusionInTheFilesDate: proceedingFileInclusionInTheFilesDate,
-        proceedingFileOperationCost: proceedingFileOperationCost,
-        proceedingFileCompleteProcess:
-          proceedingFileCompleteProcess &&
-          (proceedingFileCompleteProcess === 'true' || proceedingFileCompleteProcess === '1')
-            ? 1
-            : 0,
       } as ProceedingFile
       const isValidInfo = await proceedingFileService.verifyInfo(proceedingFile)
       if (isValidInfo.status !== 200) {
@@ -790,7 +586,9 @@ export default class ProceedingFileController {
         const uploadService = new UploadService()
         const fileUrl = await uploadService.fileUpload(file, 'proceeding-files', fileName)
         if (currentProceedingFile.proceedingFilePath) {
-          const fileNameWithExt = path.basename(currentProceedingFile.proceedingFilePath)
+          const fileNameWithExt = decodeURIComponent(
+            path.basename(currentProceedingFile.proceedingFilePath)
+          )
           const fileKey = `${Env.get('AWS_ROOT_PATH')}/proceeding-files/${fileNameWithExt}`
           await uploadService.deleteFile(fileKey)
         }
@@ -803,52 +601,6 @@ export default class ProceedingFileController {
         currentProceedingFile,
         proceedingFile
       )
-      if (proceedingFileStatusId > 0) {
-        const existStatus = await ProceedingFileHasStatus.query()
-          .whereNull('proceeding_file_has_status_deleted_at')
-          .where('proceeding_file_id', proceedingFile.proceedingFileId)
-          .where('proceeding_file_status_id', proceedingFileStatusId)
-          .first()
-        if (!existStatus) {
-          const existProceedingFileHasStatus = await ProceedingFileHasStatus.query()
-            .whereNull('proceeding_file_has_status_deleted_at')
-            .where('proceeding_file_id', proceedingFile.proceedingFileId)
-            .orderBy('proceeding_file_id')
-            .first()
-          if (existProceedingFileHasStatus) {
-            await existProceedingFileHasStatus.delete()
-          }
-          const proceedingFileHasStatus = {
-            proceedingFileId: proceedingFile.proceedingFileId,
-            proceedingFileStatusId: proceedingFileStatusId,
-          } as ProceedingFileHasStatus
-          const proceedingFileHasStatusService = new ProceedingFileHasStatusService()
-          const exist =
-            await proceedingFileHasStatusService.verifyInfoExist(proceedingFileHasStatus)
-          if (exist.status !== 200) {
-            response.status(exist.status)
-            return {
-              type: exist.type,
-              title: exist.title,
-              message: exist.message,
-              data: { ...proceedingFileHasStatus },
-            }
-          }
-          const verifyInfo =
-            await proceedingFileHasStatusService.verifyInfo(proceedingFileHasStatus)
-          if (verifyInfo.status !== 200) {
-            response.status(verifyInfo.status)
-            return {
-              type: verifyInfo.type,
-              title: verifyInfo.title,
-              message: verifyInfo.message,
-              data: { ...proceedingFileHasStatus },
-            }
-          }
-          await proceedingFileHasStatusService.create(proceedingFileHasStatus)
-        }
-      }
-
       response.status(200)
       return {
         type: 'success',

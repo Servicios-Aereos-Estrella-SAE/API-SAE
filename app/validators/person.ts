@@ -75,7 +75,7 @@ export const updatePersonValidator = vine.compile(
     personLastname: vine.string().trim().minLength(0).maxLength(150),
     personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
-    personEmail: vine.string().trim().minLength(0).maxLength(200),
+    personEmail: vine.string().trim().minLength(0).maxLength(200).optional(),
     personGender: vine.string().trim().minLength(0).maxLength(10).optional(),
     personCurp: vine.string().trim().minLength(0).maxLength(45).optional(),
     personRfc: vine.string().trim().minLength(0).maxLength(45).optional(),

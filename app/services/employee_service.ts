@@ -501,7 +501,6 @@ export default class EmployeeService {
       })
       .preload('proceedingFile', (query) => {
         query.preload('proceedingFileType')
-        query.preload('proceedingFileStatus')
         query.if(fileType, (subquery) => {
           subquery.where('proceedingFileTypeId', fileType)
         })

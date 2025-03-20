@@ -42,7 +42,6 @@ export default class FlightAttendantProceedingFileService {
       .where('flight_attendant_proceeding_file_id', flightAttendantProceedingFileId)
       .preload('proceedingFile', async (query) => {
         query.preload('proceedingFileType')
-        query.preload('proceedingFileStatus')
       })
       .first()
     return flightAttendantProceedingFile ? flightAttendantProceedingFile : null

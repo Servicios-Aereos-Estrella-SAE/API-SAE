@@ -1,5 +1,4 @@
 import BusinessUnit from '#models/business_unit'
-import env from '#start/env'
 import { BusinessUnitInterface } from '../interfaces/business_unit_interface.js'
 import { ResponseDataInterface } from '../interfaces/response_data_interface.js'
 
@@ -13,12 +12,7 @@ export default class BusinessUnitService {
    */
   async index(): Promise<ResponseDataInterface> {
     try {
-      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
-      const businessList = businessConf.split(',')
-
-      const businessUnitsQuery = await BusinessUnit.query()
-        .where('business_unit_active', 1)
-        .whereIn('business_unit_slug', businessList)
+      const businessUnitsQuery = await BusinessUnit.query().where('business_unit_active', 1)
 
       const businessUnitsRes: BusinessUnitInterface[] = [
         ...businessUnitsQuery,

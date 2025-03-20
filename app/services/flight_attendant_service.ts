@@ -111,7 +111,6 @@ export default class FlightAttendantService {
       .where('flight_attendant_id', employeeId)
       .preload('proceedingFile', (query) => {
         query.preload('proceedingFileType')
-        query.preload('proceedingFileStatus')
       })
       .orderBy('flight_attendant_id')
     return proceedingFiles ? proceedingFiles : []
