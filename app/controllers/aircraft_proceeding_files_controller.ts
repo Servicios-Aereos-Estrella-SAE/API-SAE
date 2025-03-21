@@ -499,7 +499,6 @@ export default class AircraftProceedingFileController {
         })
         .preload('proceedingFile', (fileQuery) => {
           fileQuery.preload('proceedingFileType')
-          fileQuery.preload('proceedingFileStatus')
           fileQuery.if(fileType, (query) => {
             query.where('proceedingFileTypeId', fileType)
           })

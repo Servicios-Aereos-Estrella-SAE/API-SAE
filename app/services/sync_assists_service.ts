@@ -1055,6 +1055,7 @@ export default class SyncAssistsService {
       }
       const exAbsentWorkWithOutSalary = employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary === 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
       if (exAbsentWorkWithOutSalary) {
+        checkAssistCopy.assist.checkInStatus = 'fault'
         checkAssistCopy.assist.checkIn = null
         checkAssistCopy.assist.checkEatIn = null
         checkAssistCopy.assist.checkOut = null
