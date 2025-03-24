@@ -3,6 +3,7 @@ import Employee from '#models/employee'
 import { DateTime } from 'luxon'
 import EmployeeShiftChange from '#models/employee_shift_changes'
 import Shift from '#models/shift'
+import { EmployeeShiftChangeFilterInterface } from '../interfaces/employee_shift_change_filter_interface.js'
 
 export default class EmployeeShiftChangeService {
   async create(employeeShiftChange: EmployeeShiftChange) {
@@ -99,6 +100,22 @@ export default class EmployeeShiftChangeService {
       message: 'Info verify successfully',
       data: { ...employeeShiftChange },
     }
+  }
+
+  async getByEmployee(filters: EmployeeShiftChangeFilterInterface) {
+    const employeeShiftChanges = await EmployeeShiftChange.query()
+      .whereNull('employee_shift_change_deleted_at')
+      .where('employee_id_from', filters.employeeId)
+      .if(filters.date, (query) => {
+        const stringDate = `${filters.date}T00:00:00.000-06:00`
+        const time = DateTime.fromISO(stringDate, { setZone: true })
+        const timeCST = time.setZone('America/Mexico_City')
+        const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
+        query.where('employe_shifts_apply_since', '>=', filterInitialDate)
+        query.where('employe_shifts_apply_since', '<=', filterInitialDate)
+      })
+      .orderBy('employee_shift_change_date_from')
+    return employeeShiftChanges
   }
 
   async verifyInfo(employeeShiftChange: EmployeeShiftChange) {

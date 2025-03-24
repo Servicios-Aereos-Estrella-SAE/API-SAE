@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import EmployeeShiftChangeService from '#services/employee_shift_change_service'
 import { createEmployeeShiftChangeValidator } from '#validators/employee_shift_change'
 import EmployeeShiftChange from '#models/employee_shift_changes'
+import { EmployeeShiftChangeFilterInterface } from '../interfaces/employee_shift_change_filter_interface.js'
 export default class EmployeeShiftChangeController {
   /**
    * @swagger
@@ -540,6 +541,151 @@ export default class EmployeeShiftChangeController {
           message: 'The employee shift change was found successfully',
           data: { employeeShiftChange: showEmployeeShiftChange },
         }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employee-shift-changes-by-employee/{employeeId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employee Shift Changes
+   *     summary: get shifts changes by employee
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
+   *       - name: date
+   *         in: query
+   *         required: false
+   *         description: Date (YYYY-MM-DD)
+   *         format: date
+   *         schema:
+   *           type: string
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getByEmployee({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      const date = request.input('date')
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { employeeId },
+        }
+      }
+      const filters = {
+        employeeId: employeeId,
+        date: date,
+      } as EmployeeShiftChangeFilterInterface
+      const employeeShiftChangeService = new EmployeeShiftChangeService()
+      const employeeShiftChanges = await employeeShiftChangeService.getByEmployee(filters)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Shift changes',
+        message: 'The shift changes were found successfully',
+        data: {
+          employeeShiftChanges: employeeShiftChanges,
+        },
       }
     } catch (error) {
       response.status(500)
