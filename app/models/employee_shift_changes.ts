@@ -1,7 +1,10 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import Employee from './employee.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Shift from './shift.js'
 /**
  * @swagger
  * components:
@@ -85,4 +88,14 @@ export default class EmployeeShiftChange extends compose(BaseModel, SoftDeletes)
 
   @column.dateTime({ columnName: 'employee_shift_change_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeIdTo',
+  })
+  declare employeeTo: BelongsTo<typeof Employee>
+
+  @belongsTo(() => Shift, {
+    foreignKey: 'shiftIdTo',
+  })
+  declare shiftTo: BelongsTo<typeof Shift>
 }

@@ -8,7 +8,7 @@ router
     router.delete('/:employeeShiftChangeId', '#controllers/employee_shift_change_controller.delete')
     router.get('/:employeeShiftChangeId', '#controllers/employee_shift_change_controller.show')
     router.get(
-      '/employee-shift-changes-by-employee/:employeeId',
+      '/by-employee/:employeeId',
       '#controllers/employee_shift_change_controller.getByEmployee'
     )
   })

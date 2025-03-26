@@ -153,55 +153,55 @@ export default class EmployeeShiftChangeController {
       employeeShiftChangeDateFrom = employeeShiftChangeDateFrom
         ? DateTime.fromJSDate(new Date(employeeShiftChangeDateFrom)).setZone('UTC').toJSDate()
         : null
-      const employeeShiftChangeDateFromIsRestDay = request.input(
+      let employeeShiftChangeDateFromIsRestDay = request.input(
         'employeeShiftChangeDateFromIsRestDay'
       )
+      if (
+        employeeShiftChangeDateFromIsRestDay &&
+        (employeeShiftChangeDateFromIsRestDay === 'true' ||
+          employeeShiftChangeDateFromIsRestDay === '1' ||
+          employeeShiftChangeDateFromIsRestDay === 1)
+      ) {
+        employeeShiftChangeDateFromIsRestDay = 1
+      } else {
+        employeeShiftChangeDateFromIsRestDay = 0
+      }
       const employeeIdTo = request.input('employeeIdTo')
       const shiftIdTo = request.input('shiftIdTo')
       let employeeShiftChangeDateTo = request.input('employeeShiftChangeDateTo')
       employeeShiftChangeDateTo = employeeShiftChangeDateTo
         ? DateTime.fromJSDate(new Date(employeeShiftChangeDateTo)).setZone('UTC').toJSDate()
         : null
-      const employeeShiftChangeDateToIsRestDay = request.input('employeeShiftChangeDateToIsRestDay')
+      let employeeShiftChangeDateToIsRestDay = request.input('employeeShiftChangeDateToIsRestDay')
+      if (
+        employeeShiftChangeDateToIsRestDay &&
+        (employeeShiftChangeDateToIsRestDay === 'true' ||
+          employeeShiftChangeDateToIsRestDay === '1' ||
+          employeeShiftChangeDateToIsRestDay === 1)
+      ) {
+        employeeShiftChangeDateToIsRestDay = 1
+      } else {
+        employeeShiftChangeDateToIsRestDay = 0
+      }
       const employeeShiftChange = {
         employeeIdFrom: employeeIdFrom,
         shiftIdFrom: shiftIdFrom,
         employeeShiftChangeDateFrom: employeeShiftChangeDateFrom,
-        employeeShiftChangeDateFromIsRestDay:
-          employeeShiftChangeDateFromIsRestDay &&
-          (employeeShiftChangeDateFromIsRestDay === 'true' ||
-            employeeShiftChangeDateFromIsRestDay === '1')
-            ? 1
-            : 0,
+        employeeShiftChangeDateFromIsRestDay: employeeShiftChangeDateFromIsRestDay,
         employeeIdTo: employeeIdTo,
         shiftIdTo: shiftIdTo,
         employeeShiftChangeDateTo: employeeShiftChangeDateTo,
-        employeeShiftChangeDateToIsRestDay:
-          employeeShiftChangeDateToIsRestDay &&
-          (employeeShiftChangeDateToIsRestDay === 'true' ||
-            employeeShiftChangeDateToIsRestDay === '1')
-            ? 1
-            : 0,
+        employeeShiftChangeDateToIsRestDay: employeeShiftChangeDateToIsRestDay,
       } as EmployeeShiftChange
       const employeeShiftChangeSecond = {
         employeeIdFrom: employeeIdTo,
         shiftIdFrom: shiftIdTo,
         employeeShiftChangeDateFrom: employeeShiftChangeDateTo,
-        employeeShiftChangeDateFromIsRestDay:
-          employeeShiftChangeDateToIsRestDay &&
-          (employeeShiftChangeDateToIsRestDay === 'true' ||
-            employeeShiftChangeDateToIsRestDay === '1')
-            ? 1
-            : 0,
+        employeeShiftChangeDateFromIsRestDay: employeeShiftChangeDateToIsRestDay,
         employeeIdTo: employeeIdFrom,
         shiftIdTo: shiftIdFrom,
         employeeShiftChangeDateTo: employeeShiftChangeDateFrom,
-        employeeShiftChangeDateToIsRestDay:
-          employeeShiftChangeDateFromIsRestDay &&
-          (employeeShiftChangeDateFromIsRestDay === 'true' ||
-            employeeShiftChangeDateFromIsRestDay === '1')
-            ? 1
-            : 0,
+        employeeShiftChangeDateToIsRestDay: employeeShiftChangeDateFromIsRestDay,
       } as EmployeeShiftChange
       let verifyExist = await employeeShiftChangeService.verifyInfoExist(employeeShiftChange)
       if (verifyExist.status !== 200) {

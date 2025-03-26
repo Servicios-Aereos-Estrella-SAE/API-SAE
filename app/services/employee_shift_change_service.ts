@@ -29,6 +29,8 @@ export default class EmployeeShiftChangeService {
     const employeeShiftChange = await EmployeeShiftChange.query()
       .whereNull('employee_shift_change_deleted_at')
       .where('employee_shift_change_id', employeeShiftChangeId)
+      .preload('employeeTo')
+      .preload('shiftTo')
       .first()
     return employeeShiftChange ? employeeShiftChange : null
   }
@@ -111,9 +113,11 @@ export default class EmployeeShiftChangeService {
         const time = DateTime.fromISO(stringDate, { setZone: true })
         const timeCST = time.setZone('America/Mexico_City')
         const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
-        query.where('employe_shifts_apply_since', '>=', filterInitialDate)
-        query.where('employe_shifts_apply_since', '<=', filterInitialDate)
+        query.where('employee_shift_change_date_from', '>=', filterInitialDate)
+        query.where('employee_shift_change_date_from', '<=', filterInitialDate)
       })
+      .preload('employeeTo')
+      .preload('shiftTo')
       .orderBy('employee_shift_change_date_from')
     return employeeShiftChanges
   }
