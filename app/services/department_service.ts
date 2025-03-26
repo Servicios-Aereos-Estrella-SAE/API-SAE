@@ -34,7 +34,7 @@ export default class DepartmentService {
       .if(filters?.onlyParents, (query) => {
         query.whereNull('parentDepartmentId')
       })
-      .orderBy('departmentId', 'asc')
+      .orderBy('departmentName', 'asc')
 
     return departments
   }
@@ -65,7 +65,7 @@ export default class DepartmentService {
         query.orderBy('employee_id')
       })
       .preload('employees')
-      .orderBy('departmentId', 'asc')
+      .orderBy('departmentName', 'asc')
 
     return departments
   }
@@ -81,31 +81,47 @@ export default class DepartmentService {
 
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
-      .whereIn('departmentId', departmentList)
       .where('departmentId', '<>', 999)
       .whereNull('parentDepartmentId')
-      .orderBy('departmentId', 'asc')
-      .preload('subDepartments', (child) => {
-        child.whereIn('businessUnitId', businessUnitsList)
-        child.preload('departmentsPositions', (deptQuery) => {
-          deptQuery.whereHas('position', (position) => {
-            position.whereNull('parentPositionId')
-          })
-          deptQuery.preload('position', (position) => {
-            position.whereNull('parentPositionId')
-            position.preload('subPositions')
-          })
-        })
-      })
-      .preload('departmentsPositions', (deptQuery) => {
-        deptQuery.whereHas('position', (position) => {
-          position.whereNull('parentPositionId')
-        })
-        deptQuery.preload('position', (position) => {
-          position.whereNull('parentPositionId')
-          position.preload('subPositions')
-        })
-      })
+      .orderBy('departmentName', 'asc')
+      .preload('departments')
+      .preload('departmentPositions')
+
+    // const departments = await Department.query()
+    //   .whereIn('businessUnitId', businessUnitsList)
+    //   .whereIn('departmentId', departmentList)
+    //   .where('departmentId', '<>', 999)
+    //   .whereNull('parentDepartmentId')
+    //   .orderBy('departmentName', 'asc')
+    //   .preload('subDepartments', (child) => {
+    //     child.whereIn('businessUnitId', businessUnitsList)
+    //     child.preload('departmentsPositions', (deptQuery) => {
+    //       deptQuery.whereHas('position', (position) => {
+    //         position.whereNull('parentPositionId')
+    //       })
+    //       deptQuery.preload('position', (position) => {
+    //         position.whereNull('parentPositionId')
+    //         position.preload('subPositions', (subp1) => {
+    //           subp1.preload('subPositions', (subp2) => {
+    //             subp2.preload('subPositions')
+    //           })
+    //         })
+    //       })
+    //     })
+    //   })
+    //   .preload('departmentsPositions', (deptQuery) => {
+    //     deptQuery.whereHas('position', (position) => {
+    //       position.whereNull('parentPositionId')
+    //     })
+    //     deptQuery.preload('position', (position) => {
+    //       position.whereNull('parentPositionId')
+    //       position.preload('subPositions', (subp1) => {
+    //         subp1.preload('subPositions', (subp2) => {
+    //           subp2.preload('subPositions')
+    //         })
+    //       })
+    //     })
+    //   })
 
     return departments
   }
@@ -213,6 +229,7 @@ export default class DepartmentService {
       .where('department_id', departmentId)
       .preload('subDepartments', (query) => {
         query.preload('parentDepartment')
+        query.orderBy('departmentName', 'asc')
       })
       .first()
 
