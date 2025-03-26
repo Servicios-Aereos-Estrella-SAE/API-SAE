@@ -4,6 +4,8 @@ import { DateTime } from 'luxon'
 import EmployeeShiftChange from '#models/employee_shift_changes'
 import Shift from '#models/shift'
 import { EmployeeShiftChangeFilterInterface } from '../interfaces/employee_shift_change_filter_interface.js'
+import { LogStore } from '#models/MongoDB/log_store'
+import { LogEmployeeShiftChange } from '../interfaces/MongoDB/log_employee_shift_change.js'
 
 export default class EmployeeShiftChangeService {
   async create(employeeShiftChange: EmployeeShiftChange) {
@@ -33,6 +35,23 @@ export default class EmployeeShiftChangeService {
       .preload('shiftTo')
       .first()
     return employeeShiftChange ? employeeShiftChange : null
+  }
+
+  async getByEmployee(filters: EmployeeShiftChangeFilterInterface) {
+    const employeeShiftChanges = await EmployeeShiftChange.query()
+      .whereNull('employee_shift_change_deleted_at')
+      .where('employee_id_from', filters.employeeId)
+      .if(filters.date, (query) => {
+        const stringDate = `${filters.date}T00:00:00.000-06:00`
+        const time = DateTime.fromISO(stringDate, { setZone: true })
+        const timeCST = time.setZone('America/Mexico_City')
+        const filterInitialDate = timeCST.toFormat('yyyy-MM-dd')
+        query.whereRaw('DATE(employee_shift_change_date_from) = ?', [filterInitialDate]) 
+      })
+      .preload('employeeTo')
+      .preload('shiftTo')
+      .orderBy('employee_shift_change_date_from')
+    return employeeShiftChanges
   }
 
   async verifyInfoExist(employeeShiftChange: EmployeeShiftChange) {
@@ -104,24 +123,6 @@ export default class EmployeeShiftChangeService {
     }
   }
 
-  async getByEmployee(filters: EmployeeShiftChangeFilterInterface) {
-    const employeeShiftChanges = await EmployeeShiftChange.query()
-      .whereNull('employee_shift_change_deleted_at')
-      .where('employee_id_from', filters.employeeId)
-      .if(filters.date, (query) => {
-        const stringDate = `${filters.date}T00:00:00.000-06:00`
-        const time = DateTime.fromISO(stringDate, { setZone: true })
-        const timeCST = time.setZone('America/Mexico_City')
-        const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
-        query.where('employee_shift_change_date_from', '>=', filterInitialDate)
-        query.where('employee_shift_change_date_from', '<=', filterInitialDate)
-      })
-      .preload('employeeTo')
-      .preload('shiftTo')
-      .orderBy('employee_shift_change_date_from')
-    return employeeShiftChanges
-  }
-
   async verifyInfo(employeeShiftChange: EmployeeShiftChange) {
     const action = employeeShiftChange.employeeShiftChangeId > 0 ? 'updated' : 'created'
     const employeeShiftChangeDateFrom = DateTime.fromJSDate(new Date(employeeShiftChange.employeeShiftChangeDateFrom)).toFormat('yyyy-MM-dd')
@@ -134,7 +135,7 @@ export default class EmployeeShiftChangeService {
         )
       })
       .where('employee_id_from', employeeShiftChange.employeeIdFrom)
-      .whereBetween('employee_shift_change_date_from', [employeeShiftChangeDateFrom, employeeShiftChangeDateFrom])
+      .whereRaw('DATE(employee_shift_change_date_from) = ?', [employeeShiftChangeDateFrom]) 
       .first()
     if (existEmployeeShiftChangeDateFrom) {
       return {
@@ -145,6 +146,36 @@ export default class EmployeeShiftChangeService {
         data: { ...employeeShiftChange },
       }
     }
+    const employeeShiftChangeDateTo = DateTime.fromJSDate(new Date(employeeShiftChange.employeeShiftChangeDateTo)).toFormat('yyyy-MM-dd')
+    const existEmployeeShiftChangeDateTo = await EmployeeShiftChange.query()
+      .whereNull('employee_shift_change_deleted_at')
+      .if(employeeShiftChange.employeeShiftChangeId > 0, (query) => {
+        query.whereNot(
+          'employee_shift_change_id',
+          employeeShiftChange.employeeShiftChangeId
+        )
+      })
+      .where('employee_id_to', employeeShiftChange.employeeIdTo)
+      .whereRaw('DATE(employee_shift_change_date_to) = ?', [employeeShiftChangeDateTo]) 
+      .first()
+    if (existEmployeeShiftChangeDateTo) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee shift change date to already exists',
+        message: `The employee shift change resource cannot be ${action} because the date to is already assigned`,
+        data: { ...employeeShiftChange },
+      }
+    }
+    if (employeeShiftChangeDateFrom === employeeShiftChangeDateTo) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The employee shift change date to',
+        message: `The employee shift change resource cannot be ${action} because the 'date to' is the same as the 'date from'`,
+        data: { ...employeeShiftChange },
+      }
+    }
     return {
       status: 200,
       type: 'success',
@@ -152,5 +183,33 @@ export default class EmployeeShiftChangeService {
       message: 'Info verifiy successfully',
       data: { ...employeeShiftChange },
     }
+  }
+
+  createActionLog(rawHeaders: string[], action: string) {
+    const date = DateTime.local().setZone('utc').toISO()
+    const userAgent = this.getHeaderValue(rawHeaders, 'User-Agent')
+    const secChUaPlatform = this.getHeaderValue(rawHeaders, 'sec-ch-ua-platform')
+    const secChUa = this.getHeaderValue(rawHeaders, 'sec-ch-ua')
+    const origin = this.getHeaderValue(rawHeaders, 'Origin')
+    const logEmployeeShiftChange = {
+      action: action,
+      user_agent: userAgent,
+      sec_ch_ua_platform: secChUaPlatform,
+      sec_ch_ua: secChUa,
+      origin: origin,
+      date: date ? date : '',
+    } as LogEmployeeShiftChange
+    return logEmployeeShiftChange
+  }
+
+  async saveActionOnLog(logEmployeeShiftChange: LogEmployeeShiftChange, table: string) {
+    try {
+      await LogStore.set(table, logEmployeeShiftChange)
+    } catch (err) {}
+  }
+
+  getHeaderValue(headers: Array<string>, headerName: string) {
+    const index = headers.indexOf(headerName)
+    return index !== -1 ? headers[index + 1] : null
   }
 }

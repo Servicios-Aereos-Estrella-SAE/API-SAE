@@ -143,7 +143,7 @@ export default class EmployeeShiftChangeController {
    *                       type: string
    */
   @inject()
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
       const employeeShiftChangeService = new EmployeeShiftChangeService()
       await request.validateUsing(createEmployeeShiftChangeValidator)
@@ -245,7 +245,38 @@ export default class EmployeeShiftChangeController {
       }
 
       const newEmployeeShiftChange = await employeeShiftChangeService.create(employeeShiftChange)
-      await employeeShiftChangeService.create(employeeShiftChangeSecond)
+      const rawHeaders = request.request.rawHeaders
+      const userId = auth.user?.userId
+      if (userId) {
+        const logEmployeeShiftChange = await employeeShiftChangeService.createActionLog(
+          rawHeaders,
+          'store'
+        )
+        logEmployeeShiftChange.user_id = userId
+        logEmployeeShiftChange.record_current = JSON.parse(JSON.stringify(newEmployeeShiftChange))
+        await employeeShiftChangeService.saveActionOnLog(
+          logEmployeeShiftChange,
+          'log_employee_shift_changes'
+        )
+      }
+
+      const secondEmployeeShiftChange =
+        await employeeShiftChangeService.create(employeeShiftChangeSecond)
+      if (userId) {
+        const logEmployeeShiftChange = await employeeShiftChangeService.createActionLog(
+          rawHeaders,
+          'store'
+        )
+        logEmployeeShiftChange.user_id = userId
+        logEmployeeShiftChange.record_current = JSON.parse(
+          JSON.stringify(secondEmployeeShiftChange)
+        )
+        await employeeShiftChangeService.saveActionOnLog(
+          logEmployeeShiftChange,
+          'log_employee_shift_changes'
+        )
+      }
+
       response.status(201)
       return {
         type: 'success',
@@ -365,7 +396,7 @@ export default class EmployeeShiftChangeController {
    *                     error:
    *                       type: string
    */
-  async delete({ request, response }: HttpContext) {
+  async delete({ auth, request, response }: HttpContext) {
     try {
       const employeeShiftChangeId = request.param('employeeShiftChangeId')
       if (!employeeShiftChangeId) {
@@ -391,14 +422,59 @@ export default class EmployeeShiftChangeController {
         }
       }
       const employeeShiftChangeService = new EmployeeShiftChangeService()
-      const deleteShiftChange = await employeeShiftChangeService.delete(currentEmployeeShiftChange)
-      if (deleteShiftChange) {
+      const deleteEmployeeShiftChange = await employeeShiftChangeService.delete(
+        currentEmployeeShiftChange
+      )
+      const userId = auth.user?.userId
+      if (userId) {
+        const rawHeaders = request.request.rawHeaders
+        const logEmployeeShiftChange = await employeeShiftChangeService.createActionLog(
+          rawHeaders,
+          'delete'
+        )
+        logEmployeeShiftChange.user_id = userId
+        logEmployeeShiftChange.record_current = JSON.parse(
+          JSON.stringify(deleteEmployeeShiftChange)
+        )
+        await employeeShiftChangeService.saveActionOnLog(
+          logEmployeeShiftChange,
+          'log_employee_shift_changes'
+        )
+      }
+      const secondEmployeeShiftChange = await EmployeeShiftChange.query()
+        .whereNull('employee_shift_change_deleted_at')
+        .where('employee_id_from', currentEmployeeShiftChange.employeeIdTo)
+        .where(
+          'employee_shift_change_date_from',
+          currentEmployeeShiftChange.employeeShiftChangeDateTo
+        )
+        .first()
+      if (secondEmployeeShiftChange) {
+        const deleteSecondEmployeeShiftChange =
+          await employeeShiftChangeService.delete(secondEmployeeShiftChange)
+        if (userId) {
+          const rawHeaders = request.request.rawHeaders
+          const logEmployeeShiftChange = await employeeShiftChangeService.createActionLog(
+            rawHeaders,
+            'delete'
+          )
+          logEmployeeShiftChange.user_id = userId
+          logEmployeeShiftChange.record_current = JSON.parse(
+            JSON.stringify(deleteSecondEmployeeShiftChange)
+          )
+          await employeeShiftChangeService.saveActionOnLog(
+            logEmployeeShiftChange,
+            'log_employee_shift_changes'
+          )
+        }
+      }
+      if (deleteEmployeeShiftChange) {
         response.status(200)
         return {
           type: 'success',
           title: 'Employee shift changes',
           message: 'The employee shift change was deleted successfully',
-          data: { employeeShiftChange: deleteShiftChange },
+          data: { employeeShiftChange: deleteEmployeeShiftChange },
         }
       }
     } catch (error) {
