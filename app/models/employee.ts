@@ -13,6 +13,7 @@ import EmployeeAddress from './employee_address.js'
 import EmployeeSpouse from './employee_spouse.js'
 import EmployeeChildren from './employee_children.js'
 import EmployeeEmergencyContact from './employee_emergency_contact.js'
+import EmployeeShiftChange from './employee_shift_changes.js'
 
 /**
  * @swagger
@@ -237,4 +238,13 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare emergencyContact: HasOne<typeof EmployeeEmergencyContact>
+
+  @hasMany(() => EmployeeShiftChange, {
+    foreignKey: 'employeeIdFrom',
+    onQuery: (query) => {
+      query.whereNull('employee_shift_change_deleted_at')
+      query.preload('shiftTo')
+    },
+  })
+  declare shiftChanges: HasMany<typeof EmployeeShiftChange>
 }

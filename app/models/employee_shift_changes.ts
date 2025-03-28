@@ -98,4 +98,9 @@ export default class EmployeeShiftChange extends compose(BaseModel, SoftDeletes)
     foreignKey: 'shiftIdTo',
   })
   declare shiftTo: BelongsTo<typeof Shift>
+
+  @belongsTo(() => Shift, {
+    foreignKey: 'shiftIdFrom',
+  })
+  declare shiftFrom: BelongsTo<typeof Shift>
 }
