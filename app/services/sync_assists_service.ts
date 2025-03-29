@@ -649,27 +649,22 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckOutNextDay = false
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
+
       dateAssistItem = await this.hasOtherShift(employeeID, dateAssistItem)
       dateAssistItem = await this.setCheckInDateTime(dateAssistItem)
       dateAssistItem = await this.setCheckOutDateTime(dateAssistItem)
       dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
-      
       dateAssistItem = await this.calculateRawCalendar(dateAssistItem, assistList)
-
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
-      
       dateAssistItem = await this.isSundayBonus(dateAssistItem)
       dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dateAssistItem = await this.isWorkDisabilityDate(employeeID, dateAssistItem)
-
       dateAssistItem = await this.validTime(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
-
       dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
-
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
@@ -1105,7 +1100,10 @@ export default class SyncAssistsService {
     })
     if (employee.shiftChanges.length > 0) {
       if (employee.shiftChanges[0].shiftTo) {
-        checkAssist.assist.dateShift = employee.shiftChanges[0].shiftTo
+        checkAssistCopy.assist.dateShift = JSON.parse(JSON.stringify(employee.shiftChanges[0].shiftTo))
+        if (checkAssistCopy.assist.dateShift) {
+          checkAssistCopy.assist.dateShift.shiftIsChange = true
+        }
       }
     }
     return checkAssistCopy
