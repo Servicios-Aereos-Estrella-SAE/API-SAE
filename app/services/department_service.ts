@@ -70,7 +70,7 @@ export default class DepartmentService {
     return departments
   }
 
-  async buildOrganization(departmentList: number[]) {
+  async buildOrganization(/* departmentList: number[] */) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()

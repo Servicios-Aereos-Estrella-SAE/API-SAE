@@ -965,7 +965,7 @@ export default class DepartmentController {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
 
-      const departments = await new DepartmentService().buildOrganization(departmentsList)
+      const departments = await new DepartmentService().buildOrganization(/* departmentsList */)
 
       response.status(200)
 
