@@ -683,7 +683,7 @@ export default class DepartmentController {
       //S = personal que se separó de la empresa en el periodo.
       const employeesTerminated =
         await db.rawQuery(`select count(*) total from employees where department_id = ${departmentId}
-        And employee_deleted_at between '${dateStart}' And '${dateEnd}' 
+        And employee_deleted_at between '${dateStart}' And '${dateEnd}'
         And employee_deleted_at is not null`)
       let numEployeesTerminated = 0
       if (employeesTerminated[0] && employeesTerminated[0][0]) {
@@ -722,7 +722,7 @@ export default class DepartmentController {
       /* Formula para traer indice de rotación del departamnR=S/((I+F)/2) x 100.
 
       Donde:
-      
+
       R = tasa de rotación.
       S = personal que se separó de la empresa en el periodo.
       I = personal que se tenía al inicio del periodo.
@@ -965,7 +965,7 @@ export default class DepartmentController {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
 
-      const departments = await new DepartmentService().buildOrganization(departmentsList)
+      const departments = await new DepartmentService().buildOrganization(/* departmentsList */)
 
       response.status(200)
 
@@ -1035,10 +1035,10 @@ export default class DepartmentController {
    *                 description: Department parent id
    *                 required: false
    *                 default: ''
-   *               companyId:
+   *               business_unit_id:
    *                 type: number
-   *                 description: Company id
-   *                 required: true
+   *                 description: Business to assign
+   *                 required: false
    *                 default: ''
    *     responses:
    *       '201':
@@ -1128,22 +1128,22 @@ export default class DepartmentController {
       const departmentIsDefault = request.input('departmentIsDefault')
       const departmentActive = request.input('departmentActive')
       const parentDepartmentId = request.input('parentDepartmentId')
-      const companyId = request.input('companyId')
-      // get last departmentId and add 1
       const lastDepartment = await Department.query().orderBy('departmentId', 'desc').first()
       const departmentCode = (lastDepartment ? lastDepartment.departmentId + 1 : 0).toString()
+
       const department = {
         departmentCode: departmentCode,
         departmentName: departmentName,
-        departmentAlias: departmentAlias,
-        departmentIsDefault: departmentIsDefault,
-        departmentActive: departmentActive,
+        departmentAlias: departmentAlias || '',
+        departmentIsDefault: departmentIsDefault || 0,
+        departmentActive: departmentActive || 1,
         parentDepartmentId: parentDepartmentId,
-        companyId: companyId,
       } as Department
+
       const departmentService = new DepartmentService()
       const data = await request.validateUsing(createDepartmentValidator)
       const exist = await departmentService.verifyInfoExist(department)
+
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -1153,7 +1153,9 @@ export default class DepartmentController {
           data: { ...data },
         }
       }
+
       const newDepartment = await departmentService.create(department)
+
       if (newDepartment) {
         response.status(201)
         return {
@@ -1229,11 +1231,6 @@ export default class DepartmentController {
    *                 type: number
    *                 description: Department parent id
    *                 required: false
-   *                 default: ''
-   *               companyId:
-   *                 type: number
-   *                 description: Company id
-   *                 required: true
    *                 default: ''
    *     responses:
    *       '201':
@@ -1325,7 +1322,7 @@ export default class DepartmentController {
       const departmentIsDefault = request.input('departmentIsDefault')
       const departmentActive = request.input('departmentActive')
       const parentDepartmentId = request.input('parentDepartmentId')
-      const companyId = request.input('companyId')
+
       const department = {
         departmentId: departmentId,
         departmentCode: departmentCode,
@@ -1334,8 +1331,8 @@ export default class DepartmentController {
         departmentIsDefault: departmentIsDefault,
         departmentActive: departmentActive,
         parentDepartmentId: parentDepartmentId,
-        companyId: companyId,
       } as Department
+
       if (!departmentId) {
         response.status(400)
         return {
@@ -1345,10 +1342,12 @@ export default class DepartmentController {
           data: { ...department },
         }
       }
+
       const currentDepartment = await Department.query()
         .whereNull('department_deleted_at')
         .where('department_id', departmentId)
         .first()
+
       if (!currentDepartment) {
         response.status(404)
         return {
@@ -1358,9 +1357,11 @@ export default class DepartmentController {
           data: { ...department },
         }
       }
+
       const departmentService = new DepartmentService()
       const data = await request.validateUsing(updateDepartmentValidator)
       const exist = await departmentService.verifyInfoExist(department)
+
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -1370,7 +1371,9 @@ export default class DepartmentController {
           data: { ...data },
         }
       }
+
       const verifyInfo = await departmentService.verifyInfo(department)
+
       if (verifyInfo.status !== 200) {
         response.status(verifyInfo.status)
         return {
@@ -1380,7 +1383,9 @@ export default class DepartmentController {
           data: { ...data },
         }
       }
+
       const updateDepartment = await departmentService.update(currentDepartment, department)
+
       if (updateDepartment) {
         response.status(201)
         return {

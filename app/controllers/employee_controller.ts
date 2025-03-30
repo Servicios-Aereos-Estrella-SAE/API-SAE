@@ -22,6 +22,12 @@ import Position from '#models/position'
 import SystemSettingService from '#services/system_setting_service'
 import SystemSetting from '#models/system_setting'
 
+// import { wrapper } from 'axios-cookiejar-support'
+// import { CookieJar } from 'tough-cookie'
+
+// const jar = new CookieJar()
+// const client = wrapper(axios.create({ jar }))
+
 export default class EmployeeController {
   /**
    * @swagger
@@ -3576,4 +3582,276 @@ export default class EmployeeController {
       }
     }
   }
+
+  // async odooAuth() {
+  //   const url = 'https://servicios-aereos-estrella.odoo.com'
+  //   const db = 'servicios-aereos-estrella'
+  //   const username = 'wramirez@siler-mx.com'
+  //   const password = 'RQU2tre-vag8qnk0czp'
+
+  //   try {
+  //     const response = await client.post(
+  //       `${url}/web/session/authenticate`,
+  //       {
+  //         jsonrpc: '2.0',
+  //         params: {
+  //           db,
+  //           login: username,
+  //           password,
+  //         },
+  //       },
+  //       {
+  //         withCredentials: true,
+  //       }
+  //     )
+
+  //     if (response.data.result) {
+  //       console.log('Autenticación exitosa')
+  //       return true
+  //     } else {
+  //       console.error('Error en la autenticación:', response.data.error)
+  //       return false
+  //     }
+  //   } catch (error) {
+  //     console.error(`Error en la autenticación: ${error.message}`)
+  //     return false
+  //   }
+  // }
+
+  // async getOdooEmployees() {
+  //   const authenticated = await this.odooAuth()
+
+  //   if (authenticated) {
+  //     try {
+  //       const url = 'https://servicios-aereos-estrella.odoo.com'
+  //       const response = await client.post(
+  //         `${url}/web/dataset/call_kw`,
+  //         {
+  //           jsonrpc: '2.0',
+  //           method: 'call',
+  //           params: {
+  //             model: 'hr.employee',
+  //             method: 'search_read',
+  //             args: [[]],
+  //             kwargs: {},
+  //           },
+  //         },
+  //         {
+  //           withCredentials: true,
+  //         }
+  //       )
+
+  //       return response.data.result
+  //     } catch (error) {
+  //       console.error(`Error al obtener empleados: ${error.message}`)
+  //       if (error.response) {
+  //         console.error('Detalles del error:', error.response.data)
+  //       }
+  //       return null
+  //     } finally {
+  //       // Cerrar sesión independientemente del resultado
+  //       await this.closeOdooSession()
+  //     }
+  //   }
+  //   return null
+  // }
+
+  // async closeOdooSession() {
+  //   try {
+  //     const url = 'https://servicios-aereos-estrella.odoo.com'
+  //     const response = await client.post(
+  //       `${url}/web/session/destroy`,
+  //       {
+  //         jsonrpc: '2.0',
+  //       },
+  //       {
+  //         withCredentials: true,
+  //       }
+  //     )
+
+  //     console.log('Sesión cerrada correctamente')
+  //     return true
+  //   } catch (error) {
+  //     console.error(`Error al cerrar sesión: ${error.message}`)
+  //     return false
+  //   }
+  // }
+
+  /**
+   * Crea un nuevo empleado en Odoo sin usuario asociado
+   * @param {Object} employeeData - Datos del empleado a crear
+   * @param {string} employeeData.name - Nombre completo del empleado (obligatorio)
+   * @param {Object} [employeeData.additionalFields] - Campos adicionales para el empleado
+   * @returns {Promise<number|null>} - ID del empleado creado o null en caso de error
+   */
+  // async createOdooEmployee(employeeData) {
+  //   const authenticated = await this.odooAuth()
+
+  //   if (!authenticated) {
+  //     console.error('No se pudo autenticar para crear el empleado')
+  //     return null
+  //   }
+
+  //   try {
+  //     const url = 'https://servicios-aereos-estrella.odoo.com'
+
+  //     // Validar que se proporcionó un nombre
+  //     if (!employeeData.name) {
+  //       throw new Error('El nombre del empleado es obligatorio')
+  //     }
+
+  //     // Preparar los datos del empleado
+  //     const employeeVals = {
+  //       name: employeeData.name,
+  //     }
+
+  //     // Añadir campos adicionales si se proporcionan
+  //     if (employeeData.additionalFields) {
+  //       Object.assign(employeeVals, employeeData.additionalFields)
+  //     }
+
+  //     // Crear el empleado
+  //     const response = await client.post(
+  //       `${url}/web/dataset/call_kw`,
+  //       {
+  //         jsonrpc: '2.0',
+  //         method: 'call',
+  //         params: {
+  //           model: 'hr.employee',
+  //           method: 'create',
+  //           args: [employeeVals],
+  //           kwargs: {},
+  //         },
+  //       },
+  //       {
+  //         withCredentials: true,
+  //       }
+  //     )
+
+  //     const employeeId = response.data.result
+  //     console.log(`Empleado creado exitosamente con ID: ${employeeId}`)
+  //     return employeeId
+  //   } catch (error) {
+  //     console.error(`Error al crear empleado: ${error.message}`)
+  //     if (error.response && error.response.data) {
+  //       console.error('Detalles del error:', error.response.data)
+  //     }
+  //     return null
+  //   } finally {
+  //     // Cerrar sesión después de la operación
+  //     await this.closeOdooSession()
+  //   }
+  // }
+
+  // async createNewOdooEmployee() {
+  //   try {
+  //     // Crear un empleado sin usuario vinculado
+  //     const empleadoId = await this.createOdooEmployee({
+  //       name: 'Empleado de Prueba',
+  //       additionalFields: {
+  //         // department_id: 1, // ID del departamento
+  //         // job_id: 2, // ID del puesto de trabajo
+  //         work_phone: '5551234567',
+  //         work_email: 'carlos.rodriguez@ejemplo.com',
+  //         // work_location_id: 1, // ID de la ubicación de trabajo
+  //         mobile_phone: '5559876543',
+  //         // coach_id: 5, // ID del supervisor
+  //         // Otros campos según necesites
+  //       },
+  //     })
+
+  //     return empleadoId
+  //   } catch (error) {
+  //     console.error('Error en el proceso:', error);
+  //   }
+  // }
+
+  // async getOdooGroups() {
+  //   const authenticated = await this.odooAuth()
+
+  //   if (!authenticated) {
+  //     console.error('No se pudo autenticar para obtener los grupos')
+  //     return null
+  //   }
+
+  //   try {
+  //     const url = 'https://servicios-aereos-estrella.odoo.com'
+
+  //     // Buscar grupos de seguridad
+  //     const response = await client.post(
+  //       `${url}/web/dataset/call_kw`,
+  //       {
+  //         jsonrpc: '2.0',
+  //         method: 'call',
+  //         params: {
+  //           model: 'res.groups',
+  //           method: 'search_read',
+  //           args: [[]],
+  //           kwargs: {
+  //             fields: ['id', 'name', 'category_id', 'comment'],
+  //             order: 'category_id, name',
+  //           },
+  //         },
+  //       },
+  //       {
+  //         withCredentials: true,
+  //       }
+  //     )
+
+  //     console.log('Grupos obtenidos exitosamente')
+  //     const groups = response.data.result
+
+  //     if (groups && groups.length > 0) {
+  //       console.log('groups de seguridad disponibles:')
+
+  //       // Organizar por categoría
+  //       const groupsByCategory = {}
+
+  //       groups.forEach((group) => {
+  //         const categoryName = group.category_id ? group.category_id[1] : 'Sin categoría'
+
+  //         if (!groupsByCategory[categoryName]) {
+  //           groupsByCategory[categoryName] = []
+  //         }
+
+  //         groupsByCategory[categoryName].push({
+  //           id: group.id,
+  //           name: group.name,
+  //           description: group.comment || 'Sin descripción',
+  //         })
+  //       })
+
+  //       // Mostrar groups organizados por categoría
+  //       for (const category in groupsByCategory) {
+  //         console.log(`\n--- ${category} ---`)
+  //         groupsByCategory[category].forEach((group) => {
+  //           console.log(`ID: ${group.id}, Nombre: ${group.name}`)
+  //         })
+  //       }
+
+  //       // Buscar específicamente el grupo "Empleado"
+  //       const grupoEmpleado = groups.find(
+  //         (g) => g.name.toLowerCase() === 'employee' || g.name.toLowerCase() === 'empleado'
+  //       )
+
+  //       if (grupoEmpleado) {
+  //         console.log(`\nEl grupo "Empleado" tiene el ID: ${grupoEmpleado.id}`)
+  //         return grupoEmpleado
+  //       } else {
+  //         console.log('\nNo se encontró un grupo con el nombre exacto "Empleado"')
+  //       }
+  //     } else {
+  //       console.log('No se pudieron obtener los groups o la lista está vacía')
+  //     }
+  //   } catch (error) {
+  //     console.error(`Error al obtener groups: ${error.message}`)
+  //     if (error.response && error.response.data) {
+  //       console.error('Detalles del error:', error.response.data)
+  //     }
+  //     return null
+  //   } finally {
+  //     // Cerrar sesión después de la operación
+  //     await this.closeOdooSession()
+  //   }
+  // }
 }

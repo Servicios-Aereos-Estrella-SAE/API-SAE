@@ -58,6 +58,11 @@ export default class DepartmentPosition extends compose(BaseModel, SoftDeletes) 
 
   @belongsTo(() => Position, {
     foreignKey: 'positionId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('parentPosition')
+      }
+    },
   })
   declare position: BelongsTo<typeof Position>
 }
