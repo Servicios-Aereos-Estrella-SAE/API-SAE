@@ -158,6 +158,13 @@ export default class DepartmentService {
   }
 
   async create(department: Department) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+      .first()
+
     const newDepartment = new Department()
     newDepartment.departmentCode = department.departmentCode
     newDepartment.departmentName = department.departmentName
@@ -166,6 +173,7 @@ export default class DepartmentService {
     newDepartment.departmentActive = department.departmentActive
     newDepartment.parentDepartmentId = department.parentDepartmentId
     newDepartment.companyId = department.companyId
+    newDepartment.businessUnitId = businessUnits?.businessUnitId || 0
     await newDepartment.save()
     return newDepartment
   }

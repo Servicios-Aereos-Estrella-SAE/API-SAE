@@ -20,7 +20,6 @@ export const createPositionValidator = vine.compile(
     positionIsDefault: vine.boolean().optional(),
     positionActive: vine.boolean().optional(),
     parentPositionId: vine.number().min(0).optional(),
-    companyId: vine.number().min(1),
   })
 )
 
@@ -32,6 +31,5 @@ export const updatePositionValidator = vine.compile(
     positionIsDefault: vine.boolean().optional(),
     positionActive: vine.boolean().optional(),
     parentPositionId: vine.number().min(0).optional(),
-    companyId: vine.number().min(1),
   })
 )

@@ -139,6 +139,7 @@ export default class Department extends compose(BaseModel, SoftDeletes) {
       if (!query.isRelatedSubQuery) {
         query.preload('position', (squery) => {
           squery.preload('positions')
+          squery.preload('parentPosition')
         })
       }
     },
@@ -151,6 +152,7 @@ export default class Department extends compose(BaseModel, SoftDeletes) {
       if (!query.isRelatedSubQuery) {
         query.preload('departments')
         query.preload('departmentPositions')
+        query.orderBy('departmentName', 'asc')
       }
     },
   })
