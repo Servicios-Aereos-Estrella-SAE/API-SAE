@@ -957,13 +957,13 @@ export default class DepartmentController {
     try {
       await auth.check()
 
-      const user = auth.user
-      const userService = new UserService()
-      let departmentsList = [] as Array<number>
+      // const user = auth.user
+      // const userService = new UserService()
+      // let departmentsList = [] as Array<number>
 
-      if (user) {
-        departmentsList = await userService.getRoleDepartments(user.userId)
-      }
+      // if (user) {
+      //   departmentsList = await userService.getRoleDepartments(user.userId)
+      // }
 
       const departments = await new DepartmentService().buildOrganization(/* departmentsList */)
 
