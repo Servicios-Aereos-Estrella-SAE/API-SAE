@@ -63,6 +63,5 @@ export const updateEmployeeValidator = vine.compile(
     positionId: vine.number().min(1),
     positionSyncId: vine.number().min(0).optional(),
     employeeTypeId: vine.number().min(1),
-    employeeBusinessEmail: vine.string().trim().minLength(0).maxLength(200),
   })
 )
