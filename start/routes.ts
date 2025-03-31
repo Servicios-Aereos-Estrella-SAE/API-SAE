@@ -82,6 +82,7 @@ import './routes/bank_routes.js'
 import './routes/employee_bank_routes.js'
 import './routes/proceeding_file_type_property_routes.js'
 import './routes/proceeding_file_type_property_value_routes.js'
+import './routes/employee_shift_change_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'

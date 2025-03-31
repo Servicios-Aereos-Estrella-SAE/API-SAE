@@ -41,3 +41,7 @@ router
   })
   .prefix('/api/employees')
   .use(middleware.auth())
+
+// router.get('/odoo/employees', '#controllers/employee_controller.getOdooEmployees')
+// router.get('/odoo/employees/groups', '#controllers/employee_controller.getOdooGroups')
+// router.get('/odoo/employees/create', '#controllers/employee_controller.createNewOdooEmployee')

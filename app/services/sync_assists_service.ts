@@ -650,26 +650,21 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
 
+      dateAssistItem = await this.hasOtherShift(employeeID, dateAssistItem)
       dateAssistItem = await this.setCheckInDateTime(dateAssistItem)
       dateAssistItem = await this.setCheckOutDateTime(dateAssistItem)
       dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
-      
       dateAssistItem = await this.calculateRawCalendar(dateAssistItem, assistList)
-
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
-      
       dateAssistItem = await this.isSundayBonus(dateAssistItem)
       dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dateAssistItem = await this.isWorkDisabilityDate(employeeID, dateAssistItem)
-
       dateAssistItem = await this.validTime(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
       dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
-
       dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
-
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
@@ -1067,6 +1062,50 @@ export default class SyncAssistsService {
       }
     }
 
+    return checkAssistCopy
+  }
+
+  private async hasOtherShift(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+    if (!employeeID) {
+      return checkAssist
+    }
+    const employee = await Employee.query()
+      .where('employee_id', employeeID || 0)
+      .first()
+
+    if (!employee) {
+      return checkAssist
+    }
+
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const assignedShift = checkAssist.assist.dateShift
+
+    if (!assignedShift) {
+      return checkAssistCopy
+    }
+    const hourStart = assignedShift.shiftTimeStart
+    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
+    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City')
+    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
+    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
+
+    await employee.load('shiftChanges', (query) => {
+      query.where('employeeShiftChangeDateFrom', '>=', startDate)
+      query.where('employeeShiftChangeDateFrom', '<=', endDate)
+    })
+    if (employee.shiftChanges.length > 0) {
+      if (employee.shiftChanges[0].shiftTo) {
+        checkAssistCopy.assist.dateShift = JSON.parse(JSON.stringify(employee.shiftChanges[0].shiftTo))
+        if (checkAssistCopy.assist.dateShift) {
+          checkAssistCopy.assist.dateShift.shiftIsChange = true
+        }
+      }
+    }
     return checkAssistCopy
   }
 

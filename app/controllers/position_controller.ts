@@ -317,7 +317,7 @@ export default class PositionController {
       const positionIsDefault = request.input('positionIsDefault')
       const positionActive = request.input('positionActive')
       const parentPositionId = request.input('parentPositionId')
-      const companyId = request.input('companyId')
+
       const position = {
         positionCode: positionCode,
         positionName: positionName,
@@ -325,11 +325,12 @@ export default class PositionController {
         positionIsDefault: positionIsDefault,
         positionActive: positionActive,
         parentPositionId: parentPositionId,
-        companyId: companyId,
       } as Position
+
       const positionService = new PositionService()
       const data = await request.validateUsing(createPositionValidator)
       const exist = await positionService.verifyInfoExist(position)
+
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -339,7 +340,9 @@ export default class PositionController {
           data: { ...data },
         }
       }
+
       const newPosition = await positionService.create(position)
+
       if (newPosition) {
         response.status(201)
         return {
