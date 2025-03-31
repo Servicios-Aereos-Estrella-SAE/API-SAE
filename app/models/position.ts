@@ -113,6 +113,7 @@ export default class Position extends compose(BaseModel, SoftDeletes) {
       if (!query.isRelatedSubQuery) {
         query.preload('subPositions')
       }
+      query.preload('employees')
     },
   })
   declare subPositions: HasMany<typeof Position>
@@ -136,7 +137,10 @@ export default class Position extends compose(BaseModel, SoftDeletes) {
     foreignKey: 'parentPositionId',
     onQuery(query) {
       if (!query.isRelatedSubQuery) {
-        query.preload('positions')
+        query.preload('positions', (pquery) => {
+          pquery.preload('employees')
+        })
+        query.preload('employees')
       }
     },
   })
