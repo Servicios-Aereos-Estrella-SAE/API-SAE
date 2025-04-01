@@ -21,6 +21,9 @@ import { ShiftExceptionInterface } from '../interfaces/shift_exception_interface
 import ToleranceService from './tolerance_service.js'
 import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
 import AssistsService from './assist_service.js'
+import SystemSettingService from './system_setting_service.js'
+import SystemSetting from '#models/system_setting'
+import Tolerance from '#models/tolerance'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -711,7 +714,6 @@ export default class SyncAssistsService {
     const { delayTolerance, faultTolerance } = await this.getTolerances()
     const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
     const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
-
     if (!checkAssist?.assist?.dateShift) {
       return checkAssistCopy
     }
@@ -748,7 +750,6 @@ export default class SyncAssistsService {
     const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
     const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
     const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('America/Mexico_City').plus({ minutes: 1 })
-
     const DayTime = DateTime.fromISO(`${checkAssist.assist.checkIn.assistPunchTimeUtc}`, { setZone: true })
     const checkTime = DayTime.setZone('America/Mexico_city')
     const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
@@ -756,7 +757,6 @@ export default class SyncAssistsService {
     const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone('America/Mexico_City')
 
     const diffTime = timeCheckIn.diff(timeToStart, 'minutes').minutes
-
     if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
       if (checkAssist.assist) {
         checkAssistCopy.assist.checkInStatus = 'fault'
@@ -769,10 +769,9 @@ export default class SyncAssistsService {
           checkAssistCopy.assist.checkInStatus = ''
         }
       }
-
       return checkAssistCopy
     }
-
+    
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'delay'
     }
@@ -784,7 +783,6 @@ export default class SyncAssistsService {
     if (diffTime <= 0) {
       checkAssistCopy.assist.checkInStatus = 'ontime'
     }
-
     if (discriminated) {
       checkAssistCopy.assist.checkInStatus = ''
     }
@@ -815,7 +813,6 @@ export default class SyncAssistsService {
     }
 
     const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeUtc}`, { setZone: true })
-
     const checkTime = DayTime.setZone('America/Mexico_city')
     const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
     const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
@@ -855,8 +852,14 @@ export default class SyncAssistsService {
 
   private async getTolerances() {
     try {
-      const data = await new ToleranceService().index()
+      const systemSettingService = new SystemSettingService()
+      const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+      let data = [] as Tolerance[]
+      if (systemSettingActive) {
+         data = await new ToleranceService().index(systemSettingActive.systemSettingId)
 
+      
+      }
       const delayTolerance = data.find((t) => t.toleranceName === 'Delay')
       const faultTolerance = data.find((t) => t.toleranceName === 'Fault')
       if (!delayTolerance || !faultTolerance) {

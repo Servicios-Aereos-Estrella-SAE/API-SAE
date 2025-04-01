@@ -3,7 +3,7 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
-    router.get('/', '#controllers/tolerances_controller.index')
+    router.get('/:systemSettingId', '#controllers/tolerances_controller.index')
     router.get(
       '/get-tardiness-tolerance',
       '#controllers/tolerances_controller.getTardinessTolerance'
