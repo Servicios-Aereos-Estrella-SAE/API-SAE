@@ -138,7 +138,10 @@ export default class Department extends compose(BaseModel, SoftDeletes) {
     onQuery(query) {
       if (!query.isRelatedSubQuery) {
         query.preload('position', (squery) => {
-          squery.preload('positions')
+          squery.preload('positions', (pquery) => {
+            pquery.preload('employees')
+          })
+          squery.preload('employees')
           squery.preload('parentPosition')
         })
       }
