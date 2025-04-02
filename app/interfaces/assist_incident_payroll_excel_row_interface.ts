@@ -10,7 +10,7 @@ interface AssistIncidentPayrollExcelRowInterface {
   overtimeTriple: string
   sundayBonus: number
   laborRest: number
-  vacationBonus: string
+  vacationBonus: number
   leveling: string
   bonus: string
   others: string

@@ -235,7 +235,12 @@ export default class AssistsService {
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
-        newRows = await this.addRowIncidentPayrollCalendar(employee, employeeCalendar, tardies)
+        newRows = await this.addRowIncidentPayrollCalendar(
+          employee,
+          employeeCalendar,
+          tardies,
+          filters.filterDatePay
+        )
         for await (const row of newRows) {
           rowsIncidentPayroll.push(row)
         }
@@ -714,7 +719,12 @@ export default class AssistsService {
           if (data) {
             const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
             let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
-            newRows = await this.addRowIncidentPayrollCalendar(employee, employeeCalendar, tardies)
+            newRows = await this.addRowIncidentPayrollCalendar(
+              employee,
+              employeeCalendar,
+              tardies,
+              filters.filterDatePay
+            )
             for await (const row of newRows) {
               rowsIncidentPayroll.push(row)
             }
@@ -996,7 +1006,7 @@ export default class AssistsService {
   }
 
   async getExcelAllIncidentSummaryPayRoll(
-    filters: AssistExcelFilterInterface,
+    filters: AssistDepartmentExcelFilterInterface,
     departmentsList: Array<number>
   ) {
     try {
@@ -1100,7 +1110,8 @@ export default class AssistsService {
               newRows = await this.addRowIncidentPayrollCalendar(
                 employee,
                 employeeCalendar,
-                tardies
+                tardies,
+                filters.filterDatePay
               )
               for await (const row of newRows) {
                 rowsIncidentPayroll.push(row)
@@ -2523,7 +2534,8 @@ export default class AssistsService {
   async addRowIncidentPayrollCalendar(
     employee: Employee,
     employeeCalendar: AssistDayInterface[],
-    tardies: number
+    tardies: number,
+    datePay: string
   ) {
     const rows = [] as AssistIncidentPayrollExcelRowInterface[]
     let department = employee.department.departmentAlias ? employee.department.departmentAlias : ''
@@ -2545,6 +2557,7 @@ export default class AssistsService {
     let faults = 0
     let delayFaults = 0
     let earlyOutsFaults = 0
+    let vacationBonus = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
@@ -2630,6 +2643,7 @@ export default class AssistsService {
     }
     delayFaults = this.getFaultsFromDelays(delays, tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
+    vacationBonus = this.getVacationBonus(employee, datePay)
     let company = ''
     if (employee.businessUnitId) {
       const businessUnit = await BusinessUnit.query()
@@ -2652,7 +2666,7 @@ export default class AssistsService {
       overtimeTriple: '',
       sundayBonus: sundayBonus,
       laborRest: laborRest,
-      vacationBonus: '',
+      vacationBonus: vacationBonus,
       leveling: '',
       bonus: '',
       others: '',
@@ -2680,7 +2694,7 @@ export default class AssistsService {
           rowData.overtimeTriple,
           rowData.sundayBonus ? rowData.sundayBonus : '',
           rowData.laborRest ? rowData.laborRest : '',
-          rowData.vacationBonus,
+          rowData.vacationBonus ? rowData.vacationBonus : '',
           rowData.leveling,
           rowData.bonus,
           rowData.others,
@@ -2716,6 +2730,15 @@ export default class AssistsService {
         }
         if (rowData.sundayBonus > 0) {
           cell = worksheet.getCell(rowCount + 1, 10)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
+          }
+        }
+        if (rowData.vacationBonus > 0) {
+          cell = worksheet.getCell(rowCount + 1, 12)
           cell.font = { color: { argb: '006100' } }
           cell.fill = {
             type: 'pattern',
@@ -2824,5 +2847,54 @@ export default class AssistsService {
       tardies = 3
     }
     return tardies
+  }
+
+  getVacationBonus(employee: Employee, datePay: string) {
+    if (!employee.employeeHireDate) {
+      return 0
+    }
+    if (!datePay) {
+      return 0
+    }
+
+    if (!this.isFirstPayMonth(datePay)) {
+      return 0
+    }
+
+    if (this.isAnniversaryInPayMonth(employee.employeeHireDate.toString(), datePay)) {
+      return 1
+    }
+
+    return 0
+  }
+
+  isFirstPayMonth(dateString: string) {
+    const date = new Date(dateString)
+    const dayOfMonth = date.getDate()
+
+    return dayOfMonth >= 1 && dayOfMonth <= 15
+  }
+
+  isAnniversaryInPayMonth(hireDate: string, payDate: string) {
+    const hire = new Date(hireDate)
+    const pay = new Date(payDate)
+
+    return hire.getMonth() === pay.getMonth()
+  }
+
+  isFirstPaycheckOnAnniversary(employee: Employee) {
+    if (!employee.employeeHireDate) {
+      return false
+    }
+
+    const hireDate = DateTime.fromISO(employee.employeeHireDate.toString())
+
+    const today = DateTime.local()
+
+    const isAnniversary = today.month === hireDate.month && today.day === hireDate.day
+
+    const isFirstPaycheck = today.day >= 1 && today.day <= 15
+
+    return isAnniversary && isFirstPaycheck
   }
 }
