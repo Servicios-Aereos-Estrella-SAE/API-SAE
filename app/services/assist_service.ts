@@ -210,6 +210,7 @@ export default class AssistsService {
           date: filterDate,
           dateEnd: filterDateEnd,
           employeeID: employeeId,
+          withOutExternal: true,
         },
         { page, limit }
       )
@@ -645,43 +646,6 @@ export default class AssistsService {
       const departmentService = new DepartmentService()
       const resultPositions = await departmentService.getPositions(departmentId)
       const syncAssistsService = new SyncAssistsService()
-      const rows = [] as AssistExcelRowInterface[]
-      for await (const position of resultPositions) {
-        const employeeService = new EmployeeService()
-        const resultEmployes = await employeeService.index(
-          {
-            search: '',
-            departmentId: departmentId,
-            positionId: position.positionId,
-            employeeWorkSchedule: '',
-            page: page,
-            limit: limit,
-            ignoreDiscriminated: 0,
-            ignoreExternal: 1,
-          },
-          [departmentId]
-        )
-        const dataEmployes: any = resultEmployes
-        for await (const employee of dataEmployes) {
-          const result = await syncAssistsService.index(
-            {
-              date: filterDate,
-              dateEnd: filterDateEnd,
-              employeeID: employee.employeeId,
-            },
-            { page, limit }
-          )
-          const data: any = result.data
-          if (data) {
-            const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-            let newRows = [] as AssistExcelRowInterface[]
-            newRows = await this.addRowCalendar(employee, employeeCalendar)
-            for await (const row of newRows) {
-              rows.push(row)
-            }
-          }
-        }
-      }
       const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
@@ -712,6 +676,7 @@ export default class AssistsService {
               date: filterDate,
               dateEnd: filterDateEnd,
               employeeID: employee.employeeId,
+              withOutExternal: true,
             },
             { page, limit }
           )
@@ -1014,54 +979,11 @@ export default class AssistsService {
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)
         .orderBy('departmentId')
-      const rows = [] as AssistExcelRowInterface[]
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
       const departmentService = new DepartmentService()
       const employeeService = new EmployeeService()
       const tardies = await this.getTardiesTolerance()
-      for await (const departmentRow of departments) {
-        const departmentId = departmentRow.departmentId
-        const page = 1
-        const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId)
-        const syncAssistsService = new SyncAssistsService()
-        for await (const position of resultPositions) {
-          const resultEmployes = await employeeService.index(
-            {
-              search: '',
-              departmentId: departmentId,
-              positionId: position.positionId,
-              page: page,
-              limit: limit,
-              employeeWorkSchedule: '',
-              ignoreDiscriminated: 0,
-              ignoreExternal: 1,
-            },
-            [departmentId]
-          )
-          const dataEmployes: any = resultEmployes
-          for await (const employee of dataEmployes) {
-            const result = await syncAssistsService.index(
-              {
-                date: filterDate,
-                dateEnd: filterDateEnd,
-                employeeID: employee.employeeId,
-              },
-              { page, limit }
-            )
-            const data: any = result.data
-            if (data) {
-              const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-              let newRows = [] as AssistExcelRowInterface[]
-              newRows = await this.addRowCalendar(employee, employeeCalendar)
-              for await (const row of newRows) {
-                rows.push(row)
-              }
-            }
-          }
-        }
-      }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       // hasta aquí era lo de incidencias
@@ -1100,6 +1022,7 @@ export default class AssistsService {
                 date: filterDate,
                 dateEnd: filterDateEnd,
                 employeeID: employee.employeeId,
+                withOutExternal: true,
               },
               { page, limit }
             )
@@ -2558,6 +2481,7 @@ export default class AssistsService {
     let delayFaults = 0
     let earlyOutsFaults = 0
     let vacationBonus = 0
+    let daysWorkDisability = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
@@ -2644,6 +2568,7 @@ export default class AssistsService {
     delayFaults = this.getFaultsFromDelays(delays, tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
     vacationBonus = this.getVacationBonus(employee, datePay)
+    daysWorkDisability = await this.getDaysWorkDisability(employee, datePay)
     let company = ''
     if (employee.businessUnitId) {
       const businessUnit = await BusinessUnit.query()
@@ -2661,7 +2586,7 @@ export default class AssistsService {
       company: company,
       faults: faults,
       delays: delayFaults + earlyOutsFaults,
-      inc: '',
+      inc: daysWorkDisability,
       overtimeDouble: overtimeDouble,
       overtimeTriple: '',
       sundayBonus: sundayBonus,
@@ -2689,7 +2614,7 @@ export default class AssistsService {
           rowData.company,
           rowData.faults ? rowData.faults : '',
           rowData.delays ? rowData.delays : '',
-          rowData.inc,
+          rowData.inc ? rowData.inc : '',
           rowData.overtimeDouble ? rowData.overtimeDouble : '',
           rowData.overtimeTriple,
           rowData.sundayBonus ? rowData.sundayBonus : '',
@@ -2717,6 +2642,15 @@ export default class AssistsService {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'FFC7CE' },
+          }
+        }
+        if (rowData.inc > 0) {
+          cell = worksheet.getCell(rowCount + 1, 7)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
           }
         }
         if (rowData.overtimeDouble > 0) {
@@ -2875,26 +2809,32 @@ export default class AssistsService {
     return dayOfMonth >= 1 && dayOfMonth <= 15
   }
 
-  isAnniversaryInPayMonth(hireDate: string, payDate: string) {
+  isAnniversaryInPayMonth(hireDate: string, datePay: string) {
     const hire = new Date(hireDate)
-    const pay = new Date(payDate)
+    const pay = new Date(datePay)
 
     return hire.getMonth() === pay.getMonth()
   }
 
-  isFirstPaycheckOnAnniversary(employee: Employee) {
+  async getDaysWorkDisability(employee: Employee, datePay: string) {
     if (!employee.employeeHireDate) {
-      return false
+      return 0
     }
+    if (!datePay) {
+      return 0
+    }
+    let pay = new Date(datePay)
+    pay.setDate(pay.getDate() - 13)
+    let newDateStart = DateTime.fromJSDate(pay).toFormat('yyyy-LL-dd')
+    const startDate = `${newDateStart} 00:00:00`
+    const endDate = `${datePay} 23:59:59`
 
-    const hireDate = DateTime.fromISO(employee.employeeHireDate.toString())
+    await employee.load('shift_exceptions', (query) => {
+      query.where('shiftExceptionsDate', '>=', startDate)
+      query.where('shiftExceptionsDate', '<=', endDate)
+      query.whereNotNull('work_disability_period_id')
+    })
 
-    const today = DateTime.local()
-
-    const isAnniversary = today.month === hireDate.month && today.day === hireDate.day
-
-    const isFirstPaycheck = today.day >= 1 && today.day <= 15
-
-    return isAnniversary && isFirstPaycheck
+    return employee.shift_exceptions.length
   }
 }

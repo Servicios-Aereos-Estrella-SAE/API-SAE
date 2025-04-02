@@ -422,6 +422,7 @@ export default class SyncAssistsService {
       date: string
       dateEnd: string
       employeeID?: number
+      withOutExternal?: boolean
     },
     paginator?: { page: number; limit: number }
   ) {
@@ -449,6 +450,9 @@ export default class SyncAssistsService {
     if (params.employeeID) {
       const employee = await Employee.query()
         .where('employee_id', params.employeeID || 0)
+        .if(params.withOutExternal, (subQuery) => {
+          subQuery.where('employee_type_of_contract', 'Internal')
+        })
         .withTrashed()
         .first()
 

@@ -5,7 +5,7 @@ interface AssistIncidentPayrollExcelRowInterface {
   company: string
   faults: number
   delays: number
-  inc: string
+  inc: number
   overtimeDouble: number
   overtimeTriple: string
   sundayBonus: number
