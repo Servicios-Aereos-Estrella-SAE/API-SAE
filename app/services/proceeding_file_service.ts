@@ -332,7 +332,7 @@ export default class ProceedingFileService {
     )
     filtersToSetEmail.proceedingFile.proceedingFileExpirationAt = dateExpired
       .setLocale('en')
-      .toFormat(`cccc, dd LLLL yyyy`)
+      .toFormat('cccc, dd LLLL yyyy')
     const proceedingFileTypeEmails = await proceedingFileTypeService.getAllEmailParents(
       filtersToSetEmail.proceedingFile.proceedingFileType.proceedingFileTypeId
     )

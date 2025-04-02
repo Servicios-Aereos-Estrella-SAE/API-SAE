@@ -462,7 +462,7 @@ export default class SyncAssistsService {
     }
 
     query.orderBy('assist_punch_time_origin', 'desc')
-   
+
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
@@ -645,7 +645,7 @@ export default class SyncAssistsService {
     for await (const item of dailyAssistList) {
       const date = assistList.find((assistDate) => assistDate.day === item.day)
       let dateAssistItem = date || item
-      
+
       dateAssistItem.assist.isCheckOutNextDay = false
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
@@ -1043,7 +1043,7 @@ export default class SyncAssistsService {
       const exIncapacity = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
       const exMaternity = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'incapacidad-por-maternidad')
       const exAbsentWork = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
-      
+
       if (exWrongSystem || exNewWorker || exIncapacity || exMaternity || exAbsentWork) {
         checkAssistCopy.assist.checkInStatus = 'exception'
         checkAssistCopy.assist.checkOutStatus = 'exception'
@@ -1259,7 +1259,7 @@ export default class SyncAssistsService {
   }
 
   private async calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
-    const lastTimeZoneLimit = DateTime.fromISO(`2024-10-26T00:00:00.000-06:00`).setZone('America/Mexico_City')
+    const lastTimeZoneLimit = DateTime.fromISO('2024-10-26T00:00:00.000-06:00').setZone('America/Mexico_City')
     const startDay = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('America/Mexico_City')
     const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('America/Mexico_City')
     const checkOutDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkOutDateTime}`)).setZone('America/Mexico_City')
@@ -1305,7 +1305,7 @@ export default class SyncAssistsService {
         dateAssistItem.assist.checkEatIn = null
         dateAssistItem.assist.checkEatOut = null
         dateAssistItem.assist.checkOut = null
-        
+
         if (dateAssistItem.assist.assitFlatList) {
           const calendarDay: AssistInterface[] = []
           const limitDateTimeCheckinFault = checkInDateTime.plus({ hours: 3 })
@@ -1464,7 +1464,7 @@ export default class SyncAssistsService {
         )
 
         if (exception) {
-          
+
           const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
           const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
           const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
@@ -1491,11 +1491,11 @@ export default class SyncAssistsService {
             if (diffTime > TOLERANCE_DELAY_MINUTES) {
               checkAssistCopy.assist.checkInStatus = 'delay'
             }
-        
+
             if (diffTime <= TOLERANCE_DELAY_MINUTES) {
               checkAssistCopy.assist.checkInStatus = 'tolerance'
             }
-        
+
             if (diffTime <= 0) {
               checkAssistCopy.assist.checkInStatus = 'ontime'
             }
@@ -1526,7 +1526,7 @@ export default class SyncAssistsService {
     //if (checkAssist.assist.dateShift && !checkAssist.assist.dateShift?.shiftCalculateFlag) {
       if (checkAssist.assist.dateShift) {
       if (checkAssist.assist.exceptions.length > 0) {
-     
+
         const exception = checkAssist.assist.exceptions.find(
           (ex) => ex.shiftExceptionCheckOutTime
         )
