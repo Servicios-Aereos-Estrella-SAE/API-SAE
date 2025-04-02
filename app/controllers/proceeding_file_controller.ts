@@ -1019,12 +1019,10 @@ export default class ProceedingFileController {
     try {
       const dateStart = request.input('dateStart')
       const dateEnd = request.input('dateEnd')
-      const filters = {
-        dateStart: dateStart,
-        dateEnd: dateEnd,
-      } as ProceedingFileExpiredFilterInterface
+      const filters = { dateStart: dateStart, dateEnd: dateEnd } as ProceedingFileExpiredFilterInterface
       const proceddingFileExpiredService = new ProceedingFileService()
       const proceedingFiles = await proceddingFileExpiredService.sendFilesExpiresToEmail(filters)
+
       response.status(200)
       return {
         type: 'success',

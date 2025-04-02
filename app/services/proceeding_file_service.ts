@@ -147,7 +147,9 @@ export default class ProceedingFileService {
       .orderBy('proceeding_file_type_email_email')
       .distinct('proceeding_file_type_email_email')
       .select('proceeding_file_type_email_email')
+
     const emails = [] as Array<ProceedingFileTypeEmailExpiredAndExpiringInterface>
+
     for await (const item of proceedingFileTypeEmail) {
       const newEmail = {
         email: item.proceedingFileTypeEmailEmail,
@@ -166,6 +168,7 @@ export default class ProceedingFileService {
     }
 
     const employeesProceedingFiles = await this.getExpiredAndExpiring(filters, 'employee')
+
     for await (const proceedingFile of employeesProceedingFiles.proceedingFilesExpired) {
       const filtersToSetEmail = {
         emails: emails,
@@ -271,6 +274,7 @@ export default class ProceedingFileService {
     }
 
     const userEmail = env.get('SMTP_USERNAME')
+
     if (userEmail) {
       let tradeName = 'BO'
       let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
@@ -280,10 +284,12 @@ export default class ProceedingFileService {
         if ( systemSettingActive.systemSettingLogo) {
           backgroundImageLogo = systemSettingActive.systemSettingLogo
         }
+
         if ( systemSettingActive.systemSettingTradeName) {
           tradeName = systemSettingActive.systemSettingTradeName
         }
       }
+
       for await (const email of emails) {
         if (
           email.employeesProceedingFilesExpired.length > 0 ||
@@ -312,30 +318,26 @@ export default class ProceedingFileService {
                 aircraftsProceedingFilesExpiring: email.aircraftsProceedingFilesExpiring || [],
                 customersProceedingFilesExpired: email.customersProceedingFilesExpired || [],
                 customersProceedingFilesExpiring: email.customersProceedingFilesExpiring || [],
-                flightAttendantsProceedingFilesExpired:
-                  email.flightAttendantsProceedingFilesExpired || [],
-                flightAttendantsProceedingFilesExpiring:
-                  email.flightAttendantsProceedingFilesExpiring || [],
+                flightAttendantsProceedingFilesExpired: email.flightAttendantsProceedingFilesExpired || [],
+                flightAttendantsProceedingFilesExpiring: email.flightAttendantsProceedingFilesExpiring || [],
                 backgroundImageLogo,
               })
           })
         }
       }
     }
+
     return emails
   }
 
   async setProceedingFileToEmail(filtersToSetEmail: SetProceedingFileToEmailInterface) {
     const proceedingFileTypeService = new ProceedingFileTypeService()
-    const dateExpired = DateTime.fromJSDate(
-      new Date(filtersToSetEmail.proceedingFile.proceedingFileExpirationAt)
-    )
+    const dateExpired = DateTime.fromJSDate(new Date(filtersToSetEmail.proceedingFile.proceedingFileExpirationAt))
     filtersToSetEmail.proceedingFile.proceedingFileExpirationAt = dateExpired
       .setLocale('en')
       .toFormat('cccc, dd LLLL yyyy')
-    const proceedingFileTypeEmails = await proceedingFileTypeService.getAllEmailParents(
-      filtersToSetEmail.proceedingFile.proceedingFileType.proceedingFileTypeId
-    )
+
+    const proceedingFileTypeEmails = await proceedingFileTypeService.getAllEmailParents(filtersToSetEmail.proceedingFile.proceedingFileType.proceedingFileTypeId)
     if (filtersToSetEmail.proceedingFile.proceedingFileType.emails.length > 0) {
       for await (const email of filtersToSetEmail.proceedingFile.proceedingFileType.emails) {
         proceedingFileTypeEmails.push(email)
