@@ -86,6 +86,7 @@ export default class ShiftForEmployeeService {
             shiftTimeStart: record.shift.shiftTimeStart,
             shiftActiveHours: record.shift.shiftActiveHours,
             shiftRestDays: record.shift.shiftRestDays,
+            shiftAccumulatedFault: record.shift.shiftAccumulatedFault,
             shiftCreatedAt: record.shift.shiftCreatedAt,
             shiftUpdatedAt: record.shift.shiftUpdatedAt,
             shiftCalculateFlag: record.shift.shiftCalculateFlag,

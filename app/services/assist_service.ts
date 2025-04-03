@@ -1646,6 +1646,7 @@ export default class AssistsService {
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
+        let faultProcessed = false
         let laborRestCounted = false
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
@@ -1662,6 +1663,20 @@ export default class AssistsService {
                 ) {
                   restWorked += 1
                   laborRestCounted = true
+                }
+              }
+              if (
+                exceptionTypeSlug === 'absence-from-work' &&
+                exception.shiftExceptionEnjoymentOfSalary !== 1
+              ) {
+                faultProcessed = true
+                if (
+                  calendar.assist.dateShift &&
+                  calendar.assist.dateShift.shiftAccumulatedFault > 0
+                ) {
+                  faults += calendar.assist.dateShift.shiftAccumulatedFault
+                } else {
+                  faults += 1
                 }
               }
             }
@@ -1698,8 +1713,16 @@ export default class AssistsService {
           if (calendar.assist.isVacationDate) {
             vacations += 1
           }
-          if (calendar.assist.checkInStatus === 'fault' && !calendar.assist.isRestDay) {
-            faults += 1
+          if (
+            calendar.assist.checkInStatus === 'fault' &&
+            !calendar.assist.isRestDay &&
+            !faultProcessed
+          ) {
+            if (calendar.assist.dateShift && calendar.assist.dateShift.shiftAccumulatedFault > 0) {
+              faults += calendar.assist.dateShift.shiftAccumulatedFault
+            } else {
+              faults += 1
+            }
           }
         }
         if (calendar.assist.isHoliday && calendar.assist.checkIn) {
@@ -2485,6 +2508,7 @@ export default class AssistsService {
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
+        let faultProcessed = false
         let laborRestCounted = false
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
@@ -2517,6 +2541,20 @@ export default class AssistsService {
                   )
                   const duration = checkOut.diff(checkIn, 'hours')
                   overtimeDouble += Math.floor(duration.hours)
+                }
+              }
+              if (
+                exceptionTypeSlug === 'absence-from-work' &&
+                exception.shiftExceptionEnjoymentOfSalary !== 1
+              ) {
+                faultProcessed = true
+                if (
+                  calendar.assist.dateShift &&
+                  calendar.assist.dateShift.shiftAccumulatedFault > 0
+                ) {
+                  faults += calendar.assist.dateShift.shiftAccumulatedFault
+                } else {
+                  faults += 1
                 }
               }
             }
@@ -2553,8 +2591,16 @@ export default class AssistsService {
           if (calendar.assist.isVacationDate) {
             vacations += 1
           }
-          if (calendar.assist.checkInStatus === 'fault' && !calendar.assist.isRestDay) {
-            faults += 1
+          if (
+            calendar.assist.checkInStatus === 'fault' &&
+            !calendar.assist.isRestDay &&
+            !faultProcessed
+          ) {
+            if (calendar.assist.dateShift && calendar.assist.dateShift.shiftAccumulatedFault > 0) {
+              faults += calendar.assist.dateShift.shiftAccumulatedFault
+            } else {
+              faults += 1
+            }
           }
         }
         if (calendar.assist.isHoliday && calendar.assist.checkIn) {

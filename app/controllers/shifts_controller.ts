@@ -28,6 +28,8 @@ import ShiftService from '#services/shift_service'
  *                 type: number
  *               shiftRestDays:
  *                 type: string
+ *               shiftAccumulatedFault:
+ *                 type: number
  *     responses:
  *       '201':
  *         description: Shift created successfully
@@ -48,6 +50,8 @@ import ShiftService from '#services/shift_service'
  *                   type: number
  *                 shiftRestDays:
  *                   type: string
+ *                 shiftAccumulatedFault:
+ *                   type: number
  *       '400':
  *         description: Invalid input, validation error
  *         content:
@@ -69,6 +73,7 @@ export default class ShiftController {
         shiftTimeStart: data.shiftTimeStart,
         shiftActiveHours: data.shiftActiveHours,
         shiftRestDays: data.shiftRestDays,
+        shiftAccumulatedFault: data.shiftAccumulatedFault,
         shiftCalculateFlag: request.input('shiftCalculateFlag'),
         shiftBusinessUnits: businessConf,
       } as Shift
@@ -284,6 +289,8 @@ export default class ShiftController {
    *                 type: number
    *               shiftRestDays:
    *                 type: string
+   *               shiftAccumulatedFault:
+   *                 type: number
    *     responses:
    *       '200':
    *         description: Shift updated successfully
@@ -304,6 +311,8 @@ export default class ShiftController {
    *                   type: number
    *                 shiftRestDays:
    *                   type: string
+   *                 shiftAccumulatedFault:
+   *                   type: number
    *       '400':
    *         description: Invalid input, validation error
    *         content:
