@@ -61,6 +61,16 @@ export default class EmployeeShiftChangeController {
    *                 description: Employee shift change date to is rest
    *                 required: true
    *                 default: false
+   *               employeeShiftChangeChangeThisShift:
+   *                 type: boolean
+   *                 description: Employee shift change change this shift
+   *                 required: true
+   *                 default: false
+   *               employeeShiftChangeNote:
+   *                 type: string
+   *                 description: Employee shift change note
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -158,7 +168,7 @@ export default class EmployeeShiftChangeController {
       )
       if (
         employeeShiftChangeDateFromIsRestDay &&
-        (employeeShiftChangeDateFromIsRestDay === 'true' ||
+        (employeeShiftChangeDateFromIsRestDay ||
           employeeShiftChangeDateFromIsRestDay === '1' ||
           employeeShiftChangeDateFromIsRestDay === 1)
       ) {
@@ -166,6 +176,7 @@ export default class EmployeeShiftChangeController {
       } else {
         employeeShiftChangeDateFromIsRestDay = 0
       }
+      const employeeShiftChangeChangeThisShift = request.input('employeeShiftChangeChangeThisShift')
       const employeeIdTo = request.input('employeeIdTo')
       const shiftIdTo = request.input('shiftIdTo')
       let employeeShiftChangeDateTo = request.input('employeeShiftChangeDateTo')
@@ -183,6 +194,7 @@ export default class EmployeeShiftChangeController {
       } else {
         employeeShiftChangeDateToIsRestDay = 0
       }
+      const employeeShiftChangeNote = request.input('employeeShiftChangeNote')
       const employeeShiftChange = {
         employeeIdFrom: employeeIdFrom,
         shiftIdFrom: shiftIdFrom,
@@ -192,6 +204,8 @@ export default class EmployeeShiftChangeController {
         shiftIdTo: shiftIdTo,
         employeeShiftChangeDateTo: employeeShiftChangeDateTo,
         employeeShiftChangeDateToIsRestDay: employeeShiftChangeDateToIsRestDay,
+        employeeShiftChangeChangeThisShift: employeeShiftChangeChangeThisShift,
+        employeeShiftChangeNote: employeeShiftChangeNote,
       } as EmployeeShiftChange
       const employeeShiftChangeSecond = {
         employeeIdFrom: employeeIdTo,
@@ -202,6 +216,8 @@ export default class EmployeeShiftChangeController {
         shiftIdTo: shiftIdFrom,
         employeeShiftChangeDateTo: employeeShiftChangeDateFrom,
         employeeShiftChangeDateToIsRestDay: employeeShiftChangeDateFromIsRestDay,
+        employeeShiftChangeChangeThisShift: employeeShiftChangeChangeThisShift,
+        employeeShiftChangeNote: employeeShiftChangeNote,
       } as EmployeeShiftChange
       let verifyExist = await employeeShiftChangeService.verifyInfoExist(employeeShiftChange)
       if (verifyExist.status !== 200) {

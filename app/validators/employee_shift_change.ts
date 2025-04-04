@@ -9,5 +9,7 @@ export const createEmployeeShiftChangeValidator = vine.compile(
     employeeIdTo: vine.number().min(1),
     shiftIdTo: vine.number().min(1),
     employeeShiftChangeDateToIsRestDay: vine.boolean(),
+    employeeShiftChangeChangeThisShift: vine.boolean(),
+    employeeShiftChangeNote: vine.string().optional(),
   })
 )

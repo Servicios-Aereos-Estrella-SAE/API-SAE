@@ -41,6 +41,12 @@ import Shift from './shift.js'
  *          employeeShiftChangeDateToIsRestDay:
  *           type: number
  *           description: Employee shift change date to is rest day
+ *          employeeShiftChangeChangeThisShift:
+ *           type: number
+ *           description: Employee shift change change this shift
+ *          employeeShiftChangeNote:
+ *           type: strung
+ *           description: Employee shift change note
  *          employeeShiftChangeCreatedAt:
  *            type: string
  *            format: date-time
@@ -79,6 +85,12 @@ export default class EmployeeShiftChange extends compose(BaseModel, SoftDeletes)
 
   @column()
   declare employeeShiftChangeDateToIsRestDay: number
+
+  @column()
+  declare employeeShiftChangeChangeThisShift: number
+
+  @column()
+  declare employeeShiftChangeNote: string
 
   @column.dateTime({ autoCreate: true })
   declare employeeShiftChangeCreatedAt: DateTime

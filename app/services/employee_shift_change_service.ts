@@ -18,6 +18,8 @@ export default class EmployeeShiftChangeService {
     newEmployeeShiftChange.shiftIdTo = employeeShiftChange.shiftIdTo
     newEmployeeShiftChange.employeeShiftChangeDateTo = employeeShiftChange.employeeShiftChangeDateTo
     newEmployeeShiftChange.employeeShiftChangeDateToIsRestDay = employeeShiftChange.employeeShiftChangeDateToIsRestDay
+    newEmployeeShiftChange.employeeShiftChangeChangeThisShift = employeeShiftChange.employeeShiftChangeChangeThisShift
+    newEmployeeShiftChange.employeeShiftChangeNote = employeeShiftChange.employeeShiftChangeNote
     await newEmployeeShiftChange.save()
     return newEmployeeShiftChange
   }
@@ -167,7 +169,7 @@ export default class EmployeeShiftChangeService {
         data: { ...employeeShiftChange },
       }
     }
-    if (employeeShiftChangeDateFrom === employeeShiftChangeDateTo) {
+   /*  if (employeeShiftChangeDateFrom === employeeShiftChangeDateTo) {
       return {
         status: 400,
         type: 'warning',
@@ -175,7 +177,7 @@ export default class EmployeeShiftChangeService {
         message: `The employee shift change resource cannot be ${action} because the 'date to' is the same as the 'date from'`,
         data: { ...employeeShiftChange },
       }
-    }
+    } */
     return {
       status: 200,
       type: 'success',
