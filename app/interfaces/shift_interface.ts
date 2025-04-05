@@ -8,6 +8,7 @@ interface ShiftInterface {
   shiftTimeStart: string
   shiftActiveHours: number
   shiftRestDays: string
+  shiftAccumulatedFault: number
   shiftIsChange?: boolean
   shiftCreatedAt: Date | DateTime | string | null
   shiftUpdatedAt: Date | DateTime | string | null
