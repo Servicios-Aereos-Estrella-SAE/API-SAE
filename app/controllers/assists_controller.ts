@@ -274,6 +274,13 @@ export default class AssistsController {
    *           type: string
    *         default: "2024-12-31"
    *         description: Date limit to get list
+   *       - name: datePay
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2025-04-01"
+   *         description: Date pay to get disability work and vacation bonus
    *       - name: employeeId
    *         in: query
    *         required: true
@@ -306,6 +313,7 @@ export default class AssistsController {
       const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
+      const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
       const employee = await Employee.query()
         .withTrashed()
@@ -337,6 +345,7 @@ export default class AssistsController {
         employeeId: employeeId,
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
+        filterDatePay: filterDatePay,
       } as AssistEmployeeExcelFilterInterface
       const assistService = new AssistsService()
       let buffer
@@ -526,6 +535,13 @@ export default class AssistsController {
    *           type: string
    *         default: "2024-12-31"
    *         description: Date limit to get list
+   *       - name: datePay
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2025-04-01"
+   *         description: Date pay to get disability work and vacation bonus
    *       - name: departmentId
    *         in: query
    *         required: true
@@ -564,6 +580,7 @@ export default class AssistsController {
       const departmentId = request.input('departmentId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
+      const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
       const department = await Department.query()
         .whereNull('department_deleted_at')
@@ -593,6 +610,7 @@ export default class AssistsController {
         departmentId: departmentId,
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
+        filterDatePay: filterDatePay,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
       let buffer
@@ -664,6 +682,13 @@ export default class AssistsController {
    *           type: string
    *         default: "2024-12-31"
    *         description: Date limit to get list
+   *       - name: datePay
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         default: "2025-04-01"
+   *         description: Date pay to get disability work and vacation bonus
    *       - name: departmentId
    *         in: query
    *         required: true
@@ -708,6 +733,7 @@ export default class AssistsController {
       }
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
+      const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
       const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
 
@@ -723,6 +749,7 @@ export default class AssistsController {
       const filters = {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
+        filterDatePay: filterDatePay,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
       let buffer

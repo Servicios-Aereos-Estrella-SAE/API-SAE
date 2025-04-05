@@ -5,11 +5,18 @@ import ToleranceService from '#services/tolerance_service'
 export default class TolerancesController {
   /**
    * @swagger
-   * /api/tolerances:
+   * /api/tolerances/{systemSettingId}:
    *   get:
-   *     summary: Get all tolerances
    *     tags:
    *       - Tolerances
+   *     summary: get tolerances by system setting id
+   *     parameters:
+   *       - name: systemSettingId
+   *         in: query
+   *         required: true
+   *         description: System setting id
+   *         schema:
+   *           type: number
    *     responses:
    *       200:
    *         description: Returns a list of tolerances
@@ -23,8 +30,8 @@ export default class TolerancesController {
    *                   items:
    *                     $ref: '#/components/schemas/Tolerance'
    */
-  async index({ response }: HttpContext) {
-    const tolerances = await new ToleranceService().index()
+  async index({ params, response }: HttpContext) {
+    const tolerances = await new ToleranceService().index(params.systemSettingId)
     return response.ok({ data: tolerances })
   }
 
@@ -32,7 +39,7 @@ export default class TolerancesController {
    * @swagger
    * /api/tolerances:
    *   post:
-   *     summary: Create a new tolerance
+   *     summary: create a new tolerance
    *     tags:
    *       - Tolerances
    *     requestBody:
@@ -42,9 +49,11 @@ export default class TolerancesController {
    *           schema:
    *             type: object
    *             properties:
-   *               tolerance_name:
+   *               toleranceName:
    *                 type: string
-   *               tolerance_minutes:
+   *               toleranceMinutes:
+   *                 type: integer
+   *               systemSettingId:
    *                 type: integer
    *     responses:
    *       201:
@@ -58,11 +67,12 @@ export default class TolerancesController {
    *                   $ref: '#/components/schemas/Tolerance'
    */
   async store({ request, response }: HttpContext) {
-    const data = request.only(['tolerance_name', 'tolerance_minutes'])
+    const data = request.only(['toleranceName', 'toleranceMinutes', 'systemSettingId'])
 
     const tolerance = await Tolerance.create({
-      toleranceName: data.tolerance_name,
-      toleranceMinutes: data.tolerance_minutes,
+      toleranceName: data.toleranceName,
+      toleranceMinutes: data.toleranceMinutes,
+      systemSettingId: data.systemSettingId,
     })
 
     return response.created({ data: tolerance })
@@ -72,7 +82,7 @@ export default class TolerancesController {
    * @swagger
    * /api/tolerances/{id}:
    *   get:
-   *     summary: Get a single tolerance by ID
+   *     summary: get a single tolerance by ID
    *     tags:
    *       - Tolerances
    *     parameters:
@@ -106,7 +116,7 @@ export default class TolerancesController {
    * @swagger
    * /api/tolerances/{id}:
    *   put:
-   *     summary: Update an existing tolerance
+   *     summary: update an existing tolerance
    *     tags:
    *       - Tolerances
    *     parameters:
@@ -122,9 +132,9 @@ export default class TolerancesController {
    *           schema:
    *             type: object
    *             properties:
-   *               tolerance_name:
+   *               toleranceName:
    *                 type: string
-   *               tolerance_minutes:
+   *               toleranceMinutes:
    *                 type: integer
    *     responses:
    *       200:
@@ -145,8 +155,8 @@ export default class TolerancesController {
       return response.notFound({ message: 'Tolerance not found' })
     }
 
-    tolerance.toleranceName = request.input('tolerance_name')
-    tolerance.toleranceMinutes = request.input('tolerance_minutes')
+    tolerance.toleranceName = request.input('toleranceName')
+    tolerance.toleranceMinutes = request.input('toleranceMinutes')
 
     await tolerance.save()
 
@@ -185,13 +195,20 @@ export default class TolerancesController {
 
   /**
    * @swagger
-   * /api/tolerances/get-tardiness-tolerance:
+   * /api/tolerances/get-tardiness-tolerance/{systemSettingId}:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
    *       - Tolerances
    *     summary: get tardiness tolerance
+   *     parameters:
+   *       - name: systemSettingId
+   *         in: query
+   *         required: true
+   *         description: System setting id
+   *         schema:
+   *           type: number
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -273,10 +290,12 @@ export default class TolerancesController {
    *                     error:
    *                       type: string
    */
-  async getTardinessTolerance({ response }: HttpContext) {
+  async getTardinessTolerance({ params, response }: HttpContext) {
     try {
       const toleranceService = new ToleranceService()
-      const tardinessTolerance = await toleranceService.getTardinessTolerance()
+      const tardinessTolerance = await toleranceService.getTardinessTolerance(
+        params.systemSettingId
+      )
       response.status(200)
       return {
         type: 'success',

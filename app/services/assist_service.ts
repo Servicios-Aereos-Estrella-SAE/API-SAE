@@ -158,17 +158,7 @@ export default class AssistsService {
       await this.cleanTotalByDepartment(totalRowIncident)
       const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
       await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistIncidentExcelRowInterface[]
@@ -220,22 +210,13 @@ export default class AssistsService {
           date: filterDate,
           dateEnd: filterDateEnd,
           employeeID: employeeId,
+          withOutExternal: true,
         },
         { page, limit }
       )
       const data: any = result.data
       const rows = [] as AssistExcelRowInterface[]
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistExcelRowInterface[]
@@ -255,7 +236,12 @@ export default class AssistsService {
       if (data) {
         const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
         let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
-        newRows = await this.addRowIncidentPayrollCalendar(employee, employeeCalendar, tardies)
+        newRows = await this.addRowIncidentPayrollCalendar(
+          employee,
+          employeeCalendar,
+          tardies,
+          filters.filterDatePay
+        )
         for await (const row of newRows) {
           rowsIncidentPayroll.push(row)
         }
@@ -376,17 +362,7 @@ export default class AssistsService {
       const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       for await (const employee of dataEmployes) {
         const result = await syncAssistsService.index(
           {
@@ -599,17 +575,7 @@ export default class AssistsService {
       await this.cleanTotalByDepartment(totalRowIncident)
       const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
       await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       for await (const position of resultPositions) {
         const employeeService = new EmployeeService()
         const resultEmployes = await employeeService.index(
@@ -680,43 +646,6 @@ export default class AssistsService {
       const departmentService = new DepartmentService()
       const resultPositions = await departmentService.getPositions(departmentId)
       const syncAssistsService = new SyncAssistsService()
-      const rows = [] as AssistExcelRowInterface[]
-      for await (const position of resultPositions) {
-        const employeeService = new EmployeeService()
-        const resultEmployes = await employeeService.index(
-          {
-            search: '',
-            departmentId: departmentId,
-            positionId: position.positionId,
-            employeeWorkSchedule: '',
-            page: page,
-            limit: limit,
-            ignoreDiscriminated: 0,
-            ignoreExternal: 1,
-          },
-          [departmentId]
-        )
-        const dataEmployes: any = resultEmployes
-        for await (const employee of dataEmployes) {
-          const result = await syncAssistsService.index(
-            {
-              date: filterDate,
-              dateEnd: filterDateEnd,
-              employeeID: employee.employeeId,
-            },
-            { page, limit }
-          )
-          const data: any = result.data
-          if (data) {
-            const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-            let newRows = [] as AssistExcelRowInterface[]
-            newRows = await this.addRowCalendar(employee, employeeCalendar)
-            for await (const row of newRows) {
-              rows.push(row)
-            }
-          }
-        }
-      }
       const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
@@ -724,17 +653,7 @@ export default class AssistsService {
       const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       this.addHeadRowIncidentPayroll(worksheet)
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       for await (const position of resultPositions) {
         const employeeService = new EmployeeService()
         const resultEmployes = await employeeService.index(
@@ -757,6 +676,7 @@ export default class AssistsService {
               date: filterDate,
               dateEnd: filterDateEnd,
               employeeID: employee.employeeId,
+              withOutExternal: true,
             },
             { page, limit }
           )
@@ -764,7 +684,12 @@ export default class AssistsService {
           if (data) {
             const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
             let newRows = [] as AssistIncidentPayrollExcelRowInterface[]
-            newRows = await this.addRowIncidentPayrollCalendar(employee, employeeCalendar, tardies)
+            newRows = await this.addRowIncidentPayrollCalendar(
+              employee,
+              employeeCalendar,
+              tardies,
+              filters.filterDatePay
+            )
             for await (const row of newRows) {
               rowsIncidentPayroll.push(row)
             }
@@ -976,17 +901,7 @@ export default class AssistsService {
       this.addHeadRowIncident(worksheet)
       const totalRowIncident = {} as AssistIncidentExcelRowInterface
       await this.cleanTotalByDepartment(totalRowIncident)
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       for await (const departmentRow of departments) {
         const totalRowByDepartmentIncident = {} as AssistIncidentExcelRowInterface
         await this.cleanTotalByDepartment(totalRowByDepartmentIncident)
@@ -1056,7 +971,7 @@ export default class AssistsService {
   }
 
   async getExcelAllIncidentSummaryPayRoll(
-    filters: AssistExcelFilterInterface,
+    filters: AssistDepartmentExcelFilterInterface,
     departmentsList: Array<number>
   ) {
     try {
@@ -1064,64 +979,11 @@ export default class AssistsService {
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)
         .orderBy('departmentId')
-      const rows = [] as AssistExcelRowInterface[]
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
       const departmentService = new DepartmentService()
       const employeeService = new EmployeeService()
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
-      for await (const departmentRow of departments) {
-        const departmentId = departmentRow.departmentId
-        const page = 1
-        const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId)
-        const syncAssistsService = new SyncAssistsService()
-        for await (const position of resultPositions) {
-          const resultEmployes = await employeeService.index(
-            {
-              search: '',
-              departmentId: departmentId,
-              positionId: position.positionId,
-              page: page,
-              limit: limit,
-              employeeWorkSchedule: '',
-              ignoreDiscriminated: 0,
-              ignoreExternal: 1,
-            },
-            [departmentId]
-          )
-          const dataEmployes: any = resultEmployes
-          for await (const employee of dataEmployes) {
-            const result = await syncAssistsService.index(
-              {
-                date: filterDate,
-                dateEnd: filterDateEnd,
-                employeeID: employee.employeeId,
-              },
-              { page, limit }
-            )
-            const data: any = result.data
-            if (data) {
-              const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-              let newRows = [] as AssistExcelRowInterface[]
-              newRows = await this.addRowCalendar(employee, employeeCalendar)
-              for await (const row of newRows) {
-                rows.push(row)
-              }
-            }
-          }
-        }
-      }
+      const tardies = await this.getTardiesTolerance()
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       // hasta aquí era lo de incidencias
@@ -1160,6 +1022,7 @@ export default class AssistsService {
                 date: filterDate,
                 dateEnd: filterDateEnd,
                 employeeID: employee.employeeId,
+                withOutExternal: true,
               },
               { page, limit }
             )
@@ -1170,7 +1033,8 @@ export default class AssistsService {
               newRows = await this.addRowIncidentPayrollCalendar(
                 employee,
                 employeeCalendar,
-                tardies
+                tardies,
+                filters.filterDatePay
               )
               for await (const row of newRows) {
                 rowsIncidentPayroll.push(row)
@@ -2219,17 +2083,7 @@ export default class AssistsService {
       const thursday = startOfWeek.plus({ days: 3 })
       const start = thursday.minus({ days: 24 })
       const firstDayPeriod = start.minus({ days: 1 }).startOf('day').setZone('utc')
-      const tolerance = await Tolerance.query()
-        .whereNull('tolerance_deleted_at')
-        .where('tolerance_name', 'TardinessTolerance')
-        .first()
-      let tardies = 0
-      if (tolerance) {
-        tardies = tolerance.toleranceMinutes
-      }
-      if (tardies === 0) {
-        tardies = 3
-      }
+      const tardies = await this.getTardiesTolerance()
       const syncAssistsService = new SyncAssistsService()
       const period = this.calculatePayPeriod(date)
       const dateNew = new Date(date)
@@ -2603,7 +2457,8 @@ export default class AssistsService {
   async addRowIncidentPayrollCalendar(
     employee: Employee,
     employeeCalendar: AssistDayInterface[],
-    tardies: number
+    tardies: number,
+    datePay: string
   ) {
     const rows = [] as AssistIncidentPayrollExcelRowInterface[]
     let department = employee.department.departmentAlias ? employee.department.departmentAlias : ''
@@ -2625,6 +2480,8 @@ export default class AssistsService {
     let faults = 0
     let delayFaults = 0
     let earlyOutsFaults = 0
+    let vacationBonus = 0
+    let daysWorkDisability = 0
     const exceptions = [] as ShiftExceptionInterface[]
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
@@ -2710,6 +2567,8 @@ export default class AssistsService {
     }
     delayFaults = this.getFaultsFromDelays(delays, tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
+    vacationBonus = this.getVacationBonus(employee, datePay)
+    daysWorkDisability = await this.getDaysWorkDisability(employee, datePay)
     let company = ''
     if (employee.businessUnitId) {
       const businessUnit = await BusinessUnit.query()
@@ -2727,12 +2586,12 @@ export default class AssistsService {
       company: company,
       faults: faults,
       delays: delayFaults + earlyOutsFaults,
-      inc: '',
+      inc: daysWorkDisability,
       overtimeDouble: overtimeDouble,
       overtimeTriple: '',
       sundayBonus: sundayBonus,
       laborRest: laborRest,
-      vacationBonus: '',
+      vacationBonus: vacationBonus,
       leveling: '',
       bonus: '',
       others: '',
@@ -2755,12 +2614,12 @@ export default class AssistsService {
           rowData.company,
           rowData.faults ? rowData.faults : '',
           rowData.delays ? rowData.delays : '',
-          rowData.inc,
+          rowData.inc ? rowData.inc : '',
           rowData.overtimeDouble ? rowData.overtimeDouble : '',
           rowData.overtimeTriple,
           rowData.sundayBonus ? rowData.sundayBonus : '',
           rowData.laborRest ? rowData.laborRest : '',
-          rowData.vacationBonus,
+          rowData.vacationBonus ? rowData.vacationBonus : '',
           rowData.leveling,
           rowData.bonus,
           rowData.others,
@@ -2785,6 +2644,15 @@ export default class AssistsService {
             fgColor: { argb: 'FFC7CE' },
           }
         }
+        if (rowData.inc > 0) {
+          cell = worksheet.getCell(rowCount + 1, 7)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
+          }
+        }
         if (rowData.overtimeDouble > 0) {
           cell = worksheet.getCell(rowCount + 1, 8)
           cell.font = { color: { argb: '006100' } }
@@ -2796,6 +2664,15 @@ export default class AssistsService {
         }
         if (rowData.sundayBonus > 0) {
           cell = worksheet.getCell(rowCount + 1, 10)
+          cell.font = { color: { argb: '006100' } }
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' },
+          }
+        }
+        if (rowData.vacationBonus > 0) {
+          cell = worksheet.getCell(rowCount + 1, 12)
           cell.font = { color: { argb: '006100' } }
           cell.fill = {
             type: 'pattern',
@@ -2882,5 +2759,82 @@ export default class AssistsService {
     const hours = Math.floor(decimal)
     const minutes = Math.round((decimal - hours) * 60)
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+  }
+
+  async getTardiesTolerance() {
+    let tardies = 0
+    const systemSettingService = new SystemSettingService()
+    const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+    if (systemSettingActive) {
+      const tolerance = await Tolerance.query()
+        .whereNull('tolerance_deleted_at')
+        .where('tolerance_name', 'TardinessTolerance')
+        .where('systemSettingId', systemSettingActive.systemSettingId)
+        .first()
+
+      if (tolerance) {
+        tardies = tolerance.toleranceMinutes
+      }
+    }
+
+    if (tardies === 0) {
+      tardies = 3
+    }
+    return tardies
+  }
+
+  getVacationBonus(employee: Employee, datePay: string) {
+    if (!employee.employeeHireDate) {
+      return 0
+    }
+    if (!datePay) {
+      return 0
+    }
+
+    if (!this.isFirstPayMonth(datePay)) {
+      return 0
+    }
+
+    if (this.isAnniversaryInPayMonth(employee.employeeHireDate.toString(), datePay)) {
+      return 1
+    }
+
+    return 0
+  }
+
+  isFirstPayMonth(dateString: string) {
+    const date = new Date(dateString)
+    const dayOfMonth = date.getDate()
+
+    return dayOfMonth >= 1 && dayOfMonth <= 15
+  }
+
+  isAnniversaryInPayMonth(hireDate: string, datePay: string) {
+    const hire = new Date(hireDate)
+    const pay = new Date(datePay)
+
+    return hire.getMonth() === pay.getMonth()
+  }
+
+  async getDaysWorkDisability(employee: Employee, datePay: string) {
+    if (!employee.employeeHireDate) {
+      return 0
+    }
+    if (!datePay) {
+      return 0
+    }
+    let pay = new Date(datePay)
+    pay.setDate(pay.getDate() - 13)
+    let newDateStart = DateTime.fromJSDate(pay).toFormat('yyyy-LL-dd')
+    const startDate = `${newDateStart} 00:00:00`
+    const endDate = `${datePay} 23:59:59`
+
+    await employee.load('shift_exceptions', (query) => {
+      query.where('shiftExceptionsDate', '>=', startDate)
+      query.where('shiftExceptionsDate', '<=', endDate)
+      query.whereNotNull('work_disability_period_id')
+    })
+
+    return employee.shift_exceptions.length
   }
 }

@@ -5,12 +5,12 @@ interface AssistIncidentPayrollExcelRowInterface {
   company: string
   faults: number
   delays: number
-  inc: string
+  inc: number
   overtimeDouble: number
   overtimeTriple: string
   sundayBonus: number
   laborRest: number
-  vacationBonus: string
+  vacationBonus: number
   leveling: string
   bonus: string
   others: string
