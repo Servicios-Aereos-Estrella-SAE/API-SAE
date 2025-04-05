@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import EmployeeProceedingFile from '#models/employee_proceeding_file'
 import EmployeeProceedingFileService from '#services/employee_proceeding_file_service'
 import {
@@ -877,23 +878,21 @@ export default class EmployeeProceedingFileController {
   async getExpiresAndExpiring({ auth, request, response }: HttpContext) {
     try {
       await auth.check()
+
       const user = auth.user
       const userService = new UserService()
       let departmentsList = [] as Array<number>
+
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
+
       const dateStart = request.input('dateStart')
       const dateEnd = request.input('dateEnd')
-      const filters = {
-        dateStart: dateStart,
-        dateEnd: dateEnd,
-      } as EmployeeProceedingFileFilterInterface
+      const filters = { dateStart: dateStart, dateEnd: dateEnd } as EmployeeProceedingFileFilterInterface
       const employeeProceddingFileService = new EmployeeProceedingFileService()
-      const employeeProceedingFiles = await employeeProceddingFileService.getExpiredAndExpiring(
-        filters,
-        departmentsList
-      )
+      const employeeProceedingFiles = await employeeProceddingFileService.getExpiredAndExpiring(filters, departmentsList)
+
       response.status(200)
       return {
         type: 'success',

@@ -88,3 +88,185 @@ router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
   return view.render('swagger', { specUrl })
 })
+
+// router.get('/template-email', async ({ view }) => {
+//   const data = {
+//     'email': 'wramirez@siler-mx.com',
+//     'employeesProceedingFilesExpired': [
+//       {
+//         'proceedingFileId': 16,
+//         'proceedingFileName': 'Visa de turista',
+//         'proceedingFilePath': 'https://sfo3.digitaloceanspaces.com/sae-assets/cima-bo-system/proceeding-files/1743551587782_Visa%20Example.jpg',
+//         'proceedingFileTypeId': 221,
+//         'proceedingFileExpirationAt': 'Monday, 31 March 2025',
+//         'proceedingFileActive': 1,
+//         'proceedingFileCreatedAt': '2025-04-01T23:53:08.000+00:00',
+//         'proceedingFileUpdatedAt': '2025-04-01T23:53:08.000+00:00',
+//         'deletedAt': null,
+//         'proceedingFileUuid': 'hdkgx6r5o2tynnntfcoibysd',
+//         'proceedingFileObservations': null,
+//         'pilotProceedingFile': null,
+//         'aircraftProceedingFile': null,
+//         'customerProceedingFile': null,
+//         'flightAttendantProceedingFile': null,
+//         'employeeProceedingFile': {
+//           'employeeProceedingFileId': 7,
+//           'employeeId': 412,
+//           'proceedingFileId': 16,
+//           'employeeProceedingFileCreatedAt': '2025-04-01T23:53:08.000+00:00',
+//           'employeeProceedingFileUpdatedAt': '2025-04-01T23:53:08.000+00:00',
+//           'deletedAt': null,
+//           'employee': {
+//             'employeeId': 412,
+//             'employeeSyncId': null,
+//             'employeeCode': '27800362',
+//             'employeeFirstName': 'Wilvardo',
+//             'employeeLastName': 'Ramirez Colunga',
+//             'employeePayrollNum': null,
+//             'employeeHireDate': '2024-11-27',
+//             'companyId': 1,
+//             'departmentId': 1036,
+//             'positionId': 1012,
+//             'departmentSyncId': null,
+//             'positionSyncId': null,
+//             'personId': 423,
+//             'businessUnitId': 2,
+//             'employeeAssistDiscriminator': 1,
+//             'employeeLastSynchronizationAt': null,
+//             'employeeTypeId': 1,
+//             'employeeBusinessEmail': 'wramirez@siler-mx.com',
+//             'employeeCreatedAt': '2024-08-30T17:55:40.000+00:00',
+//             'employeeUpdatedAt': '2025-03-31T16:54:28.000+00:00',
+//             'deletedAt': null,
+//             'employeePhoto': 'https://sfo3.digitaloceanspaces.com/sae-assets/sae-bo-system/employees/1730908456455_foto-min.jpg',
+//             'employeeWorkSchedule': 'Remote',
+//             'employeeTypeOfContract': 'Internal',
+//             'employeeTerminatedDate': null
+//           }
+//         },
+//         'proceedingFileType': {
+//           'proceedingFileTypeId': 221,
+//           'proceedingFileTypeName': 'VISA',
+//           'proceedingFileTypeSlug': 'visa',
+//           'proceedingFileTypeAreaToUse': 'employee',
+//           'proceedingFileTypeActive': 1,
+//           'proceedingFileTypeBusinessUnits': 'sae,sae-siler,sae-quorum,cima,cima-siler,cima-quorum',
+//           'parentId': null,
+//           'proceedingFileTypeCreatedAt': '2025-03-05T19:10:02.000+00:00',
+//           'proceedingFileTypeUpdatedAt': '2025-03-05T19:10:02.000+00:00',
+//           'deletedAt': null,
+//           'emails': [
+//             {
+//               'proceedingFileTypeEmailId': 3,
+//               'proceedingFileTypeId': 221,
+//               'proceedingFileTypeEmailEmail': 'wramirez@siler-mx.com',
+//               'proceedingFileTypeEmailCreatedAt': '2025-04-02T14:00:51.000+00:00',
+//               'proceedingFileTypeEmailUpdatedAt': '2025-04-02T14:00:51.000+00:00',
+//               'deletedAt': null
+//             }
+//           ]
+//         }
+//       }
+//     ],
+//     'employeesProceedingFilesExpiring': [
+//       {
+//         'proceedingFileId': 15,
+//         'proceedingFileName': 'Pasaporte Mexicano',
+//         'proceedingFilePath': 'https://sfo3.digitaloceanspaces.com/sae-assets/cima-bo-system/proceeding-files/1743551539569_Passport%20Example.avif',
+//         'proceedingFileTypeId': 220,
+//         'proceedingFileExpirationAt': 'Friday, 04 April 2025',
+//         'proceedingFileActive': 1,
+//         'proceedingFileCreatedAt': '2025-04-01T23:16:14.000+00:00',
+//         'proceedingFileUpdatedAt': '2025-04-01T23:52:19.000+00:00',
+//         'deletedAt': null,
+//         'proceedingFileUuid': 'wosceccut2f5refcuj56mxcj',
+//         'proceedingFileObservations': null,
+//         'pilotProceedingFile': null,
+//         'flightAttendantProceedingFile': null,
+//         'aircraftProceedingFile': null,
+//         'customerProceedingFile': null,
+//         'employeeProceedingFile': {
+//           'employeeProceedingFileId': 6,
+//           'employeeId': 412,
+//           'proceedingFileId': 15,
+//           'employeeProceedingFileCreatedAt': '2025-04-01T23:16:15.000+00:00',
+//           'employeeProceedingFileUpdatedAt': '2025-04-01T23:16:15.000+00:00',
+//           'deletedAt': null,
+//           'employee': {
+//             'employeeId': 412,
+//             'employeeSyncId': null,
+//             'employeeCode': '27800362',
+//             'employeeFirstName': 'Wilvardo',
+//             'employeeLastName': 'Ramirez Colunga',
+//             'employeePayrollNum': null,
+//             'employeeHireDate': '2024-11-27',
+//             'companyId': 1,
+//             'departmentId': 1036,
+//             'positionId': 1012,
+//             'departmentSyncId': null,
+//             'positionSyncId': null,
+//             'personId': 423,
+//             'businessUnitId': 2,
+//             'employeeAssistDiscriminator': 1,
+//             'employeeLastSynchronizationAt': null,
+//             'employeeTypeId': 1,
+//             'employeeBusinessEmail': 'wramirez@siler-mx.com',
+//             'employeeCreatedAt': '2024-08-30T17:55:40.000+00:00',
+//             'employeeUpdatedAt': '2025-03-31T16:54:28.000+00:00',
+//             'deletedAt': null,
+//             'employeePhoto': 'https://sfo3.digitaloceanspaces.com/sae-assets/sae-bo-system/employees/1730908456455_foto-min.jpg',
+//             'employeeWorkSchedule': 'Remote',
+//             'employeeTypeOfContract': 'Internal',
+//             'employeeTerminatedDate': null
+//           }
+//         },
+//         'proceedingFileType': {
+//           'proceedingFileTypeId': 220,
+//           'proceedingFileTypeName': 'PASSPORT',
+//           'proceedingFileTypeSlug': 'passport',
+//           'proceedingFileTypeAreaToUse': 'employee',
+//           'proceedingFileTypeActive': 1,
+//           'proceedingFileTypeBusinessUnits': 'sae,sae-siler,sae-quorum,cima,cima-siler,cima-quorum',
+//           'parentId': null,
+//           'proceedingFileTypeCreatedAt': '2025-03-05T19:09:25.000+00:00',
+//           'proceedingFileTypeUpdatedAt': '2025-03-05T19:09:27.000+00:00',
+//           'deletedAt': null,
+//           'emails': [
+//             {
+//               'proceedingFileTypeEmailId': 1,
+//               'proceedingFileTypeId': 220,
+//               'proceedingFileTypeEmailEmail': 'wramirez@siler-mx.com',
+//               'proceedingFileTypeEmailCreatedAt': '2024-11-05T16:02:12.000+00:00',
+//               'proceedingFileTypeEmailUpdatedAt': '2024-11-05T16:02:12.000+00:00',
+//               'deletedAt': null
+//             }
+//           ]
+//         }
+//       }
+//     ],
+//     'pilotsProceedingFilesExpired': [],
+//     'pilotsProceedingFilesExpiring': [],
+//     'aircraftsProceedingFilesExpired': [],
+//     'aircraftsProceedingFilesExpiring': [],
+//     'customersProceedingFilesExpired': [],
+//     'customersProceedingFilesExpiring': [],
+//     'flightAttendantsProceedingFilesExpired': [],
+//     'flightAttendantsProceedingFilesExpiring': []
+//   }
+
+//   const buildData = {
+//     employeesProceedingFilesExpired: data.employeesProceedingFilesExpired || [],
+//     employeesProceedingFilesExpiring: data.employeesProceedingFilesExpiring || [],
+//     pilotsProceedingFilesExpired: data.pilotsProceedingFilesExpired || [],
+//     pilotsProceedingFilesExpiring: data.pilotsProceedingFilesExpiring || [],
+//     aircraftsProceedingFilesExpired: data.aircraftsProceedingFilesExpired || [],
+//     aircraftsProceedingFilesExpiring: data.aircraftsProceedingFilesExpiring || [],
+//     customersProceedingFilesExpired: data.customersProceedingFilesExpired || [],
+//     customersProceedingFilesExpiring: data.customersProceedingFilesExpiring || [],
+//     flightAttendantsProceedingFilesExpired: data.flightAttendantsProceedingFilesExpired || [],
+//     flightAttendantsProceedingFilesExpiring: data.flightAttendantsProceedingFilesExpiring || [],
+//     backgroundImageLogo: 'https://sfo3.digitaloceanspaces.com/sae-assets/sae-bo-system/system-settings/1737825721033_logo_sae.png',
+//   }
+
+//   return view.render('emails/proceeding_files_report', buildData)
+// })

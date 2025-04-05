@@ -97,34 +97,15 @@
   "eslintConfig": {
     "extends": "@adonisjs/eslint-config/app",
     "rules": {
-      "unicorn/filename-case": [
-        "error",
-        {
-          "cases": {
-            "snakeCase": true
-          }
-        }
-      ],
-      "no-console": [
-        "error",
-        {
-          "allow": [
-            "warn",
-            "error"
-          ]
-        }
-      ],
-      "max-len": [
-        "error",
-        {
-          "code": 6000
-        }
-      ]
+      "prettier/prettier": "off",
+      "unicorn/filename-case": [ "error", { "cases": { "snakeCase": true } } ],
+      "no-console": [ "error", { "allow": [ "warn", "error" ] } ],
+      "max-len": [ "error", { "code": 90000 } ],
+      "quotes": ["error", "single", { "avoidEscape": true }]
     }
   },
   "eslintIgnore": [
     "build"
   ],
-  "eslintRules": {},
   "prettier": "@adonisjs/prettier-config"
 }
