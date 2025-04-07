@@ -775,7 +775,7 @@ export default class SyncAssistsService {
       }
       return checkAssistCopy
     }
-    
+
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssistCopy.assist.checkInStatus = 'delay'
     }
@@ -862,7 +862,7 @@ export default class SyncAssistsService {
       if (systemSettingActive) {
          data = await new ToleranceService().index(systemSettingActive.systemSettingId)
 
-      
+
       }
       const delayTolerance = data.find((t) => t.toleranceName === 'Delay')
       const faultTolerance = data.find((t) => t.toleranceName === 'Fault')
@@ -1267,12 +1267,14 @@ export default class SyncAssistsService {
 
   private async calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
     const lastTimeZoneLimit = DateTime.fromISO('2024-10-26T00:00:00.000-06:00').setZone('America/Mexico_City')
+    const startSummer2025 = DateTime.fromISO('2025-04-06T00:00:00.000-06:00').setZone('America/Mexico_City')
     const startDay = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('America/Mexico_City')
     const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('America/Mexico_City')
     const checkOutDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkOutDateTime}`)).setZone('America/Mexico_City')
 
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('America/Mexico_City')
-    const diffSinceLastTimeZoneLimit = lastTimeZoneLimit.diff(evaluatedDay, 'milliseconds').milliseconds
+    const diffSinceLastTimeZoneLimit = (lastTimeZoneLimit.diff(evaluatedDay, 'milliseconds').milliseconds)
+    const diffSinceStartSummer2025 = ((startSummer2025.diff(evaluatedDay, 'milliseconds').milliseconds))
     const calendarDayStatus = await this.calendarDayStatus(dateAssistItem, evaluatedDay, startDay, dateAssistItem.assist.shiftCalculateFlag)
 
     let isStartWorkday = calendarDayStatus.isStartWorkday
@@ -1319,7 +1321,8 @@ export default class SyncAssistsService {
 
           dateAssistItem.assist.assitFlatList.forEach((checkItem) => {
             const punchTime = DateTime.fromISO(`${checkItem.assistPunchTimeUtc}`, { setZone: true }).setZone('America/Mexico_City')
-            const diffToCheckStart = punchTime.diff(checkInDateTime.minus({ hours: diffSinceLastTimeZoneLimit > 0 ? 3 : 2 }), 'milliseconds').milliseconds
+            let diffToCheckStart = punchTime.diff(checkInDateTime.minus({ hours: diffSinceLastTimeZoneLimit > 0 ? 3 : 2 }), 'milliseconds').milliseconds
+            diffToCheckStart = punchTime.diff(checkInDateTime.minus({ hours: diffSinceStartSummer2025 <= 0 ? 3 : 2 }), 'milliseconds').milliseconds
 
             if (diffToCheckStart > 0) {
               calendarDay.push(checkItem)
@@ -1338,7 +1341,8 @@ export default class SyncAssistsService {
           if (nextDay && nextDay?.assist?.assitFlatList) {
             nextDay.assist.assitFlatList.forEach((checkItem) => {
               const punchTime = DateTime.fromISO(`${checkItem.assistPunchTimeUtc}`, { setZone: true }).setZone('America/Mexico_City')
-              const diffToCheckOut = punchTime.diff(checkOutDateTime.plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 3 : 2 }), 'milliseconds').milliseconds
+              let diffToCheckOut = punchTime.diff(checkOutDateTime.plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 3 : 2 }), 'milliseconds').milliseconds
+              diffToCheckOut = punchTime.diff(checkOutDateTime.plus({ hours: diffSinceStartSummer2025 <= 0 ? 3 : 2 }), 'milliseconds').milliseconds
 
               if (diffToCheckOut <= 0) {
                 calendarDay.push(checkItem)
@@ -1370,13 +1374,38 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckInEatNextDay = true
     }
 
-    if (dateAssistItem.assist.checkEatOut && DateTime.fromISO(`${dateAssistItem.assist.checkEatOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+    const checkEatOutToFix= DateTime.fromISO(`${dateAssistItem.assist.checkEatOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 })
+    if (dateAssistItem.assist.checkEatOut && (checkEatOutToFix.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd'))) {
       dateAssistItem.assist.isCheckOutEatNextDay = true
     }
 
-    if (dateAssistItem.assist.checkOut && DateTime.fromISO(`${dateAssistItem.assist.checkOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+    let checkOutFix = DateTime.fromISO(`${dateAssistItem.assist.checkOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceLastTimeZoneLimit > 0 ? 1 : 0 })
+    if (dateAssistItem.assist.checkOut && checkOutFix.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
       dateAssistItem.assist.isCheckOutNextDay = true
     }
+
+    /**
+     * =======================================
+     * == diffSinceStartSummer2025
+     * =======================================
+     */
+
+    if (dateAssistItem.assist.checkEatIn && DateTime.fromISO(`${dateAssistItem.assist.checkEatIn?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceStartSummer2025 <= 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+      dateAssistItem.assist.isCheckInEatNextDay = true
+    }
+
+    if (dateAssistItem.assist.checkEatOut && DateTime.fromISO(`${dateAssistItem.assist.checkEatOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceStartSummer2025 <= 0 ? 1 : 0 }).toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+      dateAssistItem.assist.isCheckOutEatNextDay = true
+    }
+
+    checkOutFix = DateTime.fromISO(`${dateAssistItem.assist.checkOut?.assistPunchTimeUtc}`).setZone('America/Mexico_City').plus({ hours: diffSinceStartSummer2025 <= 0 ? 1 : 0 })
+    if (dateAssistItem.assist.checkOut && checkOutFix.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')) {
+      dateAssistItem.assist.isCheckOutNextDay = true
+    }
+
+    /**
+     * =======================================
+     */
 
     if (!dateAssistItem.assist.checkIn) {
       dateAssistItem.assist.checkInStatus = 'fault'
@@ -1401,19 +1430,45 @@ export default class SyncAssistsService {
 
     if (diffSinceLastTimeZoneLimit > 0) {
       if (dateAssistItem.assist.checkIn) {
-        dateAssistItem.assist.checkIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+        dateAssistItem.assist.checkIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
       }
 
       if (dateAssistItem.assist.checkEatIn) {
-        dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+        dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
       }
 
       if (dateAssistItem.assist.checkEatOut) {
-        dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+        dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
       }
 
       if (dateAssistItem.assist.checkOut) {
-        dateAssistItem.assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1 }).toJSDate()
+        dateAssistItem.assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
+      }
+    }
+
+    /**
+     * =======================================
+     * == diffSinceStartSummer2025
+     * =======================================
+     */
+
+    if (diffSinceStartSummer2025 <= 0) {
+      if (dateAssistItem.assist.checkIn) {
+        const newIn = DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).plus({ hours: 1  })
+        dateAssistItem.assist.checkIn.assistPunchTimeUtc = newIn.toJSDate()
+      }
+
+      if (dateAssistItem.assist.checkEatIn) {
+        dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
+      }
+
+      if (dateAssistItem.assist.checkEatOut) {
+        const newOut = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1  })
+        dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = newOut.toJSDate()
+      }
+
+      if (dateAssistItem.assist.checkOut) {
+        dateAssistItem.assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
       }
     }
 
@@ -1421,6 +1476,20 @@ export default class SyncAssistsService {
 
     return JSON.parse(JSON.stringify(dateAssistItem)) as AssistDayInterface
   }
+
+  // private fixSummerCheckIn (evaluatedDay: DateTime) {
+  //   const lastTimeZoneLimit = DateTime.fromISO('2024-10-26T00:00:00.000-06:00').setZone('America/Mexico_City')
+  //   const startSummer2025 = DateTime.fromISO('2025-04-07T00:00:00.000-06:00').setZone('America/Mexico_City')
+  //   const diffSinceLastTimeZoneLimit = lastTimeZoneLimit.diff(evaluatedDay, 'milliseconds').milliseconds
+  //   const diffSinceStartSummer2025 = startSummer2025.diff(evaluatedDay, 'milliseconds').milliseconds
+  // }
+
+  // private fixSummerTime (evaluatedDay: DateTime) {
+  //   const lastTimeZoneLimit = DateTime.fromISO('2024-10-26T00:00:00.000-06:00').setZone('America/Mexico_City')
+  //   const startSummer2025 = DateTime.fromISO('2025-04-07T00:00:00.000-06:00').setZone('America/Mexico_City')
+  //   const diffSinceLastTimeZoneLimit = lastTimeZoneLimit.diff(evaluatedDay, 'milliseconds').milliseconds
+  //   const diffSinceStartSummer2025 = startSummer2025.diff(evaluatedDay, 'milliseconds').milliseconds
+  // }
 
   private async calendarDayStatus (dateAssistItem: AssistDayInterface, evaluatedDay: DateTime, startDay: DateTime, flag: string) {
     let daysBettweenStart = 0
@@ -1577,5 +1646,5 @@ export default class SyncAssistsService {
       }
     }
     return checkAssistCopy
-   }
+  }
 }
