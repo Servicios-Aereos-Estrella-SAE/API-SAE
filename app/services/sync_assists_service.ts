@@ -1455,20 +1455,30 @@ export default class SyncAssistsService {
     if (diffSinceStartSummer2025 <= 0) {
       if (dateAssistItem.assist.checkIn) {
         const newIn = DateTime.fromISO(`${dateAssistItem.assist.checkIn.assistPunchTimeUtc}`).plus({ hours: 1  })
+        dateAssistItem.assist.checkIn.assistPunchTime = newIn.toJSDate()
         dateAssistItem.assist.checkIn.assistPunchTimeUtc = newIn.toJSDate()
+        dateAssistItem.assist.checkIn.assistPunchTimeOrigin = newIn.toJSDate()
       }
 
       if (dateAssistItem.assist.checkEatIn) {
-        dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
+        const newEatIn = DateTime.fromISO(`${dateAssistItem.assist.checkEatIn.assistPunchTimeUtc}`).plus({ hours: 1  })
+        dateAssistItem.assist.checkEatIn.assistPunchTime = newEatIn.toJSDate()
+        dateAssistItem.assist.checkEatIn.assistPunchTimeUtc = newEatIn.toJSDate()
+        dateAssistItem.assist.checkEatIn.assistPunchTimeOrigin = newEatIn.toJSDate()
       }
 
       if (dateAssistItem.assist.checkEatOut) {
-        const newOut = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1  })
-        dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = newOut.toJSDate()
+        const newEatOut = DateTime.fromISO(`${dateAssistItem.assist.checkEatOut.assistPunchTimeUtc}`).plus({ hours: 1  })
+        dateAssistItem.assist.checkEatOut.assistPunchTime = newEatOut.toJSDate()
+        dateAssistItem.assist.checkEatOut.assistPunchTimeUtc = newEatOut.toJSDate()
+        dateAssistItem.assist.checkEatOut.assistPunchTimeOrigin = newEatOut.toJSDate()
       }
 
       if (dateAssistItem.assist.checkOut) {
-        dateAssistItem.assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1  }).toJSDate()
+        const newOut = DateTime.fromISO(`${dateAssistItem.assist.checkOut.assistPunchTimeUtc}`).plus({ hours: 1  })
+        dateAssistItem.assist.checkOut.assistPunchTime = newOut.toJSDate()
+        dateAssistItem.assist.checkOut.assistPunchTimeUtc = newOut.toJSDate()
+        dateAssistItem.assist.checkOut.assistPunchTimeOrigin = newOut.toJSDate()
       }
     }
 
