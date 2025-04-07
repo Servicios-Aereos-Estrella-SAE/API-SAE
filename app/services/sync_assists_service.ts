@@ -656,7 +656,7 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckOutNextDay = false
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
-
+      dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.hasOtherShift(employeeID, dateAssistItem)
       dateAssistItem = await this.setCheckInDateTime(dateAssistItem)
       dateAssistItem = await this.setCheckOutDateTime(dateAssistItem)
@@ -665,7 +665,6 @@ export default class SyncAssistsService {
       dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
       dateAssistItem = await this.isSundayBonus(dateAssistItem)
-      dateAssistItem = await this.isHoliday(dateAssistItem)
       dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
       dateAssistItem = await this.isWorkDisabilityDate(employeeID, dateAssistItem)
       dateAssistItem = await this.validTime(dateAssistItem)
@@ -952,16 +951,13 @@ export default class SyncAssistsService {
     const service = await new HolidayService().index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
 
     checkAssistCopy.assist.isHoliday = service.status === 200 && service.holidays && service.holidays.length > 0 ? true : false
-
     checkAssistCopy.assist.holiday = service.status === 200 && service.holidays && service.holidays.length > 0
         ? (service.holidays[0] as unknown as HolidayInterface)
         : null
-
     if (checkAssistCopy.assist.isHoliday && !checkAssistCopy.assist.checkIn) {
       checkAssistCopy.assist.checkInStatus = ''
       checkAssistCopy.assist.checkOutStatus = ''
     }
-
     return checkAssistCopy
   }
 
@@ -1414,17 +1410,30 @@ export default class SyncAssistsService {
     if (!dateAssistItem.assist.checkOut) {
       dateAssistItem.assist.checkOutStatus = 'fault'
     }
-
+    const existeWorkBreak = dateAssistItem.assist.exceptions.some(
+      exception => exception.exceptionType?.exceptionTypeSlug === 'descanso-laborado'
+    )
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
       dateAssistItem.assist.checkInStatus = ''
       dateAssistItem.assist.checkOutStatus = ''
 
       if (dateAssistItem.assist.checkIn) {
-        dateAssistItem.assist.checkIn = null
-        dateAssistItem.assist.checkEatIn = null
-        dateAssistItem.assist.checkEatOut = null
-        dateAssistItem.assist.checkOut = null
+          if (!existeWorkBreak) {
+            dateAssistItem.assist.checkIn = null
+            dateAssistItem.assist.checkEatIn = null
+            dateAssistItem.assist.checkEatOut = null
+            dateAssistItem.assist.checkOut = null
+          }
+      }
+    } else if (dateAssistItem.assist.isHoliday) {
+      if (dateAssistItem.assist.checkIn) {
+        if (!existeWorkBreak) {
+          dateAssistItem.assist.checkIn = null
+          dateAssistItem.assist.checkEatIn = null
+          dateAssistItem.assist.checkEatOut = null
+          dateAssistItem.assist.checkOut = null
+        }
       }
     }
 
