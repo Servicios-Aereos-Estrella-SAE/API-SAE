@@ -1647,7 +1647,11 @@ export default class AssistsService {
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
         let faultProcessed = false
-        let laborRestCounted = false
+        let holidayWorked = false
+        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
+          holidaysWorked += 1
+          holidayWorked = true
+        }
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
             if (exception.exceptionType) {
@@ -1655,14 +1659,13 @@ export default class AssistsService {
               if (exceptionTypeSlug !== 'rest-day' && exceptionTypeSlug !== 'vacation') {
                 exceptions.push(exception)
               }
-              if (exceptionTypeSlug === 'descanso-laborado') {
+              if (exceptionTypeSlug === 'descanso-laborado' && !holidayWorked) {
                 if (
                   exception.shiftExceptionEnjoymentOfSalary &&
                   exception.shiftExceptionEnjoymentOfSalary === 1 &&
                   calendar.assist.checkIn
                 ) {
                   restWorked += 1
-                  laborRestCounted = true
                 }
               }
               if (
@@ -1723,12 +1726,6 @@ export default class AssistsService {
             } else {
               faults += 1
             }
-          }
-        }
-        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
-          holidaysWorked += 1
-          if (!laborRestCounted) {
-            restWorked += 1
           }
         }
         const checkInTime = calendar.assist.checkIn?.assistPunchTimeUtc

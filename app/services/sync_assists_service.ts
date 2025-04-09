@@ -968,6 +968,7 @@ export default class SyncAssistsService {
 
     const employee = await Employee.query()
       .where('employee_id', employeeID || 0)
+      .withTrashed()
       .first()
 
     if (!employee) {
@@ -981,7 +982,6 @@ export default class SyncAssistsService {
     }
 
     const assignedShift = checkAssist.assist.dateShift
-
     if (!assignedShift) {
       return checkAssistCopy
     }
@@ -1411,7 +1411,8 @@ export default class SyncAssistsService {
       dateAssistItem.assist.checkOutStatus = 'fault'
     }
     const existeWorkBreak = dateAssistItem.assist.exceptions.some(
-      exception => exception.exceptionType?.exceptionTypeSlug === 'descanso-laborado'
+      exception => exception.exceptionType?.exceptionTypeSlug === 'descanso-laborado' && exception.shiftExceptionEnjoymentOfSalary &&
+      exception.shiftExceptionEnjoymentOfSalary === 1
     )
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
