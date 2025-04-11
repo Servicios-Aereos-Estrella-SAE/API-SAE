@@ -12,9 +12,9 @@ export default class ShiftForEmployeeService {
     const onlyDateStart = filters.dateStart
     const onliDateEnd = filters.dateEnd
     const startDate =
-      DateTime.fromISO(onlyDateStart, { setZone: true }).setZone('America/Mexico_City') || ''
+      DateTime.fromISO(onlyDateStart, { setZone: true }).setZone('UTC-6') || ''
     const endDate =
-      DateTime.fromISO(onliDateEnd, { setZone: true }).setZone('America/Mexico_City') || ''
+      DateTime.fromISO(onliDateEnd, { setZone: true }).setZone('UTC-6') || ''
 
     const page = nPage || 1
     const limit = limitPage || 999999

@@ -46,9 +46,9 @@ export default class EmployeeShiftChangeService {
       .if(filters.date, (query) => {
         const stringDate = `${filters.date}T00:00:00.000-06:00`
         const time = DateTime.fromISO(stringDate, { setZone: true })
-        const timeCST = time.setZone('America/Mexico_City')
+        const timeCST = time.setZone('UTC-6')
         const filterInitialDate = timeCST.toFormat('yyyy-MM-dd')
-        query.whereRaw('DATE(employee_shift_change_date_from) = ?', [filterInitialDate]) 
+        query.whereRaw('DATE(employee_shift_change_date_from) = ?', [filterInitialDate])
       })
       .preload('employeeTo')
       .preload('shiftTo')
@@ -57,7 +57,7 @@ export default class EmployeeShiftChangeService {
   }
 
   async verifyInfoExist(employeeShiftChange: EmployeeShiftChange) {
-   
+
     const existEmployeeFrom = await Employee.query()
       .whereNull('employee_deleted_at')
       .where('employee_id', employeeShiftChange.employeeIdFrom)
@@ -115,7 +115,7 @@ export default class EmployeeShiftChangeService {
         data: { ...employeeShiftChange },
       }
     }
-   
+
     return {
       status: 200,
       type: 'success',
@@ -137,7 +137,7 @@ export default class EmployeeShiftChangeService {
         )
       })
       .where('employee_id_from', employeeShiftChange.employeeIdFrom)
-      .whereRaw('DATE(employee_shift_change_date_from) = ?', [employeeShiftChangeDateFrom]) 
+      .whereRaw('DATE(employee_shift_change_date_from) = ?', [employeeShiftChangeDateFrom])
       .first()
     if (existEmployeeShiftChangeDateFrom) {
       return {
@@ -158,7 +158,7 @@ export default class EmployeeShiftChangeService {
         )
       })
       .where('employee_id_to', employeeShiftChange.employeeIdTo)
-      .whereRaw('DATE(employee_shift_change_date_to) = ?', [employeeShiftChangeDateTo]) 
+      .whereRaw('DATE(employee_shift_change_date_to) = ?', [employeeShiftChangeDateTo])
       .first()
     if (existEmployeeShiftChangeDateTo) {
       return {

@@ -14,8 +14,8 @@ interface AssistDayInterface {
     dateShift: ShiftInterface | null
     dateShiftApplySince: string | Date | null
     shiftCalculateFlag: string
-    checkInDateTime: Date | DateTime | null
-    checkOutDateTime: Date | DateTime | null
+    checkInDateTime: DateTime | null
+    checkOutDateTime: DateTime | null
     checkInStatus: string
     checkOutStatus: string
     isFutureDay: boolean
