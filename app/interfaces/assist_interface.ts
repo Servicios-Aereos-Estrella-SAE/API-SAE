@@ -1,9 +1,11 @@
+import { DateTime } from 'luxon'
+
 interface AssistInterface {
   assistId: number | null
   assistEmpCode: string
-  assistPunchTime: string | Date
-  assistPunchTimeUtc: string | Date
-  assistPunchTimeOrigin: Date
+  assistPunchTime: DateTime
+  assistPunchTimeUtc: DateTime
+  assistPunchTimeOrigin: DateTime
   assistTerminalSn: string
   assistTerminalAlias: string
   assistAreaAlias: string

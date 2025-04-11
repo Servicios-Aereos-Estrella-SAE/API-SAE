@@ -920,7 +920,7 @@ export default class AssistsController {
   async store({ auth, request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
-      let assistPunchTime = request.input('assistPunchTime')
+      const assistPunchTime = request.input('assistPunchTime')
       const assistLongitude = request.input('assistLongitude')
       const assistLatitude = request.input('assistLatitude')
       const employee = await Employee.query()
@@ -929,22 +929,38 @@ export default class AssistsController {
         .preload('position')
         .preload('department')
         .first()
+
       if (!employee) {
         response.status(400)
         return {
           type: 'warning',
           title: 'The employee was not found',
           message: 'The employee was not found with the entered ID',
-          data: { employeeId },
+          data: { employeeId, assistPunchTime },
         }
       }
-      assistPunchTime = assistPunchTime
-        ? DateTime.fromFormat(assistPunchTime, 'yyyy-MM-dd HH:mm:ss', {
-            zone: 'America/Mexico_City',
-          })
-            .toUTC()
-            .toFormat('yyyy-MM-dd HH:mm:ss')
-        : null
+
+      if (!assistPunchTime) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The datetime was not found',
+          message: 'The datetime was not found or is invalid',
+          data: { employeeId, assistPunchTime },
+        }
+      }
+
+
+      let dateTimePunchTime: DateTime = DateTime.fromFormat(assistPunchTime, 'yyyy-MM-dd HH:mm:ss', {zone: 'UTC-6' }).toUTC()
+
+      if (dateTimePunchTime) {
+        const isSummerDate = this.checkDSTSummerTime(dateTimePunchTime.toJSDate())
+
+        if (isSummerDate) {
+          dateTimePunchTime = dateTimePunchTime.plus({ hour: -1 })
+        }
+      }
+
       const assist = {
         assistId: 1,
         assistEmpCode: employee.employeeCode ? employee.employeeCode : '',
@@ -953,17 +969,19 @@ export default class AssistsController {
         assistAreaAlias: '',
         assistLongitude: assistLongitude,
         assistLatitude: assistLatitude,
-        assistUploadTime: assistPunchTime,
+        assistUploadTime: dateTimePunchTime,
         assistEmpId: employeeId,
         assistTerminalId: null,
         assistSyncId: 0,
-        assistPunchTime: assistPunchTime,
-        assistPunchTimeUtc: assistPunchTime,
-        assistPunchTimeOrigin: assistPunchTime,
+        assistPunchTime: dateTimePunchTime,
+        assistPunchTimeUtc: dateTimePunchTime,
+        assistPunchTimeOrigin: dateTimePunchTime,
         deletedAt: null,
       } as Assist
+
       const assistsService = new AssistsService()
       const verifyInfo = await assistsService.verifyInfo(assist)
+
       if (verifyInfo.status !== 200) {
         response.status(verifyInfo.status)
         return {
@@ -973,7 +991,9 @@ export default class AssistsController {
           data: { ...assist },
         }
       }
+
       const newAssist = await assistsService.store(assist)
+
       if (newAssist) {
         const rawHeaders = request.request.rawHeaders
         const userId = auth.user?.userId
@@ -1004,6 +1024,7 @@ export default class AssistsController {
       }
     }
   }
+
   /**
    * @swagger
    * /api/v1/assists/get-format-payroll:
@@ -1151,6 +1172,30 @@ export default class AssistsController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
+    }
+  }
+
+  private getMexicoDSTChangeDates (year: number) {
+    const startDST = new Date(year, 3, 1)
+    startDST.setDate(1 + (7 - startDST.getDay()) % 7) // Asegura que es el primer domingo
+
+    // Último domingo de octubre (fin del horario de verano)
+    const endDST = new Date(year, 9, 31)
+    endDST.setDate(endDST.getDate() - endDST.getDay()) // Asegura que es el último domingo
+
+    return { startDST, endDST }
+  }
+
+  private checkDSTSummerTime (date: Date): boolean {
+    const year = date.getFullYear()
+    const { startDST, endDST } = this.getMexicoDSTChangeDates(year)
+
+    if (date >= startDST && date < endDST) {
+      // En horario de verano
+      return true
+    } else {
+      // En horario estándar
+      return false
     }
   }
 }
