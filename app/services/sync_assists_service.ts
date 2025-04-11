@@ -1003,6 +1003,10 @@ export default class SyncAssistsService {
         checkAssistCopy.assist.checkInStatus = ''
       }
 
+      if (checkAssist.assist.isHoliday) {
+        checkAssistCopy.assist.checkInStatus = ''
+      }
+
       if (checkAssist.assist.exceptions.length > 0) {
         const absentException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
 
