@@ -3584,6 +3584,154 @@ export default class EmployeeController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/employees/get-birthday:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get all
+   *     parameters:
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: departmentId
+   *         in: query
+   *         required: false
+   *         description: DepartmentId
+   *         schema:
+   *           type: integer
+   *       - name: positionId
+   *         in: query
+   *         required: false
+   *         description: PositionId
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getBirthday({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      const userService = new UserService()
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+      const search = request.input('search')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const filters = {
+        search: search,
+        departmentId: departmentId,
+        positionId: positionId,
+      } as EmployeeFilterSearchInterface
+      const employeeService = new EmployeeService()
+      const employees = await employeeService.getBirthday(filters, departmentsList)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees were found successfully',
+        data: {
+          employees,
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   // async odooAuth() {
   //   const url = 'https://servicios-aereos-estrella.odoo.com'
   //   const db = 'servicios-aereos-estrella'

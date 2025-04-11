@@ -884,4 +884,56 @@ export default class EmployeeService {
 
     return employeeBanks ? employeeBanks : []
   }
+
+  async getBirthday(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+    const employees = await Employee.query()
+      .whereIn('businessUnitId', businessUnitsList)
+      .if(filters.search, (query) => {
+        query.where((subQuery) => {
+          subQuery
+            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+            .orWhereHas('person', (personQuery) => {
+              personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_email) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+            })
+        })
+      })
+      .if(filters.departmentId, (query) => {
+        query.where('department_id', filters.departmentId)
+      })
+      .if(filters.departmentId && filters.positionId, (query) => {
+        query.where('department_id', filters.departmentId)
+        query.where('position_id', filters.positionId)
+      })
+      .whereHas('person', (personQuery) => {
+        personQuery.whereNotNull('person_birthday')
+      })
+      .whereIn('departmentId', departmentsList)
+      .preload('department')
+      .preload('position')
+      .preload('person')
+      .preload('businessUnit')
+      .preload('address')
+      .orderBy('employee_id')
+    return employees
+  }
 }
