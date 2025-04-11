@@ -47,11 +47,11 @@ export default class ShiftExceptionService {
       .if(filters.dateStart && filters.dateEnd, (query) => {
         const stringDate = `${filters.dateStart}T00:00:00.000-06:00`
         const time = DateTime.fromISO(stringDate, { setZone: true })
-        const timeCST = time.setZone('America/Mexico_City')
+        const timeCST = time.setZone('UTC-6')
         const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
         const stringEndDate = `${filters.dateEnd}T23:59:59.000-06:00`
         const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
-        const timeEndCST = timeEnd.setZone('America/Mexico_City')
+        const timeEndCST = timeEnd.setZone('UTC-6')
         const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
         query.where('shift_exceptions_date', '>=', filterInitialDate)
         query.where('shift_exceptions_date', '<=', filterEndDate)

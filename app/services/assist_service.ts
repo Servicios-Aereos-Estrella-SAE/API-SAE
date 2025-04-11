@@ -1178,26 +1178,26 @@ export default class AssistsService {
   }
 
   private chekInTime(checkAssist: AssistDayInterface) {
-    if (!checkAssist?.assist?.checkIn?.assistPunchTimeOrigin) {
+    if (!checkAssist?.assist?.checkIn?.assistPunchTimeUtc) {
       return ''
     }
     const timeCheckIn = DateTime.fromISO(
-      checkAssist.assist.checkIn.assistPunchTimeOrigin.toString(),
+      checkAssist.assist.checkIn.assistPunchTimeUtc.toString(),
       { setZone: true }
-    ).setZone('America/Mexico_City')
+    ).setZone('UTC-6')
     return timeCheckIn.toFormat('MMM d, yyyy, h:mm:ss a')
   }
 
   private chekOutTime(checkAssist: AssistDayInterface) {
-    if (!checkAssist?.assist?.checkOut?.assistPunchTimeOrigin) {
+    if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
       return ''
     }
 
     const now = DateTime.now().toFormat('yyyy-LL-dd')
     const timeCheckOut = DateTime.fromISO(
-      checkAssist.assist.checkOut.assistPunchTimeOrigin.toString(),
+      checkAssist.assist.checkOut.assistPunchTimeUtc.toString(),
       { setZone: true }
-    ).setZone('America/Mexico_City')
+    ).setZone('UTC-6')
     if (timeCheckOut.toFormat('yyyy-LL-dd') === now) {
       checkAssist.assist.checkOutStatus = ''
       return ''
@@ -1355,9 +1355,7 @@ export default class AssistsService {
       if (calendar && calendar.assist && calendar.assist.dateShift) {
         shiftName = calendar.assist.dateShift.shiftName
         shiftStartDate = calendar.assist.dateShift.shiftTimeStart
-        const hoursToAddParsed = Number.parseFloat(
-          calendar.assist.dateShift.shiftActiveHours.toString()
-        )
+        const hoursToAddParsed = 0
         const time = DateTime.fromFormat(shiftStartDate, 'HH:mm:ss')
         const newTime = time.plus({ hours: hoursToAddParsed })
         shiftEndsDate = newTime.toFormat('HH:mm:ss')
@@ -1366,19 +1364,8 @@ export default class AssistsService {
       const checkInTime = calendar.assist.checkIn?.assistPunchTimeUtc
       const checkOutTime = calendar.assist.checkOut?.assistPunchTimeUtc
 
-      const firstCheckTime = checkInTime
-        ? DateTime.fromISO(checkInTime instanceof Date ? checkInTime.toISOString() : checkInTime, {
-            zone: 'America/Mexico_City',
-          })
-        : null
-      const lastCheckTime = checkOutTime
-        ? DateTime.fromISO(
-            checkOutTime instanceof Date ? checkOutTime.toISOString() : checkOutTime,
-            {
-              zone: 'America/Mexico_City',
-            }
-          )
-        : null
+      const firstCheckTime = checkInTime ? DateTime.fromISO(checkInTime.toString(), { zone: 'UTC-6' }) : null
+      const lastCheckTime = checkOutTime ? DateTime.fromISO(checkOutTime.toString(), { zone: 'UTC-6' }) : null
 
       if (firstCheckTime && lastCheckTime && firstCheckTime.isValid && lastCheckTime.isValid) {
         const durationInMinutes = lastCheckTime.diff(firstCheckTime, 'minutes').as('minutes')
@@ -1392,6 +1379,11 @@ export default class AssistsService {
         hoursWorked += timeInDecimal
       }
 
+      const rowCheckInTime = calendar.assist.checkIn?.assistPunchTimeUtc && !calendar.assist.isFutureDay ? DateTime.fromISO(calendar.assist.checkIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('ff') : ''
+      const rowLunchTime = calendar.assist?.checkEatIn?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
+      const rowReturnLunchTime = calendar?.assist?.checkEatOut?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
+      const rowCheckOutTime = calendar.assist.checkOut?.assistPunchTimeUtc && !calendar.assist.isFutureDay ? DateTime.fromISO(calendar.assist.checkOut?.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('ff') : ''
+
       rows.push({
         code: employee.employeeCode.toString(),
         name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
@@ -1401,33 +1393,11 @@ export default class AssistsService {
         shiftAssigned: shiftName,
         shiftStartDate: shiftStartDate,
         shiftEndsDate: shiftEndsDate,
-        checkInTime:
-          calendar.assist.checkInDateTime && !calendar.assist.isFutureDay
-            ? DateTime.fromISO(calendar.assist.checkInDateTime.toString(), { setZone: true })
-                .setZone('America/Mexico_City')
-                .toFormat('ff')
-            : '',
+        checkInTime: rowCheckInTime,
         firstCheck: firstCheck,
-        lunchTime: calendar.assist.checkEatIn
-          ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeOrigin.toString(), {
-              setZone: true,
-            })
-              .setZone('America/Mexico_city')
-              .toFormat('MMM d, yyyy, h:mm:ss a')
-          : '',
-        returnLunchTime: calendar.assist.checkEatOut
-          ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeOrigin.toString(), {
-              setZone: true,
-            })
-              .setZone('America/Mexico_city')
-              .toFormat('MMM d, yyyy, h:mm:ss a')
-          : '',
-        checkOutTime:
-          calendar.assist.checkOutDateTime && !calendar.assist.isFutureDay
-            ? DateTime.fromISO(calendar.assist.checkOutDateTime.toString(), { setZone: true })
-                .setZone('America/Mexico_City')
-                .toFormat('ff')
-            : '',
+        lunchTime: rowLunchTime,
+        returnLunchTime: rowReturnLunchTime,
+        checkOutTime: rowCheckOutTime,
         lastCheck: lastCheck,
         hoursWorked: hoursWorked,
         incidents: status,
@@ -1647,7 +1617,11 @@ export default class AssistsService {
     for await (const calendar of employeeCalendar) {
       if (!calendar.assist.isFutureDay) {
         let faultProcessed = false
-        let laborRestCounted = false
+        let holidayWorked = false
+        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
+          holidaysWorked += 1
+          holidayWorked = true
+        }
         if (calendar.assist.exceptions.length > 0) {
           for await (const exception of calendar.assist.exceptions) {
             if (exception.exceptionType) {
@@ -1655,14 +1629,13 @@ export default class AssistsService {
               if (exceptionTypeSlug !== 'rest-day' && exceptionTypeSlug !== 'vacation') {
                 exceptions.push(exception)
               }
-              if (exceptionTypeSlug === 'descanso-laborado') {
+              if (exceptionTypeSlug === 'descanso-laborado' && !holidayWorked) {
                 if (
                   exception.shiftExceptionEnjoymentOfSalary &&
                   exception.shiftExceptionEnjoymentOfSalary === 1 &&
                   calendar.assist.checkIn
                 ) {
                   restWorked += 1
-                  laborRestCounted = true
                 }
               }
               if (
@@ -1725,31 +1698,11 @@ export default class AssistsService {
             }
           }
         }
-        if (calendar.assist.isHoliday && calendar.assist.checkIn) {
-          holidaysWorked += 1
-          if (!laborRestCounted) {
-            restWorked += 1
-          }
-        }
         const checkInTime = calendar.assist.checkIn?.assistPunchTimeUtc
         const checkOutTime = calendar.assist.checkOut?.assistPunchTimeUtc
 
-        const firstCheckTime = checkInTime
-          ? DateTime.fromISO(
-              checkInTime instanceof Date ? checkInTime.toISOString() : checkInTime,
-              {
-                zone: 'America/Mexico_City',
-              }
-            )
-          : null
-        const lastCheckTime = checkOutTime
-          ? DateTime.fromISO(
-              checkOutTime instanceof Date ? checkOutTime.toISOString() : checkOutTime,
-              {
-                zone: 'America/Mexico_City',
-              }
-            )
-          : null
+        const firstCheckTime = checkInTime ? DateTime.fromISO(checkInTime.toString(), { zone: 'UTC-6' }) : null
+        const lastCheckTime = checkOutTime ? DateTime.fromISO(checkOutTime.toString(), { zone: 'UTC-6' }) : null
 
         if (firstCheckTime && lastCheckTime && firstCheckTime.isValid && lastCheckTime.isValid) {
           const duration = lastCheckTime.diff(firstCheckTime, 'minutes')
@@ -2031,7 +1984,7 @@ export default class AssistsService {
 
   async verifyInfo(assist: Assist) {
     const action = 'created'
-    const punchTime = DateTime.fromJSDate(new Date(assist.assistPunchTime.toString()))
+    const punchTime = DateTime.fromJSDate(new Date(assist.assistPunchTimeUtc.toString()))
     const sqlPunchTime = punchTime.isValid ? punchTime.toSQL() : null
     if (!sqlPunchTime) {
       return {
