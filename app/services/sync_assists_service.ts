@@ -430,6 +430,7 @@ export default class SyncAssistsService {
     const timeEndCST = timeEnd.setZone('UTC-6').plus({ days: 1 })
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
     const query = Assist.query()
+    let employee = null
 
     if (bodyParams.date && !bodyParams.dateEnd) {
       query.where('assist_punch_time_origin', '>=', filterInitialDate)
@@ -441,7 +442,7 @@ export default class SyncAssistsService {
     }
 
     if (bodyParams.employeeID) {
-      const employee = await Employee.query()
+      employee = await Employee.query()
         .where('employee_id', bodyParams.employeeID || 0)
         .if(bodyParams.withOutExternal, (subQuery) => {
           subQuery.where('employee_type_of_contract', 'Internal')
@@ -468,15 +469,8 @@ export default class SyncAssistsService {
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
     const endDate = timeEndCST.minus({ days: 1 })
-    const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(
-      {
-        dateStart: intialSyncDate,
-        dateEnd: stringEndDate,
-        employeeId: bodyParams.employeeID,
-      },
-      999999999999999,
-      1
-    )
+    const employeeShiftFilter = { dateStart: intialSyncDate, dateEnd: stringEndDate, employeeId: bodyParams.employeeID }
+    const serviceResponse = await new ShiftForEmployeeService().getEmployeeShifts(employeeShiftFilter, 999999999999999, 1)
 
     if (serviceResponse.status !== 200) {
       return serviceResponse
@@ -534,12 +528,19 @@ export default class SyncAssistsService {
       }
     })
 
+    const { delayTolerance, faultTolerance } = await this.getTolerances()
+    const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
+    const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
+
     const employeeCalendar = await this.getEmployeeCalendar(
       timeCST,
       endDate,
       assistDayCollection,
       employeeShifts,
-      bodyParams.employeeID
+      bodyParams.employeeID,
+      TOLERANCE_DELAY_MINUTES,
+      TOLERANCE_FAULT_MINUTES,
+      employee
     )
 
     return {
@@ -576,7 +577,10 @@ export default class SyncAssistsService {
     dateEnd: Date | DateTime,
     employeeAssist: AssistDayInterface[],
     employeeShifts: ShiftRecordInterface[],
-    employeeID: number | undefined
+    employeeID: number | undefined,
+    TOLERANCE_DELAY_MINUTES: number,
+    TOLERANCE_FAULT_MINUTES: number,
+    employee: Employee | null
   ) {
     const dateTimeStart = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone('UTC-6')
     const dateTimeEnd = DateTime.fromISO(`${dateEnd}`, { setZone: true }).setZone('UTC-6')
@@ -620,10 +624,6 @@ export default class SyncAssistsService {
 
     let dailyAssistListCounter = 0
 
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .first()
-
     const isDiscriminated = employee?.employeeAssistDiscriminator === 1
 
     for await (const item of dailyAssistList) {
@@ -634,27 +634,29 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
 
-      dateAssistItem = await this.isHoliday(dateAssistItem)
-      dateAssistItem = await this.hasOtherShift(employeeID, dateAssistItem)
-      dateAssistItem = await this.setCheckInDateTime(dateAssistItem)
-      dateAssistItem = await this.setCheckOutDateTime(dateAssistItem)
-      dateAssistItem = await this.isExceptionDate(employeeID, dateAssistItem)
+      await Promise.all([
+        this.isHoliday(dateAssistItem),
+        this.hasOtherShift(employeeID, dateAssistItem, employee),
+        this.isExceptionDate(employeeID, dateAssistItem, employee)
+      ])
 
-      dateAssistItem = await this.calculateRawCalendar(dateAssistItem, assistList)
-
-      dateAssistItem = await this.checkInStatus(dateAssistItem, isDiscriminated)
-      dateAssistItem = await this.checkOutStatus(dateAssistItem, isDiscriminated)
-      dateAssistItem = await this.isSundayBonus(dateAssistItem)
-      dateAssistItem = await this.isVacationDate(employeeID, dateAssistItem)
-      dateAssistItem = await this.isWorkDisabilityDate(employeeID, dateAssistItem)
-      dateAssistItem = await this.validTime(dateAssistItem)
-      dateAssistItem = await this.hasSomeExceptionTimeCheckIn(dateAssistItem)
-      dateAssistItem = await this.hasSomeExceptionTimeCheckOut(dateAssistItem)
-      dateAssistItem = await this.hasSomeException(employeeID, dateAssistItem)
+      this.setCheckInDateTime(dateAssistItem)
+      this.setCheckOutDateTime(dateAssistItem)
+      this.calculateRawCalendar(dateAssistItem, assistList)
+      this.checkInStatus(dateAssistItem, TOLERANCE_FAULT_MINUTES, TOLERANCE_DELAY_MINUTES, isDiscriminated)
+      this.checkOutStatus(dateAssistItem, isDiscriminated)
+      this.isSundayBonus(dateAssistItem)
+      this.isVacationDate(employeeID, dateAssistItem, employee)
+      this.isWorkDisabilityDate(employeeID, dateAssistItem, employee)
+      this.validTime(dateAssistItem)
+      this.hasSomeExceptionTimeCheckIn(dateAssistItem, TOLERANCE_DELAY_MINUTES)
+      this.hasSomeExceptionTimeCheckOut(dateAssistItem)
+      this.hasSomeException(employeeID, dateAssistItem, employee)
 
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
+
     return dailyAssistList
   }
 
@@ -680,17 +682,14 @@ export default class SyncAssistsService {
     checkAssistCopy.assist.holiday = holidayresponse as unknown as HolidayInterface
     checkAssistCopy.assist.isHoliday = !!(holidayresponse)
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
-  private async hasOtherShift(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+  private async hasOtherShift(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
     if (!employeeID) {
       return checkAssist
     }
-
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .first()
 
     if (!employee) {
       return checkAssist
@@ -729,6 +728,7 @@ export default class SyncAssistsService {
       }
     }
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
@@ -767,15 +767,10 @@ export default class SyncAssistsService {
     return checkAssist
   }
 
-  private async isExceptionDate(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+  private async isExceptionDate(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
     if (!employeeID) {
       return checkAssist
     }
-
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .withTrashed()
-      .first()
 
     if (!employee) {
       return checkAssist
@@ -807,10 +802,11 @@ export default class SyncAssistsService {
     checkAssistCopy.assist.hasExceptions = employee.shift_exceptions.length > 0 ? true : false
     checkAssistCopy.assist.exceptions = employee.shift_exceptions as unknown as ShiftExceptionInterface[]
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
-  private async calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
+  private calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
     const startDay = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('UTC-6')
     const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('UTC-6')
     const checkOutDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkOutDateTime}`)).setZone('UTC-6')
@@ -820,7 +816,7 @@ export default class SyncAssistsService {
     }
 
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('UTC-6')
-    const calendarDayStatus = await this.calendarDayStatus(dateAssistItem, evaluatedDay, startDay, dateAssistItem.assist.shiftCalculateFlag)
+    const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, startDay, dateAssistItem.assist.shiftCalculateFlag)
 
     let isStartWorkday = calendarDayStatus.isStartWorkday
     let isRestWorkday = calendarDayStatus.isRestWorkday
@@ -990,7 +986,141 @@ export default class SyncAssistsService {
 
     dateAssistItem.assist.checkOutStatus = ''
 
-    return JSON.parse(JSON.stringify(dateAssistItem)) as AssistDayInterface
+    return dateAssistItem
+  }
+
+  private checkInStatus(checkAssist: AssistDayInterface, TOLERANCE_FAULT_MINUTES: number, TOLERANCE_DELAY_MINUTES: number, discriminated?: Boolean) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    if (!checkAssist?.assist?.checkIn?.assistPunchTimeUtc) {
+      checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
+
+      if (discriminated) {
+        checkAssistCopy.assist.checkInStatus = ''
+      }
+
+      if (checkAssist.assist.exceptions.length > 0) {
+        const absentException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+
+        if (absentException) {
+          checkAssistCopy.assist.checkInStatus = ''
+          return checkAssistCopy
+        }
+
+        const changeShiftException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'change-shift')
+
+        if (changeShiftException) {
+          checkAssistCopy.assist.checkInStatus = ''
+          return checkAssistCopy
+        }
+      }
+
+      return checkAssistCopy
+    }
+
+    const dayTimeToStart = this.getShiftCheckInTimeToStart(checkAssist.day, checkAssist.assist.dateShift)
+    const dayCheckInTime = DateTime.fromISO(checkAssist.assist.checkIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6')
+    const diffTime = dayCheckInTime.diff(dayTimeToStart, 'minutes').minutes
+
+    if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
+      if (checkAssist.assist) {
+        checkAssistCopy.assist.checkInStatus = 'fault'
+      }
+
+      if (checkAssist.assist.exceptions.length > 0) {
+        const vacationException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
+
+        if (vacationException) {
+          checkAssistCopy.assist.checkInStatus = ''
+        }
+      }
+
+      return checkAssistCopy
+    }
+
+    if (diffTime > TOLERANCE_DELAY_MINUTES) {
+      checkAssistCopy.assist.checkInStatus = 'delay'
+    }
+
+    if (diffTime <= TOLERANCE_DELAY_MINUTES) {
+      checkAssistCopy.assist.checkInStatus = 'tolerance'
+    }
+
+    if (diffTime <= 0) {
+      checkAssistCopy.assist.checkInStatus = 'ontime'
+    }
+
+    if (discriminated) {
+      checkAssistCopy.assist.checkInStatus = ''
+    }
+
+    checkAssist = checkAssistCopy
+    return checkAssistCopy
+  }
+
+  private checkOutStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
+    const checkAssistCopy = checkAssist
+
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssistCopy
+    }
+
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
+    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
+    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
+    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
+    const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
+    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6').plus({ minutes: timeToAdd })
+
+    const currentNowTime = DateTime.now().setZone('UTC-6')
+
+    if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
+      checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
+      return checkAssistCopy
+    }
+
+    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeUtc}`, { setZone: true })
+    const checkTime = DayTime.setZone('UTC-6')
+    const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
+    const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
+    const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone('UTC-6')
+    const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
+    const diffTimeNow = currentNowTime.diff(timeToEnd, 'minutes').minutes
+
+    if (diffTime > 0 && diffTimeNow > 0) {
+      if (checkAssistCopy.assist.assitFlatList?.length === 3) {
+        checkAssistCopy.assist.checkEatOut = null
+      }
+
+      if (checkAssistCopy.assist.assitFlatList?.length === 2) {
+        checkAssistCopy.assist.checkEatIn = null
+      }
+    }
+
+    if (diffTime > 10 && (currentNowTime > timeToEnd)) {
+      checkAssistCopy.assist.checkOutStatus = 'delay'
+    }
+
+    if (diffTime <= 10) {
+      checkAssistCopy.assist.checkOutStatus = 'tolerance'
+    }
+
+    if (diffTime <= 0) {
+      checkAssistCopy.assist.checkOutStatus = 'ontime'
+    }
+
+    if (discriminated) {
+      checkAssistCopy.assist.checkOutStatus = ''
+      return checkAssistCopy
+    }
+
+    checkAssist = checkAssistCopy
+    return checkAssistCopy
   }
 
   private setNexCalendarDayCheckIns (assitFlatList: AssistInterface[], checkInDateTime: DateTime): AssistInterface[] {
@@ -1061,81 +1191,6 @@ export default class SyncAssistsService {
     return dateAssistItem
   }
 
-  private async checkInStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
-    const checkAssistCopy = checkAssist
-    const { delayTolerance, faultTolerance } = await this.getTolerances()
-    const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
-    const TOLERANCE_FAULT_MINUTES = faultTolerance?.toleranceMinutes || 30
-
-    if (!checkAssist?.assist?.dateShift) {
-      return checkAssistCopy
-    }
-
-    if (!checkAssist?.assist?.checkIn?.assistPunchTimeUtc) {
-      checkAssistCopy.assist.checkInStatus = !checkAssist?.assist?.checkOut ? 'fault' : ''
-
-      if (discriminated) {
-        checkAssistCopy.assist.checkInStatus = ''
-      }
-
-      if (checkAssist.assist.exceptions.length > 0) {
-        const absentException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
-
-        if (absentException) {
-          checkAssistCopy.assist.checkInStatus = ''
-          return checkAssistCopy
-        }
-
-        const changeShiftException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'change-shift')
-
-        if (changeShiftException) {
-          checkAssistCopy.assist.checkInStatus = ''
-          return checkAssistCopy
-        }
-      }
-
-      return checkAssistCopy
-    }
-
-    const dayTimeToStart = this.getShiftCheckInTimeToStart(checkAssist.day, checkAssist.assist.dateShift)
-    const dayCheckInTime = DateTime.fromISO(checkAssist.assist.checkIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6')
-    const diffTime = dayCheckInTime.diff(dayTimeToStart, 'minutes').minutes
-
-    if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
-      if (checkAssist.assist) {
-        checkAssistCopy.assist.checkInStatus = 'fault'
-      }
-
-      if (checkAssist.assist.exceptions.length > 0) {
-        const vacationException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
-
-        if (vacationException) {
-          checkAssistCopy.assist.checkInStatus = ''
-        }
-      }
-
-      return checkAssistCopy
-    }
-
-    if (diffTime > TOLERANCE_DELAY_MINUTES) {
-      checkAssistCopy.assist.checkInStatus = 'delay'
-    }
-
-    if (diffTime <= TOLERANCE_DELAY_MINUTES) {
-      checkAssistCopy.assist.checkInStatus = 'tolerance'
-    }
-
-    if (diffTime <= 0) {
-      checkAssistCopy.assist.checkInStatus = 'ontime'
-    }
-
-    if (discriminated) {
-      checkAssistCopy.assist.checkInStatus = ''
-    }
-
-    return checkAssistCopy
-  }
-
   private getShiftCheckInTimeToStart (day: string, dateShift: ShiftInterface) {
     const hourStart = dateShift.shiftTimeStart
     const stringDate = `${day}T${hourStart}.000-06:00`
@@ -1143,81 +1198,25 @@ export default class SyncAssistsService {
     return timeToStart
   }
 
-  private checkOutStatus(checkAssist: AssistDayInterface, discriminated?: Boolean) {
-    const checkAssistCopy = checkAssist
-
-    if (!checkAssist?.assist?.dateShift) {
-      return checkAssistCopy
-    }
-
-    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
-    const dateYear = checkAssist.day.split('-')[0].toString().padStart(2, '0')
-    const dateMonth = checkAssist.day.split('-')[1].toString().padStart(2, '0')
-    const dateDay = checkAssist.day.split('-')[2].toString().padStart(2, '0')
-    const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
-    const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
-    const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6').plus({ minutes: timeToAdd })
-
-    const currentNowTime = DateTime.now().setZone('UTC-6')
-
-    if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
-      checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
-      return checkAssistCopy
-    }
-
-    const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeUtc}`, { setZone: true })
-    const checkTime = DayTime.setZone('UTC-6')
-    const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
-    const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
-    const timeToCheckOut = DateTime.fromISO(checkTimeStringDate, { setZone: true }).setZone('UTC-6')
-    const diffTime = timeToEnd.diff(timeToCheckOut, 'minutes').minutes
-    const diffTimeNow = currentNowTime.diff(timeToEnd, 'minutes').minutes
-
-    if (diffTime > 0 && diffTimeNow > 0) {
-      if (checkAssistCopy.assist.assitFlatList?.length === 3) {
-        checkAssistCopy.assist.checkEatOut = null
-      }
-
-      if (checkAssistCopy.assist.assitFlatList?.length === 2) {
-        checkAssistCopy.assist.checkEatIn = null
-      }
-    }
-
-    if (diffTime > 10 && (currentNowTime > timeToEnd)) {
-      checkAssistCopy.assist.checkOutStatus = 'delay'
-    }
-
-    if (diffTime <= 10) {
-      checkAssistCopy.assist.checkOutStatus = 'tolerance'
-    }
-
-    if (diffTime <= 0) {
-      checkAssistCopy.assist.checkOutStatus = 'ontime'
-    }
-
-    if (discriminated) {
-      checkAssistCopy.assist.checkOutStatus = ''
-      return checkAssistCopy
-    }
-
-    return checkAssistCopy
-  }
-
   private async getTolerances() {
     try {
       const systemSettingService = new SystemSettingService()
       const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
       let data = [] as Tolerance[]
+
       if (systemSettingActive) {
          data = await new ToleranceService().index(systemSettingActive.systemSettingId)
 
 
       }
+
       const delayTolerance = data.find((t) => t.toleranceName === 'Delay')
       const faultTolerance = data.find((t) => t.toleranceName === 'Fault')
+
       if (!delayTolerance || !faultTolerance) {
         throw new Error('No se encontraron tolerancias para Delay o Fault')
       }
+
       return { delayTolerance, faultTolerance }
     } catch (error) {
       console.error('Error al obtener las tolerancias:', error)
@@ -1251,18 +1250,17 @@ export default class SyncAssistsService {
     return diff < 0
   }
 
-  private async isSundayBonus(checkAssist: AssistDayInterface) {
+  private isSundayBonus(checkAssist: AssistDayInterface) {
     const currentDate = DateTime.fromISO(`${checkAssist.day}T00:00:00.000-06:00`, { setZone: true }).setZone('UTC-6')
     const naturalDay = currentDate.toFormat('c')
     checkAssist.assist.isSundayBonus = Number.parseInt(`${naturalDay}`) === 7 && ( !!checkAssist?.assist?.checkIn || !!checkAssist?.assist?.checkOut )
 
     if (!checkAssist.assist.isSundayBonus && checkAssist?.assist?.assitFlatList) {
-      for await (const assistFlat of checkAssist?.assist?.assitFlatList) {
+      checkAssist.assist.assitFlatList.forEach(assistFlat => {
         const checkOutDate = DateTime.fromISO(`${assistFlat.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
         const checkOutNaturalDay = checkOutDate.toFormat('c')
         checkAssist.assist.isSundayBonus = Number.parseInt(`${checkOutNaturalDay}`) === 7
-        break
-      }
+      })
     }
 
     return checkAssist
@@ -1282,14 +1280,10 @@ export default class SyncAssistsService {
     return !!restDay
   }
 
-  private async hasSomeException(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+  private hasSomeException(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
     if (!employeeID) {
       return checkAssist
     }
-
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .first()
 
     if (!employee) {
       return checkAssist
@@ -1307,30 +1301,21 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
-    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
-    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
-
-    await employee.load('shift_exceptions', (query) => {
-      query.where('shiftExceptionsDate', '>=', startDate)
-      query.where('shiftExceptionsDate', '<=', endDate)
-    })
-
-    if (employee.shift_exceptions.length > 0) {
-      const restException = employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'rest-day')
-      const exWrongSystem = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'error-de-horario-en-sistema')
-      const exNewWorker = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'nuevo-ingreso')
-      const exIncapacity = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
-      const exMaternity = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'incapacidad-por-maternidad')
-      const exAbsentWork = !!employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+    if (checkAssist.assist.exceptions.length > 0) {
+      const restException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'rest-day')
+      const exWrongSystem = !!checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'error-de-horario-en-sistema')
+      const exNewWorker = !!checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'nuevo-ingreso')
+      const exIncapacity = !!checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
+      const exMaternity = !!checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'incapacidad-por-maternidad')
+      const exAbsentWork = !!checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
 
       if (exWrongSystem || exNewWorker || exIncapacity || exMaternity || exAbsentWork) {
         checkAssistCopy.assist.checkInStatus = 'exception'
         checkAssistCopy.assist.checkOutStatus = 'exception'
       }
-      const exAbsentWorkWithOutSalary = employee.shift_exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary === 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+
+      const exAbsentWorkWithOutSalary = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary === 0 && ex.exceptionType?.exceptionTypeSlug === 'absence-from-work')
+
       if (exAbsentWorkWithOutSalary) {
         checkAssistCopy.assist.checkInStatus = 'fault'
         checkAssistCopy.assist.checkIn = null
@@ -1344,17 +1329,14 @@ export default class SyncAssistsService {
       }
     }
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
-  private async isVacationDate(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+  private isVacationDate(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
     if (!employeeID) {
       return checkAssist
     }
-
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .first()
 
     if (!employee) {
       return checkAssist
@@ -1372,24 +1354,8 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'UTC-6'
-    )
-
-    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
-    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
-
-    await employee.load('shift_exceptions', (query) => {
-      query.where('shiftExceptionsDate', '>=', startDate)
-      query.where('shiftExceptionsDate', '<=', endDate)
-    })
-
-    if (employee.shift_exceptions.length > 0) {
-      const absentException = employee.shift_exceptions.find(
-        (ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation'
-      )
+    if (checkAssist.assist.exceptions.length > 0) {
+      const absentException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
 
       if (absentException) {
         checkAssistCopy.assist.isVacationDate = true
@@ -1401,17 +1367,14 @@ export default class SyncAssistsService {
       }
     }
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
-  private async isWorkDisabilityDate(employeeID: number | undefined, checkAssist: AssistDayInterface) {
+  private isWorkDisabilityDate(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
     if (!employeeID) {
       return checkAssist
     }
-
-    const employee = await Employee.query()
-      .where('employee_id', employeeID || 0)
-      .first()
 
     if (!employee) {
       return checkAssist
@@ -1429,24 +1392,8 @@ export default class SyncAssistsService {
       return checkAssistCopy
     }
 
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone(
-      'UTC-6'
-    )
-
-    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
-    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
-
-    await employee.load('shift_exceptions', (query) => {
-      query.where('shiftExceptionsDate', '>=', startDate)
-      query.where('shiftExceptionsDate', '<=', endDate)
-    })
-
-    if (employee.shift_exceptions.length > 0) {
-      const absentException = employee.shift_exceptions.find(
-        (ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad'
-      )
+    if (checkAssist.assist.exceptions.length > 0) {
+      const absentException = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'falta-por-incapacidad')
 
       if (absentException) {
         checkAssistCopy.assist.isWorkDisabilityDate = true
@@ -1458,6 +1405,7 @@ export default class SyncAssistsService {
       }
     }
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
@@ -1534,7 +1482,7 @@ export default class SyncAssistsService {
     return fixedList
   }
 
-  private async calendarDayStatus (dateAssistItem: AssistDayInterface, evaluatedDay: DateTime, startDay: DateTime, flag: string) {
+  private calendarDayStatus (dateAssistItem: AssistDayInterface, evaluatedDay: DateTime, startDay: DateTime, flag: string) {
     let daysBettweenStart = 0
     let isStartWorkday = true
     let isEndWorkday = false
@@ -1570,7 +1518,7 @@ export default class SyncAssistsService {
     }
   }
 
-  private async hasSomeExceptionTimeCheckIn(checkAssist: AssistDayInterface) {
+  private hasSomeExceptionTimeCheckIn(checkAssist: AssistDayInterface, TOLERANCE_DELAY_MINUTES: number) {
     if (!checkAssist) {
       return checkAssist
     }
@@ -1590,18 +1538,11 @@ export default class SyncAssistsService {
           const checkTimeTime = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
           const stringInDateString = `${dateYear}-${dateMonth}-${dateDay}T${checkTimeTime.padStart(8, '0')}.000-06:00`
           const timeCheckIn = DateTime.fromISO(stringInDateString, { setZone: true }).setZone('UTC-6')
-          const { delayTolerance } = await this.getTolerances()
-          const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
 
           if (exception.shiftExceptionCheckInTime) {
             const shiftExceptionCheckInTime = DateTime.fromFormat(exception.shiftExceptionCheckInTime, 'HH:mm:ss')
-            const diffTime = timeCheckIn.diff(
-              timeCheckIn.set({
-                hour: shiftExceptionCheckInTime.hour,
-                minute: shiftExceptionCheckInTime.minute,
-              }),
-              'minutes'
-            ).as('minutes')
+            const diffTime = timeCheckIn.diff(timeCheckIn.set({ hour: shiftExceptionCheckInTime.hour, minute: shiftExceptionCheckInTime.minute }), 'minutes').as('minutes')
+
             if (diffTime > TOLERANCE_DELAY_MINUTES) {
               checkAssistCopy.assist.checkInStatus = 'delay'
             }
@@ -1617,17 +1558,22 @@ export default class SyncAssistsService {
         }
       }
     }
+
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 
-  private async validTime(checkAssist: AssistDayInterface) {
+  private validTime(checkAssist: AssistDayInterface) {
     if (!checkAssist) {
       return checkAssist
     }
+
     const checkAssistCopy = checkAssist
+
     if (checkAssistCopy.assist.checkIn?.assistId === checkAssistCopy.assist.checkOut?.assistId ) {
       checkAssistCopy.assist.checkOut = null
     }
+
     return checkAssistCopy
   }
 
@@ -1635,26 +1581,20 @@ export default class SyncAssistsService {
     if (!checkAssist) {
       return checkAssist
     }
+
     const checkAssistCopy = checkAssist
 
     if (checkAssist.assist.dateShift) {
       if (checkAssist.assist.exceptions.length > 0) {
-
-        const exception = checkAssist.assist.exceptions.find(
-          (ex) => ex.shiftExceptionCheckOutTime
-        )
+        const exception = checkAssist.assist.exceptions.find((ex) => ex.shiftExceptionCheckOutTime)
 
         if (exception) {
-
           if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
             checkAssistCopy.assist.checkOutStatus = checkAssistCopy.assist.checkInStatus === 'fault' ? 'fault' : ''
             return checkAssistCopy
           }
 
-          const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeUtc}`, {
-            setZone: true,
-          })
-
+          const DayTime = DateTime.fromISO(`${checkAssist.assist.checkOut.assistPunchTimeUtc}`, { setZone: true })
           const checkTime = DayTime.setZone('UTC-6')
           const checkTimeDateYear = checkTime.toFormat('yyyy-LL-dd TT').split(' ')[1]
           const checkTimeStringDate = `${checkTime.toFormat('yyyy-LL-dd')}T${checkTimeDateYear}.000-06:00`
@@ -1662,13 +1602,8 @@ export default class SyncAssistsService {
 
           if (exception.shiftExceptionCheckOutTime) {
             const shiftExceptionCheckOutTime = DateTime.fromFormat(exception.shiftExceptionCheckOutTime, 'HH:mm:ss')
-            const diffTime = timeToCheckOut.diff(
-              timeToCheckOut.set({
-                hour: shiftExceptionCheckOutTime.hour,
-                minute: shiftExceptionCheckOutTime.minute,
-              }),
-              'minutes'
-            ).as('minutes')
+            const diffTime = timeToCheckOut.diff(timeToCheckOut.set({ hour: shiftExceptionCheckOutTime.hour, minute: shiftExceptionCheckOutTime.minute }), 'minutes').as('minutes')
+
             if (diffTime > 0) {
               checkAssistCopy.assist.checkOutStatus = 'ontime'
             } else if (diffTime >= -10) {
@@ -1681,6 +1616,7 @@ export default class SyncAssistsService {
       }
     }
 
+    checkAssist = checkAssistCopy
     return checkAssistCopy
   }
 }
