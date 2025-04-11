@@ -886,6 +886,8 @@ export default class EmployeeService {
   }
 
   async getBirthday(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+    const year = filters.year
+    const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()! // <-- usa ! si estás seguro que no será null
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()
@@ -933,6 +935,12 @@ export default class EmployeeService {
       .preload('person')
       .preload('businessUnit')
       .preload('address')
+      .withTrashed()
+      .andWhere((query) => {
+        query
+          .whereNull('employee_deleted_at')
+          .orWhere('employee_deleted_at', '>=', cutoffDate)
+      })
       .orderBy('employee_id')
     return employees
   }

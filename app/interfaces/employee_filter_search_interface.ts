@@ -9,6 +9,7 @@ interface EmployeeFilterSearchInterface {
   ignoreDiscriminated?: number
   ignoreExternal?: number
   onlyInactive?: boolean | string
+  year?: number
 }
 
 export type { EmployeeFilterSearchInterface }

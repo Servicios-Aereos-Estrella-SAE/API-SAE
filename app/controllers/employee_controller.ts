@@ -3612,6 +3612,12 @@ export default class EmployeeController {
    *         description: PositionId
    *         schema:
    *           type: integer
+   *       - name: year
+   *         in: query
+   *         required: true
+   *         description: Year
+   *         schema:
+   *           type: integer
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -3705,10 +3711,12 @@ export default class EmployeeController {
       const search = request.input('search')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
+      const year = request.input('year')
       const filters = {
         search: search,
         departmentId: departmentId,
         positionId: positionId,
+        year: year,
       } as EmployeeFilterSearchInterface
       const employeeService = new EmployeeService()
       const employees = await employeeService.getBirthday(filters, departmentsList)
