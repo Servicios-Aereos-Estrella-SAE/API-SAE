@@ -887,7 +887,7 @@ export default class EmployeeService {
 
   async getBirthday(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
     const year = filters.year
-    const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()! // <-- usa ! si estás seguro que no será null
+    const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()!
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
     const businessUnits = await BusinessUnit.query()
@@ -928,6 +928,81 @@ export default class EmployeeService {
       })
       .whereHas('person', (personQuery) => {
         personQuery.whereNotNull('person_birthday')
+      })
+      .whereIn('departmentId', departmentsList)
+      .preload('department')
+      .preload('position')
+      .preload('person')
+      .preload('businessUnit')
+      .preload('address')
+      .withTrashed()
+      .andWhere((query) => {
+        query
+          .whereNull('employee_deleted_at')
+          .orWhere('employee_deleted_at', '>=', cutoffDate)
+      })
+      .orderBy('employee_id')
+    return employees
+  }
+
+  async getVacations(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+    const shiftExceptionVacation = await ExceptionType.query()
+    .whereNull('exception_type_deleted_at')
+      .where('exception_type_slug', 'vacation')
+      .first()
+    if (!shiftExceptionVacation) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'The exception type vacation was not found',
+        message: 'The exception type vacation was not found with the entered ID',
+        data: {},
+      }
+    }
+    const year = filters.year
+    const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()!
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+    const employees = await Employee.query()
+      .whereIn('businessUnitId', businessUnitsList)
+      .if(filters.search, (query) => {
+        query.where((subQuery) => {
+          subQuery
+            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+            .orWhereHas('person', (personQuery) => {
+              personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_email) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+            })
+        })
+      })
+      .if(filters.departmentId, (query) => {
+        query.where('department_id', filters.departmentId)
+      })
+      .if(filters.departmentId && filters.positionId, (query) => {
+        query.where('department_id', filters.departmentId)
+        query.where('position_id', filters.positionId)
+      })
+      .whereHas('shift_exceptions', (exceptionQuery) => {
+        exceptionQuery.whereNull('shift_exceptions_deleted_at')
+        exceptionQuery.where('exception_type_id', shiftExceptionVacation.exceptionTypeId)
+        exceptionQuery.whereRaw('YEAR(shift_exceptions_date) = ?', [year ? year : 0])
       })
       .whereIn('departmentId', departmentsList)
       .preload('department')
