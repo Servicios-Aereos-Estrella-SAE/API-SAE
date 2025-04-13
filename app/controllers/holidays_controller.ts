@@ -3,6 +3,7 @@ import HolidayService from '#services/holiday_service'
 import Holiday from '../models/holiday.js'
 import { createOrUpdateHolidayValidator } from '../validators/holiday.js'
 import { HttpContext } from '@adonisjs/core/http'
+import env from '../../start/env.js'
 
 /**
  * @swagger
@@ -159,6 +160,7 @@ export default class HolidayController {
       holidayName,
       holidayIconId,
     } as Holiday
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const data = await request.validateUsing(createOrUpdateHolidayValidator)
     for (let index = 0; index < data.holidayFrequency; index++) {
       const splitDate = holidayRequest.holidayDate.split('-')
@@ -168,6 +170,7 @@ export default class HolidayController {
         ...holidayRequest,
         holidayDate: date,
         holidayFrequency: data.holidayFrequency - index,
+        holidayBusinessUnits: businessConf,
       }
       if (index === 0) {
         holiday = await Holiday.create(holidayData)

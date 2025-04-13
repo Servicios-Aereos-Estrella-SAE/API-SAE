@@ -27,6 +27,11 @@ export default class EmployeeService {
     const newEmployee = new Employee()
     const personService = new PersonService()
     const newPerson = await personService.syncCreate(employee)
+    const employeeType = await EmployeeType.query()
+      .where('employee_type_slug', 'employee')
+      .whereNull('employee_type_deleted_at')
+      .first()
+    
     if (newPerson) {
       newEmployee.personId = newPerson.personId
     }
@@ -39,6 +44,9 @@ export default class EmployeeService {
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = employee.departmentId
     newEmployee.positionId = employee.positionId
+    if (employeeType?.employeeTypeId) {
+      newEmployee.employeeTypeId = employeeType.employeeTypeId
+    }
     if (employee.empCode) {
       const urlPhoto = `${env.get('API_BIOMETRICS_EMPLOYEE_PHOTO_URL')}/${employee.empCode}.jpg`
       const existPhoto = await this.verifyExistPhoto(urlPhoto)
@@ -48,6 +56,29 @@ export default class EmployeeService {
     }
     newEmployee.employeeLastSynchronizationAt = new Date()
     await newEmployee.save()
+   /*  await newEmployee.load('employeeType')
+    if (newEmployee.employeeType.employeeTypeSlug === 'employee' && newPerson) {
+      
+      const user = {
+        userEmail: newPerson.personEmail,
+        userPassword: '',
+        userActive: 1,
+        roleId: roleId,
+        personId: personId,
+      } as User
+      const userService = new UserService()
+      const data = await request.validateUsing(createUserValidator)
+      const exist = await userService.verifyInfoExist(user)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+    } */
     return newEmployee
   }
 
@@ -883,5 +914,65 @@ export default class EmployeeService {
       .paginate(1, 9999999)
 
     return employeeBanks ? employeeBanks : []
+  }
+
+  async getBirthday(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+    const year = filters.year
+    const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()! // <-- usa ! si estás seguro que no será null
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+    const employees = await Employee.query()
+      .whereIn('businessUnitId', businessUnitsList)
+      .if(filters.search, (query) => {
+        query.where((subQuery) => {
+          subQuery
+            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+              `%${filters.search.toUpperCase()}%`,
+            ])
+            .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+            .orWhereHas('person', (personQuery) => {
+              personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              personQuery.orWhereRaw('UPPER(person_email) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+            })
+        })
+      })
+      .if(filters.departmentId, (query) => {
+        query.where('department_id', filters.departmentId)
+      })
+      .if(filters.departmentId && filters.positionId, (query) => {
+        query.where('department_id', filters.departmentId)
+        query.where('position_id', filters.positionId)
+      })
+      .whereHas('person', (personQuery) => {
+        personQuery.whereNotNull('person_birthday')
+      })
+      .whereIn('departmentId', departmentsList)
+      .preload('department')
+      .preload('position')
+      .preload('person')
+      .preload('businessUnit')
+      .preload('address')
+      .withTrashed()
+      .andWhere((query) => {
+        query
+          .whereNull('employee_deleted_at')
+          .orWhere('employee_deleted_at', '>=', cutoffDate)
+      })
+      .orderBy('employee_id')
+    return employees
   }
 }
