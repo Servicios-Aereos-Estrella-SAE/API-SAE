@@ -519,6 +519,7 @@ export default class SyncAssistsService {
             isVacationDate: false,
             isWorkDisabilityDate: false,
             isHoliday: false,
+            isBirthday: false,
             holiday: null,
             hasExceptions: false,
             exceptions: [],
@@ -582,6 +583,9 @@ export default class SyncAssistsService {
     TOLERANCE_FAULT_MINUTES: number,
     employee: Employee | null
   ) {
+    if (employee) {
+      await employee.load('person')
+    }
     const dateTimeStart = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone('UTC-6')
     const dateTimeEnd = DateTime.fromISO(`${dateEnd}`, { setZone: true }).setZone('UTC-6')
 
@@ -612,6 +616,7 @@ export default class SyncAssistsService {
           isVacationDate: false,
           isWorkDisabilityDate: false,
           isHoliday: false,
+          isBirthday: false,
           holiday: null,
           hasExceptions: false,
           exceptions: [],
@@ -636,6 +641,7 @@ export default class SyncAssistsService {
 
       await Promise.all([
         this.isHoliday(dateAssistItem),
+        this.isBirthday(dateAssistItem, employee),
         this.hasOtherShift(employeeID, dateAssistItem, employee),
         this.isExceptionDate(employeeID, dateAssistItem, employee)
       ])
@@ -682,6 +688,24 @@ export default class SyncAssistsService {
     checkAssistCopy.assist.holiday = holidayresponse as unknown as HolidayInterface
     checkAssistCopy.assist.isHoliday = !!(holidayresponse)
 
+    checkAssist = checkAssistCopy
+    return checkAssistCopy
+  }
+
+  private async isBirthday(checkAssist: AssistDayInterface, employee: Employee | null) {
+    const checkAssistCopy = checkAssist
+
+    if (!employee?.person.personBirthday) {
+      return checkAssistCopy
+    }
+    const rawDate = employee.person.personBirthday
+
+    const birthday = typeof rawDate === 'string'
+      ? DateTime.fromISO(rawDate)
+      : DateTime.fromJSDate(rawDate)
+    const currentDate = DateTime.fromISO(checkAssist.day)
+
+    checkAssistCopy.assist.isBirthday = birthday.month === currentDate.month && birthday.day === currentDate.day
     checkAssist = checkAssistCopy
     return checkAssistCopy
   }
