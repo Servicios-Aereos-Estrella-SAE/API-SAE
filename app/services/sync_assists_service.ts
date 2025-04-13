@@ -121,12 +121,7 @@ export default class SyncAssistsService {
     return response
   }
 
-  async handleSyncAssists(
-    statusSync: AssistStatusSync,
-    dateParam: Date,
-    page: number = 1,
-    limit: number = 50
-  ) {
+  async handleSyncAssists(statusSync: AssistStatusSync, dateParam: Date, page: number = 1, limit: number = 50) {
     let response = await this.fetchExternalData(dateParam, page, limit)
     await this.updateLocalData(response)
     await this.updatePageSync(page, 'sync', this.getItemsCountsPage(page, response.pagination))
@@ -189,13 +184,7 @@ export default class SyncAssistsService {
     await this.createPageSyncRecords(statusSyncId, pagination)
   }
 
-  async fetchExternalData(
-    startDate: Date,
-    page: number,
-    limit: number = 50
-  ): Promise<ResponseApiAssistsDto> {
-    logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
-    // Aquí harías la petición a la API externa
+  async fetchExternalData(startDate: Date, page: number, limit: number = 50): Promise<ResponseApiAssistsDto> {
     let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
     apiUrl = `${apiUrl}&limit=${limit || ''}`
@@ -215,7 +204,6 @@ export default class SyncAssistsService {
     page: number,
     limit: number = 50
   ): Promise<ResponseApiAssistsDto> {
-    logger.info(`Fetching data from external API for date ${startDate.toISOString()}`)
     // Aquí harías la petición a la API externa
     let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/transactions-by-employee-async`
     apiUrl = `${apiUrl}?page=${page || ''}`
@@ -640,11 +628,10 @@ export default class SyncAssistsService {
 
       await Promise.all([
         this.isHoliday(dateAssistItem),
+        this.hasOtherShift(employeeID, dateAssistItem, employee),
         this.isBirthday(dateAssistItem, employee),
         this.isExceptionDate(employeeID, dateAssistItem, employee)
       ])
-
-      await this.hasOtherShift(employeeID, dateAssistItem, employee)
 
       this.setCheckInDateTime(dateAssistItem)
       this.setCheckOutDateTime(dateAssistItem)

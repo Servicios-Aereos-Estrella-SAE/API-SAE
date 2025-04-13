@@ -5,6 +5,7 @@ import SyncAssistsService from '#services/sync_assists_service'
 import env from '#start/env'
 import mail from '@adonisjs/mail/services/main'
 import logger from '@adonisjs/core/services/logger'
+import { DateTime } from 'luxon'
 
 export default class SyncAssistance extends BaseCommand {
   static commandName = 'sync:assistance'
@@ -16,31 +17,29 @@ export default class SyncAssistance extends BaseCommand {
 
   @inject()
   async run(syncAssistsService: SyncAssistsService) {
+    const startLogTime = DateTime.now()
+
     try {
       if (env.get('NODE_ENV') !== 'production') {
         logger.info('Skipping synchronization as the environment is not production.')
-        // await this.sentMailStatus('Skipping synchronization as the environment is not production.')
         return
       }
-      // logger.info('Starting assistance synchronization...')
+
       let lasPage = await syncAssistsService.getLastPage()
       let assistStatusSync = await syncAssistsService.getAssistStatusSync()
-      await syncAssistsService.synchronize(
-        assistStatusSync?.dateRequestSync?.toJSDate()?.toISOString() ?? '2024-05-05',
-        lasPage?.pageNumber
-      )
+
+      await syncAssistsService.synchronize(assistStatusSync?.dateRequestSync?.toJSDate()?.toISOString() ?? '2024-05-05', lasPage?.pageNumber)
+
       let lastPageAfterSync = await syncAssistsService.getLastPage()
+
       if (lastPageAfterSync?.pageNumber !== lasPage?.pageNumber) {
-        await syncAssistsService.synchronize(
-          assistStatusSync?.dateRequestSync?.toJSDate()?.toISOString() ?? '2024-05-05',
-          lastPageAfterSync?.pageNumber
-        )
+        await syncAssistsService.synchronize(assistStatusSync?.dateRequestSync?.toJSDate()?.toISOString() ?? '2024-05-05', lastPageAfterSync?.pageNumber)
       }
-      // this.sentMailStatus('Assistance synchronization completed successfully.')
-      logger.info('Assistance synchronization completed successfully.')
+
+      logger.info(`LOG SYNC ASSIST TIME => ${startLogTime.diffNow().milliseconds * -1} ms`)
     } catch (error) {
       this.sentMailStatus('Error during assistance synchronization: ' + error.message)
-      logger.info('Error during assistance synchronization:', error)
+      logger.info(`LOG SYNC ASSIST TIME => ${startLogTime.diffNow().milliseconds * -1} ms >> Error during assistance synchronization:`, error)
     }
   }
 
