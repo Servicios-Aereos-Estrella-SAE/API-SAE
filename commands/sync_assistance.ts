@@ -36,7 +36,7 @@ export default class SyncAssistance extends BaseCommand {
         await syncAssistsService.synchronize(assistStatusSync?.dateRequestSync?.toJSDate()?.toISOString() ?? '2024-05-05', lastPageAfterSync?.pageNumber)
       }
 
-      logger.info(`LOG SYNC ASSIST TIME => ${startLogTime.diffNow().milliseconds * -1} ms`)
+      logger.info(`LOG SYNC ASSIST TIME (${startLogTime.setZone('UTC-6').toFormat('ff')}) => ${startLogTime.diffNow().milliseconds * -1} ms`)
     } catch (error) {
       this.sentMailStatus('Error during assistance synchronization: ' + error.message)
       logger.info(`LOG SYNC ASSIST TIME => ${startLogTime.diffNow().milliseconds * -1} ms >> Error during assistance synchronization:`, error)
