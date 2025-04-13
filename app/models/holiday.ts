@@ -19,6 +19,9 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *           type: string
  *           format: date
  *           description: Date of the holiday
+ *         holidayBusinessUnits:
+ *           type: string
+ *           description: Business units
  *         holidayIcon:
  *           type: string
  *           description: Icon representing the holiday
@@ -45,6 +48,7 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *         holidayId: 1
  *         holidayName: "Christmas Day"
  *         holidayDate: "2024-12-25"
+ *         holidayBusinessUnits: "sae"
  *         holidayIcon: "icon_christmas"
  *         holidayCreatedAt: '2024-06-20T12:00:00Z'
  *         holidayUpdatedAt: '2024-06-20T13:00:00Z'
@@ -59,6 +63,9 @@ export default class Holiday extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare holidayDate: string
+
+  @column()
+  declare holidayBusinessUnits: string
 
   @column()
   declare holidayIcon: string | null

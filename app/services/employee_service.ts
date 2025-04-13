@@ -27,6 +27,11 @@ export default class EmployeeService {
     const newEmployee = new Employee()
     const personService = new PersonService()
     const newPerson = await personService.syncCreate(employee)
+    const employeeType = await EmployeeType.query()
+      .where('employee_type_slug', 'employee')
+      .whereNull('employee_type_deleted_at')
+      .first()
+    
     if (newPerson) {
       newEmployee.personId = newPerson.personId
     }
@@ -39,6 +44,9 @@ export default class EmployeeService {
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = employee.departmentId
     newEmployee.positionId = employee.positionId
+    if (employeeType?.employeeTypeId) {
+      newEmployee.employeeTypeId = employeeType.employeeTypeId
+    }
     if (employee.empCode) {
       const urlPhoto = `${env.get('API_BIOMETRICS_EMPLOYEE_PHOTO_URL')}/${employee.empCode}.jpg`
       const existPhoto = await this.verifyExistPhoto(urlPhoto)
@@ -48,6 +56,29 @@ export default class EmployeeService {
     }
     newEmployee.employeeLastSynchronizationAt = new Date()
     await newEmployee.save()
+   /*  await newEmployee.load('employeeType')
+    if (newEmployee.employeeType.employeeTypeSlug === 'employee' && newPerson) {
+      
+      const user = {
+        userEmail: newPerson.personEmail,
+        userPassword: '',
+        userActive: 1,
+        roleId: roleId,
+        personId: personId,
+      } as User
+      const userService = new UserService()
+      const data = await request.validateUsing(createUserValidator)
+      const exist = await userService.verifyInfoExist(user)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+    } */
     return newEmployee
   }
 

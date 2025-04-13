@@ -8,8 +8,11 @@ import Department from '#models/department'
 import { DateTime } from 'luxon'
 import { LogStore } from '#models/MongoDB/log_store'
 import { LogUser } from '../interfaces/MongoDB/log_user.js'
-import env from '#start/env'
+import mail from '@adonisjs/mail/services/main'
+import env from '../../start/env.js'
 import Role from '#models/role'
+import SystemSettingService from './system_setting_service.js'
+import SystemSetting from '#models/system_setting'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
@@ -75,6 +78,7 @@ export default class UserService {
     newUser.userActive = user.userActive
     newUser.roleId = user.roleId
     newUser.personId = user.personId
+    newUser.userBusinessAccess = user.userBusinessAccess
     await newUser.save()
     return newUser
   }
@@ -228,5 +232,47 @@ export default class UserService {
   getHeaderValue(headers: Array<string>, headerName: string) {
     const index = headers.indexOf(headerName)
     return index !== -1 ? headers[index + 1] : null
+  }
+
+  async sendNewPasswordEmail(url: string, newUser: User, userPassword: string) {
+    const hostData = this.getUrlInfo(url)
+    let tradeName = 'BO'
+    let backgroundImageLogo = `${env.get('BACKGROUND_IMAGE_LOGO')}`
+    const systemSettingService = new SystemSettingService()
+    const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
+    if (systemSettingActive) {
+      if ( systemSettingActive.systemSettingLogo) {
+        backgroundImageLogo = systemSettingActive.systemSettingLogo
+      }
+      if ( systemSettingActive.systemSettingTradeName) {
+        tradeName = systemSettingActive.systemSettingTradeName
+      }
+    }
+    await newUser.load('person')
+    const emailData = {
+      user: newUser,
+      userPassword,
+      host_data: hostData,
+      backgroundImageLogo,
+    }
+    const userEmail = env.get('SMTP_USERNAME')
+    if (userEmail) {
+      await mail.send((message) => {
+        message
+          .to(newUser.userEmail)
+          .from(userEmail, tradeName)
+          .subject('New password')
+          .htmlView('emails/new_password', emailData)
+      })
+    }
+  }
+
+  private getUrlInfo(url: string) {
+    return {
+      name: 'SAE BackOffice',
+      host_uri: url,
+      logo_path: 'https://sae.com.mx/wp-content/uploads/2024/03/logo_sae.svg',
+      primary_color: '#0a3459',
+    }
   }
 }
