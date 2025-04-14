@@ -857,6 +857,7 @@ export default class UserController {
       const user = await User.query()
         .where('user_token', request.input('token'))
         .whereNull('user_deleted_at')
+        .preload('person')
         .first()
 
       if (!user) {
@@ -876,6 +877,12 @@ export default class UserController {
       user.userPassword = userPassword
       user.userToken = ''
       user.save()
+      const url = request.header('origin')
+      if (url) {
+        const userService = new UserService()
+        userService.sendNewPasswordEmail(url, user, userPassword)
+      }
+     
       response.status(200)
       return {
         type: 'success',
@@ -1179,12 +1186,14 @@ export default class UserController {
       const userActive = request.input('userActive')
       const roleId = request.input('roleId')
       const personId = request.input('personId')
+      const systemBussines = env.get('SYSTEM_BUSINESS')
       const user = {
         userEmail: userEmail,
         userPassword: userPassword,
         userActive: userActive,
         roleId: roleId,
         personId: personId,
+        userBusinessAccess: systemBussines,
       } as User
       const userService = new UserService()
       const data = await request.validateUsing(createUserValidator)
@@ -1207,6 +1216,10 @@ export default class UserController {
           logUser.user_id = userId
           logUser.record_current = JSON.parse(JSON.stringify(newUser))
           await userService.saveActionOnLog(logUser)
+        }
+        const url = request.header('origin')
+        if (url) {
+          userService.sendNewPasswordEmail(url, newUser, userPassword)
         }
         response.status(201)
         return {
@@ -1427,6 +1440,13 @@ export default class UserController {
           logUser.record_current = JSON.parse(JSON.stringify(updateUser))
           logUser.record_previous = previousUser
           await userService.saveActionOnLog(logUser)
+        }
+        if (userPassword) {
+          await updateUser.load('person')
+          const url = request.header('origin')
+          if (url) {
+            userService.sendNewPasswordEmail(url, updateUser, userPassword)
+          }
         }
         response.status(201)
         return {

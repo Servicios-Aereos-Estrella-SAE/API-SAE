@@ -1,9 +1,19 @@
 import Holiday from '#models/holiday'
+import env from '#start/env'
 
 export default class HolidayService {
   async index(firstDate: string, lastDate: string, search: string, page: number, limit: number) {
     try {
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
       const holidays = Holiday.query()
+        .andWhere((query) => {
+          query.andWhere((subQuery) => {
+            businessList.forEach((business) => {
+              subQuery.orWhereRaw('FIND_IN_SET(?, holiday_business_units)', [business.trim()])
+            })
+        })
+      })
 
       if (search) {
         holidays.where('holidayName', 'like', `%${search}%`)
