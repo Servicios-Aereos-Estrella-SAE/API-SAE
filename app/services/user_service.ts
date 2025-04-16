@@ -13,6 +13,7 @@ import env from '../../start/env.js'
 import Role from '#models/role'
 import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
+import BusinessUnit from '#models/business_unit'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
@@ -195,10 +196,20 @@ export default class UserService {
       const departments = departmentsList.map((department) => department.departmentId)
       return departments
     }
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const roleDepartments = await RoleDepartment.query()
       .whereNull('role_department_deleted_at')
       .where('roleId', user.role?.roleId)
+      .whereHas('department', (query) => {
+        query.whereIn('businessUnitId', businessUnitsList)
+      })
       .distinct('departmentId')
       .orderBy('departmentId')
 
