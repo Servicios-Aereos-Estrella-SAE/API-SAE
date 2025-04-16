@@ -25,6 +25,7 @@ export default class EmployeeContractService {
     await newEmployeeContract.save()
     await this.setHireDateFromFirstContract(employeeContract)
     await this.setDepartmentAndPositionFromLastContract(employeeContract)
+    await this.setPayrollBusinessUnitFromLastContract(employeeContract)
     return newEmployeeContract
   }
 
@@ -44,6 +45,7 @@ export default class EmployeeContractService {
     await currentEmployeeContract.save()
     await this.setHireDateFromFirstContract(employeeContract)
     await this.setDepartmentAndPositionFromLastContract(employeeContract)
+    await this.setPayrollBusinessUnitFromLastContract(employeeContract)
     return currentEmployeeContract
   }
 
@@ -238,6 +240,24 @@ export default class EmployeeContractService {
         }
         
        
+        await employee.save()
+      }
+    }
+  }
+
+  async setPayrollBusinessUnitFromLastContract(employeeContract: EmployeeContract) {
+    const lastEmployeeContract = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .orderBy('employeeContractStartDate', 'desc')
+      .first()
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_id', employeeContract.employeeId)
+      .first()
+    if (employee) {
+      if (lastEmployeeContract) {
+        employee.payrollBusinessUnitId = lastEmployeeContract.payrollBusinessUnitId
         await employee.save()
       }
     }

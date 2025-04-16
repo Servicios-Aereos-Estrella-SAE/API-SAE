@@ -563,6 +563,11 @@ export default class EmployeeController {
    *                 description: Business unit id
    *                 required: true
    *                 default: 1
+   *               payrollBusinessUnitId:
+   *                 type: number
+   *                 description: Payroll Business Unit id
+   *                 required: true
+   *                 default: 1
    *               employeeAssistDiscriminator:
    *                 type: boolean
    *                 description: If true, the employee is not considered on attendance monitor
@@ -681,6 +686,7 @@ export default class EmployeeController {
       const workSchedule = request.input('employeeWorkSchedule')
       const employeeTypeId = request.input('employeeTypeId')
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
+      const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employee = {
         employeeId: 0,
         employeeFirstName: employeeFirstName,
@@ -693,6 +699,7 @@ export default class EmployeeController {
         positionId: positionId,
         personId: personId,
         businessUnitId: request.input('businessUnitId'),
+        payrollBusinessUnitId: payrollBusinessUnitId,
         employeeWorkSchedule: workSchedule,
         employeeTypeId: employeeTypeId,
         employeeBusinessEmail: employeeBusinessEmail,
@@ -836,6 +843,11 @@ export default class EmployeeController {
    *                 description: Business unit id
    *                 required: true
    *                 default: 1
+   *               payrollBusinessUnitId:
+   *                 type: number
+   *                 description: Payroll Business Unit id
+   *                 required: true
+   *                 default: 1
    *               employeeAssistDiscriminator:
    *                 type: boolean
    *                 description: If true, the employee is not considered on attendance monitor
@@ -952,6 +964,7 @@ export default class EmployeeController {
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
       const employeeTypeId = request.input('employeeTypeId')
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
+      const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -963,6 +976,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         businessUnitId: request.input('businessUnitId'),
+        payrollBusinessUnitId: payrollBusinessUnitId,
         employeeWorkSchedule: employeeWorkSchedule,
         employeeTypeId: employeeTypeId,
         employeeBusinessEmail: employeeBusinessEmail,
