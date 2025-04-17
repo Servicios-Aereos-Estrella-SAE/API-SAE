@@ -20,10 +20,10 @@ export default class SyncAssistance extends BaseCommand {
     const startLogTime = DateTime.now()
 
     try {
-      // if (env.get('NODE_ENV') !== 'production') {
-      //   logger.info('Skipping synchronization as the environment is not production.')
-      //   return
-      // }
+      if (env.get('NODE_ENV') !== 'production') {
+        logger.info('Skipping synchronization as the environment is not production.')
+        return
+      }
 
       let lasPage = await syncAssistsService.getLastPage()
       let assistStatusSync = await syncAssistsService.getAssistStatusSync()
