@@ -87,8 +87,10 @@ export default class SyncAssistsService {
         )
       }
     }
+
     let result = await this.getAssistsRecords(dateParam, page, limit)
     let result2 = result.toJSON()
+
     result2.meta = {
       ...result2.meta,
       totalApiItems: statusSync.itemsTotalSync,
@@ -96,6 +98,7 @@ export default class SyncAssistsService {
       apiPage: page,
       apiPageSize: limit,
     }
+
     return result2
   }
 
@@ -222,6 +225,13 @@ export default class SyncAssistsService {
   async updateLocalData(externalData: ResponseApiAssistsDto) {
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
+      const empCode = externalData.data.length > 0 ? externalData.data[0].emp_code : ''
+
+      let employee = null
+
+      if (empCode) {
+        employee = await Employee.query().where('employee_code', empCode).first()
+      }
 
       if (existingAssist) {
         await existingAssist
@@ -240,6 +250,10 @@ export default class SyncAssistsService {
             assistPunchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
           })
           .save()
+
+          if (employee) {
+            await this.setDateCalendar(existingAssist, employee)
+          }
       } else {
         const newAssist = new Assist()
         newAssist.assistEmpCode = item.emp_code
@@ -256,12 +270,24 @@ export default class SyncAssistsService {
         newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
+
+        if (employee) {
+          await this.setDateCalendar(newAssist, employee)
+        }
       }
     }
   }
 
   async saveAssistDataEmployee(externalData: ResponseApiAssistsDto) {
     const assists = [] as Array<Assist>
+    const empCode = externalData.data.length > 0 ? externalData.data[0].emp_code : ''
+
+    let employee = null
+
+    if (empCode) {
+      employee = await Employee.query().where('employee_code', empCode).first()
+    }
+
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
 
@@ -281,10 +307,69 @@ export default class SyncAssistsService {
         newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
+
+        if (employee) {
+          await this.setDateCalendar(newAssist, employee)
+        }
+
         assists.push(newAssist)
       }
     }
+
     return assists
+  }
+
+  private async setDateCalendar (newAssist: Assist, employee: Employee) {
+    const calendarPayload: SyncAssistsServiceIndexInterface = {
+      date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
+      dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
+      employeeID: employee.employeeId
+    }
+
+    const empCalendar = await this.index(calendarPayload)
+
+    if (empCalendar && empCalendar.status === 200 && empCalendar.data) {
+      const calendarDayRes = empCalendar.data as any
+      const calendarDay = calendarDayRes.employeeCalendar as AssistDayInterface[]
+
+      calendarDay.forEach((calendarObject: AssistDayInterface) => {
+        const assistStat =  {
+          assist_stat_day: calendarObject.day,
+          assist_stat_check_in_date_time: calendarObject.assist.checkInDateTime?.toString(),
+          assist_stat_check_out_date_time: calendarObject.assist.checkOutDateTime?.toString(),
+          assist_stat_date_shift_apply_since: calendarObject.assist.dateShiftApplySince,
+          assist_stat_check_in_punch_time: calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistPunchTimeUtc.toString() : null,
+          assist_stat_check_in_assist_id: calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistId : null,
+          assist_stat_check_in_status: calendarObject.assist.checkInStatus,
+          assist_stat_check_eat_in_punch_time: calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistPunchTimeUtc.toString() : null,
+          assist_stat_check_eat_in_assist_id: calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistId : null,
+          assist_stat_check_eat_in_status: '',
+          assist_stat_is_check_in_eat_next_day: calendarObject.assist.isCheckInEatNextDay,
+          assist_stat_check_eat_out_punch_time: calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistPunchTimeUtc.toString() : null,
+          assist_stat_check_eat_out_assist_id: calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistId : null,
+          assist_stat_check_eat_out_status: '',
+          assist_stat_is_check_out_eat_next_day: calendarObject.assist.isCheckOutEatNextDay,
+          assist_stat_check_out_punch_time: calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistPunchTimeUtc.toString() : null,
+          assist_stat_check_out_assist_id: calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistId : null,
+          assist_stat_check_out_status: calendarObject.assist.checkOutStatus,
+          assist_stat_is_check_out_next_day: calendarObject.assist.isCheckOutNextDay,
+          assist_stat_shift_calculate_flag: calendarObject.assist.shiftCalculateFlag,
+          assist_stat_is_future_day: calendarObject.assist.isFutureDay,
+          assist_stat_is_sunday_bonus: calendarObject.assist.isSundayBonus,
+          assist_stat_is_rest_day: calendarObject.assist.isRestDay,
+          assist_stat_is_vacation_date: calendarObject.assist.isVacationDate,
+          assist_stat_is_work_disability_date: calendarObject.assist.isWorkDisabilityDate,
+          assist_stat_is_holiday: calendarObject.assist.isHoliday,
+          assist_stat_is_birthday: calendarObject.assist.isBirthday,
+          assist_stat_has_exceptions: calendarObject.assist.hasExceptions,
+          shift_id: calendarObject.assist.dateShift?.shiftId || null,
+          holiday_id: calendarObject.assist.holiday?.holidayId || null,
+          employee_id: employee.employeeId
+        }
+
+        logger.info('🚀 ~ SyncAssistsService ~ calendarDay.forEach ~ assistStat:', JSON.stringify(assistStat))
+      })
+    }
   }
 
   async updatePageSync(page: number, status: string, itemsCount: number) {
