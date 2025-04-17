@@ -239,6 +239,8 @@ export default class AssistsController {
         },
         { page, limit }
       )
+      //console.log('--------')
+      //console.log(result.data.employeeCalendar)
       return response.status(result.status).json(result)
     } catch (error) {
       response.status(500)

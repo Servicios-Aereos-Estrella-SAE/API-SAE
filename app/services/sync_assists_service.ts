@@ -635,7 +635,7 @@ export default class SyncAssistsService {
 
       this.setCheckInDateTime(dateAssistItem)
       this.setCheckOutDateTime(dateAssistItem)
-      this.calculateRawCalendar(dateAssistItem, assistList)
+      this.calculateRawCalendar(dateAssistItem, assistList, employee)
       this.checkInStatus(dateAssistItem, TOLERANCE_FAULT_MINUTES, TOLERANCE_DELAY_MINUTES, isDiscriminated)
       this.checkOutStatus(dateAssistItem, isDiscriminated)
       this.isSundayBonus(dateAssistItem)
@@ -645,7 +645,6 @@ export default class SyncAssistsService {
       this.hasSomeExceptionTimeCheckIn(dateAssistItem, TOLERANCE_DELAY_MINUTES)
       this.hasSomeExceptionTimeCheckOut(dateAssistItem)
       this.hasSomeException(employeeID, dateAssistItem, employee)
-
       if (dateAssistItem.assist.dateShift) {
         const isShiftChanged = dateAssistItem.assist.dateShift.shiftIsChange
         const shift = JSON.parse(JSON.stringify(dateAssistItem.assist.dateShift))
@@ -656,7 +655,6 @@ export default class SyncAssistsService {
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
-
     return dailyAssistList
   }
 
@@ -724,7 +722,6 @@ export default class SyncAssistsService {
     const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
     const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
     const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
-
     await employee.load('shiftChanges', (query) => {
       query.where('employeeShiftChangeDateFrom', '>=', startDate)
       query.where('employeeShiftChangeDateFrom', '<=', endDate)
@@ -733,13 +730,14 @@ export default class SyncAssistsService {
     if (employee.shiftChanges.length > 0) {
       if (employee.shiftChanges[0].shiftTo) {
         checkAssist.assist.dateShift = employee.shiftChanges[0].shiftTo
-
+        if (employee.shiftChanges[0].employeeShiftChangeDateToIsRestDay) {
+          checkAssist.assist.isRestDay = true
+        }
         if (checkAssist.assist.dateShift) {
           checkAssist.assist.dateShift.shiftIsChange = true
         }
       }
     }
-
     return checkAssist
   }
 
@@ -814,7 +812,7 @@ export default class SyncAssistsService {
     return checkAssist
   }
 
-  private calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[]) {
+  private async calculateRawCalendar(dateAssistItem: AssistDayInterface, assistList: AssistDayInterface[], employee: Employee | null) {
     const startDay = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.dateShiftApplySince}`)).setZone('UTC-6')
     const evaluatedDay = DateTime.fromISO(`${dateAssistItem.day}T00:00:00.000-06:00`).setZone('UTC-6')
     const checkOutDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkOutDateTime}`)).setZone('UTC-6')
@@ -828,7 +826,29 @@ export default class SyncAssistsService {
 
     let isStartWorkday = calendarDayStatus.isStartWorkday
     let isRestWorkday = calendarDayStatus.isRestWorkday
+    if (isRestWorkday && employee) {
+      const assignedShift = dateAssistItem.assist.dateShift
+      if (assignedShift) {
+        const hourStart = assignedShift.shiftTimeStart
+        const stringDate = `${dateAssistItem.day}T${hourStart}.000-06:00`
+        const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
+        const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
+        const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
+        await employee.load('shiftChanges', (query) => {
+          query.where('employeeShiftChangeDateFrom', '>=', startDate)
+          query.where('employeeShiftChangeDateFrom', '<=', endDate)
+        })
 
+        if (employee.shiftChanges.length > 0) {
+          if (employee.shiftChanges[0].shiftTo) {
+            if (!employee.shiftChanges[0].employeeShiftChangeDateToIsRestDay) {
+              dateAssistItem.assist.isRestDay = false
+            }
+            }
+          }
+        }
+     
+      }
     dateAssistItem.assist.isFutureDay = calendarDayStatus.isNextDay
 
     if (dateAssistItem.assist.exceptions.length > 0) {
