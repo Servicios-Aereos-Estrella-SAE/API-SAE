@@ -64,6 +64,9 @@ import EmployeeShiftChange from './employee_shift_changes.js'
  *          businessUnitId:
  *            type: number
  *            description: business id from the employee business unit
+ *          payrollBusinessUnitId:
+ *            type: number
+ *            description: payroll business unit id
  *          employeeAssistDiscriminator:
  *            type: number
  *            description: Flag to identify discrimination on assist
@@ -138,6 +141,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare businessUnitId: number
+
+  @column()
+  declare payrollBusinessUnitId: number
 
   @column()
   declare employeeAssistDiscriminator: number
