@@ -35,6 +35,7 @@ export default class EmployeeShiftChangeService {
       .where('employee_shift_change_id', employeeShiftChangeId)
       .preload('employeeTo')
       .preload('shiftTo')
+      .preload('shiftFrom')
       .first()
     return employeeShiftChange ? employeeShiftChange : null
   }
@@ -52,6 +53,7 @@ export default class EmployeeShiftChangeService {
       })
       .preload('employeeTo')
       .preload('shiftTo')
+      .preload('shiftFrom')
       .orderBy('employee_shift_change_date_from')
     return employeeShiftChanges
   }
