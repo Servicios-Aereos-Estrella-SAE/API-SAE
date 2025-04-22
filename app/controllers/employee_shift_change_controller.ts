@@ -275,8 +275,8 @@ export default class EmployeeShiftChangeController {
           'log_employee_shift_changes'
         )
       }
-
-      const secondEmployeeShiftChange =
+      if (!employeeShiftChangeChangeThisShift) {
+        const secondEmployeeShiftChange =
         await employeeShiftChangeService.create(employeeShiftChangeSecond)
       if (userId) {
         const logEmployeeShiftChange = await employeeShiftChangeService.createActionLog(
@@ -292,6 +292,8 @@ export default class EmployeeShiftChangeController {
           'log_employee_shift_changes'
         )
       }
+      }
+     
 
       response.status(201)
       return {
