@@ -10,6 +10,8 @@ interface EmployeeFilterSearchInterface {
   ignoreExternal?: number
   onlyInactive?: boolean | string
   year?: number
+  dateStart?: string
+  dateEnd?: string
 }
 
 export type { EmployeeFilterSearchInterface }
