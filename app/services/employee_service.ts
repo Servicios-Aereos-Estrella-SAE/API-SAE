@@ -204,6 +204,7 @@ export default class EmployeeService {
     newEmployee.positionId = employee.positionId
     newEmployee.personId = employee.personId
     newEmployee.businessUnitId = employee.businessUnitId
+    newEmployee.payrollBusinessUnitId = employee.payrollBusinessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
@@ -225,6 +226,7 @@ export default class EmployeeService {
     currentEmployee.departmentId = employee.departmentId
     currentEmployee.positionId = employee.positionId
     currentEmployee.businessUnitId = employee.businessUnitId
+    currentEmployee.payrollBusinessUnitId = employee.payrollBusinessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
     currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
@@ -384,6 +386,52 @@ export default class EmployeeService {
           message: 'The person was not found with the entered ID',
           data: { ...employee },
         }
+      }
+    }
+    if (!employee.businessUnitId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The business unit id was not found',
+        message: 'The business unit was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+    const existBusinessUnitId = await BusinessUnit.query()
+      .whereNull('business_unit_deleted_at')
+      .where('business_unit_id', employee.businessUnitId)
+      .first()
+
+    if (!existBusinessUnitId && employee.businessUnitId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The business unit was not found',
+        message: 'The business unit was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+    if (!employee.payrollBusinessUnitId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The payroll business unit id was not found',
+        message: 'The payroll business unit was not found with the entered ID',
+        data: { ...employee },
+      }
+    }
+    const existPayrollBusinessUnitId = await BusinessUnit.query()
+      .whereNull('business_unit_deleted_at')
+      .where('business_unit_id', employee.payrollBusinessUnitId)
+      .first()
+
+    if (!existPayrollBusinessUnitId && employee.payrollBusinessUnitId) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The payroll business unit was not found',
+        message: 'The payroll business unit was not found with the entered ID',
+        data: { ...employee },
       }
     }
     return {
