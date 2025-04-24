@@ -9,6 +9,7 @@ interface EmployeeFilterSearchInterface {
   ignoreDiscriminated?: number
   ignoreExternal?: number
   onlyInactive?: boolean | string
+  onlyPayroll?: boolean | string
   year?: number
   dateStart?: string
   dateEnd?: string

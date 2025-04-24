@@ -1012,6 +1012,7 @@ export default class AssistsService {
               limit: limit,
               ignoreDiscriminated: 0,
               ignoreExternal: 1,
+              onlyPayroll: true,
             },
             [departmentId]
           )
@@ -2383,9 +2384,9 @@ export default class AssistsService {
     const columnB = worksheet.getColumn(2)
     columnB.width = 10
     const columnC = worksheet.getColumn(3)
-    columnC.width = 17
+    columnC.width = 28.57
     const columnD = worksheet.getColumn(4)
-    columnD.width = 13
+    columnD.width = 11.43
     for (let index = 1; index <= 4; index++) {
       const cell = worksheet.getCell(5, index)
       cell.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -2404,25 +2405,25 @@ export default class AssistsService {
     columnG.width = 10
     columnG.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnH = worksheet.getColumn(8)
-    columnH.width = 14
+    columnH.width = 10
     columnH.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnI = worksheet.getColumn(9)
-    columnI.width = 14
+    columnI.width = 10
     columnI.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnJ = worksheet.getColumn(10)
-    columnJ.width = 14
+    columnJ.width = 10
     columnJ.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnK = worksheet.getColumn(11)
-    columnK.width = 14
+    columnK.width = 10
     columnK.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnL = worksheet.getColumn(12)
-    columnL.width = 14
+    columnL.width = 10
     columnL.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnM = worksheet.getColumn(13)
-    columnM.width = 14
+    columnM.width = 10
     columnM.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnN = worksheet.getColumn(14)
-    columnN.width = 14
+    columnN.width = 10
     columnN.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnO = worksheet.getColumn(15)
     columnO.width = 40
@@ -2569,13 +2570,13 @@ export default class AssistsService {
     vacationBonus = this.getVacationBonus(employee, datePay)
     daysWorkDisability = await this.getDaysWorkDisability(employee, datePay)
     let company = ''
-    if (employee.businessUnitId) {
-      const businessUnit = await BusinessUnit.query()
+    if (employee.payrollBusinessUnitId) {
+      const payrollBusinessUnit = await BusinessUnit.query()
         .whereNull('business_unit_deleted_at')
-        .where('business_unit_id', employee.businessUnitId)
+        .where('business_unit_id', employee.payrollBusinessUnitId)
         .first()
-      if (businessUnit) {
-        company = businessUnit.businessUnitName
+      if (payrollBusinessUnit) {
+        company = payrollBusinessUnit.businessUnitName
       }
     }
     rows.push({

@@ -127,6 +127,9 @@ export default class EmployeeService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
     const employees = await Employee.query()
       .whereIn('businessUnitId', businessUnitsList)
+      .if(filters.onlyPayroll, (query) => {
+        query.whereIn('payrollBusinessUnitId', businessUnitsList)
+      })
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery

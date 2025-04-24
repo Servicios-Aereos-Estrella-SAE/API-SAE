@@ -925,6 +925,11 @@ export default class SyncAssistsService {
         if (dateAssistItem.assist.exceptions.length > 0) {
           dateAssistItem.assist.checkInStatus = ''
         }
+      } else {
+        const restDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day')
+        if (restDay) {
+          isRestWorkday = true
+        }
       }
 
       const coverShiftDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'cover-shift')
@@ -937,6 +942,8 @@ export default class SyncAssistsService {
           dateAssistItem.assist.checkInStatus = ''
         }
       }
+
+      
     }
 
     if (isStartWorkday) {
