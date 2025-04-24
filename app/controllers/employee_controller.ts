@@ -588,6 +588,11 @@ export default class EmployeeController {
    *                 description: Employee business email
    *                 required: false
    *                 default: ''
+   *               employeeTypeOfContract:
+   *                 type: string
+   *                 description: Employee type of contract
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -686,6 +691,7 @@ export default class EmployeeController {
       const workSchedule = request.input('employeeWorkSchedule')
       const employeeTypeId = request.input('employeeTypeId')
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
+      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employee = {
         employeeId: 0,
@@ -704,6 +710,7 @@ export default class EmployeeController {
         employeeTypeId: employeeTypeId,
         employeeBusinessEmail: employeeBusinessEmail,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       if (!employee.departmentId || employee.departmentId.toString() === '0') {
         const department = await Department.query()
@@ -868,6 +875,11 @@ export default class EmployeeController {
    *                 description: Employee business email
    *                 required: false
    *                 default: ''
+   *               employeeTypeOfContract:
+   *                 type: string
+   *                 description: Employee type of contract
+   *                 required: true
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -964,6 +976,7 @@ export default class EmployeeController {
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
       const employeeTypeId = request.input('employeeTypeId')
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
+      const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employee = {
         employeeId: employeeId,
@@ -981,6 +994,7 @@ export default class EmployeeController {
         employeeTypeId: employeeTypeId,
         employeeBusinessEmail: employeeBusinessEmail,
         employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeTypeOfContract: employeeTypeOfContract,
       } as Employee
       if (!employeeId) {
         response.status(400)
