@@ -63,8 +63,8 @@ export default class EmployeeVacationService {
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const years = []
-      const start = DateTime.fromISO(filters.filterStartDate)
-      const end = DateTime.fromISO(filters.filterEndDate)
+      const start = DateTime.fromISO(filters.filterStartDate, { setZone: true }).setZone('UTC')
+      const end = DateTime.fromISO(filters.filterEndDate, { setZone: true }).setZone('UTC')
       for (let year = start.year; year <= end.year; year++) {
         years.push(year)
       }
