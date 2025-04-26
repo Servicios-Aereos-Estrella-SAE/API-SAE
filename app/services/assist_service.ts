@@ -1012,7 +1012,7 @@ export default class AssistsService {
               limit: limit,
               ignoreDiscriminated: 0,
               ignoreExternal: 1,
-              onlyPayroll: true,
+              onlyPayroll: false,
             },
             [departmentId]
           )
