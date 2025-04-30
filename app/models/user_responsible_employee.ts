@@ -1,7 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import User from './user.js'
 /**
  * @swagger
  * components:
@@ -47,4 +49,9 @@ export default class UserResponsibleEmployee extends compose(BaseModel, SoftDele
 
   @column.dateTime({ columnName: 'user_responsible_employee_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => User, {
+    foreignKey: 'userId',
+  })
+  declare user: BelongsTo<typeof User>
 }
