@@ -31,7 +31,6 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *           type: number
  *           nullable: true
  *           description: Proceeding file id
- *           description: Proceeding file type property value active
  *         proceedingFileTypePropertyValueCreatedAt:
  *           type: string
  *           format: date-time
