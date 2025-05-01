@@ -52,6 +52,12 @@ export default class UserResponsibleEmployee extends compose(BaseModel, SoftDele
 
   @belongsTo(() => User, {
     foreignKey: 'userId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+        query.preload('role')
+      }
+    }
   })
   declare user: BelongsTo<typeof User>
 }

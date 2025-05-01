@@ -1,3 +1,4 @@
+import User from '#models/user'
 import { DateTime } from 'luxon'
 
 export default interface BiometricEmployeeInterface {
@@ -12,4 +13,5 @@ export default interface BiometricEmployeeInterface {
   positionId: number
   gender: string
   photo: string
+  usersResponsible?: User[]
 }

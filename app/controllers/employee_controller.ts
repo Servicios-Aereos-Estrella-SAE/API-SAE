@@ -21,6 +21,8 @@ import BusinessUnit from '#models/business_unit'
 import Position from '#models/position'
 import SystemSettingService from '#services/system_setting_service'
 import SystemSetting from '#models/system_setting'
+import User from '#models/user'
+import Role from '#models/role'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -242,6 +244,16 @@ export default class EmployeeController {
       if (position) {
         withOutPositionId = position.positionId
       }
+      const role = await Role.query()
+        .where('role_slug', 'rh-manager')
+        .whereNull('role_deleted_at')
+        .first()
+      let usersResponsible = [] as Array<User>
+      if (role) {
+        usersResponsible = await User.query()
+          .where('role_id', role.roleId)
+          .orderBy('user_id')
+      }
       if (data) {
         const employeeService = new EmployeeService()
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
@@ -266,7 +278,9 @@ export default class EmployeeController {
           if (existInBusinessUnitList) {
             employee.departmentId = withOutDepartmentId
             employee.positionId = withOutPositionId
+            employee.usersResponsible = usersResponsible
             employeeCountSaved += 1
+
             await this.verify(employee, employeeService)
           }
         }

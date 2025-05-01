@@ -57,6 +57,7 @@ export default class EmployeeService {
     }
     newEmployee.employeeLastSynchronizationAt = new Date()
     await newEmployee.save()
+    await this.setUserResponsible(newEmployee.employeeId, employee.usersResponsible ? employee.usersResponsible : [])
    /*  await newEmployee.load('employeeType')
     if (newEmployee.employeeType.employeeTypeSlug === 'employee' && newPerson) {
       
@@ -1183,5 +1184,14 @@ export default class EmployeeService {
       .paginate(1, 9999999)
 
     return userResponsibleEmployees ? userResponsibleEmployees : []
+  }
+
+  async setUserResponsible(employeeId: number, usersResponsible: User[]) {
+    for await (const user of usersResponsible) {
+      const userResponsibleEmployee = new UserResponsibleEmployee
+      userResponsibleEmployee.userId = user.userId
+      userResponsibleEmployee.employeeId = employeeId
+      await userResponsibleEmployee.save()
+    }
   }
 }

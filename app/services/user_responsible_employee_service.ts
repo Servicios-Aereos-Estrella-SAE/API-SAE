@@ -20,6 +20,7 @@ export default class UserResponsibleEmployeeService {
     const userResponsibleEmployee = await UserResponsibleEmployee.query()
       .whereNull('user_responsible_employee_deleted_at')
       .where('user_responsible_employee_id', userResponsibleEmployeeId)
+      .preload('user')
       .first()
     return userResponsibleEmployee ? userResponsibleEmployee : null
   }
