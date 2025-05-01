@@ -21,6 +21,7 @@ import EmployeeType from '#models/employee_type'
 import axios from 'axios'
 import EmployeeContract from '#models/employee_contract'
 import EmployeeBank from '#models/employee_bank'
+import UserResponsibleEmployee from '#models/user_responsible_employee'
 
 export default class EmployeeService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -56,6 +57,7 @@ export default class EmployeeService {
     }
     newEmployee.employeeLastSynchronizationAt = new Date()
     await newEmployee.save()
+    await this.setUserResponsible(newEmployee.employeeId, employee.usersResponsible ? employee.usersResponsible : [])
    /*  await newEmployee.load('employeeType')
     if (newEmployee.employeeType.employeeTypeSlug === 'employee' && newPerson) {
       
@@ -1171,5 +1173,25 @@ export default class EmployeeService {
       })
       .orderBy('employee_id')
     return employees
+  }
+
+  async getUserResponsible(employeeId: number) {
+    const userResponsibleEmployees = await UserResponsibleEmployee.query()
+      .whereNull('user_responsible_employee_deleted_at')
+      .where('employee_id', employeeId)
+      .preload('user')
+      .orderBy('employee_id')
+      .paginate(1, 9999999)
+
+    return userResponsibleEmployees ? userResponsibleEmployees : []
+  }
+
+  async setUserResponsible(employeeId: number, usersResponsible: User[]) {
+    for await (const user of usersResponsible) {
+      const userResponsibleEmployee = new UserResponsibleEmployee
+      userResponsibleEmployee.userId = user.userId
+      userResponsibleEmployee.employeeId = employeeId
+      await userResponsibleEmployee.save()
+    }
   }
 }

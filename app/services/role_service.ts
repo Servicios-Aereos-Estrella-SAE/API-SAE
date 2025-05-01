@@ -67,40 +67,6 @@ export default class RoleService {
     return rolePermissions
   }
 
-  async assignDepartments(roleId: number, departments: Array<number>) {
-    let roleDepartments = await RoleDepartment.query()
-      .whereNull('role_department_deleted_at')
-      .where('role_id', roleId)
-    if (roleDepartments) {
-      if (departments === undefined) {
-        departments = []
-      }
-      for await (const item of roleDepartments) {
-        const existDepartment = departments.find(
-          (a: number) => Number.parseInt(a.toString()) === item.departmentId
-        )
-        if (!existDepartment) {
-          await item.delete()
-        }
-      }
-    }
-    for await (const departmentId of departments) {
-      const existRoleDepartment = roleDepartments.find(
-        (a) => a.departmentId === Number.parseInt(departmentId.toString())
-      )
-      if (!existRoleDepartment) {
-        const newRoleDepartment = new RoleDepartment()
-        newRoleDepartment.roleId = roleId
-        newRoleDepartment.departmentId = departmentId
-        await newRoleDepartment.save()
-      }
-    }
-    roleDepartments = await RoleDepartment.query()
-      .whereNull('role_department_deleted_at')
-      .where('role_id', roleId)
-    return roleDepartments
-  }
-
   async show(roleId: number) {
     const role = await Role.query()
       .whereNull('role_deleted_at')
