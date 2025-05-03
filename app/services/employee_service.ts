@@ -185,7 +185,20 @@ export default class EmployeeService {
       .if(filters.employeeTypeId, (query) => {
         query.where('employee_type_id', filters.employeeTypeId ? filters.employeeTypeId : 0)
       })
-      .whereIn('departmentId', departmentsList)
+      .if(filters.userResponsibleId &&
+        typeof filters.userResponsibleId,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+        }
+      )
+      .if(
+        !filters.userResponsibleId,
+        (query) => {
+          query.whereIn('departmentId', departmentsList)
+        }
+      )
       .preload('department')
       .preload('position')
       .preload('person')
@@ -1179,6 +1192,9 @@ export default class EmployeeService {
     const userResponsibleEmployees = await UserResponsibleEmployee.query()
       .whereNull('user_responsible_employee_deleted_at')
       .where('employee_id', employeeId)
+      .whereHas('user', (userQuery) => {
+        userQuery.whereNull('user_deleted_at')
+      })
       .preload('user')
       .orderBy('employee_id')
       .paginate(1, 9999999)
