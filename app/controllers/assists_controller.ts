@@ -239,8 +239,6 @@ export default class AssistsController {
         },
         { page, limit }
       )
-      //console.log('--------')
-      //console.log(result.data.employeeCalendar)
       return response.status(result.status).json(result)
     } catch (error) {
       response.status(500)
@@ -709,6 +707,12 @@ export default class AssistsController {
    *         schema:
    *           type: string
    *         description: Report type
+   *       - name: userResponsibleId
+   *         in: query
+   *         required: false
+   *         description: User responsible Id
+   *         schema:
+   *           type: integer
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -737,6 +741,7 @@ export default class AssistsController {
       const filterDateEnd = request.input('date-end')
       const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
+      const userResponsibleId = request.input('userResponsibleId')
       const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
 
       if (!validReportTypes.includes(reportType)) {
@@ -752,6 +757,7 @@ export default class AssistsController {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
         filterDatePay: filterDatePay,
+        userResponsibleId: userResponsibleId,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
       let buffer

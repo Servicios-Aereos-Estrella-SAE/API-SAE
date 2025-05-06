@@ -295,9 +295,17 @@ export default class EmployeeService {
     return employee ? employee : null
   }
 
-  async getByCode(employeeCode: number) {
+  async getByCode(employeeCode: number, userResponsibleId: number | null) {
     const employee = await Employee.query()
       .where('employee_code', employeeCode)
+      .if(userResponsibleId &&
+        typeof userResponsibleId,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          })
+        }
+      )
       .preload('department')
       .preload('position')
       .preload('person')

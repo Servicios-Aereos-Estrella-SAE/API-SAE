@@ -344,7 +344,7 @@ export default class DepartmentController {
 
   /**
    * @swagger
-   * /api/departments/{departmentId}/positions:
+   * /api/departments/{departmentId}/positions/{userResponsibleId}:
    *   get:
    *     security:
    *       - bearerAuth: []

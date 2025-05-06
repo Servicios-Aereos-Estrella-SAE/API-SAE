@@ -1376,7 +1376,7 @@ export default class EmployeeController {
 
   /**
    * @swagger
-   * /api/employees/get-by-code/{employeeCode}:
+   * /api/employees/get-by-code/{employeeCode}/{userResponsibleId}:
    *   get:
    *     security:
    *       - bearerAuth: []
@@ -1392,6 +1392,12 @@ export default class EmployeeController {
    *           type: string
    *         description: Employee code
    *         required: true
+   *       - name: userResponsibleId
+   *         in: path
+   *         required: false
+   *         description: User responsible id
+   *         schema:
+   *           type: integer
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -1476,6 +1482,7 @@ export default class EmployeeController {
   async getByCode({ request, response }: HttpContext) {
     try {
       const employeeCode = request.param('employeeCode')
+      const userResponsibleId = request.param('userResponsibleId')
       if (!employeeCode) {
         response.status(400)
         return {
@@ -1486,7 +1493,7 @@ export default class EmployeeController {
         }
       }
       const employeeService = new EmployeeService()
-      const showEmployee = await employeeService.getByCode(employeeCode)
+      const showEmployee = await employeeService.getByCode(employeeCode, userResponsibleId)
       if (!showEmployee) {
         response.status(404)
         return {
