@@ -14,6 +14,7 @@ import Role from '#models/role'
 import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
 import BusinessUnit from '#models/business_unit'
+import Employee from '#models/employee'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
@@ -286,4 +287,37 @@ export default class UserService {
       primary_color: '#0a3459',
     }
   }
+
+  async hasAccessDepartment(userId: number, departmentId: number) {
+    const user = await User.query().whereNull('user_deleted_at').where('user_id', userId).first()
+    if (!user) {
+      return false
+    }
+    const department = await Department.query()
+      .whereNull('department_deleted_at')
+      .where('department_id', departmentId)
+      .first()
+
+    if (!department) {
+      return false
+    }
+
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('department_id', department.departmentId)
+      .if(userId &&
+        typeof userId,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userId!)
+          })
+        }
+      )
+      .first()
+    if (!employee) {
+      return false
+    }
+    return true
+  }
+
 }

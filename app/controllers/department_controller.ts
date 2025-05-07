@@ -789,6 +789,27 @@ export default class DepartmentController {
    *     tags:
    *       - Departments
    *     summary: get all departments
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentName:
+   *                 type: string
+   *                 description: Department name
+   *                 required: false
+   *                 default: ''
+   *               only-parents:
+   *                 type: string
+   *                 description: Only get parents
+   *                 required: false
+   *                 default: ''
+   *               userResponsibleId:
+   *                 type: number
+   *                 description: User responsible id
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -1922,6 +1943,27 @@ export default class DepartmentController {
    *     tags:
    *       - Departments
    *     summary: get all departments only with employees
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentName:
+   *                 type: string
+   *                 description: Department name
+   *                 required: false
+   *                 default: ''
+   *               only-parents:
+   *                 type: string
+   *                 description: Only get parents
+   *                 required: false
+   *                 default: ''
+   *               userResponsibleId:
+   *                 type: number
+   *                 description: User responsible id
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -2010,6 +2052,7 @@ export default class DepartmentController {
       const userService = new UserService()
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
+      const userResponsibleId = request.input('userResponsibleId')
 
       let departmentsList = [] as Array<number>
 
@@ -2017,7 +2060,7 @@ export default class DepartmentController {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
 
-      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents }
+      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents, userResponsibleId }
       const departments = await new DepartmentService().getOnlyWithEmployees(
         departmentsList,
         filters

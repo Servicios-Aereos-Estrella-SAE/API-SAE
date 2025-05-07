@@ -560,6 +560,12 @@ export default class AssistsController {
    *         schema:
    *           type: string
    *         description: Report type
+   *       - name: userResponsibleId
+   *         in: query
+   *         required: false
+   *         description: User responsible Id
+   *         schema:
+   *           type: integer
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -582,6 +588,7 @@ export default class AssistsController {
       const filterDateEnd = request.input('date-end')
       const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
+      const userResponsibleId = request.input('userResponsibleId')
       const department = await Department.query()
         .whereNull('department_deleted_at')
         .where('department_id', departmentId)
@@ -611,6 +618,7 @@ export default class AssistsController {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
         filterDatePay: filterDatePay,
+        userResponsibleId: userResponsibleId,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
       let buffer
