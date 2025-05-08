@@ -295,7 +295,7 @@ export default class EmployeeService {
     return employee ? employee : null
   }
 
-  async getByCode(employeeCode: number, userResponsibleId: number | null) {
+  async getByCode(employeeCode: number, userResponsibleId?: number | null) {
     const employee = await Employee.query()
       .where('employee_code', employeeCode)
       .if(userResponsibleId &&

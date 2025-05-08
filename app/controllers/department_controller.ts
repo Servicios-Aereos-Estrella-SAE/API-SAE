@@ -344,7 +344,7 @@ export default class DepartmentController {
 
   /**
    * @swagger
-   * /api/departments/{departmentId}/positions/{userResponsibleId}:
+   * /api/departments/{departmentId}/positions:
    *   get:
    *     security:
    *       - bearerAuth: []
@@ -356,12 +356,6 @@ export default class DepartmentController {
    *         in: path
    *         required: true
    *         description: Departmemnt id
-   *         schema:
-   *           type: integer
-   *       - name: userResponsibleId
-   *         in: path
-   *         required: false
-   *         description: User responsible id
    *         schema:
    *           type: integer
    *     responses:
@@ -446,10 +440,18 @@ export default class DepartmentController {
    *                       type: string
    */
 
-  async getPositions({ request, response }: HttpContext) {
+  async getPositions({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const departmentId = request.param('departmentId')
-      const userResponsibleId = request.param('userResponsibleId')
       if (!departmentId) {
         response.status(400)
         return {
@@ -805,11 +807,6 @@ export default class DepartmentController {
    *                 description: Only get parents
    *                 required: false
    *                 default: ''
-   *               userResponsibleId:
-   *                 type: number
-   *                 description: User responsible id
-   *                 required: false
-   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -895,10 +892,16 @@ export default class DepartmentController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
-      const userResponsibleId = request.input('userResponsibleId')
 
       let departmentsList = [] as Array<number>
 
@@ -1959,11 +1962,6 @@ export default class DepartmentController {
    *                 description: Only get parents
    *                 required: false
    *                 default: ''
-   *               userResponsibleId:
-   *                 type: number
-   *                 description: User responsible id
-   *                 required: false
-   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -2049,10 +2047,16 @@ export default class DepartmentController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
-      const userResponsibleId = request.input('userResponsibleId')
 
       let departmentsList = [] as Array<number>
 

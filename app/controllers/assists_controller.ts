@@ -560,12 +560,6 @@ export default class AssistsController {
    *         schema:
    *           type: string
    *         description: Report type
-   *       - name: userResponsibleId
-   *         in: query
-   *         required: false
-   *         description: User responsible Id
-   *         schema:
-   *           type: integer
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -581,14 +575,22 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByDepartment({ request, response }: HttpContext) {
+  async getExcelByDepartment({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const departmentId = request.input('departmentId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
       const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
-      const userResponsibleId = request.input('userResponsibleId')
       const department = await Department.query()
         .whereNull('department_deleted_at')
         .where('department_id', departmentId)
@@ -715,12 +717,6 @@ export default class AssistsController {
    *         schema:
    *           type: string
    *         description: Report type
-   *       - name: userResponsibleId
-   *         in: query
-   *         required: false
-   *         description: User responsible Id
-   *         schema:
-   *           type: integer
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -740,6 +736,13 @@ export default class AssistsController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       let departmentsList = [] as Array<number>
       if (user) {
@@ -749,7 +752,6 @@ export default class AssistsController {
       const filterDateEnd = request.input('date-end')
       const filterDatePay = request.input('datePay')
       const reportType = request.input('reportType')
-      const userResponsibleId = request.input('userResponsibleId')
       const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
 
       if (!validReportTypes.includes(reportType)) {
