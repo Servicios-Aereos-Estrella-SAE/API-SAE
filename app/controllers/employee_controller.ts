@@ -2756,8 +2756,17 @@ export default class EmployeeController {
    *       500:
    *         description: Error generating Excel file
    */
-  async getExcel({ request, response }: HttpContext) {
+  async getExcel({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const businessConf = `${env.get('SYSTEM_BUSINESS')}`
       const businessList = businessConf.split(',')
       const businessUnits = await BusinessUnit.query()
@@ -2831,6 +2840,14 @@ export default class EmployeeController {
       }
       const employees = await queryEmployees
         .whereIn('businessUnitId', businessUnitsList)
+        .if(userResponsibleId &&
+          typeof userResponsibleId && userResponsibleId > 0,
+          (query) => {
+            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+            })
+          }
+        )
         .preload('department')
         .preload('position')
         .preload('person')
@@ -3921,10 +3938,12 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
-      const userService = new UserService()
-      let departmentsList = [] as Array<number>
+      let userResponsibleId = null
       if (user) {
-        departmentsList = await userService.getRoleDepartments(user.userId)
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
       }
       const search = request.input('search')
       const departmentId = request.input('departmentId')
@@ -3935,9 +3954,10 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         year: year,
+        userResponsibleId: userResponsibleId,
       } as EmployeeFilterSearchInterface
       const employeeService = new EmployeeService()
-      const employees = await employeeService.getVacations(filters, departmentsList)
+      const employees = await employeeService.getVacations(filters)
       response.status(200)
       return {
         type: 'success',
@@ -4083,6 +4103,13 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       let departmentsList = [] as Array<number>
       if (user) {
@@ -4099,6 +4126,7 @@ export default class EmployeeController {
         positionId: positionId,
         dateStart: dateStart,
         dateEnd: dateEnd,
+        userResponsibleId: userResponsibleId,
       } as EmployeeFilterSearchInterface
       const employeeService = new EmployeeService()
       const employees = await employeeService.getAllVacationsByPeriod(filters, departmentsList)
