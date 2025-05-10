@@ -1219,12 +1219,15 @@ export default class EmployeeService {
     return employees
   }
 
-  async getUserResponsible(employeeId: number) {
+  async getUserResponsible(employeeId: number, userId: number) {
     const userResponsibleEmployees = await UserResponsibleEmployee.query()
       .whereNull('user_responsible_employee_deleted_at')
       .where('employee_id', employeeId)
       .whereHas('user', (userQuery) => {
         userQuery.whereNull('user_deleted_at')
+      })
+      .if(userId && typeof userId && userId > 0, (userQuery) => {
+        userQuery.where('user_id', userId)
       })
       .preload('user')
       .orderBy('employee_id')

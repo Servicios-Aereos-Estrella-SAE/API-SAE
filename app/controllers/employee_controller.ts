@@ -4425,13 +4425,25 @@ export default class EmployeeController {
 
   /**
    * @swagger
-   * /api/employees/{employeeId}/user-responsibles:
+   * /api/employees/{employeeId}/user-responsibles/{userId}:
    *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
    *       - Employees
    *     summary: get user responsibles by employee id
+   *     parameters:
+   *       - in: query
+   *         name: employeeId
+   *         schema:
+   *           type: integer
+   *         description: ID of the employee to filter
+   *       - in: query
+   *         required: false
+   *         name: userId
+   *         schema:
+   *           type: integer
+   *         description: ID of the user to filter
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -4516,7 +4528,7 @@ export default class EmployeeController {
   async getUserResponsible({ request, response }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
-
+      const userId = request.param('userId')
       if (!employeeId) {
         response.status(400)
         return {
@@ -4540,7 +4552,7 @@ export default class EmployeeController {
         }
       }
 
-      const userResponsibles = await employeeService.getUserResponsible(employeeId)
+      const userResponsibles = await employeeService.getUserResponsible(employeeId, userId)
 
       response.status(200)
       return {

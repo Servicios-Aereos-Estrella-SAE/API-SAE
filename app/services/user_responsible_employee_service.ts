@@ -7,8 +7,19 @@ export default class UserResponsibleEmployeeService {
     const newUserResponsibleEmployee = new UserResponsibleEmployee()
     newUserResponsibleEmployee.userId = userResponsibleEmployee.userId
     newUserResponsibleEmployee.employeeId = userResponsibleEmployee.employeeId
+    newUserResponsibleEmployee.userResponsibleEmployeeReadonly = userResponsibleEmployee.userResponsibleEmployeeReadonly
+    newUserResponsibleEmployee.userResponsibleEmployeeDirectBoss = userResponsibleEmployee.userResponsibleEmployeeDirectBoss
     await newUserResponsibleEmployee.save()
     return newUserResponsibleEmployee
+  }
+
+  async update(currentUserResponsibleEmployee: UserResponsibleEmployee, userResponsibleEmployee: UserResponsibleEmployee) {
+    currentUserResponsibleEmployee.userId = userResponsibleEmployee.userId
+    currentUserResponsibleEmployee.employeeId = userResponsibleEmployee.employeeId
+    currentUserResponsibleEmployee.userResponsibleEmployeeReadonly = userResponsibleEmployee.userResponsibleEmployeeReadonly
+    currentUserResponsibleEmployee.userResponsibleEmployeeDirectBoss = userResponsibleEmployee.userResponsibleEmployeeDirectBoss
+    await currentUserResponsibleEmployee.save()
+    return currentUserResponsibleEmployee
   }
 
   async delete(currentUserResponsibleEmployee: UserResponsibleEmployee) {
@@ -83,6 +94,27 @@ export default class UserResponsibleEmployeeService {
         data: { ...userResponsibleEmployee },
       }
     }
+
+    if (userResponsibleEmployee.userResponsibleEmployeeDirectBoss) {
+      const existDirectBoss = await UserResponsibleEmployee.query()
+      .if(userResponsibleEmployee.userResponsibleEmployeeId > 0, (query) => {
+        query.whereNot('user_responsible_employee_id', userResponsibleEmployee.userResponsibleEmployeeId)
+      })
+      .whereNull('user_responsible_employee_deleted_at')
+      .where('user_responsible_employee_direct_boss', 1)
+      .where('employee_id', userResponsibleEmployee.employeeId)
+      .first()
+    if (existDirectBoss) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'There is already a direct boss for this employee in other record',
+        message: `The user responsible employee resource cannot be ${action} because there is already a direct boss for this employee`,
+        data: { ...userResponsibleEmployee },
+      }
+    }
+    }
+    
 
     return {
       status: 200,

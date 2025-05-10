@@ -31,6 +31,16 @@ export default class UserResponsibleEmployeeController {
    *                 description: Employee Id
    *                 required: true
    *                 default: ''
+   *               userResponsibleEmployeeReadonly:
+   *                 type: number
+   *                 description: User responsible employee readonly
+   *                 required: true
+   *                 default: '0'
+   *               userResponsibleEmployeeDirectBoss:
+   *                 type: number
+   *                 description: User responsible employee direct boss
+   *                 required: true
+   *                 default: '0'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -116,9 +126,13 @@ export default class UserResponsibleEmployeeController {
     try {
       const userId = request.input('userId')
       const employeeId = request.input('employeeId')
+      const userResponsibleEmployeeReadonly = request.input('userResponsibleEmployeeReadonly')
+      const userResponsibleEmployeeDirectBoss = request.input('userResponsibleEmployeeDirectBoss')
       const userResponsibleEmployee = {
         userId: userId,
         employeeId: employeeId,
+        userResponsibleEmployeeReadonly: userResponsibleEmployeeReadonly,
+        userResponsibleEmployeeDirectBoss: userResponsibleEmployeeDirectBoss,
       } as UserResponsibleEmployee
       const userResponsibleEmployeeService = new UserResponsibleEmployeeService()
       const data = await request.validateUsing(createdUserResponsibleEmployeeValidator)
@@ -153,6 +167,216 @@ export default class UserResponsibleEmployeeController {
         data: {
           userResponsibleEmployee: newUserResponsibleEmployee,
         },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+
+  /**
+   * @swagger
+   * /api/user-responsible-employees/{userResponsibleEmployeeId}:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - User Responsible Employees
+   *     summary: update user responsible employee
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: userResponsibleEmployeeId
+   *         schema:
+   *           type: number
+   *         description: User Responsible Employee id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               userId:
+   *                 type: number
+   *                 description: User id
+   *                 required: true
+   *                 default: ''
+   *               employeeId:
+   *                 type: number
+   *                 description: Employee Id
+   *                 required: true
+   *                 default: ''
+   *               userResponsibleEmployeeReadonly:
+   *                 type: number
+   *                 description: User responsible employee readonly
+   *                 required: true
+   *                 default: '0'
+   *               userResponsibleEmployeeDirectBoss:
+   *                 type: number
+   *                 description: User responsible employee direct boss
+   *                 required: true
+   *                 default: '0'
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ request, response }: HttpContext) {
+    try {
+      const userResponsibleEmployeeId = request.param('userResponsibleEmployeeId')
+      const userId = request.input('userId')
+      const employeeId = request.input('employeeId')
+      const userResponsibleEmployeeReadonly = request.input('userResponsibleEmployeeReadonly')
+      const userResponsibleEmployeeDirectBoss = request.input('userResponsibleEmployeeDirectBoss')
+      const userResponsibleEmployee = {
+        userResponsibleEmployeeId: userResponsibleEmployeeId,
+        userId: userId,
+        employeeId: employeeId,
+        userResponsibleEmployeeReadonly: userResponsibleEmployeeReadonly,
+        userResponsibleEmployeeDirectBoss: userResponsibleEmployeeDirectBoss,
+      } as UserResponsibleEmployee
+      if (!userResponsibleEmployeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The relation user responsible employee Id was not found',
+          data: { ...userResponsibleEmployee },
+        }
+      }
+      const currentUserResponsibleEmployee = await UserResponsibleEmployee.query()
+        .whereNull('user_responsible_employee_deleted_at')
+        .where('user_responsible_employee_id', userResponsibleEmployeeId)
+        .first()
+      if (!currentUserResponsibleEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The relation user responsible employee was not found',
+          message: 'The user responsible employee was not found with the entered ID',
+          data: { ...userResponsibleEmployee },
+        }
+      }
+      const userResponsibleEmployeeService = new UserResponsibleEmployeeService()
+      const data = await request.validateUsing(createdUserResponsibleEmployeeValidator)
+      const exist = await userResponsibleEmployeeService.verifyInfoExist(userResponsibleEmployee)
+      if (exist.status !== 200) {
+        response.status(exist.status)
+        return {
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await userResponsibleEmployeeService.verifyInfo(userResponsibleEmployee)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const updateUserResponsibleEmployee = await userResponsibleEmployeeService.update(
+        currentUserResponsibleEmployee,
+        userResponsibleEmployee
+      )
+      if (updateUserResponsibleEmployee) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'User Responsible Employee',
+          message: 'The relation user responsible employee was updated successfully',
+          data: { userResponsibleEmployee: updateUserResponsibleEmployee },
+        }
       }
     } catch (error) {
       const messageError =
