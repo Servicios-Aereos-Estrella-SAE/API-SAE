@@ -1076,10 +1076,10 @@ export default class SyncAssistsService {
     } else if (dateAssistItem.assist.isHoliday) {
       if (dateAssistItem.assist.checkIn) {
         if (!existeWorkBreak) {
-          dateAssistItem.assist.checkIn = null
+        /*   dateAssistItem.assist.checkIn = null
           dateAssistItem.assist.checkEatIn = null
           dateAssistItem.assist.checkEatOut = null
-          dateAssistItem.assist.checkOut = null
+          dateAssistItem.assist.checkOut = null */
         }
       }
     }
