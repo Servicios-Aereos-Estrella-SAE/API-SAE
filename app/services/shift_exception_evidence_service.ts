@@ -35,7 +35,7 @@ export default class ShiftExceptionEvidenceService {
 
   async verifyInfoExist(shiftExceptionEvidence: ShiftExceptionEvidence) {
     const existShiftException = await ShiftException.query()
-      .whereNull('shift_exception_deleted_at')
+      .whereNull('shift_exceptions_deleted_at')
       .where('shift_exception_id', shiftExceptionEvidence.shiftExceptionId)
       .first()
 

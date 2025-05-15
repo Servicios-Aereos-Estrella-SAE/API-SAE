@@ -5,7 +5,6 @@ import ShiftExceptionEvidenceService from '#services/shift_exception_evidence_se
 import ShiftExceptionEvidence from '#models/shift_exception_evidence'
 import Env from '#start/env'
 import path from 'node:path'
-import { DateTime } from 'luxon'
 export default class ShiftExceptionEvidenceController {
   /**
    * @swagger
@@ -134,31 +133,10 @@ export default class ShiftExceptionEvidenceController {
    *                 type: string
    *                 format: binary
    *                 description: The file to upload
-   *               shiftExceptionEvidenceName:
-   *                 type: string
-   *                 description: Shift exception evidence name
-   *                 required: true
-   *                 default: ''
-   *               shiftExceptionEvidenceTypeId:
+   *               shiftExceptionId:
    *                 type: number
-   *                 description: Shift exception evidence type id
+   *                 description: Shift exception id
    *                 required: true
-   *                 default: ''
-   *               shiftExceptionEvidenceExpirationAt:
-   *                 type: string
-   *                 format: date
-   *                 description: Shift exception evidence expiration at (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               shiftExceptionEvidenceActive:
-   *                 type: boolean
-   *                 description: Shift exception evidence status
-   *                 required: false
-   *                 default: true
-   *               shiftExceptionEvidenceObservations:
-   *                 type: string
-   *                 description: Shift exception evidence observations
-   *                 required: false
    *                 default: ''
    *     responses:
    *       '201':
@@ -257,8 +235,8 @@ export default class ShiftExceptionEvidenceController {
       return {
         status: 400,
         type: 'warning',
-        title: 'Please upload a file valid',
-        message: 'Missing data to process',
+        title: 'Missing data to process',
+        message: 'Please upload a file valid',
         data: file,
       }
     }
@@ -286,10 +264,6 @@ export default class ShiftExceptionEvidenceController {
         data: file,
       }
     }
-    let shiftExceptionEvidenceExpirationAt = request.input('shiftExceptionEvidenceExpirationAt')
-    shiftExceptionEvidenceExpirationAt = shiftExceptionEvidenceExpirationAt
-      ? DateTime.fromJSDate(new Date(shiftExceptionEvidenceExpirationAt)).setZone('UTC').toJSDate()
-      : null
     const shiftExceptionId = inputs['shiftExceptionId']
     const shiftExceptionEvidence = {
       shiftExceptionEvidenceFile: '',
@@ -312,7 +286,7 @@ export default class ShiftExceptionEvidenceController {
     try {
       const fileUrl = await uploadService.fileUpload(file, 'shift-exception-evidences', fileName)
       shiftExceptionEvidence.shiftExceptionEvidenceFile = fileUrl
-     
+      shiftExceptionEvidence.shiftExceptionEvidenceType = file.type ? file.type : ''
       const newShiftExceptionEvidence = await shiftExceptionEvidenceService.create(shiftExceptionEvidence)
       response.status(201)
       return {
@@ -358,31 +332,10 @@ export default class ShiftExceptionEvidenceController {
    *                 type: string
    *                 format: binary
    *                 description: The file to upload
-   *               shiftExceptionEvidenceName:
-   *                 type: string
-   *                 description: Shift exception evidence name
-   *                 required: true
-   *                 default: ''
-   *               shiftExceptionEvidenceTypeId:
+   *               shiftExceptionId:
    *                 type: number
-   *                 description: Shift exception evidence type id
+   *                 description: Shift exception id
    *                 required: true
-   *                 default: ''
-   *               shiftExceptionEvidenceExpirationAt:
-   *                 type: string
-   *                 format: date
-   *                 description: Shift exception evidence expiration at (YYYY-MM-DD)
-   *                 required: false
-   *                 default: ''
-   *               shiftExceptionEvidenceActive:
-   *                 type: boolean
-   *                 description: Shift exception evidence status
-   *                 required: false
-   *                 default: true
-   *               shiftExceptionEvidenceObservations:
-   *                 type: string
-   *                 description: Shift exception evidence observations
-   *                 required: false
    *                 default: ''
    *     responses:
    *       '200':
@@ -481,8 +434,8 @@ export default class ShiftExceptionEvidenceController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The shift exception evidence Id was not found',
-          message: 'Missing data to process',
+          title: 'Missing data to process',
+          message: 'The shift exception evidence Id was not found',
           data: { shiftExceptionEvidenceId },
         }
       }
@@ -683,8 +636,8 @@ export default class ShiftExceptionEvidenceController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The shift exception evidence Id was not found',
-          message: 'Missing data to process',
+          title: 'Missing data to process',
+          message: 'The shift exception evidence Id was not found',
           data: { shiftExceptionEvidenceId },
         }
       }
@@ -704,7 +657,7 @@ export default class ShiftExceptionEvidenceController {
       const shiftExceptionEvidenceService = new ShiftExceptionEvidenceService()
       const deleteShiftExceptionEvidence = await shiftExceptionEvidenceService.delete(currentShiftExceptionEvidence)
       if (deleteShiftExceptionEvidence) {
-        response.status(201)
+        response.status(200)
         return {
           type: 'success',
           title: 'Shift exception evidence',
