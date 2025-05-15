@@ -241,17 +241,7 @@ export default class ShiftExceptionEvidenceController {
       }
     }
     const disallowedExtensions = [
-      'mp4',
-      'avi',
-      'mkv',
-      'mov',
-      'wmv',
-      'flv', // Video
-      'mp3',
-      'wav',
-      'flac',
-      'aac',
-      'ogg', // Audio
+      'exe', 'js', 'py', 'dll',
     ]
     // Verificar si la extensión del archivo está en la lista de no permitidas
     if (disallowedExtensions.includes(file.extname ? file.extname : '')) {
@@ -284,7 +274,7 @@ export default class ShiftExceptionEvidenceController {
       }
     }
     try {
-      const fileUrl = await uploadService.fileUpload(file, 'shift-exception-evidences', fileName)
+      const fileUrl = await uploadService.fileUpload(file, `shift-exception-evidences/${shiftExceptionId}`, fileName)
       shiftExceptionEvidence.shiftExceptionEvidenceFile = fileUrl
       shiftExceptionEvidence.shiftExceptionEvidenceType = file.type ? file.type : ''
       const newShiftExceptionEvidence = await shiftExceptionEvidenceService.create(shiftExceptionEvidence)
@@ -426,7 +416,7 @@ export default class ShiftExceptionEvidenceController {
       inputs = shiftExceptionEvidenceService.sanitizeInput(inputs)
       const validationOptions = {
         types: ['image', 'document', 'text', 'application', 'archive'],
-        size: '1mb',
+        size: '',
       }
       const file = request.file('file', validationOptions)
       const shiftExceptionEvidenceId = request.param('shiftExceptionEvidenceId')
@@ -472,17 +462,7 @@ export default class ShiftExceptionEvidenceController {
       }
       if (file) {
         const disallowedExtensions = [
-          'mp4',
-          'avi',
-          'mkv',
-          'mov',
-          'wmv',
-          'flv', // Video
-          'mp3',
-          'wav',
-          'flac',
-          'aac',
-          'ogg', // Audio
+          'exe', 'js', 'py', 'dll',
         ]
         if (disallowedExtensions.includes(file.extname ? file.extname : '')) {
           response.status(400)
@@ -501,7 +481,7 @@ export default class ShiftExceptionEvidenceController {
           const fileNameWithExt = decodeURIComponent(
             path.basename(currentShiftExceptionEvidence.shiftExceptionEvidenceFile)
           )
-          const fileKey = `${Env.get('AWS_ROOT_PATH')}/shift-exception-evidences/${fileNameWithExt}`
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/shift-exception-evidences/${shiftExceptionId}/${fileNameWithExt}`
           await uploadService.deleteFile(fileKey)
         }
         shiftExceptionEvidence.shiftExceptionEvidenceFile = fileUrl
