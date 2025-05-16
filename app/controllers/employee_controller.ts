@@ -607,6 +607,11 @@ export default class EmployeeController {
    *                 description: Employee type of contract
    *                 required: true
    *                 default: ''
+   *               employeeIgnoreConsecutiveAbsences:
+   *                 type: boolean
+   *                 description: If true, the employee is not considered on report consecutive faults
+   *                 required: true
+   *                 default: 0
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -707,6 +712,8 @@ export default class EmployeeController {
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
       const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
+      const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
+      const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
       const employee = {
         employeeId: 0,
         employeeFirstName: employeeFirstName,
@@ -723,8 +730,9 @@ export default class EmployeeController {
         employeeWorkSchedule: workSchedule,
         employeeTypeId: employeeTypeId,
         employeeBusinessEmail: employeeBusinessEmail,
-        employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeAssistDiscriminator: employeeAssistDiscriminator,
         employeeTypeOfContract: employeeTypeOfContract,
+        employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences,
       } as Employee
       if (!employee.departmentId || employee.departmentId.toString() === '0') {
         const department = await Department.query()
@@ -894,6 +902,11 @@ export default class EmployeeController {
    *                 description: Employee type of contract
    *                 required: true
    *                 default: ''
+   *               employeeIgnoreConsecutiveAbsences:
+   *                 type: boolean
+   *                 description: If true, the employee is not considered on report consecutive faults
+   *                 required: true
+   *                 default: 0
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -992,6 +1005,8 @@ export default class EmployeeController {
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
       const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
+      const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
+      const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -1007,8 +1022,9 @@ export default class EmployeeController {
         employeeWorkSchedule: employeeWorkSchedule,
         employeeTypeId: employeeTypeId,
         employeeBusinessEmail: employeeBusinessEmail,
-        employeeAssistDiscriminator: request.input('employeeAssistDiscriminator'),
+        employeeAssistDiscriminator: employeeAssistDiscriminator,
         employeeTypeOfContract: employeeTypeOfContract,
+        employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences
       } as Employee
       if (!employeeId) {
         response.status(400)

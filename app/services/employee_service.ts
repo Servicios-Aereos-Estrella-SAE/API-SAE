@@ -215,6 +215,7 @@ export default class EmployeeService {
     newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     newEmployee.employeeTypeId = employee.employeeTypeId
     newEmployee.employeeBusinessEmail = employee.employeeBusinessEmail
+    newEmployee.employeeIgnoreConsecutiveAbsences = employee.employeeIgnoreConsecutiveAbsences
     await newEmployee.save()
     await newEmployee.load('businessUnit')
     return newEmployee
@@ -237,6 +238,7 @@ export default class EmployeeService {
     currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     currentEmployee.employeeTypeId = employee.employeeTypeId
     currentEmployee.employeeBusinessEmail = employee.employeeBusinessEmail
+    currentEmployee.employeeIgnoreConsecutiveAbsences = employee.employeeIgnoreConsecutiveAbsences
     await currentEmployee.save()
     await currentEmployee.load('businessUnit')
     return currentEmployee
