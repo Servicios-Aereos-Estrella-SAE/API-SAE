@@ -186,7 +186,7 @@ export default class EmployeeService {
         query.where('employee_type_id', filters.employeeTypeId ? filters.employeeTypeId : 0)
       })
       .if(filters.userResponsibleId &&
-        typeof filters.userResponsibleId,
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0,
         (query) => {
           query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
             userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
@@ -295,9 +295,17 @@ export default class EmployeeService {
     return employee ? employee : null
   }
 
-  async getByCode(employeeCode: number) {
+  async getByCode(employeeCode: number, userResponsibleId?: number | null) {
     const employee = await Employee.query()
       .where('employee_code', employeeCode)
+      .if(userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          })
+        }
+      )
       .preload('department')
       .preload('position')
       .preload('person')

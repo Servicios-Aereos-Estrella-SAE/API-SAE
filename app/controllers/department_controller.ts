@@ -358,12 +358,6 @@ export default class DepartmentController {
    *         description: Departmemnt id
    *         schema:
    *           type: integer
-   *       - name: userResponsibleId
-   *         in: path
-   *         required: false
-   *         description: User responsible id
-   *         schema:
-   *           type: integer
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -446,10 +440,18 @@ export default class DepartmentController {
    *                       type: string
    */
 
-  async getPositions({ request, response }: HttpContext) {
+  async getPositions({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const departmentId = request.param('departmentId')
-      const userResponsibleId = request.param('userResponsibleId')
       if (!departmentId) {
         response.status(400)
         return {
@@ -789,6 +791,22 @@ export default class DepartmentController {
    *     tags:
    *       - Departments
    *     summary: get all departments
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentName:
+   *                 type: string
+   *                 description: Department name
+   *                 required: false
+   *                 default: ''
+   *               only-parents:
+   *                 type: string
+   *                 description: Only get parents
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -874,10 +892,16 @@ export default class DepartmentController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
-      const userResponsibleId = request.input('userResponsibleId')
 
       let departmentsList = [] as Array<number>
 
@@ -1922,6 +1946,22 @@ export default class DepartmentController {
    *     tags:
    *       - Departments
    *     summary: get all departments only with employees
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               departmentName:
+   *                 type: string
+   *                 description: Department name
+   *                 required: false
+   *                 default: ''
+   *               only-parents:
+   *                 type: string
+   *                 description: Only get parents
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -2007,6 +2047,13 @@ export default class DepartmentController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
@@ -2017,7 +2064,7 @@ export default class DepartmentController {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
 
-      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents }
+      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents, userResponsibleId }
       const departments = await new DepartmentService().getOnlyWithEmployees(
         departmentsList,
         filters

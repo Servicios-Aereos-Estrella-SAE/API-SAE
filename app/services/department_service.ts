@@ -25,7 +25,7 @@ export default class DepartmentService {
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     if (filters && filters.userResponsibleId &&
-      typeof filters.userResponsibleId) {
+      typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
         const employees = await Employee.query()
         .whereIn('businessUnitId', businessUnitsList)
         .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
@@ -73,6 +73,24 @@ export default class DepartmentService {
       .whereIn('business_unit_slug', businessList)
 
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+    if (filters && filters.userResponsibleId &&
+      typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
+        const employees = await Employee.query()
+        .whereIn('businessUnitId', businessUnitsList)
+        .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+          userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+        })
+        departmentsList = []
+        for await (const employee of employees) {
+          if (employee.departmentId) {
+            const existDepartment = departmentsList.find(a => a === employee.departmentId)
+            if (!existDepartment) {
+              departmentsList.push(employee.departmentId)
+            }
+          }
+        }
+      }
 
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
@@ -439,9 +457,37 @@ export default class DepartmentService {
     }
   }
 
-  async getPositions(departmentId: number) {
+  async getPositions(departmentId: number, userResponsibleId?: number | null) {
+    const positionList: number[] = []
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+      if (userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0) {
+          const employees = await Employee.query()
+          .whereIn('businessUnitId', businessUnitsList)
+          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          })
+          for await (const employee of employees) {
+            if (employee.positionId) {
+              const existPosition = positionList.find(a => a === employee.positionId)
+              if (!existPosition) {
+                positionList.push(employee.positionId)
+              }
+            }
+          }
+        }
     const positions = await DepartmentPosition.query()
       .where('department_id', departmentId)
+      .if(userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0, (query) => {
+        query.whereIn('position_id', positionList)
+      })
       .preload('position')
       .orderBy('position_id')
     return positions

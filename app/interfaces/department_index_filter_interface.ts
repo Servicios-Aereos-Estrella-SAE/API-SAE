@@ -1,7 +1,7 @@
 interface DepartmentIndexFilterInterface {
   departmentName?: string
   onlyParents?: boolean
-  userResponsibleId?: number
+  userResponsibleId?: number | null
 }
 
 export type { DepartmentIndexFilterInterface }

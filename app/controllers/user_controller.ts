@@ -1764,6 +1764,153 @@ export default class UserController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/users/has-access-department/{userId}/{departmentId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Users
+   *     summary: get user has access to department by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         schema:
+   *           type: number
+   *         description: User id
+   *         required: true
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: DepartmentId
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async hasAccessDepartment({ request, response }: HttpContext) {
+    try {
+      const userId = request.param('userId')
+      if (!userId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The user Id was not found',
+          data: { userId },
+        }
+      }
+      const departmentId = request.param('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The department Id was not found',
+          data: { departmentId },
+        }
+      }
+      const userService = new UserService()
+      const userHasAccess = await userService.hasAccessDepartment(userId, departmentId)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Users',
+        message: 'The user was found successfully',
+        data: { userHasAccess: userHasAccess },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private getUrlInfo(url: string) {
     return {
       name: 'SAE BackOffice',

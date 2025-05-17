@@ -414,7 +414,7 @@ export default class AssistsService {
       const page = 1
       const limit = 999999999999999
       const departmentService = new DepartmentService()
-      const resultPositions = await departmentService.getPositions(departmentId)
+      const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
       const syncAssistsService = new SyncAssistsService()
       const rows = [] as AssistExcelRowInterface[]
       for await (const position of resultPositions) {
@@ -429,6 +429,7 @@ export default class AssistsService {
             limit: limit,
             ignoreDiscriminated: 0,
             ignoreExternal: 1,
+            userResponsibleId: filters.userResponsibleId,
           },
           [departmentId]
         )
@@ -525,45 +526,8 @@ export default class AssistsService {
       const page = 1
       const limit = 999999999999999
       const departmentService = new DepartmentService()
-      const resultPositions = await departmentService.getPositions(departmentId)
+      const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
       const syncAssistsService = new SyncAssistsService()
-      const rows = [] as AssistExcelRowInterface[]
-      for await (const position of resultPositions) {
-        const employeeService = new EmployeeService()
-        const resultEmployes = await employeeService.index(
-          {
-            search: '',
-            departmentId: departmentId,
-            positionId: position.positionId,
-            employeeWorkSchedule: '',
-            page: page,
-            limit: limit,
-            ignoreDiscriminated: 0,
-            ignoreExternal: 1,
-          },
-          [departmentId]
-        )
-        const dataEmployes: any = resultEmployes
-        for await (const employee of dataEmployes) {
-          const result = await syncAssistsService.index(
-            {
-              date: filterDate,
-              dateEnd: filterDateEnd,
-              employeeID: employee.employeeId,
-            },
-            { page, limit }
-          )
-          const data: any = result.data
-          if (data) {
-            const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-            let newRows = [] as AssistExcelRowInterface[]
-            newRows = await this.addRowCalendar(employee, employeeCalendar)
-            for await (const row of newRows) {
-              rows.push(row)
-            }
-          }
-        }
-      }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
@@ -588,6 +552,7 @@ export default class AssistsService {
             limit: limit,
             ignoreDiscriminated: 0,
             ignoreExternal: 1,
+            userResponsibleId: filters.userResponsibleId,
           },
           [departmentId]
         )
@@ -644,7 +609,7 @@ export default class AssistsService {
       const page = 1
       const limit = 999999999999999
       const departmentService = new DepartmentService()
-      const resultPositions = await departmentService.getPositions(departmentId)
+      const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
       const syncAssistsService = new SyncAssistsService()
       const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
@@ -666,6 +631,7 @@ export default class AssistsService {
             limit: limit,
             ignoreDiscriminated: 0,
             ignoreExternal: 1,
+            userResponsibleId: filters.userResponsibleId,
           },
           [departmentId]
         )
@@ -720,6 +686,32 @@ export default class AssistsService {
 
   async getExcelAllAssistance(filters: AssistExcelFilterInterface, departmentsList: Array<number>) {
     try {
+        const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+        const businessList = businessConf.split(',')
+        const businessUnits = await BusinessUnit.query()
+          .where('business_unit_active', 1)
+          .whereIn('business_unit_slug', businessList)
+        const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+        if (filters && filters.userResponsibleId &&
+          typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
+            const employees = await Employee.query()
+            .whereIn('businessUnitId', businessUnitsList)
+            .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+            })
+            departmentsList = []
+            for await (const employee of employees) {
+              if (employee.departmentId) {
+                const existDepartment = departmentsList.find(a => a === employee.departmentId)
+                if (!existDepartment) {
+                  departmentsList.push(employee.departmentId)
+                }
+              }
+            }
+          }
+
+
       const departments = await Department.query()
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)
@@ -733,7 +725,7 @@ export default class AssistsService {
         const departmentId = departmentRow.departmentId
         const page = 1
         const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId)
+        const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
         const syncAssistsService = new SyncAssistsService()
         for await (const position of resultPositions) {
           const resultEmployes = await employeeService.index(
@@ -746,6 +738,7 @@ export default class AssistsService {
               employeeWorkSchedule: '',
               ignoreDiscriminated: 0,
               ignoreExternal: 1,
+              userResponsibleId: filters.userResponsibleId,
             },
             [departmentId]
           )
@@ -840,58 +833,40 @@ export default class AssistsService {
     departmentsList: Array<number>
   ) {
     try {
-      const departments = await Department.query()
-        .whereNull('department_deleted_at')
-        .whereIn('departmentId', departmentsList)
-        .orderBy('departmentId')
-      const rows = [] as AssistExcelRowInterface[]
-      const filterDate = filters.filterDate
-      const filterDateEnd = filters.filterDateEnd
-      const departmentService = new DepartmentService()
-      const employeeService = new EmployeeService()
-      for await (const departmentRow of departments) {
-        const departmentId = departmentRow.departmentId
-        const page = 1
-        const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId)
-        const syncAssistsService = new SyncAssistsService()
-        for await (const position of resultPositions) {
-          const resultEmployes = await employeeService.index(
-            {
-              search: '',
-              departmentId: departmentId,
-              positionId: position.positionId,
-              page: page,
-              limit: limit,
-              employeeWorkSchedule: '',
-              ignoreDiscriminated: 0,
-              ignoreExternal: 1,
-            },
-            [departmentId]
-          )
-          const dataEmployes: any = resultEmployes
-          for await (const employee of dataEmployes) {
-            const result = await syncAssistsService.index(
-              {
-                date: filterDate,
-                dateEnd: filterDateEnd,
-                employeeID: employee.employeeId,
-              },
-              { page, limit }
-            )
-            const data: any = result.data
-            if (data) {
-              const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-              let newRows = [] as AssistExcelRowInterface[]
-              newRows = await this.addRowCalendar(employee, employeeCalendar)
-              for await (const row of newRows) {
-                rows.push(row)
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      if (filters && filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
+          const employees = await Employee.query()
+          .whereIn('businessUnitId', businessUnitsList)
+          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+          departmentsList = []
+          for await (const employee of employees) {
+            if (employee.departmentId) {
+              const existDepartment = departmentsList.find(a => a === employee.departmentId)
+              if (!existDepartment) {
+                departmentsList.push(employee.departmentId)
               }
             }
           }
         }
-      }
-      // Crear un nuevo libro de Excel
+      const departments = await Department.query()
+        .whereNull('department_deleted_at')
+        .whereIn('departmentId', departmentsList)
+        .orderBy('departmentId')
+
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const departmentService = new DepartmentService()
+      const employeeService = new EmployeeService()
+
       const workbook = new ExcelJS.Workbook()
       // hasta aquí era lo de asistencia
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
@@ -908,7 +883,7 @@ export default class AssistsService {
         const departmentId = departmentRow.departmentId
         const page = 1
         const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId)
+        const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
         const syncAssistsService = new SyncAssistsService()
         for await (const position of resultPositions) {
           const resultEmployes = await employeeService.index(
@@ -921,6 +896,7 @@ export default class AssistsService {
               limit: limit,
               ignoreDiscriminated: 0,
               ignoreExternal: 1,
+              userResponsibleId: filters.userResponsibleId,
             },
             [departmentId]
           )
@@ -975,6 +951,30 @@ export default class AssistsService {
     departmentsList: Array<number>
   ) {
     try {
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+      if (filters && filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
+          const employees = await Employee.query()
+          .whereIn('businessUnitId', businessUnitsList)
+          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+          departmentsList = []
+          for await (const employee of employees) {
+            if (employee.departmentId) {
+              const existDepartment = departmentsList.find(a => a === employee.departmentId)
+              if (!existDepartment) {
+                departmentsList.push(employee.departmentId)
+              }
+            }
+          }
+        }
       const departments = await Department.query()
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)
@@ -999,7 +999,7 @@ export default class AssistsService {
         const departmentId = departmentRow.departmentId
         const page = 1
         const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId)
+        const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
         const syncAssistsService = new SyncAssistsService()
         for await (const position of resultPositions) {
           const resultEmployes = await employeeService.index(
@@ -1013,6 +1013,7 @@ export default class AssistsService {
               ignoreDiscriminated: 0,
               ignoreExternal: 1,
               onlyPayroll: false,
+              userResponsibleId: filters.userResponsibleId,
             },
             [departmentId]
           )

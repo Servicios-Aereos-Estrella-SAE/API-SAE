@@ -360,12 +360,6 @@ export default class EmployeeController {
    *         description: Employee Type Id
    *         schema:
    *           type: integer
-   *       - name: userResponsibleId
-   *         in: query
-   *         required: false
-   *         description: User responsible Id
-   *         schema:
-   *           type: integer
    *       - name: page
    *         in: query
    *         required: true
@@ -465,6 +459,13 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       let departmentsList = [] as Array<number>
       if (user) {
@@ -476,7 +477,6 @@ export default class EmployeeController {
       const employeeWorkSchedule = request.input('employeeWorkSchedule')
       const onlyInactive = request.input('onlyInactive')
       const employeeTypeId = request.input('employeeTypeId')
-      const userResponsibleId = request.input('userResponsibleId')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
       const filters = {
@@ -1473,8 +1473,17 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getByCode({ request, response }: HttpContext) {
+  async getByCode({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const employeeCode = request.param('employeeCode')
       if (!employeeCode) {
         response.status(400)
@@ -1486,7 +1495,7 @@ export default class EmployeeController {
         }
       }
       const employeeService = new EmployeeService()
-      const showEmployee = await employeeService.getByCode(employeeCode)
+      const showEmployee = await employeeService.getByCode(employeeCode, userResponsibleId)
       if (!showEmployee) {
         response.status(404)
         return {
