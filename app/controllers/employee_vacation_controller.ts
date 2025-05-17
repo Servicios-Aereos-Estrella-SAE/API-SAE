@@ -1,7 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { EmployeeVacationExcelFilterInterface } from '../interfaces/employee_vacation_excel_filter_interface.js'
 import EmployeeVacationService from '#services/employee_vacation_service'
-import UserService from '#services/user_service'
 
 export default class EmployeeVacationController {
   /**
@@ -77,10 +76,12 @@ export default class EmployeeVacationController {
     try {
       await auth.check()
       const user = auth.user
-      const userService = new UserService()
-      let departmentsList = [] as Array<number>
+      let userResponsibleId = null
       if (user) {
-        departmentsList = await userService.getRoleDepartments(user.userId)
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
       }
       const search = request.input('search')
       const employeeId = request.input('employeeId')
@@ -97,9 +98,10 @@ export default class EmployeeVacationController {
         filterStartDate: filterStartDate,
         filterEndDate: filterEndDate,
         onlyInactive: onlyInactive,
+        userResponsibleId: userResponsibleId,
       } as EmployeeVacationExcelFilterInterface
       const emplpoyeeVacationService = new EmployeeVacationService()
-      const buffer = await emplpoyeeVacationService.getExcelAll(filters, departmentsList)
+      const buffer = await emplpoyeeVacationService.getExcelAll(filters)
       if (buffer.status === 201) {
         response.header(
           'Content-Type',

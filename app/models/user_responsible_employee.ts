@@ -20,6 +20,12 @@ import User from './user.js'
  *          employeeId:
  *            type: number
  *            description: Employee Id
+ *          userResponsibleEmployeeReadonly:
+ *            type: number
+ *            description: User responsible employee readonly
+ *          userResponsibleEmployeeDirectBoss:
+ *            type: number
+ *            description: User responsible employee direct boss
  *          userResponsibleEmployeeCreatedAt:
  *            type: string
  *            format: date-time
@@ -40,6 +46,12 @@ export default class UserResponsibleEmployee extends compose(BaseModel, SoftDele
 
   @column()
   declare employeeId: number
+
+  @column()
+  declare userResponsibleEmployeeReadonly: number
+
+  @column()
+  declare userResponsibleEmployeeDirectBoss: number
 
   @column.dateTime({ autoCreate: true })
   declare userResponsibleEmployeeCreatedAt: DateTime

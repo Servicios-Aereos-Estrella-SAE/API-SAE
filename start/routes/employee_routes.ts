@@ -23,7 +23,7 @@ router
     )
     router.get('/:employeeId/contracts', '#controllers/employee_controller.getContracts')
     router.get('/:employeeId/banks', '#controllers/employee_controller.getBanks')
-    router.get('/:employeeId/user-responsible', '#controllers/employee_controller.getUserResponsible')
+    router.get('/:employeeId/user-responsible/:userId?', '#controllers/employee_controller.getUserResponsible')
     router.get(
       '/:employeeId/get-vacations-used',
       '#controllers/employee_controller.getVacationsUsed'
