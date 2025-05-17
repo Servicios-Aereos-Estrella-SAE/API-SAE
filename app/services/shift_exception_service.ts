@@ -3,6 +3,7 @@ import { DateTime } from 'luxon'
 import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_filter_interface.js'
 import { LogShiftException } from '../interfaces/MongoDB/log_shift_exception.js'
 import { LogStore } from '#models/MongoDB/log_store'
+import ShiftExceptionEvidence from '#models/shift_exception_evidence'
 
 export default class ShiftExceptionService {
   async create(shiftException: ShiftException) {
@@ -36,6 +37,15 @@ export default class ShiftExceptionService {
     await currentShiftException.save()
     return currentShiftException
   }
+
+  async show(shiftExceptionId: number) {
+    const shiftException = await ShiftException.query()
+      .whereNull('shift_exceptions_deleted_at')
+      .where('shift_exception_id', shiftExceptionId)
+      .first()
+    return shiftException ? shiftException : null
+  }
+
 
   async getByEmployee(filters: ShiftExceptionFilterInterface) {
     const shiftExceptions = await ShiftException.query()
@@ -148,5 +158,13 @@ export default class ShiftExceptionService {
   getHeaderValue(headers: Array<string>, headerName: string) {
     const index = headers.indexOf(headerName)
     return index !== -1 ? headers[index + 1] : null
+  }
+
+  async getEvidences(shiftExceptionId: number) {
+    const shiftExceptionEvidences = await ShiftExceptionEvidence.query()
+      .whereNull('shift_exception_evidence_deleted_at')
+      .where('shift_exception_id', shiftExceptionId)
+
+    return shiftExceptionEvidences ? shiftExceptionEvidences : []
   }
 }

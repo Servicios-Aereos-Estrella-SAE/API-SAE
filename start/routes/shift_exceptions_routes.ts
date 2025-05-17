@@ -12,6 +12,7 @@ router
       '/shift-exception-employee/:employeeId',
       '#controllers/shift_exceptions_controller.getByEmployee'
     )
+    router.get('shift-exception/:shiftExceptionId/evidences', '#controllers/shift_exceptions_controller.getEvidences')
   })
   .prefix('/api')
   .use(middleware.auth())
