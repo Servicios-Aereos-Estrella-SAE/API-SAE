@@ -1261,7 +1261,9 @@ export default class AssistsService {
       } else if (calendar.assist.isVacationDate) {
         status = 'VACATIONS'
       } else if (calendar.assist.isHoliday) {
-        status = 'HOLIDAY'
+        if (!calendar.assist.checkIn) {
+          status = 'HOLIDAY'
+        }
       }
       if (!calendar.assist.dateShift) {
         status = ''
