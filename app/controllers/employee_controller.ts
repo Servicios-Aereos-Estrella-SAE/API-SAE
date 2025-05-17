@@ -3762,10 +3762,12 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
-      const userService = new UserService()
-      let departmentsList = [] as Array<number>
+      let userResponsibleId = null
       if (user) {
-        departmentsList = await userService.getRoleDepartments(user.userId)
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
       }
       const search = request.input('search')
       const departmentId = request.input('departmentId')
@@ -3776,9 +3778,10 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         year: year,
+        userResponsibleId: userResponsibleId,
       } as EmployeeFilterSearchInterface
       const employeeService = new EmployeeService()
-      const employees = await employeeService.getBirthday(filters, departmentsList)
+      const employees = await employeeService.getBirthday(filters)
       response.status(200)
       return {
         type: 'success',

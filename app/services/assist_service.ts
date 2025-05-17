@@ -686,32 +686,6 @@ export default class AssistsService {
 
   async getExcelAllAssistance(filters: AssistExcelFilterInterface, departmentsList: Array<number>) {
     try {
-        const businessConf = `${env.get('SYSTEM_BUSINESS')}`
-        const businessList = businessConf.split(',')
-        const businessUnits = await BusinessUnit.query()
-          .where('business_unit_active', 1)
-          .whereIn('business_unit_slug', businessList)
-        const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-
-        if (filters && filters.userResponsibleId &&
-          typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
-            const employees = await Employee.query()
-            .whereIn('businessUnitId', businessUnitsList)
-            .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
-            })
-            departmentsList = []
-            for await (const employee of employees) {
-              if (employee.departmentId) {
-                const existDepartment = departmentsList.find(a => a === employee.departmentId)
-                if (!existDepartment) {
-                  departmentsList.push(employee.departmentId)
-                }
-              }
-            }
-          }
-
-
       const departments = await Department.query()
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)
@@ -833,30 +807,6 @@ export default class AssistsService {
     departmentsList: Array<number>
   ) {
     try {
-      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
-      const businessList = businessConf.split(',')
-      const businessUnits = await BusinessUnit.query()
-        .where('business_unit_active', 1)
-        .whereIn('business_unit_slug', businessList)
-      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-
-      if (filters && filters.userResponsibleId &&
-        typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
-          const employees = await Employee.query()
-          .whereIn('businessUnitId', businessUnitsList)
-          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
-          })
-          departmentsList = []
-          for await (const employee of employees) {
-            if (employee.departmentId) {
-              const existDepartment = departmentsList.find(a => a === employee.departmentId)
-              if (!existDepartment) {
-                departmentsList.push(employee.departmentId)
-              }
-            }
-          }
-        }
       const departments = await Department.query()
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)
@@ -951,30 +901,6 @@ export default class AssistsService {
     departmentsList: Array<number>
   ) {
     try {
-      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
-      const businessList = businessConf.split(',')
-      const businessUnits = await BusinessUnit.query()
-        .where('business_unit_active', 1)
-        .whereIn('business_unit_slug', businessList)
-      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-
-      if (filters && filters.userResponsibleId &&
-        typeof filters.userResponsibleId && filters.userResponsibleId > 0) {
-          const employees = await Employee.query()
-          .whereIn('businessUnitId', businessUnitsList)
-          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
-          })
-          departmentsList = []
-          for await (const employee of employees) {
-            if (employee.departmentId) {
-              const existDepartment = departmentsList.find(a => a === employee.departmentId)
-              if (!existDepartment) {
-                departmentsList.push(employee.departmentId)
-              }
-            }
-          }
-        }
       const departments = await Department.query()
         .whereNull('department_deleted_at')
         .whereIn('departmentId', departmentsList)

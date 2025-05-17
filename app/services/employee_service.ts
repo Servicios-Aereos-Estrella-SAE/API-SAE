@@ -990,7 +990,7 @@ export default class EmployeeService {
     return employeeBanks ? employeeBanks : []
   }
 
-  async getBirthday(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+  async getBirthday(filters: EmployeeFilterSearchInterface) {
     const year = filters.year
     const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()!
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
@@ -1034,7 +1034,6 @@ export default class EmployeeService {
       .whereHas('person', (personQuery) => {
         personQuery.whereNotNull('person_birthday')
       })
-      .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
       .preload('person')
@@ -1046,7 +1045,16 @@ export default class EmployeeService {
           .whereNull('employee_deleted_at')
           .orWhere('employee_deleted_at', '>=', cutoffDate)
       })
+      .if(filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+        }
+      )
       .orderBy('employee_id')
+
     return employees
   }
 

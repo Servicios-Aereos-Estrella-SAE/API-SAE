@@ -3,7 +3,6 @@ import Person from '#models/person'
 import User from '#models/user'
 import { UserFilterSearchInterface } from '../interfaces/user_filter_search_interface.js'
 import ApiToken from '#models/api_token'
-import RoleDepartment from '#models/role_department'
 import Department from '#models/department'
 import { DateTime } from 'luxon'
 import { LogStore } from '#models/MongoDB/log_store'
@@ -205,16 +204,22 @@ export default class UserService {
 
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
-    const roleDepartments = await RoleDepartment.query()
-      .whereNull('role_department_deleted_at')
-      .where('roleId', user.role?.roleId)
-      .whereHas('department', (query) => {
-        query.whereIn('businessUnitId', businessUnitsList)
-      })
+    const employees = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .whereIn('businessUnitId', businessUnitsList)
+      .if(userId &&
+        typeof userId,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userId!)
+          })
+        }
+      )
       .distinct('departmentId')
       .orderBy('departmentId')
 
-    const departments = roleDepartments.map((roleDepartment) => roleDepartment.departmentId)
+    const departments = employees.flatMap(({ departmentId }) => departmentId !== null ? [departmentId] : [])
+
     return departments
   }
 
