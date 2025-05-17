@@ -86,6 +86,9 @@ import UserResponsibleEmployee from './user_responsible_employee.js'
  *          employeeTerminatedDate:
  *            type: string
  *            description: Employee terminated date
+ *          employeeIgnoreConsecutiveAbsences:
+ *            type: number
+ *            description: Employee ignore consecutive absences
  *          employeeCreatedAt:
  *            type: string
  *          employeeUpdatedAt:
@@ -163,6 +166,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeTerminatedDate: Date | string
+
+  @column()
+  declare employeeIgnoreConsecutiveAbsences: number
 
   @column.dateTime({ autoCreate: true })
   declare employeeCreatedAt: DateTime
