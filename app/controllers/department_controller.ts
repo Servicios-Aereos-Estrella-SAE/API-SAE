@@ -358,6 +358,12 @@ export default class DepartmentController {
    *         description: Departmemnt id
    *         schema:
    *           type: integer
+   *       - name: userResponsibleId
+   *         in: path
+   *         required: false
+   *         description: User responsible id
+   *         schema:
+   *           type: integer
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -443,7 +449,7 @@ export default class DepartmentController {
   async getPositions({ request, response }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
-
+      const userResponsibleId = request.param('userResponsibleId')
       if (!departmentId) {
         response.status(400)
         return {
@@ -499,8 +505,31 @@ export default class DepartmentController {
         }
       }
 
+      const positionList: number[] = []
+      if (userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0) {
+          const employees = await Employee.query()
+          .whereIn('businessUnitId', businessUnitsList)
+          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          })
+          for await (const employee of employees) {
+            if (employee.positionId) {
+              const existPosition = positionList.find(a => a === employee.positionId)
+              if (!existPosition) {
+                positionList.push(employee.positionId)
+              }
+            }
+          }
+        }
+      
+
       const positions = await DepartmentPosition.query()
         .where('department_id', departmentId)
+        .if(userResponsibleId &&
+          typeof userResponsibleId && userResponsibleId > 0, (query) => {
+          query.whereIn('position_id', positionList)
+        })
         .whereHas('position', (queryPosition) => {
           queryPosition.whereIn('businessUnitId', businessUnitsList)
         })
@@ -848,6 +877,7 @@ export default class DepartmentController {
       const userService = new UserService()
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
+      const userResponsibleId = request.input('userResponsibleId')
 
       let departmentsList = [] as Array<number>
 
@@ -855,7 +885,7 @@ export default class DepartmentController {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
 
-      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents }
+      const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents, userResponsibleId }
       const departments = await new DepartmentService().index(departmentsList, filters)
 
       response.status(200)

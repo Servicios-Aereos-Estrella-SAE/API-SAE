@@ -13,6 +13,7 @@ import EmployeeShift from '#models/employee_shift'
 import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
+import Employee from '#models/employee'
 
 export default class DepartmentService {
   async index(departmentsList: Array<number>, filters?: DepartmentIndexFilterInterface) {
@@ -21,8 +22,30 @@ export default class DepartmentService {
     const businessUnits = await BusinessUnit.query()
       .where('business_unit_active', 1)
       .whereIn('business_unit_slug', businessList)
-
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+    if (filters && filters.userResponsibleId &&
+      typeof filters.userResponsibleId) {
+        const employees = await Employee.query()
+        .whereIn('businessUnitId', businessUnitsList)
+        .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+          userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+        })
+        departmentsList = []
+        for await (const employee of employees) {
+          if (employee.departmentId) {
+            const existDepartment = departmentsList.find(a => a === employee.departmentId)
+            if (!existDepartment) {
+              departmentsList.push(employee.departmentId)
+            }
+          }
+        }
+      }
+
+
+  
+
+    
 
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)

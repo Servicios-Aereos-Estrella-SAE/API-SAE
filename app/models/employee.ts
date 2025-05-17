@@ -14,6 +14,7 @@ import EmployeeSpouse from './employee_spouse.js'
 import EmployeeChildren from './employee_children.js'
 import EmployeeEmergencyContact from './employee_emergency_contact.js'
 import EmployeeShiftChange from './employee_shift_changes.js'
+import UserResponsibleEmployee from './user_responsible_employee.js'
 
 /**
  * @swagger
@@ -253,4 +254,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare shiftChanges: HasMany<typeof EmployeeShiftChange>
+
+  @hasMany(() => UserResponsibleEmployee, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.withTrashed()
+    },
+  })
+  declare userResponsibleEmployee: HasMany<typeof UserResponsibleEmployee>
 }
