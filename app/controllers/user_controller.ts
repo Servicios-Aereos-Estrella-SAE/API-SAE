@@ -1919,4 +1919,154 @@ export default class UserController {
       primary_color: '#0a3459',
     }
   }
+
+
+  /**
+   * @swagger
+   * /api/users/{userId}/employees-assigned/{employeeId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get employees assigned by employee id
+   *     parameters:
+   *       - in: query
+   *         name: userId
+   *         schema:
+   *           type: integer
+   *         description: ID of the user to filter
+   *         required: true
+   *       - in: query
+   *         name: employeeId
+   *         schema:
+   *           type: integer
+   *         description: ID of the employee to filter
+   *         required: false
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getEmployeesAssigned({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+      const userId = request.param('userId')
+      if (!userId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The user Id was not found',
+          data: { userId },
+        }
+      }
+
+      const userService = new UserService()
+      const showUser = await userService.show(userId)
+
+      if (!showUser) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The user was not found',
+          message: 'The user was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const employeesAssigned = await userService.getEmployeesAssigned(userId, employeeId)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Users',
+        message: 'The employees assigned were found successfully',
+        data: { data: employeesAssigned },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

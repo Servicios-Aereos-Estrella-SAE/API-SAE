@@ -14,6 +14,7 @@ import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
 import BusinessUnit from '#models/business_unit'
 import Employee from '#models/employee'
+import UserResponsibleEmployee from '#models/user_responsible_employee'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
@@ -323,6 +324,23 @@ export default class UserService {
       return false
     }
     return true
+  }
+
+  async getEmployeesAssigned(userId: number, employeeId: number) {
+    const employeesAssigned = await UserResponsibleEmployee.query()
+      .whereNull('user_responsible_employee_deleted_at')
+      .where('user_id', userId)
+      .whereHas('user', (userQuery) => {
+        userQuery.whereNull('user_deleted_at')
+      })
+      .if(employeeId && typeof employeeId && employeeId > 0, (employeeQuery) => {
+        employeeQuery.where('employee_id', employeeId)
+      })
+      .preload('user')
+      .orderBy('employee_id')
+      .paginate(1, 9999999)
+
+    return employeesAssigned ? employeesAssigned : []
   }
 
 }
