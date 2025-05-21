@@ -14,6 +14,7 @@ import { LogStore } from '#models/MongoDB/log_store'
 import { LogAuthentication } from '../interfaces/MongoDB/log_authentication.js'
 import SystemSettingService from '#services/system_setting_service'
 import SystemSetting from '#models/system_setting'
+import { EmployeeAssignedFilterSearchInterface } from '../interfaces/employee_assigned_filter_search_interface.js'
 
 export default class UserController {
   /**
@@ -1943,6 +1944,24 @@ export default class UserController {
    *           type: integer
    *         description: ID of the employee to filter
    *         required: false
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: departmentId
+   *         in: query
+   *         required: false
+   *         description: DepartmentId
+   *         schema:
+   *           type: integer
+   *       - name: positionId
+   *         in: query
+   *         required: false
+   *         description: PositionId
+   *         schema:
+   *           type: integer
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -2050,7 +2069,17 @@ export default class UserController {
           data: { employeeId },
         }
       }
-      const employeesAssigned = await userService.getEmployeesAssigned(userId, employeeId)
+      const search = request.input('search')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const filters = {
+        search: search,
+        departmentId: departmentId,
+        positionId: positionId,
+        userId: userId,
+        employeeId: employeeId,
+      } as EmployeeAssignedFilterSearchInterface
+      const employeesAssigned = await userService.getEmployeesAssigned(filters)
 
       response.status(200)
       return {
