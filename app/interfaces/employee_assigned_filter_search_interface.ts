@@ -4,6 +4,7 @@ interface EmployeeAssignedFilterSearchInterface {
   positionId: number
   userId: number
   employeeId: number
+  userResponsibleId?: number
 }
 
 export type { EmployeeAssignedFilterSearchInterface }

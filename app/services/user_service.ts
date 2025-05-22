@@ -328,6 +328,13 @@ export default class UserService {
   }
 
   async getEmployeesAssigned(filters: EmployeeAssignedFilterSearchInterface) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
     const employeesAssigned = await UserResponsibleEmployee.query()
       .whereNull('user_responsible_employee_deleted_at')
       .where('user_id', filters.userId)
@@ -338,6 +345,15 @@ export default class UserService {
         employeeQuery.where('employee_id', filters.employeeId)
       })
       .whereHas('employee', (employeeQuery) => {
+        employeeQuery.whereIn('businessUnitId', businessUnitsList)
+        employeeQuery.if(filters.userResponsibleId &&
+          typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+          (query) => {
+            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+            })
+          }
+        )
         employeeQuery.if(filters.search, (query) => {
           query.where((subQuery) => {
             subQuery

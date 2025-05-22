@@ -2043,8 +2043,17 @@ export default class UserController {
    *                     error:
    *                       type: string
    */
-  async getEmployeesAssigned({ request, response }: HttpContext) {
+  async getEmployeesAssigned({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const employeeId = request.param('employeeId')
       const userId = request.param('userId')
       if (!userId) {
@@ -2078,6 +2087,7 @@ export default class UserController {
         positionId: positionId,
         userId: userId,
         employeeId: employeeId,
+        userResponsibleId: userResponsibleId,
       } as EmployeeAssignedFilterSearchInterface
       const employeesAssigned = await userService.getEmployeesAssigned(filters)
 
