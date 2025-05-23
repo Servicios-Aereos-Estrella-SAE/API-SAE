@@ -158,7 +158,7 @@ export default class EmployeeShiftController {
           data: { ...employeeShift },
         }
       }
-
+      await employeeShiftService.deleteEmployeeShifts(employeeShift)
       // const existingShifts = await EmployeeShift.query()
       //   .where('employeeId', employeeId)
       //   .whereNull('employeShiftsDeletedAt')
@@ -187,7 +187,6 @@ export default class EmployeeShiftController {
         data: newEmployeeShift.toJSON(),
       })
     } catch (error) {
-      // console.error('Error:', error)
       if (error.messages) {
         return response.status(400).json({
           type: 'error',
@@ -298,7 +297,7 @@ export default class EmployeeShiftController {
 
   async index({ response }: HttpContext) {
     try {
-      const employeeShifts = await EmployeeShift.query().whereNull('employeShiftsDeletedAt')
+      const employeeShifts = await EmployeeShift.query().whereNull('deletedAt')
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -725,7 +724,7 @@ export default class EmployeeShiftController {
   async destroy({ auth, request, params, response }: HttpContext) {
     try {
       const employeeShift = await EmployeeShift.findOrFail(params.id)
-      employeeShift.employeShiftsDeletedAt = DateTime.now()
+      employeeShift.deletedAt = DateTime.now()
       await employeeShift.save()
       const employeeShiftService = new EmployeeShiftService()
       const rawHeaders = request.request.rawHeaders
