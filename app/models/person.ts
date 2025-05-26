@@ -5,6 +5,7 @@ import type { HasOne } from '@adonisjs/lucid/types/relations'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { DateTime } from 'luxon'
 import Employee from './employee.js'
+import User from './user.js'
 /**
  * @swagger
  * components:
@@ -135,4 +136,13 @@ export default class Person extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare employee: HasOne<typeof Employee>
+
+  @hasOne(() => User, {
+    foreignKey: 'personId',
+    localKey: 'personId',
+    onQuery: (query) => {
+      query.whereNull('deletedAt')
+    },
+  })
+  declare user: HasOne<typeof User>
 }

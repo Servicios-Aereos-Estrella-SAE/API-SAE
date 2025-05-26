@@ -7,6 +7,7 @@ router
       '/has-access-department/:userId/:departmentId',
       '#controllers/user_controller.hasAccessDepartment'
     )
+    router.get('/:userId/employees-assigned/:employeeId?', '#controllers/user_controller.getEmployeesAssigned')
     router.get('/', '#controllers/user_controller.index')
     router.post('/', '#controllers/user_controller.store')
     router.put('/:userId', '#controllers/user_controller.update')

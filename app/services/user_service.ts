@@ -14,6 +14,8 @@ import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
 import BusinessUnit from '#models/business_unit'
 import Employee from '#models/employee'
+import UserResponsibleEmployee from '#models/user_responsible_employee'
+import { EmployeeAssignedFilterSearchInterface } from '../interfaces/employee_assigned_filter_search_interface.js'
 // import BusinessUnit from '#models/business_unit'
 
 export default class UserService {
@@ -323,6 +325,71 @@ export default class UserService {
       return false
     }
     return true
+  }
+
+  async getEmployeesAssigned(filters: EmployeeAssignedFilterSearchInterface) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+
+    const employeesAssigned = await UserResponsibleEmployee.query()
+      .whereNull('user_responsible_employee_deleted_at')
+      .where('user_id', filters.userId)
+      .whereHas('user', (userQuery) => {
+        userQuery.whereNull('user_deleted_at')
+      })
+      .if(filters.employeeId && typeof filters.employeeId && filters.employeeId > 0, (employeeQuery) => {
+        employeeQuery.where('employee_id', filters.employeeId)
+      })
+      .whereHas('employee', (employeeQuery) => {
+        employeeQuery.whereIn('businessUnitId', businessUnitsList)
+        employeeQuery.if(filters.userResponsibleId &&
+          typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+          (query) => {
+            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+            })
+          }
+        )
+        employeeQuery.if(filters.search, (query) => {
+          query.where((subQuery) => {
+            subQuery
+              .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+                `%${filters.search.toUpperCase()}%`,
+              ])
+              .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
+              .orWhereHas('person', (personQuery) => {
+                personQuery.whereRaw('UPPER(person_rfc) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+                personQuery.orWhereRaw('UPPER(person_curp) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+                personQuery.orWhereRaw('UPPER(person_imss_nss) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+                personQuery.orWhereRaw('UPPER(person_email) LIKE ?', [
+                  `%${filters.search.toUpperCase()}%`,
+                ])
+              })
+          })
+        })
+        employeeQuery.if(filters.departmentId, (query) => {
+          query.where('department_id', filters.departmentId)
+        })
+        employeeQuery.if(filters.departmentId && filters.positionId, (query) => {
+          query.where('department_id', filters.departmentId)
+          query.where('position_id', filters.positionId)
+        })
+      })
+      .preload('user')
+      .orderBy('employee_id')
+      .paginate(1, 9999999)
+
+    return employeesAssigned ? employeesAssigned : []
   }
 
 }

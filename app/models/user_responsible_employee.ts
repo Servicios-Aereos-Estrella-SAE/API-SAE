@@ -4,6 +4,7 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
+import Employee from './employee.js'
 /**
  * @swagger
  * components:
@@ -72,4 +73,14 @@ export default class UserResponsibleEmployee extends compose(BaseModel, SoftDele
     }
   })
   declare user: BelongsTo<typeof User>
+
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+      }
+    }
+  })
+  declare employee: BelongsTo<typeof Employee>
 }
