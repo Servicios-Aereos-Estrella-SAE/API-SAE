@@ -3168,7 +3168,7 @@ export default class EmployeeController {
       // Obtener los turnos asignados al empleado durante el periodo
       const employeeShifts = await EmployeeShift.query()
         .where('employeeId', employeeId)
-        .whereNull('employeShiftsDeletedAt') // Excluir registros eliminados
+        .whereNull('deletedAt') // Excluir registros eliminados
         .whereBetween('employeShiftsApplySince', [hireDate, currentDate])
         .preload('shift')
 
