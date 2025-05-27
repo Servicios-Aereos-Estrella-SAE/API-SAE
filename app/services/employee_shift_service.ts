@@ -33,31 +33,6 @@ export default class EmployeeShiftService {
       }
     }
 
-    const applySince = DateTime.fromISO(employeeShift.employeShiftsApplySince.toString()).toFormat(
-      'yyyy-MM-dd'
-    )
-    if (applySince) {
-      const sameShift = await EmployeeShift.query()
-        .whereNull('employe_shifts_deleted_at')
-        .if(employeeShift.employeeShiftId > 0, (query) => {
-          query.whereNot('employee_shift_id', employeeShift.employeeShiftId)
-        })
-        .where('employee_id', employeeShift.employeeId)
-        .where('shift_id', employeeShift.shiftId)
-        //.where('employe_shifts_apply_since', applySince)
-        .whereRaw('DATE(employe_shifts_apply_since) = ?', [applySince])
-        .orderBy('shift_id', 'desc')
-        .first()
-      if (sameShift) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'The date apply since is already exist',
-          message: 'The date apply since cannot be reassigned',
-          data: { ...employeeShift },
-        }
-      }
-    }
     return {
       status: 200,
       type: 'success',
@@ -101,6 +76,19 @@ export default class EmployeeShiftService {
       .preload('shift')
       .first()
     return employeeShift
+  }
+
+  async deleteEmployeeShifts(currentEmployeeShifts: EmployeeShift) {
+    const existingShifts = await EmployeeShift.query()
+      .where('employeeId', currentEmployeeShifts.employeeId)
+      .where('employe_shifts_apply_since', currentEmployeeShifts.employeShiftsApplySince)
+      .whereNull('deletedAt')
+
+    if (existingShifts.length > 0) {
+      for await (const employeeShift of existingShifts) {
+        employeeShift.delete()
+      }
+    }
   }
 
   isValidDate(date: string) {

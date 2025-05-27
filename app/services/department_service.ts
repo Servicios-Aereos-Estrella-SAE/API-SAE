@@ -13,6 +13,7 @@ import EmployeeShift from '#models/employee_shift'
 import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
+import Employee from '#models/employee'
 
 export default class DepartmentService {
   async index(departmentsList: Array<number>, filters?: DepartmentIndexFilterInterface) {
@@ -21,7 +22,6 @@ export default class DepartmentService {
     const businessUnits = await BusinessUnit.query()
       .where('business_unit_active', 1)
       .whereIn('business_unit_slug', businessList)
-
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
 
     const departments = await Department.query()
@@ -416,9 +416,37 @@ export default class DepartmentService {
     }
   }
 
-  async getPositions(departmentId: number) {
+  async getPositions(departmentId: number, userResponsibleId?: number | null) {
+    const positionList: number[] = []
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+      if (userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0) {
+          const employees = await Employee.query()
+          .whereIn('businessUnitId', businessUnitsList)
+          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          })
+          for await (const employee of employees) {
+            if (employee.positionId) {
+              const existPosition = positionList.find(a => a === employee.positionId)
+              if (!existPosition) {
+                positionList.push(employee.positionId)
+              }
+            }
+          }
+        }
     const positions = await DepartmentPosition.query()
       .where('department_id', departmentId)
+      .if(userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0, (query) => {
+        query.whereIn('position_id', positionList)
+      })
       .preload('position')
       .orderBy('position_id')
     return positions

@@ -4,6 +4,7 @@ import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
+import Employee from './employee.js'
 /**
  * @swagger
  * components:
@@ -20,6 +21,12 @@ import User from './user.js'
  *          employeeId:
  *            type: number
  *            description: Employee Id
+ *          userResponsibleEmployeeReadonly:
+ *            type: number
+ *            description: User responsible employee readonly
+ *          userResponsibleEmployeeDirectBoss:
+ *            type: number
+ *            description: User responsible employee direct boss
  *          userResponsibleEmployeeCreatedAt:
  *            type: string
  *            format: date-time
@@ -41,6 +48,12 @@ export default class UserResponsibleEmployee extends compose(BaseModel, SoftDele
   @column()
   declare employeeId: number
 
+  @column()
+  declare userResponsibleEmployeeReadonly: number
+
+  @column()
+  declare userResponsibleEmployeeDirectBoss: number
+
   @column.dateTime({ autoCreate: true })
   declare userResponsibleEmployeeCreatedAt: DateTime
 
@@ -60,4 +73,14 @@ export default class UserResponsibleEmployee extends compose(BaseModel, SoftDele
     }
   })
   declare user: BelongsTo<typeof User>
+
+  @belongsTo(() => Employee, {
+    foreignKey: 'employeeId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+      }
+    }
+  })
+  declare employee: BelongsTo<typeof Employee>
 }

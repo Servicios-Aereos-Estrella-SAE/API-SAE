@@ -14,6 +14,7 @@ import { LogStore } from '#models/MongoDB/log_store'
 import { LogAuthentication } from '../interfaces/MongoDB/log_authentication.js'
 import SystemSettingService from '#services/system_setting_service'
 import SystemSetting from '#models/system_setting'
+import { EmployeeAssignedFilterSearchInterface } from '../interfaces/employee_assigned_filter_search_interface.js'
 
 export default class UserController {
   /**
@@ -1764,12 +1765,347 @@ export default class UserController {
     }
   }
 
+  /**
+   * @swagger
+   * /api/users/has-access-department/{userId}/{departmentId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Users
+   *     summary: get user has access to department by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         schema:
+   *           type: number
+   *         description: User id
+   *         required: true
+   *       - in: path
+   *         name: departmentId
+   *         schema:
+   *           type: number
+   *         description: DepartmentId
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async hasAccessDepartment({ request, response }: HttpContext) {
+    try {
+      const userId = request.param('userId')
+      if (!userId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The user Id was not found',
+          data: { userId },
+        }
+      }
+      const departmentId = request.param('departmentId')
+      if (!departmentId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The department Id was not found',
+          data: { departmentId },
+        }
+      }
+      const userService = new UserService()
+      const userHasAccess = await userService.hasAccessDepartment(userId, departmentId)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Users',
+        message: 'The user was found successfully',
+        data: { userHasAccess: userHasAccess },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
   private getUrlInfo(url: string) {
     return {
       name: 'SAE BackOffice',
       host_uri: url,
       logo_path: 'https://sae.com.mx/wp-content/uploads/2024/03/logo_sae.svg',
       primary_color: '#0a3459',
+    }
+  }
+
+
+  /**
+   * @swagger
+   * /api/users/{userId}/employees-assigned/{employeeId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get employees assigned by employee id
+   *     parameters:
+   *       - in: query
+   *         name: userId
+   *         schema:
+   *           type: integer
+   *         description: ID of the user to filter
+   *         required: true
+   *       - in: query
+   *         name: employeeId
+   *         schema:
+   *           type: integer
+   *         description: ID of the employee to filter
+   *         required: false
+   *       - name: search
+   *         in: query
+   *         required: false
+   *         description: Search
+   *         schema:
+   *           type: string
+   *       - name: departmentId
+   *         in: query
+   *         required: false
+   *         description: DepartmentId
+   *         schema:
+   *           type: integer
+   *       - name: positionId
+   *         in: query
+   *         required: false
+   *         description: PositionId
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getEmployeesAssigned({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
+      const employeeId = request.param('employeeId')
+      const userId = request.param('userId')
+      if (!userId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The user Id was not found',
+          data: { userId },
+        }
+      }
+
+      const userService = new UserService()
+      const showUser = await userService.show(userId)
+
+      if (!showUser) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The user was not found',
+          message: 'The user was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const search = request.input('search')
+      const departmentId = request.input('departmentId')
+      const positionId = request.input('positionId')
+      const filters = {
+        search: search,
+        departmentId: departmentId,
+        positionId: positionId,
+        userId: userId,
+        employeeId: employeeId,
+        userResponsibleId: userResponsibleId,
+      } as EmployeeAssignedFilterSearchInterface
+      const employeesAssigned = await userService.getEmployeesAssigned(filters)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Users',
+        message: 'The employees assigned were found successfully',
+        data: { data: employeesAssigned },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
     }
   }
 }

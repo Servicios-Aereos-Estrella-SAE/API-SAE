@@ -32,7 +32,7 @@ export default class ShiftForEmployeeService {
       .whereBetween('employeShiftsApplySince', [onlyDateStart, onliDateEnd])
       .preload('employee')
       .preload('shift')
-      .whereNull('employeShiftsDeletedAt')
+      .whereNull('deletedAt')
       .orderBy('employeShiftsApplySince', 'asc')
 
     if (filters.employeeId) {

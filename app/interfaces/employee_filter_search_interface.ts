@@ -13,6 +13,7 @@ interface EmployeeFilterSearchInterface {
   year?: number
   dateStart?: string
   dateEnd?: string
+  userResponsibleId?: number
 }
 
 export type { EmployeeFilterSearchInterface }

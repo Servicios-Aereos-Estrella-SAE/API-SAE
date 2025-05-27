@@ -239,8 +239,6 @@ export default class AssistsController {
         },
         { page, limit }
       )
-      //console.log('--------')
-      //console.log(result.data.employeeCalendar)
       return response.status(result.status).json(result)
     } catch (error) {
       response.status(500)
@@ -577,8 +575,17 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByDepartment({ request, response }: HttpContext) {
+  async getExcelByDepartment({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const departmentId = request.input('departmentId')
       const filterDate = request.input('date')
       const filterDateEnd = request.input('date-end')
@@ -613,6 +620,7 @@ export default class AssistsController {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
         filterDatePay: filterDatePay,
+        userResponsibleId: userResponsibleId,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
       let buffer
@@ -728,6 +736,13 @@ export default class AssistsController {
     try {
       await auth.check()
       const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const userService = new UserService()
       let departmentsList = [] as Array<number>
       if (user) {
@@ -752,6 +767,7 @@ export default class AssistsController {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
         filterDatePay: filterDatePay,
+        userResponsibleId: userResponsibleId,
       } as AssistDepartmentExcelFilterInterface
       const assistService = new AssistsService()
       let buffer

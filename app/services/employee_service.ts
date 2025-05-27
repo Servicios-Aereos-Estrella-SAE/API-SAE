@@ -185,7 +185,20 @@ export default class EmployeeService {
       .if(filters.employeeTypeId, (query) => {
         query.where('employee_type_id', filters.employeeTypeId ? filters.employeeTypeId : 0)
       })
-      .whereIn('departmentId', departmentsList)
+      .if(filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+        }
+      )
+      .if(
+        !filters.userResponsibleId,
+        (query) => {
+          query.whereIn('departmentId', departmentsList)
+        }
+      )
       .preload('department')
       .preload('position')
       .preload('person')
@@ -215,6 +228,7 @@ export default class EmployeeService {
     newEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     newEmployee.employeeTypeId = employee.employeeTypeId
     newEmployee.employeeBusinessEmail = employee.employeeBusinessEmail
+    newEmployee.employeeIgnoreConsecutiveAbsences = employee.employeeIgnoreConsecutiveAbsences
     await newEmployee.save()
     await newEmployee.load('businessUnit')
     return newEmployee
@@ -237,6 +251,7 @@ export default class EmployeeService {
     currentEmployee.employeeTypeOfContract = employee.employeeTypeOfContract
     currentEmployee.employeeTypeId = employee.employeeTypeId
     currentEmployee.employeeBusinessEmail = employee.employeeBusinessEmail
+    currentEmployee.employeeIgnoreConsecutiveAbsences = employee.employeeIgnoreConsecutiveAbsences
     await currentEmployee.save()
     await currentEmployee.load('businessUnit')
     return currentEmployee
@@ -282,9 +297,17 @@ export default class EmployeeService {
     return employee ? employee : null
   }
 
-  async getByCode(employeeCode: number) {
+  async getByCode(employeeCode: number, userResponsibleId?: number | null) {
     const employee = await Employee.query()
       .where('employee_code', employeeCode)
+      .if(userResponsibleId &&
+        typeof userResponsibleId && userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          })
+        }
+      )
       .preload('department')
       .preload('position')
       .preload('person')
@@ -969,7 +992,7 @@ export default class EmployeeService {
     return employeeBanks ? employeeBanks : []
   }
 
-  async getBirthday(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+  async getBirthday(filters: EmployeeFilterSearchInterface) {
     const year = filters.year
     const cutoffDate = DateTime.fromObject({ year, month: 1, day: 1 }).toSQLDate()!
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
@@ -1013,7 +1036,6 @@ export default class EmployeeService {
       .whereHas('person', (personQuery) => {
         personQuery.whereNotNull('person_birthday')
       })
-      .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
       .preload('person')
@@ -1025,11 +1047,20 @@ export default class EmployeeService {
           .whereNull('employee_deleted_at')
           .orWhere('employee_deleted_at', '>=', cutoffDate)
       })
+      .if(filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+        }
+      )
       .orderBy('employee_id')
+
     return employees
   }
 
-  async getVacations(filters: EmployeeFilterSearchInterface, departmentsList: Array<number>) {
+  async getVacations(filters: EmployeeFilterSearchInterface) {
     const shiftExceptionVacation = await ExceptionType.query()
     .whereNull('exception_type_deleted_at')
       .where('exception_type_slug', 'vacation')
@@ -1083,7 +1114,6 @@ export default class EmployeeService {
         exceptionQuery.whereRaw('YEAR(shift_exceptions_date) = ?', [year ? year : 0])
         exceptionQuery.select('shift_exceptions_date', 'exception_type_id')
       })
-      .whereIn('departmentId', departmentsList)
       .preload('department')
       .preload('position')
       .preload('person')
@@ -1094,6 +1124,14 @@ export default class EmployeeService {
           .whereNull('employee_deleted_at')
           .orWhere('employee_deleted_at', '>=', cutoffDate)
       })
+      .if(filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+        }
+      )
       .orderBy('employee_id')
     return employees
   }
@@ -1171,14 +1209,28 @@ export default class EmployeeService {
           .whereNull('employee_deleted_at')
           .orWhere('employee_deleted_at', '<=', dateEnd ? dateEnd : '')
       })
+      .if(filters.userResponsibleId &&
+        typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+        (query) => {
+          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          })
+        }
+      )
       .orderBy('employee_id')
     return employees
   }
 
-  async getUserResponsible(employeeId: number) {
+  async getUserResponsible(employeeId: number, userId: number) {
     const userResponsibleEmployees = await UserResponsibleEmployee.query()
       .whereNull('user_responsible_employee_deleted_at')
       .where('employee_id', employeeId)
+      .whereHas('user', (userQuery) => {
+        userQuery.whereNull('user_deleted_at')
+      })
+      .if(userId && typeof userId && userId > 0, (userQuery) => {
+        userQuery.where('user_id', userId)
+      })
       .preload('user')
       .orderBy('employee_id')
       .paginate(1, 9999999)
