@@ -23,6 +23,7 @@ import SystemSettingService from '#services/system_setting_service'
 import SystemSetting from '#models/system_setting'
 import User from '#models/user'
 import Role from '#models/role'
+import AssistsService from '#services/assist_service'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -4096,6 +4097,161 @@ export default class EmployeeController {
       return {
         type: 'error',
         title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/{employeeId}/get-days-work-disability:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get days work disability by employee id
+   *     parameters:
+   *       - name: datePay
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: Pay date for filtering
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getDaysWorkDisability({ request, response }: HttpContext) {
+    try {
+      const employeeId = request.param('employeeId')
+
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { employeeId },
+        }
+      }
+      const datePay = request.input('datePay')
+
+      if (!datePay) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The date pay was not found',
+          data: { datePay },
+        }
+      }
+
+      const employeeService = new EmployeeService()
+      const showEmployee = await employeeService.show(employeeId)
+
+      if (!showEmployee) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The employee was not found',
+          message: 'The employee was not found with the entered ID',
+          data: { employeeId },
+        }
+      }
+      const assistService = new AssistsService()
+      const days = await assistService.getDaysWorkDisability(showEmployee, datePay)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The days work disability were found successfully',
+        data: { data: days },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
