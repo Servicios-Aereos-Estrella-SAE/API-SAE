@@ -752,7 +752,16 @@ export default class ExceptionRequestsController {
    *                   example: No exception requests found
    */
 
-  async indexAllExceptionRequests({ request, response }: HttpContext) {
+  async indexAllExceptionRequests({ auth, request, response }: HttpContext) {
+    await auth.check()
+    const user = auth.user
+    let userResponsibleId = null
+    if (user) {
+      await user.preload('role')
+      if (user.role.roleSlug !== 'root') {
+        userResponsibleId = user?.userId
+      }
+    }
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
     let departmentId = request.input('departmentId')
@@ -791,6 +800,16 @@ export default class ExceptionRequestsController {
         q.whereHas('employee', (employeeQuery) => {
           employeeQuery.where('employeeId', employeeName)
         })
+      })
+      .whereHas('employee', (employeeQuery) => {
+        employeeQuery.if(userResponsibleId &&
+          typeof userResponsibleId && userResponsibleId > 0,
+          (queryUserResponsible) => {
+            queryUserResponsible.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+            })
+          }
+        )
       }).orderByRaw(`CASE 
                  WHEN exception_request_status = 'pending' THEN 1 
                  WHEN exception_request_status = 'requested' THEN 2

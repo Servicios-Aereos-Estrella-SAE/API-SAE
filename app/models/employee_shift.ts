@@ -3,6 +3,8 @@ import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import Employee from './employee.js'
 import Shift from './shift.js'
 import * as relations from '@adonisjs/lucid/types/relations'
+import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import { compose } from '@adonisjs/core/helpers'
 /**
  * @swagger
  * components:
@@ -53,7 +55,7 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           # Example shift object
  */
 
-export default class EmployeeShift extends BaseModel {
+export default class EmployeeShift extends compose(BaseModel, SoftDeletes)  {
   @column({ isPrimary: true })
   declare employeeShiftId: number
 
@@ -69,8 +71,8 @@ export default class EmployeeShift extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare employeShiftsUpdatedAt: DateTime
 
-  @column.dateTime()
-  declare employeShiftsDeletedAt: DateTime
+  @column.dateTime({ columnName: 'employe_shifts_deleted_at' })
+  declare deletedAt: DateTime | null
 
   @column()
   declare employeShiftsApplySince: Date | string

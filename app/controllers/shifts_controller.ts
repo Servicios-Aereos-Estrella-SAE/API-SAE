@@ -77,6 +77,16 @@ export default class ShiftController {
         shiftCalculateFlag: request.input('shiftCalculateFlag'),
         shiftBusinessUnits: businessConf,
       } as Shift
+      const verifyInfo = await shiftService.verifyInfo(shift)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
       const newShift = await shiftService.create(shift)
       return response.status(201).json({
         type: 'success',
@@ -338,6 +348,7 @@ export default class ShiftController {
         .where('shiftId', params.id)
         .whereNull('shiftDeletedAt')
         .first()
+
       if (!shift) {
         return response.status(404).json({
           type: 'error',
@@ -346,9 +357,31 @@ export default class ShiftController {
           data: null,
         })
       }
-      // Validar los datos
-      const data = await request.validateUsing(updateShiftValidator(params.id))
-      // Actualizar el registro
+
+      const data = await request.validateUsing(updateShiftValidator)
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const shiftService = new ShiftService()
+      const updateShift = {
+        shiftName: data.shiftName,
+        shiftTimeStart: data.shiftTimeStart,
+        shiftActiveHours: data.shiftActiveHours,
+        shiftRestDays: data.shiftRestDays,
+        shiftAccumulatedFault: data.shiftAccumulatedFault,
+        shiftCalculateFlag: request.input('shiftCalculateFlag'),
+        shiftBusinessUnits: businessConf,
+      } as Shift
+
+      const verifyInfo = await shiftService.verifyInfo(updateShift)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+
       shift.merge({ ...data, shiftCalculateFlag: request.input('shiftCalculateFlag') })
       await shift.save()
       return response.status(200).json({
@@ -457,7 +490,7 @@ export default class ShiftController {
       const query = Shift.query()
         .whereNull('shiftDeletedAt')
         .withCount('employees', (employeeQuery) => {
-          employeeQuery.whereNull('employeShiftsDeletedAt')
+          employeeQuery.whereNull('deletedAt')
           if (departmentId || positionId) {
             employeeQuery.whereHas('employee', (employeeSubQuery) => {
               if (departmentId) {
@@ -480,7 +513,7 @@ export default class ShiftController {
               }
             })
             .preload('employee')
-            .whereNull('employeShiftsDeletedAt')
+            .whereNull('deletedAt')
         })
 
       if (shiftDayStart) {

@@ -14,6 +14,7 @@ import EmployeeSpouse from './employee_spouse.js'
 import EmployeeChildren from './employee_children.js'
 import EmployeeEmergencyContact from './employee_emergency_contact.js'
 import EmployeeShiftChange from './employee_shift_changes.js'
+import UserResponsibleEmployee from './user_responsible_employee.js'
 
 /**
  * @swagger
@@ -85,6 +86,9 @@ import EmployeeShiftChange from './employee_shift_changes.js'
  *          employeeTerminatedDate:
  *            type: string
  *            description: Employee terminated date
+ *          employeeIgnoreConsecutiveAbsences:
+ *            type: number
+ *            description: Employee ignore consecutive absences
  *          employeeCreatedAt:
  *            type: string
  *          employeeUpdatedAt:
@@ -162,6 +166,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare employeeTerminatedDate: Date | string
+
+  @column()
+  declare employeeIgnoreConsecutiveAbsences: number
 
   @column.dateTime({ autoCreate: true })
   declare employeeCreatedAt: DateTime
@@ -253,4 +260,12 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare shiftChanges: HasMany<typeof EmployeeShiftChange>
+
+  @hasMany(() => UserResponsibleEmployee, {
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      query.withTrashed()
+    },
+  })
+  declare userResponsibleEmployee: HasMany<typeof UserResponsibleEmployee>
 }
