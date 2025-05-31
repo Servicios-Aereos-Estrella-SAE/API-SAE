@@ -1,46 +1,143 @@
 import { HttpContext } from '@adonisjs/core/http'
-import UserResponsibleEmployee from '#models/user_responsible_employee'
-import UserResponsibleEmployeeService from '#services/user_responsible_employee_service'
-import { createdUserResponsibleEmployeeValidator } from '#validators/user_responsible_employee'
-
-export default class UserResponsibleEmployeeController {
+import { inject } from '@adonisjs/core'
+import UploadService from '#services/upload_service'
+import ShiftExceptionEvidenceService from '#services/shift_exception_evidence_service'
+import ShiftExceptionEvidence from '#models/shift_exception_evidence'
+import Env from '#start/env'
+import path from 'node:path'
+export default class ShiftExceptionEvidenceController {
   /**
    * @swagger
-   * /api/user-responsible-employees:
-   *   post:
+   * /api/shift-exception-evidences:
+   *   get:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - User Responsible Employees
-   *     summary: create new user responsible employee
-   *     produces:
-   *       - application/json
+   *       - Shift Exception Evidences
+   *     summary: get all shift exception evidences
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+
+  async index({ response }: HttpContext) {
+    try {
+      const shiftExceptionEvidences = await ShiftExceptionEvidence.query().whereNull('shift_exception_evidence_deleted_at')
+      return response.status(200).json({
+        type: 'success',
+        title: 'Successfully action',
+        message: 'Resources were found successfully',
+        data: shiftExceptionEvidences,
+      })
+    } catch (error) {
+      return response.status(500).json({
+        type: 'error',
+        title: 'Server error',
+        message: error.message,
+        data: null,
+      })
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/shift-exception-evidences/:
+   *   post:
+   *     summary: Upload a file
+   *     tags:
+   *       - Shift Exception Evidences
    *     requestBody:
    *       content:
-   *         application/json:
+   *         multipart/form-data:
    *           schema:
    *             type: object
    *             properties:
-   *               userId:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *                 description: The file to upload
+   *               shiftExceptionId:
    *                 type: number
-   *                 description: User id
+   *                 description: Shift exception id
    *                 required: true
    *                 default: ''
-   *               employeeId:
-   *                 type: number
-   *                 description: Employee Id
-   *                 required: true
-   *                 default: ''
-   *               userResponsibleEmployeeReadonly:
-   *                 type: number
-   *                 description: User responsible employee readonly
-   *                 required: true
-   *                 default: '0'
-   *               userResponsibleEmployeeDirectBoss:
-   *                 type: number
-   *                 description: User responsible employee direct boss
-   *                 required: true
-   *                 default: '0'
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -122,51 +219,71 @@ export default class UserResponsibleEmployeeController {
    *                     error:
    *                       type: string
    */
+  @inject()
   async store({ request, response }: HttpContext) {
+    const shiftExceptionEvidenceService = new ShiftExceptionEvidenceService()
+    let inputs = request.all()
+    inputs = shiftExceptionEvidenceService.sanitizeInput(inputs)
+    const validationOptions = {
+      types: ['image', 'document', 'text', 'application', 'archive'],
+      size: '',
+    }
+    const file = request.file('file', validationOptions)
+    // validate file required
+    if (!file) {
+      response.status(400)
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'Missing data to process',
+        message: 'Please upload a file valid',
+        data: file,
+      }
+    }
+    const disallowedExtensions = [
+      'exe', 'js', 'py', 'dll',
+    ]
+    // Verificar si la extensión del archivo está en la lista de no permitidas
+    if (disallowedExtensions.includes(file.extname ? file.extname : '')) {
+      response.status(400)
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'Missing data to process',
+        message: 'Please upload a file valid',
+        data: file,
+      }
+    }
+    const shiftExceptionId = inputs['shiftExceptionId']
+    const shiftExceptionEvidence = {
+      shiftExceptionEvidenceFile: '',
+      shiftExceptionId: shiftExceptionId,
+    } as ShiftExceptionEvidence
+    // get file name and extension
+    const fileName = `${new Date().getTime()}_${file.clientName}`
+    const uploadService = new UploadService()
+    const isValidInfo = await shiftExceptionEvidenceService.verifyInfoExist(shiftExceptionEvidence)
+    if (isValidInfo.status !== 200) {
+      response.status(isValidInfo.status)
+      return {
+        status: isValidInfo.status,
+        type: isValidInfo.type,
+        title: isValidInfo.title,
+        message: isValidInfo.message,
+        data: isValidInfo.data,
+      }
+    }
     try {
-      const userId = request.input('userId')
-      const employeeId = request.input('employeeId')
-      const userResponsibleEmployeeReadonly = request.input('userResponsibleEmployeeReadonly')
-      const userResponsibleEmployeeDirectBoss = request.input('userResponsibleEmployeeDirectBoss')
-      const userResponsibleEmployee = {
-        userId: userId,
-        employeeId: employeeId,
-        userResponsibleEmployeeReadonly: userResponsibleEmployeeReadonly,
-        userResponsibleEmployeeDirectBoss: userResponsibleEmployeeDirectBoss,
-      } as UserResponsibleEmployee
-      const userResponsibleEmployeeService = new UserResponsibleEmployeeService()
-      const data = await request.validateUsing(createdUserResponsibleEmployeeValidator)
-      const exist = await userResponsibleEmployeeService.verifyInfoExist(userResponsibleEmployee)
-      if (exist.status !== 200) {
-        response.status(exist.status)
-        return {
-          type: exist.type,
-          title: exist.title,
-          message: exist.message,
-          data: { ...data },
-        }
-      }
-      const verifyInfo = await userResponsibleEmployeeService.verifyInfo(userResponsibleEmployee)
-      if (verifyInfo.status !== 200) {
-        response.status(verifyInfo.status)
-        return {
-          type: verifyInfo.type,
-          title: verifyInfo.title,
-          message: verifyInfo.message,
-          data: { ...data },
-        }
-      }
-
-      const newUserResponsibleEmployee = await userResponsibleEmployeeService.create(userResponsibleEmployee)
-     
+      const fileUrl = await uploadService.fileUpload(file, `shift-exception-evidences/${shiftExceptionId}`, fileName)
+      shiftExceptionEvidence.shiftExceptionEvidenceFile = fileUrl
+      shiftExceptionEvidence.shiftExceptionEvidenceType = file.type ? file.type : ''
+      const newShiftExceptionEvidence = await shiftExceptionEvidenceService.create(shiftExceptionEvidence)
       response.status(201)
       return {
         type: 'success',
-        title: 'User Responsible Employees',
-        message: 'The user responsible employee was created successfully',
-        data: {
-          userResponsibleEmployee: newUserResponsibleEmployee,
-        },
+        title: 'Shift exception evidence',
+        message: 'The shift exception evidence was created successfully',
+        data: { shiftExceptionEvidence: newShiftExceptionEvidence },
       }
     } catch (error) {
       const messageError =
@@ -181,51 +298,35 @@ export default class UserResponsibleEmployeeController {
     }
   }
 
-
   /**
    * @swagger
-   * /api/user-responsible-employees/{userResponsibleEmployeeId}:
+   * /api/shift-exception-evidences/{shiftExceptionEvidenceId}:
    *   put:
-   *     security:
-   *       - bearerAuth: []
+   *     summary: Update upload a file
    *     tags:
-   *       - User Responsible Employees
-   *     summary: update user responsible employee
-   *     produces:
-   *       - application/json
+   *       - Shift Exception Evidences
    *     parameters:
    *       - in: path
-   *         name: userResponsibleEmployeeId
+   *         name: shiftExceptionEvidenceId
    *         schema:
    *           type: number
-   *         description: User Responsible Employee id
+   *         description: Shift exception evidence id
    *         required: true
    *     requestBody:
    *       content:
-   *         application/json:
+   *         multipart/form-data:
    *           schema:
    *             type: object
    *             properties:
-   *               userId:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *                 description: The file to upload
+   *               shiftExceptionId:
    *                 type: number
-   *                 description: User id
+   *                 description: Shift exception id
    *                 required: true
    *                 default: ''
-   *               employeeId:
-   *                 type: number
-   *                 description: Employee Id
-   *                 required: true
-   *                 default: ''
-   *               userResponsibleEmployeeReadonly:
-   *                 type: number
-   *                 description: User responsible employee readonly
-   *                 required: true
-   *                 default: '0'
-   *               userResponsibleEmployeeDirectBoss:
-   *                 type: number
-   *                 description: User responsible employee direct boss
-   *                 required: true
-   *                 default: '0'
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -307,76 +408,94 @@ export default class UserResponsibleEmployeeController {
    *                     error:
    *                       type: string
    */
+  @inject()
   async update({ request, response }: HttpContext) {
     try {
-      const userResponsibleEmployeeId = request.param('userResponsibleEmployeeId')
-      const userId = request.input('userId')
-      const employeeId = request.input('employeeId')
-      const userResponsibleEmployeeReadonly = request.input('userResponsibleEmployeeReadonly')
-      const userResponsibleEmployeeDirectBoss = request.input('userResponsibleEmployeeDirectBoss')
-      const userResponsibleEmployee = {
-        userResponsibleEmployeeId: userResponsibleEmployeeId,
-        userId: userId,
-        employeeId: employeeId,
-        userResponsibleEmployeeReadonly: userResponsibleEmployeeReadonly,
-        userResponsibleEmployeeDirectBoss: userResponsibleEmployeeDirectBoss,
-      } as UserResponsibleEmployee
-      if (!userResponsibleEmployeeId) {
+      const shiftExceptionEvidenceService = new ShiftExceptionEvidenceService()
+      let inputs = request.all()
+      inputs = shiftExceptionEvidenceService.sanitizeInput(inputs)
+      const validationOptions = {
+        types: ['image', 'document', 'text', 'application', 'archive'],
+        size: '',
+      }
+      const file = request.file('file', validationOptions)
+      const shiftExceptionEvidenceId = request.param('shiftExceptionEvidenceId')
+      if (!shiftExceptionEvidenceId) {
         response.status(400)
         return {
           type: 'warning',
           title: 'Missing data to process',
-          message: 'The relation user responsible employee Id was not found',
-          data: { ...userResponsibleEmployee },
+          message: 'The shift exception evidence Id was not found',
+          data: { shiftExceptionEvidenceId },
         }
       }
-      const currentUserResponsibleEmployee = await UserResponsibleEmployee.query()
-        .whereNull('user_responsible_employee_deleted_at')
-        .where('user_responsible_employee_id', userResponsibleEmployeeId)
+      const currentShiftExceptionEvidence = await ShiftExceptionEvidence.query()
+        .whereNull('shift_exception_evidence_deleted_at')
+        .where('shift_exception_evidence_id', shiftExceptionEvidenceId)
         .first()
-      if (!currentUserResponsibleEmployee) {
+      if (!currentShiftExceptionEvidence) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The relation user responsible employee was not found',
-          message: 'The user responsible employee was not found with the entered ID',
-          data: { ...userResponsibleEmployee },
+          title: 'The shift exception evidence was not found',
+          message: 'The shift exception evidence was not found with the entered ID',
+          data: { shiftExceptionEvidenceId },
         }
       }
-      const userResponsibleEmployeeService = new UserResponsibleEmployeeService()
-      const data = await request.validateUsing(createdUserResponsibleEmployeeValidator)
-      const exist = await userResponsibleEmployeeService.verifyInfoExist(userResponsibleEmployee)
-      if (exist.status !== 200) {
-        response.status(exist.status)
+      const shiftExceptionId = inputs['shiftExceptionId']
+      const shiftExceptionEvidence = {
+        shiftExceptionEvidenceId: shiftExceptionEvidenceId,
+        shiftExceptionId: shiftExceptionId
+          ? shiftExceptionId
+          : currentShiftExceptionEvidence.shiftExceptionId,
+      } as ShiftExceptionEvidence
+      const isValidInfo = await shiftExceptionEvidenceService.verifyInfoExist(shiftExceptionEvidence)
+      if (isValidInfo.status !== 200) {
+        response.status(isValidInfo.status)
         return {
-          type: exist.type,
-          title: exist.title,
-          message: exist.message,
-          data: { ...data },
+          status: isValidInfo.status,
+          type: isValidInfo.type,
+          title: isValidInfo.title,
+          message: isValidInfo.message,
+          data: isValidInfo.data,
         }
       }
-      const verifyInfo = await userResponsibleEmployeeService.verifyInfo(userResponsibleEmployee)
-      if (verifyInfo.status !== 200) {
-        response.status(verifyInfo.status)
-        return {
-          type: verifyInfo.type,
-          title: verifyInfo.title,
-          message: verifyInfo.message,
-          data: { ...data },
+      if (file) {
+        const disallowedExtensions = [
+          'exe', 'js', 'py', 'dll',
+        ]
+        if (disallowedExtensions.includes(file.extname ? file.extname : '')) {
+          response.status(400)
+          return {
+            status: 400,
+            type: 'warning',
+            title: 'Missing data to process',
+            message: 'Please upload a file valid',
+            data: file,
+          }
         }
+        const fileName = `${new Date().getTime()}_${file.clientName}`
+        const uploadService = new UploadService()
+        const fileUrl = await uploadService.fileUpload(file, 'shift-exception-evidences', fileName)
+        if (currentShiftExceptionEvidence.shiftExceptionEvidenceFile) {
+          const fileNameWithExt = decodeURIComponent(
+            path.basename(currentShiftExceptionEvidence.shiftExceptionEvidenceFile)
+          )
+          const fileKey = `${Env.get('AWS_ROOT_PATH')}/shift-exception-evidences/${shiftExceptionId}/${fileNameWithExt}`
+          await uploadService.deleteFile(fileKey)
+        }
+        shiftExceptionEvidence.shiftExceptionEvidenceFile = fileUrl
       }
-      const updateUserResponsibleEmployee = await userResponsibleEmployeeService.update(
-        currentUserResponsibleEmployee,
-        userResponsibleEmployee
+      const updateShiftExceptionEvidence = await shiftExceptionEvidenceService.update(
+        currentShiftExceptionEvidence,
+        shiftExceptionEvidence
       )
-      if (updateUserResponsibleEmployee) {
-        response.status(200)
-        return {
-          type: 'success',
-          title: 'User Responsible Employee',
-          message: 'The relation user responsible employee was updated successfully',
-          data: { userResponsibleEmployee: updateUserResponsibleEmployee },
-        }
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Shift exception evidence',
+        message: 'The shift exception evidence was updated successfully',
+        data: { shiftExceptionEvidence: updateShiftExceptionEvidence },
       }
     } catch (error) {
       const messageError =
@@ -393,162 +512,21 @@ export default class UserResponsibleEmployeeController {
 
   /**
    * @swagger
-   * /api/user-responsible-employees/{userResponsibleEmployeeId}:
-   *   get:
-   *     security:
-   *       - bearerAuth: []
-   *     tags:
-   *       - User Responsible Employees
-   *     summary: get user responsible employee by id
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - in: path
-   *         name: userResponsibleEmployeeId
-   *         schema:
-   *           type: number
-   *         description: User responsible employee Id
-   *         required: true
-   *     responses:
-   *       '200':
-   *         description: Resource processed successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Processed object
-   *       '404':
-   *         description: Resource not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       '400':
-   *         description: The parameters entered are invalid or essential data is missing to process the request
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: List of parameters set by the client
-   *       default:
-   *         description: Unexpected error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 type:
-   *                   type: string
-   *                   description: Type of response generated
-   *                 title:
-   *                   type: string
-   *                   description: Title of response generated
-   *                 message:
-   *                   type: string
-   *                   description: Message of response
-   *                 data:
-   *                   type: object
-   *                   description: Error message obtained
-   *                   properties:
-   *                     error:
-   *                       type: string
-   */
-  async show({ request, response }: HttpContext) {
-    try {
-      const userResponsibleEmployeeId = request.param('userResponsibleEmployeeId')
-      if (!userResponsibleEmployeeId) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'Missing data to process',
-          message: 'The user responsible employee Id was not found',
-          data: { userResponsibleEmployeeId },
-        }
-      }
-      const userResponsibleEmployeeService = new UserResponsibleEmployeeService()
-      const showUserResponsibleEmployee =
-        await userResponsibleEmployeeService.show(userResponsibleEmployeeId)
-      if (!showUserResponsibleEmployee) {
-        response.status(404)
-        return {
-          type: 'warning',
-          title: 'The user responsible employee was not found',
-          message: 'The user responsible employee was not found with the entered ID',
-          data: { userResponsibleEmployeeId },
-        }
-      } else {
-        response.status(200)
-        return {
-          type: 'success',
-          title: 'User Responsible Employees',
-          message: 'The user responsible employee was found successfully',
-          data: { userResponsibleEmployee: showUserResponsibleEmployee },
-        }
-      }
-    } catch (error) {
-      response.status(500)
-      return {
-        type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
-        error: error.message,
-      }
-    }
-  }
-  /**
-   * @swagger
-   * /api/user-responsible-employees/{userResponsibleEmployeeId}:
+   * /api/shift-exception-evidences/{shiftExceptionEvidenceId}:
    *   delete:
    *     security:
    *       - bearerAuth: []
    *     tags:
-   *       - User Responsible Employees
-   *     summary: delete user responsible employee by id
+   *       - Shift Exception Evidences
+   *     summary: delete shift exception evidence
    *     produces:
    *       - application/json
    *     parameters:
    *       - in: path
-   *         name: userResponsibleEmployeeId
+   *         name: shiftExceptionEvidenceId
    *         schema:
    *           type: number
-   *         description: User responsible employee id
+   *         description: Shift exception evidence id
    *         required: true
    *     responses:
    *       '200':
@@ -633,40 +611,180 @@ export default class UserResponsibleEmployeeController {
    */
   async delete({ request, response }: HttpContext) {
     try {
-      const userResponsibleEmployeeId = request.param('userResponsibleEmployeeId')
-      if (!userResponsibleEmployeeId) {
+      const shiftExceptionEvidenceId = request.param('shiftExceptionEvidenceId')
+      if (!shiftExceptionEvidenceId) {
         response.status(400)
         return {
           type: 'warning',
           title: 'Missing data to process',
-          message: 'The user responsible employee Id was not found',
-          data: { userResponsibleEmployeeId },
+          message: 'The shift exception evidence Id was not found',
+          data: { shiftExceptionEvidenceId },
         }
       }
-      const currentUserResponsibleEmployee = await UserResponsibleEmployee.query()
-        .whereNull('user_responsible_employee_deleted_at')
-        .where('user_responsible_employee_id', userResponsibleEmployeeId)
+      const currentShiftExceptionEvidence = await ShiftExceptionEvidence.query()
+        .whereNull('shift_exception_evidence_deleted_at')
+        .where('shift_exception_evidence_id', shiftExceptionEvidenceId)
         .first()
-      if (!currentUserResponsibleEmployee) {
+      if (!currentShiftExceptionEvidence) {
         response.status(404)
         return {
           type: 'warning',
-          title: 'The user responsible employee was not found',
-          message: 'The user responsible employee was not found with the entered ID',
-          data: { userResponsibleEmployeeId },
+          title: 'The shift exception evidence was not found',
+          message: 'The shift exception evidence was not found with the entered ID',
+          data: { shiftExceptionEvidenceId },
         }
       }
-      const userResponsibleEmployeeService = new UserResponsibleEmployeeService()
-      const deleteUserResponsibleEmployee = await userResponsibleEmployeeService.delete(
-        currentUserResponsibleEmployee
-      )
-   
-      response.status(200)
+      const shiftExceptionEvidenceService = new ShiftExceptionEvidenceService()
+      const deleteShiftExceptionEvidence = await shiftExceptionEvidenceService.delete(currentShiftExceptionEvidence)
+      if (deleteShiftExceptionEvidence) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Shift exception evidence',
+          message: 'The shift exception evidence was deleted successfully',
+          data: { shiftExceptionEvidence: deleteShiftExceptionEvidence },
+        }
+      }
+    } catch (error) {
+      response.status(500)
       return {
-        type: 'success',
-        title: 'User responsible employees',
-        message: 'The user responsible employee was deleted successfully',
-        data: { userResponsibleEmployee: deleteUserResponsibleEmployee },
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/shift-exception-evidences/{shiftExceptionEvidenceId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Shift Exception Evidences
+   *     summary: get shift exception evidence by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: shiftExceptionEvidenceId
+   *         schema:
+   *           type: number
+   *         description: Shift exception evidence id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const shiftExceptionEvidenceId = request.param('shiftExceptionEvidenceId')
+      if (!shiftExceptionEvidenceId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The shift exception evidence Id was not found',
+          message: 'Missing data to process',
+          data: { shiftExceptionEvidenceId },
+        }
+      }
+      const shiftExceptionEvidenceService = new ShiftExceptionEvidenceService()
+      const showShiftExceptionEvidence = await shiftExceptionEvidenceService.show(shiftExceptionEvidenceId)
+      if (!showShiftExceptionEvidence) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The shift exception evidence was not found',
+          message: 'The shift exception evidence was not found with the entered ID',
+          data: { shiftExceptionEvidenceId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Shift exception evidence',
+          message: 'The shift exception evidence was found successfully',
+          data: { showShiftExceptionEvidence: showShiftExceptionEvidence },
+        }
       }
     } catch (error) {
       response.status(500)

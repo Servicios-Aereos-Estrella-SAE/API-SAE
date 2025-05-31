@@ -8,7 +8,7 @@ import Env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 
 export default class EmployeeVacationService {
-  async getExcelAll(filters: EmployeeVacationExcelFilterInterface, departmentsList: Array<number>) {
+  async getExcelAll(filters: EmployeeVacationExcelFilterInterface) {
     try {
       const businessConf = `${Env.get('SYSTEM_BUSINESS')}`
       const businessList = businessConf.split(',')
@@ -55,7 +55,14 @@ export default class EmployeeVacationService {
           }
         )
         .whereIn('business_unit_id', businessUnitsList)
-        .whereIn('departmentId', departmentsList)
+        .if(filters.userResponsibleId &&
+          typeof filters.userResponsibleId && filters.userResponsibleId > 0,
+          (query) => {
+            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+            })
+          }
+        )
         .preload('businessUnit')
         .preload('department')
         .preload('position')

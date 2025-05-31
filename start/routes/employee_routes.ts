@@ -25,6 +25,7 @@ router
     router.get('/:employeeId/banks', '#controllers/employee_controller.getBanks')
     router.get('/:employeeId/get-days-work-disability', '#controllers/employee_controller.getDaysWorkDisability')
     router.get('/:employeeId/user-responsible', '#controllers/employee_controller.getUserResponsible')
+    router.get('/:employeeId/user-responsible/:userId?', '#controllers/employee_controller.getUserResponsible')
     router.get(
       '/:employeeId/get-vacations-used',
       '#controllers/employee_controller.getVacationsUsed'
