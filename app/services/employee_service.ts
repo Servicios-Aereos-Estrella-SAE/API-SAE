@@ -188,8 +188,15 @@ export default class EmployeeService {
       .if(filters.userResponsibleId &&
         typeof filters.userResponsibleId && filters.userResponsibleId > 0,
         (query) => {
-          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          query.where((subQuery) => {
+            subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+            })
+            subQuery.orWhereHas('person', (personQuery) => {
+              personQuery.whereHas('user', (userQuery) => {
+                userQuery.where('userId', filters.userResponsibleId!)
+              })
+            })
           })
         }
       )
