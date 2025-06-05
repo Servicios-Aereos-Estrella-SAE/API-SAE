@@ -245,14 +245,16 @@ export default class EmployeeController {
       if (position) {
         withOutPositionId = position.positionId
       }
-      const role = await Role.query()
-        .where('role_slug', 'rh-manager')
+      const roles = await Role.query()
+        .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
         .whereNull('role_deleted_at')
-        .first()
-      let usersResponsible = [] as Array<User>
-      if (role) {
+    
+      let usersResponsible: Array<User> = []
+      
+      if (roles.length) {
+        const roleIds = roles.map((role) => role.roleId)
         usersResponsible = await User.query()
-          .where('role_id', role.roleId)
+          .whereIn('role_id', roleIds)
           .orderBy('user_id')
       }
       if (data) {
