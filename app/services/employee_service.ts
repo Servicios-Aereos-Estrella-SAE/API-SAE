@@ -1243,7 +1243,9 @@ export default class EmployeeService {
       const userResponsibleEmployee = new UserResponsibleEmployee
       userResponsibleEmployee.userId = user.userId
       userResponsibleEmployee.employeeId = employeeId
-      userResponsibleEmployee.userResponsibleEmployeeReadonly = 1
+      if (user.role.roleSlug === 'nominas') {
+        userResponsibleEmployee.userResponsibleEmployeeReadonly = 1
+      }
       await userResponsibleEmployee.save()
     }
   }

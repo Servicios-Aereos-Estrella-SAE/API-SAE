@@ -255,6 +255,7 @@ export default class EmployeeController {
         const roleIds = roles.map((role) => role.roleId)
         usersResponsible = await User.query()
           .whereIn('role_id', roleIds)
+          .preload('role')
           .orderBy('user_id')
       }
       if (data) {
