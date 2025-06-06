@@ -24,6 +24,7 @@ import SystemSetting from '#models/system_setting'
 import User from '#models/user'
 import Role from '#models/role'
 import AssistsService from '#services/assist_service'
+import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -4177,6 +4178,12 @@ export default class EmployeeController {
    *       - Employees
    *     summary: get days work disability by employee id
    *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
    *       - name: datePay
    *         in: query
    *         schema:
@@ -4311,6 +4318,159 @@ export default class EmployeeController {
         message: 'The days work disability were found successfully',
         data: { data: days },
       }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/get-days-work-disability-all:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get days work disability all employees
+   *     parameters:
+   *       - name: datePay
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: Pay date for filtering
+   *       - name: departmentId
+   *         in: query
+   *         required: false
+   *         description: Department Id
+   *         schema:
+   *           type: integer
+   *       - name: employeeId
+   *         in: query
+   *         required: false
+   *         description: Employee Id
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getDaysWorkDisabilityAll({ request, response }: HttpContext) {
+    try {
+      
+      const datePay = request.input('datePay')
+
+      if (!datePay) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The date pay was not found',
+          data: { datePay },
+        }
+      }
+      const departmentId = request.input('departmentId')
+      const employeeId = request.input('employeeId')
+      
+      const assistService = new AssistsService()
+      const filter = {
+        datePay: datePay,
+        departmentId: departmentId ? departmentId : 0,
+        employeeId: employeeId ? employeeId : 0,
+      } as EmployeeWorkDaysDisabilityFilterInterface
+
+      const employees = await assistService.getDaysWorkDisabilityAll(filter)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees with days work disability were found successfully',
+        data: { data: employees },
+      }                                                          
     } catch (error) {
       response.status(500)
       return {
