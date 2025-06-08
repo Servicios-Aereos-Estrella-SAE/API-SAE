@@ -2860,8 +2860,15 @@ export default class EmployeeController {
         .if(userResponsibleId &&
           typeof userResponsibleId && userResponsibleId > 0,
           (query) => {
-            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-              userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+            query.where((subQuery) => {
+              subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+                userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+              })
+              subQuery.orWhereHas('person', (personQuery) => {
+                personQuery.whereHas('user', (userQuery) => {
+                  userQuery.where('userId', userResponsibleId!)
+                })
+              })
             })
           }
         )
