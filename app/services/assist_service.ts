@@ -25,6 +25,7 @@ import SystemSetting from '#models/system_setting'
 import { AssistIncidentPayrollExcelRowInterface } from '../interfaces/assist_incident_payroll_excel_row_interface.js'
 import sharp from 'sharp'
 import { AssistExcelImageInterface } from '../interfaces/assist_excel_image_interface.js'
+import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
 
 export default class AssistsService {
   async getExcelByEmployeeAssistance(
@@ -2765,5 +2766,31 @@ export default class AssistsService {
     })
 
     return employee.shift_exceptions.length
+  }
+
+  async getDaysWorkDisabilityAll(filters: EmployeeWorkDaysDisabilityFilterInterface) {
+    const pay = new Date(filters.datePay)
+    pay.setDate(pay.getDate() - 13)
+    const newDateStart = DateTime.fromJSDate(pay).toFormat('yyyy-LL-dd')
+    const startDate = `${newDateStart} 00:00:00`
+    const endDate = `${filters.datePay} 23:59:59`
+    const employees = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .whereNotNull('employee_hire_date')
+      .if(filters.departmentId && filters.departmentId > 0, (query) => {
+        query.where('department_id', filters.departmentId)
+      })
+      .if(filters.employeeId && filters.employeeId, (query) => {
+        query.where('employee_id', filters.employeeId)
+      })
+      .preload('shift_exceptions', (query) => {
+        query
+          .where('shiftExceptionsDate', '>=', startDate)
+          .where('shiftExceptionsDate', '<=', endDate)
+          .whereNotNull('work_disability_period_id')
+      })
+      .orderBy('employee_id')
+   
+    return employees.filter(a => a.shift_exceptions.length > 0)
   }
 }
