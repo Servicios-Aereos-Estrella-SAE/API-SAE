@@ -75,12 +75,23 @@ export default class EmployeeVacationService {
         .preload('department')
         .preload('position')
         .orderBy('employee_code')
+
+      const firstVacation = await ShiftException.query()
+        .whereNull('shift_exceptions_deleted_at')
+        .whereNotNull('vacation_setting_id')
+        .orderBy('shift_exceptions_date', 'asc')
+        .first()
+
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const years = []
       const start = DateTime.fromISO(filters.filterStartDate, { setZone: true }).setZone('UTC')
       const end = DateTime.fromISO(filters.filterEndDate, { setZone: true }).setZone('UTC')
-      for (let year = start.year; year <= end.year; year++) {
+      let startYear = start.year
+      if (firstVacation && !filters.onlyOneYear) {
+        startYear = new Date(firstVacation.shiftExceptionsDate.toString()).getUTCFullYear()
+      }
+      for (let year = startYear; year <= end.year; year++) {
         years.push(year)
       }
       for await (const year of years) {
@@ -340,7 +351,7 @@ export default class EmployeeVacationService {
         years.push(year)
       }
       for await (const year of years) {
-        const sheet = workbook.addWorksheet(`${year}`)
+        const sheet = workbook.addWorksheet('Vacations used')
         await this.addVacationUsedHeadRow(sheet, workbook)
         const rows = await this.addEmployeesVacationUsed(employees, year)
         await this.addRowVacationUsedToWorkSheet(rows, sheet)
