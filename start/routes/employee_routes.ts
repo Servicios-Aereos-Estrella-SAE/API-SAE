@@ -4,6 +4,8 @@ import { middleware } from '#start/kernel'
 router
   .group(() => {
     router.get('/employee-generate-excel', '#controllers/employee_controller.getExcel')
+
+    router.get('/get-days-work-disability-all', '#controllers/employee_controller.getDaysWorkDisabilityAll')
     router.get('/get-birthday', '#controllers/employee_controller.getBirthday')
     router.get('/get-vacations', '#controllers/employee_controller.getVacations')
     router.get('/get-all-vacations-by-period', '#controllers/employee_controller.getAllVacationsByPeriod')
@@ -21,6 +23,7 @@ router
       '/:employeeId/proceeding-files',
       '#controllers/employee_controller.getProceedingFiles'
     )
+
     router.get('/:employeeId/contracts', '#controllers/employee_controller.getContracts')
     router.get('/:employeeId/banks', '#controllers/employee_controller.getBanks')
     router.get('/:employeeId/get-days-work-disability', '#controllers/employee_controller.getDaysWorkDisability')
