@@ -943,6 +943,20 @@ export default class SyncAssistsService {
         }
       }
 
+      const vacationDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
+      
+      if (vacationDay) {
+        dateAssistItem.assist.isVacationDate = true
+       
+        dateAssistItem.assist.checkInStatus = ''
+        dateAssistItem.assist.checkOutStatus = ''
+
+        dateAssistItem.assist.checkIn = null
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+        dateAssistItem.assist.checkOut = null
+      }
+
       
     }
 
