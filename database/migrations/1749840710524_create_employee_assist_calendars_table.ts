@@ -1,24 +1,24 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'employee_assist_calendar'
+  protected tableName = 'employee_assist_calendars'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('employee_assist_calendar_id').notNullable()
 
-      table.integer('employee_id').unsigned().nullable()
+      table.integer('employee_id').unsigned().notNullable()
       table.foreign('employee_id').references('employees.employee_id')
 
       table.string('day', 50).notNullable()
-      table.timestamp('check_in').nullable()
-      table.timestamp('check_in_date_time').nullable()
+      table.integer('check_in_assist_id').unsigned().nullable()
+      table.string('check_in_date_time', 100).nullable()
       table.string('check_in_status', 50).nullable()
-      table.timestamp('check_out').nullable()
-      table.timestamp('check_out_date_time').nullable()
+      table.integer('check_out_assist_id').unsigned().nullable()
+      table.string('check_out_date_time', 100).nullable()
       table.string('check_out_status', 50).nullable()
-      table.timestamp('check_eat_in').nullable()
-      table.timestamp('check_eat_out').nullable()
+      table.integer('check_eat_in_assist_id').unsigned().nullable()
+      table.integer('check_eat_out_assist_id').unsigned().nullable()
 
       table.integer('shift_id').unsigned().nullable()
       table.foreign('shift_id').references('shifts.shift_id')

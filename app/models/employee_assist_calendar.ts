@@ -1,7 +1,10 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
+import Shift from './shift.js'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Assist from './assist.js'
 
 /**
  * @swagger
@@ -19,10 +22,9 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *         day:
  *           type: string
  *           description: "Date"
- *         checkIn:
- *           type: string
- *           format: date-time
- *           description: "Date check in"
+ *         checkInAssistId:
+ *           type: number
+ *           description: "Date check in assist id"
  *         checkInDateTime:
  *           type: string
  *           format: date-time
@@ -30,10 +32,9 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *         checkInStatus:
  *           type: string
  *           description: "Check in status"
- *         checkOut:
- *           type: string
- *           format: date-time
- *           description: "Date check out"
+ *         checkOutAssistId:
+ *           type: number
+ *           description: "Date check out assist id"
  *         checkOutDateTime:
  *           type: string
  *           format: date-time
@@ -41,14 +42,12 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
  *         checkOutStatus:
  *           type: string
  *           description: "Check out status"
- *         checkEatIn:
- *           type: string
- *           format: date-time
- *           description: "Date check eat in"
- *         checkEatOut:
- *           type: string
- *           format: date-time
- *           description: "Date check eat out"
+ *         checkEatInAssistId:
+ *           type: number
+ *           description: "Date check eat in assist id"
+ *         checkEatOutAssistId:
+ *           type: number
+ *           description: "Date check eat out assist id"
  *         shiftId:
  *           type: number
  *           description: "Shift id"
@@ -117,34 +116,34 @@ export default class EmployeeAssistCalendar extends compose(BaseModel, SoftDelet
   declare employeeAssistCalendarId: number
 
   @column()
-  declare employeeId: number | null
+  declare employeeId: number
 
   @column()
   declare day: string
 
   @column()
-  declare checkIn: DateTime | null
+  declare checkInAssistId: number | null
 
   @column()
-  declare checkInDateTime: DateTime | null
+  declare checkInDateTime: string | DateTime | null
 
   @column()
   declare checkInStatus: string | null
 
   @column()
-  declare checkOut: DateTime | null
+  declare checkOutAssistId: number | null
 
   @column()
-  declare checkOutDateTime: DateTime | null
+  declare checkOutDateTime: string | DateTime | null
 
   @column()
   declare checkOutStatus: string | null
 
   @column()
-  declare checkEatIn: DateTime | null
+  declare checkEatInAssistId: number | null
 
   @column()
-  declare checkEatOut: DateTime | null
+  declare checkEatOutAssistId: number | null
 
   @column()
   declare shiftId: number | null
@@ -202,4 +201,29 @@ export default class EmployeeAssistCalendar extends compose(BaseModel, SoftDelet
 
   @column.dateTime({ columnName: 'employee_assist_calendar_deleted_at' })
   declare deletedAt: DateTime | null
+
+  @belongsTo(() => Shift, {
+    foreignKey: 'shiftId',
+  })
+  declare dateShift: BelongsTo<typeof Shift>
+
+  @belongsTo(() => Assist, {
+    foreignKey: 'checkInAssistId',
+  })
+  declare checkIn: BelongsTo<typeof Assist>
+
+  @belongsTo(() => Assist, {
+    foreignKey: 'checkOutAssistId',
+  })
+  declare checkOut: BelongsTo<typeof Assist>
+
+  @belongsTo(() => Assist, {
+    foreignKey: 'checkEatInAssistId',
+  })
+  declare checkEatIn: BelongsTo<typeof Assist>
+
+  @belongsTo(() => Assist, {
+    foreignKey: 'checkEatOutAssistId',
+  })
+  declare checkEatOut: BelongsTo<typeof Assist>
 }
