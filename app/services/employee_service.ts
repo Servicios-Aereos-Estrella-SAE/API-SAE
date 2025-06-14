@@ -191,6 +191,7 @@ export default class EmployeeService {
           query.where((subQuery) => {
             subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
               userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+              userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
             })
             subQuery.orWhereHas('person', (personQuery) => {
               personQuery.whereHas('user', (userQuery) => {
@@ -310,8 +311,16 @@ export default class EmployeeService {
       .if(userResponsibleId &&
         typeof userResponsibleId && userResponsibleId > 0,
         (query) => {
-          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          query.where((subQuery) => {
+            subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+              userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+            })
+            subQuery.orWhereHas('person', (personQuery) => {
+              personQuery.whereHas('user', (userQuery) => {
+                userQuery.where('userId', userResponsibleId!)
+              })
+            })
           })
         }
       )

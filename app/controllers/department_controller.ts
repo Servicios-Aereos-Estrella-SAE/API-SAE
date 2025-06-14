@@ -512,9 +512,22 @@ export default class DepartmentController {
         typeof userResponsibleId && userResponsibleId > 0) {
           const employees = await Employee.query()
           .whereIn('businessUnitId', businessUnitsList)
-          .whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
-          })
+          .if(userResponsibleId &&
+            typeof userResponsibleId && userResponsibleId > 0,
+            (query) => {
+              query.where((subQuery) => {
+                subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+                  userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+                  userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+                })
+                subQuery.orWhereHas('person', (personQuery) => {
+                  personQuery.whereHas('user', (userQuery) => {
+                    userQuery.where('userId', userResponsibleId!)
+                  })
+                })
+              })
+            }
+          )
           for await (const employee of employees) {
             if (employee.positionId) {
               const existPosition = positionList.find(a => a === employee.positionId)
