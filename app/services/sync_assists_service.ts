@@ -616,6 +616,7 @@ export default class SyncAssistsService {
             checkOut: this.getCheckOutDate(dayAssist),
             dateShift: dateShift ? dateShift.shift : null,
             dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+            employeeShiftId: dateShift ? dateShift.employeeShiftId : null,
             shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
             checkInDateTime: null,
             checkOutDateTime: null,
@@ -713,6 +714,7 @@ export default class SyncAssistsService {
           checkEatOut: null,
           dateShift: dateShift ? dateShift.shift : null,
           dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+          employeeShiftId: dateShift ? dateShift.employeeShiftId : null,
           shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
           checkInDateTime: null,
           checkOutDateTime: null,
@@ -977,6 +979,20 @@ export default class SyncAssistsService {
         if (dateAssistItem.assist.exceptions.length > 0) {
           dateAssistItem.assist.checkInStatus = ''
         }
+      }
+
+      const vacationDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
+      
+      if (vacationDay) {
+        dateAssistItem.assist.isVacationDate = true
+       
+        dateAssistItem.assist.checkInStatus = ''
+        dateAssistItem.assist.checkOutStatus = ''
+
+        dateAssistItem.assist.checkIn = null
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+        dateAssistItem.assist.checkOut = null
       }
 
       
