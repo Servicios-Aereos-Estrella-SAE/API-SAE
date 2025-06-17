@@ -253,7 +253,12 @@ export default class SyncAssistsService {
           .save()
 
           if (employee) {
-            await this.setDateCalendar(existingAssist, employee)
+            const filter: SyncAssistsServiceIndexInterface = {
+              date: existingAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
+              dateEnd: existingAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
+              employeeID: employee.employeeId
+            }
+            await this.setDateCalendar(filter)
           }
       } else {
         const newAssist = new Assist()
@@ -273,7 +278,12 @@ export default class SyncAssistsService {
         await newAssist.save()
 
         if (employee) {
-          await this.setDateCalendar(newAssist, employee)
+          const filter: SyncAssistsServiceIndexInterface = {
+            date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
+            dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
+            employeeID: employee.employeeId
+          }
+          await this.setDateCalendar(filter)
         }
       }
     }
@@ -310,7 +320,12 @@ export default class SyncAssistsService {
         await newAssist.save()
 
         if (employee) {
-          await this.setDateCalendar(newAssist, employee)
+          const filter: SyncAssistsServiceIndexInterface = {
+            date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
+            dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
+            employeeID: employee.employeeId
+          }
+          await this.setDateCalendar(filter)
         }
 
         assists.push(newAssist)
@@ -320,55 +335,18 @@ export default class SyncAssistsService {
     return assists
   }
 
-  private async setDateCalendar (newAssist: Assist, employee: Employee) {
-    const calendarPayload: SyncAssistsServiceIndexInterface = {
-      date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
-      dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
-      employeeID: employee.employeeId
-    }
+  async setDateCalendar (filters: SyncAssistsServiceIndexInterface) {
+   
+    if (filters.employeeID !== undefined) {
+      const empCalendar = await this.index(filters)
 
-    const empCalendar = await this.index(calendarPayload)
-
-    if (empCalendar && empCalendar.status === 200 && empCalendar.data) {
-      const calendarDayRes = empCalendar.data as any
-      const calendarDay = calendarDayRes.employeeCalendar as AssistDayInterface[]
-      calendarDay.forEach(async (calendarObject: AssistDayInterface) => {
-        const assistStat =  {
-          assist_stat_day: calendarObject.day,
-          assist_stat_check_in_date_time: calendarObject.assist.checkInDateTime?.toString(),
-          assist_stat_check_out_date_time: calendarObject.assist.checkOutDateTime?.toString(),
-          assist_stat_date_shift_apply_since: calendarObject.assist.dateShiftApplySince,
-          assist_stat_check_in_punch_time: calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistPunchTimeUtc.toString() : null,
-          assist_stat_check_in_assist_id: calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistId : null,
-          assist_stat_check_in_status: calendarObject.assist.checkInStatus,
-          assist_stat_check_eat_in_punch_time: calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistPunchTimeUtc.toString() : null,
-          assist_stat_check_eat_in_assist_id: calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistId : null,
-          assist_stat_check_eat_in_status: '',
-          assist_stat_is_check_in_eat_next_day: calendarObject.assist.isCheckInEatNextDay,
-          assist_stat_check_eat_out_punch_time: calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistPunchTimeUtc.toString() : null,
-          assist_stat_check_eat_out_assist_id: calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistId : null,
-          assist_stat_check_eat_out_status: '',
-          assist_stat_is_check_out_eat_next_day: calendarObject.assist.isCheckOutEatNextDay,
-          assist_stat_check_out_punch_time: calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistPunchTimeUtc.toString() : null,
-          assist_stat_check_out_assist_id: calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistId : null,
-          assist_stat_check_out_status: calendarObject.assist.checkOutStatus,
-          assist_stat_is_check_out_next_day: calendarObject.assist.isCheckOutNextDay,
-          assist_stat_shift_calculate_flag: calendarObject.assist.shiftCalculateFlag,
-          assist_stat_is_future_day: calendarObject.assist.isFutureDay,
-          assist_stat_is_sunday_bonus: calendarObject.assist.isSundayBonus,
-          assist_stat_is_rest_day: calendarObject.assist.isRestDay,
-          assist_stat_is_vacation_date: calendarObject.assist.isVacationDate,
-          assist_stat_is_work_disability_date: calendarObject.assist.isWorkDisabilityDate,
-          assist_stat_is_holiday: calendarObject.assist.isHoliday,
-          assist_stat_is_birthday: calendarObject.assist.isBirthday,
-          assist_stat_has_exceptions: calendarObject.assist.hasExceptions,
-          shift_id: calendarObject.assist.dateShift?.shiftId || null,
-          holiday_id: calendarObject.assist.holiday?.holidayId || null,
-          employee_id: employee.employeeId
-        }
+      if (empCalendar && empCalendar.status === 200 && empCalendar.data) {
+        const calendarDayRes = empCalendar.data as any
+        const calendarDay = calendarDayRes.employeeCalendar as AssistDayInterface[]
+        calendarDay.forEach(async (calendarObject: AssistDayInterface) => {
         const existEmployeeAssistCalendar = await EmployeeAssistCalendar.query()
           .whereNull('employee_assist_calendar_deleted_at')
-          .where('employee_id' , employee.employeeId)
+          .where('employee_id' , filters.employeeID as number)
           .where('day' , calendarObject.day)
           .first()
         let employeeAssistCalendar = new EmployeeAssistCalendar()
@@ -376,7 +354,7 @@ export default class SyncAssistsService {
           employeeAssistCalendar = existEmployeeAssistCalendar
         }
         employeeAssistCalendar.day = calendarObject.day
-        employeeAssistCalendar.employeeId = employee.employeeId
+        employeeAssistCalendar.employeeId = filters.employeeID as number
         employeeAssistCalendar.checkInAssistId = calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistId : null
         employeeAssistCalendar.checkInDateTime = `${calendarObject.assist.checkInDateTime?.toString()}`
         employeeAssistCalendar.checkInStatus = calendarObject.assist.checkInStatus
@@ -402,10 +380,11 @@ export default class SyncAssistsService {
         employeeAssistCalendar.shiftCalculateFlag = calendarObject.assist.shiftCalculateFlag
         employeeAssistCalendar.hasAssitFlatList = calendarObject.assist.assitFlatList && calendarObject.assist.assitFlatList?.length > 0 ? true : false
         await employeeAssistCalendar.save()
-       
-        logger.info('🚀 ~ SyncAssistsService ~ calendarDay.forEach ~ assistStat:', JSON.stringify(assistStat))
-      })
+         
+        })
+      }
     }
+   
   }
 
   async updatePageSync(page: number, status: string, itemsCount: number) {

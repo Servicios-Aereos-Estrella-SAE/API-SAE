@@ -26,6 +26,7 @@ import { AssistIncidentPayrollExcelRowInterface } from '../interfaces/assist_inc
 import sharp from 'sharp'
 import { AssistExcelImageInterface } from '../interfaces/assist_excel_image_interface.js'
 import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
+import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
 
 export default class AssistsService {
   async getExcelByEmployeeAssistance(
@@ -1910,6 +1911,20 @@ export default class AssistsService {
     newAssist.assistPunchTimeUtc = assist.assistPunchTimeUtc
     newAssist.assistPunchTimeOrigin = assist.assistPunchTimeOrigin
     await newAssist.save()
+    const employee = await  Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_code',assist.assistEmpCode )
+      .first()
+    if (employee) {
+      const syncAssistsService = new SyncAssistsService()
+      const filter: SyncAssistsServiceIndexInterface = {
+        date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
+        dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
+        employeeID: employee.employeeId
+      }
+      await syncAssistsService.setDateCalendar(filter)
+    }
+    
     return newAssist
   }
 
