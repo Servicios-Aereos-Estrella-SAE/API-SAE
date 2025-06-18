@@ -11,7 +11,7 @@ export default class EmployeeAssistsCalendarService {
     const filterInitialDate = timeCST.toFormat('yyyy-LL-dd')
     const stringEndDate = `${filters.dateEnd}T23:59:59.000-06:00`
     const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
-    const timeEndCST = timeEnd.setZone('UTC-6').plus({ days: 1 })
+    const timeEndCST = timeEnd.setZone('UTC-6')//.plus({ days: 1 })
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd')
     const query = EmployeeAssistCalendar.query()
     let employee = null
@@ -23,7 +23,6 @@ export default class EmployeeAssistsCalendarService {
       query.where('day', '>=', filterInitialDate)
       query.andWhere('day', '<=', filterEndDate)
     }
-
     if (filters.employeeID) {
       employee = await Employee.query()
         .where('employee_id', filters.employeeID || 0)

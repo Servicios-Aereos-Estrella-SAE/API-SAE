@@ -122,6 +122,20 @@ export default class SyncAssistsService {
       logAssist.record_current = JSON.parse(JSON.stringify(assist))
       await assistService.saveActionOnLog(logAssist)
     }
+    const employee = await Employee.query()
+      .whereNull('employee_deleted_at')
+      .where('employee_code', filters.empCode)
+      .first()
+    if (employee) {
+
+    
+      const filter: SyncAssistsServiceIndexInterface = {
+        date: filters.startDate,
+        dateEnd: filters.endDate,
+        employeeID: employee.employeeId
+      }
+      await this.setDateCalendar(filter)
+    }
     return response
   }
 
@@ -226,13 +240,6 @@ export default class SyncAssistsService {
   async updateLocalData(externalData: ResponseApiAssistsDto) {
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
-      const empCode = externalData.data.length > 0 ? externalData.data[0].emp_code : ''
-
-      let employee = null
-
-      if (empCode) {
-        employee = await Employee.query().where('employee_code', empCode).first()
-      }
 
       if (existingAssist) {
         await existingAssist
@@ -251,15 +258,7 @@ export default class SyncAssistsService {
             assistPunchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
           })
           .save()
-
-          if (employee) {
-            const filter: SyncAssistsServiceIndexInterface = {
-              date: existingAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
-              dateEnd: existingAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
-              employeeID: employee.employeeId
-            }
-            await this.setDateCalendar(filter)
-          }
+        
       } else {
         const newAssist = new Assist()
         newAssist.assistEmpCode = item.emp_code
@@ -276,28 +275,13 @@ export default class SyncAssistsService {
         newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
-
-        if (employee) {
-          const filter: SyncAssistsServiceIndexInterface = {
-            date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
-            dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
-            employeeID: employee.employeeId
-          }
-          await this.setDateCalendar(filter)
-        }
+       
       }
     }
   }
 
   async saveAssistDataEmployee(externalData: ResponseApiAssistsDto) {
     const assists = [] as Array<Assist>
-    const empCode = externalData.data.length > 0 ? externalData.data[0].emp_code : ''
-
-    let employee = null
-
-    if (empCode) {
-      employee = await Employee.query().where('employee_code', empCode).first()
-    }
 
     for await (const item of externalData.data) {
       const existingAssist = await Assist.findBy('assist_sync_id', item.id)
@@ -318,15 +302,6 @@ export default class SyncAssistsService {
         newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
-
-        if (employee) {
-          const filter: SyncAssistsServiceIndexInterface = {
-            date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
-            dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
-            employeeID: employee.employeeId
-          }
-          await this.setDateCalendar(filter)
-        }
 
         assists.push(newAssist)
       }
@@ -631,6 +606,7 @@ export default class SyncAssistsService {
       TOLERANCE_FAULT_MINUTES,
       employee
     )
+  
 
     return {
       status: 200,

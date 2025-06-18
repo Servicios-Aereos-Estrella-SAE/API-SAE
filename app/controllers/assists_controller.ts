@@ -229,7 +229,23 @@ export default class AssistsController {
     const filterDateEnd = request.input('date-end')
     const page = request.input('page')
     const limit = request.input('limit')
-
+    /*     if (employeeID) {
+      const employee = await Employee.query()
+        .where('employee_id', employeeID)
+        .first()
+      if (employee) {
+    
+          const filter: SyncAssistsServiceIndexInterface = {
+            date: filterDate,
+            dateEnd: filterDateEnd,
+            employeeID: employee.employeeId
+          }
+          console.log('procesando: ' + employee.employeeId)
+          const syncAssistsService = new SyncAssistsService()
+          await syncAssistsService.setDateCalendar(filter)
+        
+      }
+    } */
     try {
       const result = await syncAssistsService.index(
         {
