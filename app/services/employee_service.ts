@@ -32,7 +32,7 @@ export default class EmployeeService {
       .where('employee_type_slug', 'employee')
       .whereNull('employee_type_deleted_at')
       .first()
-    
+
     if (newPerson) {
       newEmployee.personId = newPerson.personId
     }
@@ -45,6 +45,8 @@ export default class EmployeeService {
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = employee.departmentId
     newEmployee.positionId = employee.positionId
+    newEmployee.businessUnitId = employee.businessUnitId || 1
+
     if (employeeType?.employeeTypeId) {
       newEmployee.employeeTypeId = employeeType.employeeTypeId
     }
@@ -60,7 +62,6 @@ export default class EmployeeService {
     await this.setUserResponsible(newEmployee.employeeId, employee.usersResponsible ? employee.usersResponsible : [])
    /*  await newEmployee.load('employeeType')
     if (newEmployee.employeeType.employeeTypeSlug === 'employee' && newPerson) {
-      
       const user = {
         userEmail: newPerson.personEmail,
         userPassword: '',

@@ -268,26 +268,33 @@ export default class EmployeeController {
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
 
         let employeeCountSaved = 0
+
         for await (const employee of data) {
           let existInBusinessUnitList = false
+          let businessUnitApply = null
+
           if (employee.payrollNum) {
             if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
               existInBusinessUnitList = true
+              businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${employee.payrollNum}`.toLocaleLowerCase())
             }
           } else if (employee.personnelEmployeeArea.length > 0) {
             for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
               if (personnelEmployeeArea.personnelArea) {
                 if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
                   existInBusinessUnitList = true
+                  businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())
                   break
                 }
               }
             }
           }
+
           if (existInBusinessUnitList) {
             employee.departmentId = withOutDepartmentId
             employee.positionId = withOutPositionId
             employee.usersResponsible = usersResponsible
+            employee.businessUnitId = businessUnitApply?.businessUnitId || 1
             employeeCountSaved += 1
 
             await this.verify(employee, employeeService)
