@@ -228,10 +228,13 @@ export default class EmployeeController {
       apiUrl = `${apiUrl}&departmentId=${departmentId || ''}`
       apiUrl = `${apiUrl}&positionId=${positionId || ''}`
       apiUrl = `${apiUrl}&hireDate=${hireDate || ''}`
+
       const apiResponse = await axios.get(apiUrl)
       const data = apiResponse.data.data
+
       let withOutDepartmentId = null
       let withOutPositionId = null
+
       const department = await Department.query()
         .whereNull('department_deleted_at')
         .where('department_name', 'Sin departamento')
@@ -249,9 +252,9 @@ export default class EmployeeController {
       const roles = await Role.query()
         .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
         .whereNull('role_deleted_at')
-    
+
       let usersResponsible: Array<User> = []
-      
+
       if (roles.length) {
         const roleIds = roles.map((role) => role.roleId)
         usersResponsible = await User.query()
@@ -259,6 +262,7 @@ export default class EmployeeController {
           .preload('role')
           .orderBy('user_id')
       }
+
       if (data) {
         const employeeService = new EmployeeService()
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
@@ -267,13 +271,13 @@ export default class EmployeeController {
         for await (const employee of data) {
           let existInBusinessUnitList = false
           if (employee.payrollNum) {
-            if (businessUnitsList.includes(employee.payrollNum)) {
+            if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
               existInBusinessUnitList = true
             }
           } else if (employee.personnelEmployeeArea.length > 0) {
             for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
               if (personnelEmployeeArea.personnelArea) {
-                if (businessUnitsList.includes(personnelEmployeeArea.personnelArea.areaName)) {
+                if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
                   existInBusinessUnitList = true
                   break
                 }
@@ -4450,7 +4454,7 @@ export default class EmployeeController {
    */
   async getDaysWorkDisabilityAll({ request, response }: HttpContext) {
     try {
-      
+
       const datePay = request.input('datePay')
 
       if (!datePay) {
@@ -4464,7 +4468,7 @@ export default class EmployeeController {
       }
       const departmentId = request.input('departmentId')
       const employeeId = request.input('employeeId')
-      
+
       const assistService = new AssistsService()
       const filter = {
         datePay: datePay,
@@ -4480,7 +4484,7 @@ export default class EmployeeController {
         title: 'Employees',
         message: 'The employees with days work disability were found successfully',
         data: { data: employees },
-      }                                                          
+      }
     } catch (error) {
       response.status(500)
       return {
