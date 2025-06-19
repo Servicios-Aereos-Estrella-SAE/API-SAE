@@ -171,6 +171,11 @@ export default class EmployeeShiftController {
       // }
 
       const newEmployeeShift = await EmployeeShift.create(employeeShift)
+
+      const employeeShiftDate = employeeShift.employeShiftsApplySince
+      const date = typeof employeeShiftDate === 'string' ? new Date(employeeShiftDate) : employeeShiftDate
+      await employeeShiftService.updateAssistCalendar(employeeShift.employeeId, date)
+
       const rawHeaders = request.request.rawHeaders
       const userId = auth.user?.userId
       if (userId) {
@@ -588,6 +593,11 @@ export default class EmployeeShiftController {
       const previousEmployeeShift = JSON.parse(JSON.stringify(updateEmployeeShift))
       updateEmployeeShift.merge(employeeShift)
       await updateEmployeeShift.save()
+
+      const employeeShiftDate = employeeShift.employeShiftsApplySince
+      const date = typeof employeeShiftDate === 'string' ? new Date(employeeShiftDate) : employeeShiftDate
+      await employeeShiftService.updateAssistCalendar(employeeShift.employeeId, date)
+
       const rawHeaders = request.request.rawHeaders
       const userId = auth.user?.userId
       if (userId) {
@@ -727,6 +737,11 @@ export default class EmployeeShiftController {
       employeeShift.deletedAt = DateTime.now()
       await employeeShift.save()
       const employeeShiftService = new EmployeeShiftService()
+
+      const employeeShiftDate = employeeShift.employeShiftsApplySince
+      const date = typeof employeeShiftDate === 'string' ? new Date(employeeShiftDate) : employeeShiftDate
+      await employeeShiftService.updateAssistCalendar(employeeShift.employeeId, date)
+
       const rawHeaders = request.request.rawHeaders
       const userId = auth.user?.userId
       if (userId) {

@@ -369,9 +369,17 @@ export default class ShiftExceptionController {
     try {
       const shiftException = await ShiftException.findOrFail(params.id)
       await shiftException.delete()
+      const shiftExceptionService = new ShiftExceptionService()
+
+      const exceptionDate = shiftException.shiftExceptionsDate
+      const date = typeof exceptionDate === 'string' ? new Date(exceptionDate) : exceptionDate
+      await shiftExceptionService.updateAssistCalendar(shiftException.employeeId, date)
+     
+    
+
       const userId = auth.user?.userId
       if (userId) {
-        const shiftExceptionService = new ShiftExceptionService()
+      
         const rawHeaders = request.request.rawHeaders
         const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'delete')
         logShiftException.user_id = userId

@@ -7,6 +7,8 @@ import { DateTime } from 'luxon'
 import ShiftExceptionService from './shift_exception_service.js'
 import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
 import { WorkDisabilityPeriodAddShiftExceptionInterface } from '../interfaces/work_disability_period_add_shift_exception_interface.js'
+import SyncAssistsService from './sync_assists_service.js'
+import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
 
 export default class WorkDisabilityPeriodService {
   async create(workDisabilityPeriod: WorkDisabilityPeriod) {
@@ -21,6 +23,17 @@ export default class WorkDisabilityPeriodService {
     newWorkDisabilityPeriod.workDisabilityId = workDisabilityPeriod.workDisabilityId
     newWorkDisabilityPeriod.workDisabilityTypeId = workDisabilityPeriod.workDisabilityTypeId
     await newWorkDisabilityPeriod.save()
+    await newWorkDisabilityPeriod.load('workDisability')
+
+    if (newWorkDisabilityPeriod.workDisability) {
+      const workDisabilityPeriodStart = newWorkDisabilityPeriod.workDisabilityPeriodStartDate
+      const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
+      const workDisabilityPeriodEnd = newWorkDisabilityPeriod.workDisabilityPeriodEndDate
+      const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
+  
+      await this.updateAssistCalendar(newWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
+    }
+
     return newWorkDisabilityPeriod
   }
 
@@ -34,11 +47,34 @@ export default class WorkDisabilityPeriodService {
       workDisabilityPeriod.workDisabilityPeriodFile
     currentWorkDisabilityPeriod.workDisabilityTypeId = workDisabilityPeriod.workDisabilityTypeId
     await currentWorkDisabilityPeriod.save()
+
+    await currentWorkDisabilityPeriod.load('workDisability')
+
+    if (currentWorkDisabilityPeriod.workDisability) {
+      const workDisabilityPeriodStart = currentWorkDisabilityPeriod.workDisabilityPeriodStartDate
+      const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
+      const workDisabilityPeriodEnd = currentWorkDisabilityPeriod.workDisabilityPeriodEndDate
+      const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
+  
+      await this.updateAssistCalendar(currentWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
+    }
+
     return currentWorkDisabilityPeriod
   }
 
   async delete(currentWorkDisabilityPeriod: WorkDisabilityPeriod) {
     await currentWorkDisabilityPeriod.delete()
+    await currentWorkDisabilityPeriod.load('workDisability')
+
+    if (currentWorkDisabilityPeriod.workDisability) {
+      const workDisabilityPeriodStart = currentWorkDisabilityPeriod.workDisabilityPeriodStartDate
+      const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
+      const workDisabilityPeriodEnd = currentWorkDisabilityPeriod.workDisabilityPeriodEndDate
+      const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
+  
+      await this.updateAssistCalendar(currentWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
+    }
+
     return currentWorkDisabilityPeriod
   }
 
@@ -314,5 +350,25 @@ export default class WorkDisabilityPeriodService {
       yield startDate
       startDate = startDate.plus({ days: 1 })
     }
+  }
+
+  async updateAssistCalendar(employeeId: number, dateStart: Date, dateEnd: Date) {
+   
+    dateStart.setDate(dateStart.getDate() - 24)
+
+    
+    dateEnd.setDate(dateEnd.getDate() + 1)
+
+    const filter: SyncAssistsServiceIndexInterface = {
+        date: this.formatDate(dateStart),
+        dateEnd: this.formatDate(dateEnd),
+        employeeID: employeeId
+      }
+      const syncAssistsService = new SyncAssistsService()
+      await syncAssistsService.setDateCalendar(filter)
+  }
+
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0]
   }
 }
