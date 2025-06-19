@@ -817,9 +817,12 @@ export default class SyncAssistsService {
     if (employee.shiftChanges.length > 0) {
       if (employee.shiftChanges[0].shiftTo) {
         checkAssist.assist.dateShift = employee.shiftChanges[0].shiftTo
+        checkAssist.assist.isRestDay = false
+
         if (employee.shiftChanges[0].employeeShiftChangeDateToIsRestDay) {
           checkAssist.assist.isRestDay = true
         }
+
         if (checkAssist.assist.dateShift) {
           checkAssist.assist.dateShift.shiftIsChange = true
         }
@@ -909,13 +912,16 @@ export default class SyncAssistsService {
     }
 
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('UTC-6')
-    const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, startDay, dateAssistItem.assist.shiftCalculateFlag)
+    const shangeShiftStartDay = dateAssistItem.assist.dateShift?.shiftIsChange ? evaluatedDay : startDay
+
+    const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, shangeShiftStartDay, dateAssistItem.assist.shiftCalculateFlag)
 
     let isStartWorkday = calendarDayStatus.isStartWorkday
     let isRestWorkday = calendarDayStatus.isRestWorkday
+
     if (isRestWorkday !==  dateAssistItem.assist.isRestDay &&  dateAssistItem.assist.dateShift?.shiftIsChange) {
       isRestWorkday = dateAssistItem.assist.isRestDay
-      }
+    }
     dateAssistItem.assist.isFutureDay = calendarDayStatus.isNextDay
 
     if (dateAssistItem.assist.exceptions.length > 0) {
@@ -946,10 +952,10 @@ export default class SyncAssistsService {
       }
 
       const vacationDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
-      
+
       if (vacationDay) {
         dateAssistItem.assist.isVacationDate = true
-       
+
         dateAssistItem.assist.checkInStatus = ''
         dateAssistItem.assist.checkOutStatus = ''
 
@@ -959,7 +965,7 @@ export default class SyncAssistsService {
         dateAssistItem.assist.checkOut = null
       }
 
-      
+
     }
 
     if (isStartWorkday) {
