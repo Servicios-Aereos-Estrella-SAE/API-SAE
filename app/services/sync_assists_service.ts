@@ -1076,25 +1076,25 @@ export default class SyncAssistsService {
       dateAssistItem = this.setCheckOnNextDayFlags(dateAssistItem, checkInDateTime)
     }
 
-    // const existeWorkBreak = dateAssistItem.assist.exceptions.some(
-    //   exception => exception.exceptionType?.exceptionTypeSlug === 'descanso-laborado' &&
-    //   exception.shiftExceptionEnjoymentOfSalary &&
-    //   exception.shiftExceptionEnjoymentOfSalary === 1
-    // )
+    const existeWorkBreak = dateAssistItem.assist.exceptions.some(
+      exception => exception.exceptionType?.exceptionTypeSlug === 'descanso-laborado' &&
+      exception.shiftExceptionEnjoymentOfSalary &&
+      exception.shiftExceptionEnjoymentOfSalary === 1
+    )
 
     if (isRestWorkday) {
       dateAssistItem.assist.isRestDay = true
       dateAssistItem.assist.checkInStatus = ''
       dateAssistItem.assist.checkOutStatus = ''
 
-      // if (dateAssistItem.assist.checkIn) {
-      //     if (!existeWorkBreak) {
-      //       dateAssistItem.assist.checkIn = null
-      //       dateAssistItem.assist.checkEatIn = null
-      //       dateAssistItem.assist.checkEatOut = null
-      //       dateAssistItem.assist.checkOut = null
-      //     }
-      // }
+      if (dateAssistItem.assist.checkIn) {
+          if (!existeWorkBreak) {
+            dateAssistItem.assist.checkIn = null
+            dateAssistItem.assist.checkEatIn = null
+            dateAssistItem.assist.checkEatOut = null
+            dateAssistItem.assist.checkOut = null
+          }
+      }
     }
 
     dateAssistItem.assist.checkOutStatus = ''
@@ -1142,7 +1142,7 @@ export default class SyncAssistsService {
     const diffTime = dayCheckInTime.diff(dayTimeToStart, 'minutes').minutes
 
     if (diffTime > TOLERANCE_FAULT_MINUTES && !discriminated) {
-      if (checkAssist.assist && !checkAssist.assist.isRestDay) {
+      if (checkAssist.assist) {
         checkAssist.assist.checkInStatus = 'fault'
       }
 
@@ -1170,10 +1170,6 @@ export default class SyncAssistsService {
     }
 
     if (discriminated) {
-      checkAssist.assist.checkInStatus = ''
-    }
-
-    if (checkAssist.assist.isRestDay) {
       checkAssist.assist.checkInStatus = ''
     }
 
@@ -1233,10 +1229,6 @@ export default class SyncAssistsService {
     if (discriminated) {
       checkAssist.assist.checkOutStatus = ''
       return checkAssist
-    }
-
-    if (checkAssist.assist.isRestDay) {
-      checkAssist.assist.checkOutStatus = ''
     }
 
     return checkAssist
