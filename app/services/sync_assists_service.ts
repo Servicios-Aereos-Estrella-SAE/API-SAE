@@ -314,48 +314,46 @@ export default class SyncAssistsService {
    
     if (filters.employeeID !== undefined) {
       const empCalendar = await this.index(filters)
-
       if (empCalendar && empCalendar.status === 200 && empCalendar.data) {
         const calendarDayRes = empCalendar.data as any
         const calendarDay = calendarDayRes.employeeCalendar as AssistDayInterface[]
         calendarDay.forEach(async (calendarObject: AssistDayInterface) => {
-        const existEmployeeAssistCalendar = await EmployeeAssistCalendar.query()
-          .whereNull('employee_assist_calendar_deleted_at')
-          .where('employee_id' , filters.employeeID as number)
-          .where('day' , calendarObject.day)
-          .first()
-        let employeeAssistCalendar = new EmployeeAssistCalendar()
-        if (existEmployeeAssistCalendar) {
-          employeeAssistCalendar = existEmployeeAssistCalendar
-        }
-        employeeAssistCalendar.day = calendarObject.day
-        employeeAssistCalendar.employeeId = filters.employeeID as number
-        employeeAssistCalendar.checkInAssistId = calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistId : null
-        employeeAssistCalendar.checkInDateTime = `${calendarObject.assist.checkInDateTime?.toString()}`
-        employeeAssistCalendar.checkInStatus = calendarObject.assist.checkInStatus
-        employeeAssistCalendar.checkOutAssistId = calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistId : null
-        employeeAssistCalendar.checkOutDateTime = `${calendarObject.assist.checkOutDateTime?.toString()}`
-        employeeAssistCalendar.checkOutStatus = calendarObject.assist.checkOutStatus
-        employeeAssistCalendar.checkEatInAssistId = calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistId : null
-        employeeAssistCalendar.checkEatOutAssistId = calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistId : null
-        employeeAssistCalendar.shiftId = calendarObject.assist.dateShift?.shiftId || null
-        employeeAssistCalendar.shiftIsChange = calendarObject.assist.dateShift?.shiftIsChange ? calendarObject.assist.dateShift?.shiftIsChange : false
-        employeeAssistCalendar.hasExceptions = calendarObject.assist.hasExceptions
-        employeeAssistCalendar.holidayId = calendarObject.assist.holiday?.holidayId || null
-        employeeAssistCalendar.isBirthday = calendarObject.assist.isBirthday
-        employeeAssistCalendar.isCheckInEatNextDay = calendarObject.assist.isCheckInEatNextDay ? calendarObject.assist.isCheckInEatNextDay : false
-        employeeAssistCalendar.isCheckOutEatNextDay = calendarObject.assist.isCheckOutEatNextDay ? calendarObject.assist.isCheckOutEatNextDay : false
-        employeeAssistCalendar.isCheckOutNextDay = calendarObject.assist.isCheckOutNextDay ? calendarObject.assist.isCheckOutNextDay : false
-        employeeAssistCalendar.isFutureDay = calendarObject.assist.isFutureDay
-        employeeAssistCalendar.isHoliday = calendarObject.assist.isHoliday
-        employeeAssistCalendar.isRestDay = calendarObject.assist.isRestDay
-        employeeAssistCalendar.isSundayBonus = calendarObject.assist.isSundayBonus
-        employeeAssistCalendar.isVacationDate = calendarObject.assist.isVacationDate
-        employeeAssistCalendar.isWorkDisabilityDate = calendarObject.assist.isWorkDisabilityDate
-        employeeAssistCalendar.shiftCalculateFlag = calendarObject.assist.shiftCalculateFlag
-        employeeAssistCalendar.hasAssitFlatList = calendarObject.assist.assitFlatList && calendarObject.assist.assitFlatList?.length > 0 ? true : false
-        await employeeAssistCalendar.save()
-         
+          const existEmployeeAssistCalendar = await EmployeeAssistCalendar.query()
+            .whereNull('employee_assist_calendar_deleted_at')
+            .where('employee_id' , filters.employeeID as number)
+            .where('day' , calendarObject.day)
+            .first()
+          let employeeAssistCalendar = new EmployeeAssistCalendar()
+          if (existEmployeeAssistCalendar) {
+            employeeAssistCalendar = existEmployeeAssistCalendar
+          }
+          employeeAssistCalendar.day = calendarObject.day
+          employeeAssistCalendar.employeeId = filters.employeeID as number
+          employeeAssistCalendar.checkInAssistId = calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistId : null
+          employeeAssistCalendar.checkInDateTime = `${calendarObject.assist.checkInDateTime?.toString()}`
+          employeeAssistCalendar.checkInStatus = calendarObject.assist.checkInStatus
+          employeeAssistCalendar.checkOutAssistId = calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistId : null
+          employeeAssistCalendar.checkOutDateTime = `${calendarObject.assist.checkOutDateTime?.toString()}`
+          employeeAssistCalendar.checkOutStatus = calendarObject.assist.checkOutStatus
+          employeeAssistCalendar.checkEatInAssistId = calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistId : null
+          employeeAssistCalendar.checkEatOutAssistId = calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistId : null
+          employeeAssistCalendar.shiftId = calendarObject.assist.dateShift?.shiftId || null
+          employeeAssistCalendar.shiftIsChange = calendarObject.assist.dateShift?.shiftIsChange ? calendarObject.assist.dateShift?.shiftIsChange : false
+          employeeAssistCalendar.hasExceptions = calendarObject.assist.hasExceptions
+          employeeAssistCalendar.holidayId = calendarObject.assist.holiday?.holidayId || null
+          employeeAssistCalendar.isBirthday = calendarObject.assist.isBirthday
+          employeeAssistCalendar.isCheckInEatNextDay = calendarObject.assist.isCheckInEatNextDay ? calendarObject.assist.isCheckInEatNextDay : false
+          employeeAssistCalendar.isCheckOutEatNextDay = calendarObject.assist.isCheckOutEatNextDay ? calendarObject.assist.isCheckOutEatNextDay : false
+          employeeAssistCalendar.isCheckOutNextDay = calendarObject.assist.isCheckOutNextDay ? calendarObject.assist.isCheckOutNextDay : false
+          employeeAssistCalendar.isFutureDay = calendarObject.assist.isFutureDay
+          employeeAssistCalendar.isHoliday = calendarObject.assist.isHoliday
+          employeeAssistCalendar.isRestDay = calendarObject.assist.isRestDay
+          employeeAssistCalendar.isSundayBonus = calendarObject.assist.isSundayBonus
+          employeeAssistCalendar.isVacationDate = calendarObject.assist.isVacationDate
+          employeeAssistCalendar.isWorkDisabilityDate = calendarObject.assist.isWorkDisabilityDate
+          employeeAssistCalendar.shiftCalculateFlag = calendarObject.assist.shiftCalculateFlag
+          employeeAssistCalendar.hasAssitFlatList = calendarObject.assist.assitFlatList && calendarObject.assist.assitFlatList?.length > 0 ? true : false
+          await employeeAssistCalendar.save()
         })
       }
     }

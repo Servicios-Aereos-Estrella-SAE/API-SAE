@@ -1,5 +1,8 @@
 import Holiday from '#models/holiday'
 import env from '#start/env'
+import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
+import EmployeeService from './employee_service.js'
+import SyncAssistsService from './sync_assists_service.js'
 
 export default class HolidayService {
   async index(firstDate: string, lastDate: string, search: string, page: number, limit: number) {
@@ -45,5 +48,38 @@ export default class HolidayService {
         data: error,
       }
     }
+  }
+
+  async updateAssistCalendar(date: Date, departmentsList: Array<number>) {
+    const dateStart = new Date(date)
+    dateStart.setDate(dateStart.getDate())
+
+    const dateEnd = new Date(date)
+    dateEnd.setDate(dateEnd.getDate())
+    const employeeService = new EmployeeService()
+    const resultEmployes = await employeeService.index(
+      {
+        search: '',
+        departmentId: 0,
+        positionId: 0,
+        page: 1,
+        limit: 999999999999999,
+        employeeWorkSchedule: '',
+      },departmentsList
+    )
+    const dataEmployes: any = resultEmployes
+    for await (const employee of dataEmployes) {
+      const filter: SyncAssistsServiceIndexInterface = {
+        date: this.formatDate(dateStart),
+        dateEnd: this.formatDate(dateEnd),
+        employeeID: employee.employeeId
+      }
+      const syncAssistsService = new SyncAssistsService()
+      await syncAssistsService.setDateCalendar(filter)
+    }
+  }
+
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0]
   }
 }

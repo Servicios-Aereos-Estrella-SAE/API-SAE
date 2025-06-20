@@ -163,10 +163,10 @@ export default class EmployeeService {
           ])
         })
       })
-      .if(filters.departmentId, (query) => {
+      .if(filters.departmentId && filters.departmentId > 0, (query) => {
         query.where('department_id', filters.departmentId)
       })
-      .if(filters.departmentId && filters.positionId, (query) => {
+      .if(filters.departmentId  && filters.departmentId > 0 && filters.positionId  && filters.positionId > 0, (query) => {
         query.where('department_id', filters.departmentId)
         query.where('position_id', filters.positionId)
       })

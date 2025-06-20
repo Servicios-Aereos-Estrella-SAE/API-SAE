@@ -4,6 +4,7 @@ import Holiday from '../models/holiday.js'
 import { createOrUpdateHolidayValidator } from '../validators/holiday.js'
 import { HttpContext } from '@adonisjs/core/http'
 import env from '../../start/env.js'
+import UserService from '#services/user_service'
 
 /**
  * @swagger
@@ -143,8 +144,9 @@ export default class HolidayController {
    *       400:
    *         description: Validation error
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     // try {
+
     let holiday = null as any
     const holidayName = request.input('holidayName')
     let holidayDate = request.input('holidayDate')
@@ -177,6 +179,24 @@ export default class HolidayController {
       } else {
         await Holiday.create(holidayData)
       }
+    }
+
+    const today = new Date()
+    const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const dateParts = holidayDate.split(' ')[0]
+
+    const newHolidayDate = new Date(dateParts + 'T00:00:00')
+    if (newHolidayDate <= todayAtMidnight) {
+      await auth.check()
+      const user = auth.user
+      let departmentsList = [] as Array<number>
+      if (user) {
+        const userService = new UserService()
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+      const holidayService = new HolidayService()
+      const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
+      await holidayService.updateAssistCalendar(date, departmentsList)
     }
 
     return response.status(201).json({
@@ -293,7 +313,7 @@ export default class HolidayController {
    *       400:
    *         description: Validation error
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ auth, params, request, response }: HttpContext) {
     try {
       let holidayDate = request.input('holidayDate')
       holidayDate = (holidayDate.split('T')[0] + ' 00:000:00').replace('"', '')
@@ -305,7 +325,21 @@ export default class HolidayController {
       data = { ...data, holidayDate: holidayDate, holidayIcon: holidayIcon }
       holiday.merge(data)
       await holiday.save()
-
+      const today = new Date()
+      const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      
+      if (holidayDate <= todayAtMidnight) {
+        await auth.check()
+        const user = auth.user
+        let departmentsList = [] as Array<number>
+        if (user) {
+          const userService = new UserService()
+          departmentsList = await userService.getRoleDepartments(user.userId)
+        }
+        const holidayService = new HolidayService()
+        const date = typeof holidayDate === 'string' ? new Date(holidayDate) : holidayDate
+        await holidayService.updateAssistCalendar(date, departmentsList)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -358,11 +392,30 @@ export default class HolidayController {
    *       404:
    *         description: Resource not found
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ auth, params, response }: HttpContext) {
     try {
       const holiday = await Holiday.findOrFail(params.id)
       await holiday.delete()
+      
+      const today = new Date()
+      const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      
+      const holidayDate = holiday.holidayDate
+      const date = typeof holidayDate === 'string' ? new Date(holidayDate) : holidayDate
 
+
+      if (date <= todayAtMidnight) {
+        await auth.check()
+        const user = auth.user
+        let departmentsList = [] as Array<number>
+        if (user) {
+          const userService = new UserService()
+          departmentsList = await userService.getRoleDepartments(user.userId)
+        }
+        const holidayService = new HolidayService()
+       
+        await holidayService.updateAssistCalendar(date, departmentsList)
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',

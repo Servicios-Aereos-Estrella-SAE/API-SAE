@@ -25,15 +25,6 @@ export default class WorkDisabilityPeriodService {
     await newWorkDisabilityPeriod.save()
     await newWorkDisabilityPeriod.load('workDisability')
 
-    if (newWorkDisabilityPeriod.workDisability) {
-      const workDisabilityPeriodStart = newWorkDisabilityPeriod.workDisabilityPeriodStartDate
-      const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
-      const workDisabilityPeriodEnd = newWorkDisabilityPeriod.workDisabilityPeriodEndDate
-      const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
-  
-      await this.updateAssistCalendar(newWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
-    }
-
     return newWorkDisabilityPeriod
   }
 
@@ -48,32 +39,12 @@ export default class WorkDisabilityPeriodService {
     currentWorkDisabilityPeriod.workDisabilityTypeId = workDisabilityPeriod.workDisabilityTypeId
     await currentWorkDisabilityPeriod.save()
 
-    await currentWorkDisabilityPeriod.load('workDisability')
-
-    if (currentWorkDisabilityPeriod.workDisability) {
-      const workDisabilityPeriodStart = currentWorkDisabilityPeriod.workDisabilityPeriodStartDate
-      const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
-      const workDisabilityPeriodEnd = currentWorkDisabilityPeriod.workDisabilityPeriodEndDate
-      const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
-  
-      await this.updateAssistCalendar(currentWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
-    }
-
     return currentWorkDisabilityPeriod
   }
 
   async delete(currentWorkDisabilityPeriod: WorkDisabilityPeriod) {
     await currentWorkDisabilityPeriod.delete()
-    await currentWorkDisabilityPeriod.load('workDisability')
-
-    if (currentWorkDisabilityPeriod.workDisability) {
-      const workDisabilityPeriodStart = currentWorkDisabilityPeriod.workDisabilityPeriodStartDate
-      const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
-      const workDisabilityPeriodEnd = currentWorkDisabilityPeriod.workDisabilityPeriodEndDate
-      const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
   
-      await this.updateAssistCalendar(currentWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
-    }
 
     return currentWorkDisabilityPeriod
   }

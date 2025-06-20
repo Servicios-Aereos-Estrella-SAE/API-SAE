@@ -208,6 +208,17 @@ export default class WorkDisabilityPeriodController {
           request: request,
         } as WorkDisabilityPeriodAddShiftExceptionInterface
         const shiftExceptions = await workDisabilityPeriodService.addShiftExceptions(filters)
+
+        await newWorkDisabilityPeriod.load('workDisability')
+        if (newWorkDisabilityPeriod.workDisability) {
+          const workDisabilityPeriodStart = newWorkDisabilityPeriod.workDisabilityPeriodStartDate
+          const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
+          const workDisabilityPeriodEnd = newWorkDisabilityPeriod.workDisabilityPeriodEndDate
+          const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
+      
+          await workDisabilityPeriodService.updateAssistCalendar(newWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
+        }
+
         response.status(201)
         return {
           type: 'success',
@@ -472,6 +483,16 @@ export default class WorkDisabilityPeriodController {
         await updateWorkDisabilityPeriod.load('workDisability')
         await updateWorkDisabilityPeriod.load('workDisabilityType')
         await workDisabilityPeriodService.updateShiftExceptions(updateWorkDisabilityPeriod)
+
+        if (updateWorkDisabilityPeriod.workDisability) {
+          const workDisabilityPeriodStart = updateWorkDisabilityPeriod.workDisabilityPeriodStartDate
+          const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
+          const workDisabilityPeriodEnd = updateWorkDisabilityPeriod.workDisabilityPeriodEndDate
+          const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
+      
+          await workDisabilityPeriodService.updateAssistCalendar(updateWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
+        }
+
         response.status(200)
         return {
           type: 'success',
@@ -765,6 +786,17 @@ export default class WorkDisabilityPeriodController {
       )
       if (deleteWorkDisabilityPeriod) {
         await workDisabilityPeriodService.deleteShiftExceptions(currentWorkDisabilityPeriod)
+
+        await deleteWorkDisabilityPeriod.load('workDisability')
+        if (deleteWorkDisabilityPeriod.workDisability) {
+          const workDisabilityPeriodStart = deleteWorkDisabilityPeriod.workDisabilityPeriodStartDate
+          const dateStart = typeof workDisabilityPeriodStart === 'string' ? new Date(workDisabilityPeriodStart) : workDisabilityPeriodStart
+          const workDisabilityPeriodEnd = deleteWorkDisabilityPeriod.workDisabilityPeriodEndDate
+          const dateEnd = typeof workDisabilityPeriodEnd === 'string' ? new Date(workDisabilityPeriodEnd) : workDisabilityPeriodEnd
+      
+          await workDisabilityPeriodService.updateAssistCalendar(deleteWorkDisabilityPeriod.workDisability.employeeId, dateStart, dateEnd)
+        }
+
         response.status(200)
         return {
           type: 'success',
