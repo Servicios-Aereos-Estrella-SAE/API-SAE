@@ -1,5 +1,6 @@
 import Employee from '#models/employee'
 import Person from '#models/person'
+import { DateTime } from 'luxon'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import { PersonFilterSearchInterface } from '../interfaces/person_filter_search_interface.js'
 import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
@@ -80,6 +81,7 @@ export default class PersonService {
   }
 
   async update(currentPerson: Person, person: Person) {
+    const personBirthdayPast = currentPerson.personBirthday
     currentPerson.personFirstname = person.personFirstname
     currentPerson.personLastname = person.personLastname
     currentPerson.personSecondLastname = person.personSecondLastname
@@ -112,6 +114,22 @@ export default class PersonService {
           updatedBirthday = new Date(currentYear, 1, 28)
         }
         await this.updateAssistCalendar(currentPerson.employee.employeeId, updatedBirthday)
+      }
+      if (personBirthdayPast) {
+        const newPersonBirthdayPast = new Date(personBirthdayPast)
+        const datePast = typeof newPersonBirthdayPast === 'string' ? new Date(newPersonBirthdayPast) : newPersonBirthdayPast
+        const fixedBirthdayString = person.personBirthday.replace('00:000:00', '00:00:00')
+
+        const birthdayISO = DateTime.fromFormat(fixedBirthdayString, 'yyyy-MM-dd HH:mm:ss').toISO()
+        const datePastISO = DateTime.fromJSDate(datePast).toISO()
+
+        if (datePastISO !== birthdayISO) {
+          const today = new Date()
+          const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+          if (datePast <= todayAtMidnight) {
+            await this.updateAssistCalendar(currentPerson.employee.employeeId, datePast)
+          }
+        }
       }
     }
 

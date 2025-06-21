@@ -1,7 +1,8 @@
+import BusinessUnit from '#models/business_unit'
+import Employee from '#models/employee'
 import Holiday from '#models/holiday'
 import env from '#start/env'
 import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
-import EmployeeService from './employee_service.js'
 import SyncAssistsService from './sync_assists_service.js'
 
 export default class HolidayService {
@@ -50,14 +51,14 @@ export default class HolidayService {
     }
   }
 
-  async updateAssistCalendar(date: Date, departmentsList: Array<number>) {
+  async updateAssistCalendar(date: Date) {
     const dateStart = new Date(date)
     dateStart.setDate(dateStart.getDate())
 
     const dateEnd = new Date(date)
     dateEnd.setDate(dateEnd.getDate())
-    const employeeService = new EmployeeService()
-    const resultEmployes = await employeeService.index(
+      /* const employeeService = new EmployeeService()
+      const resultEmployes = await employeeService.index(
       {
         search: '',
         departmentId: 0,
@@ -66,9 +67,19 @@ export default class HolidayService {
         limit: 999999999999999,
         employeeWorkSchedule: '',
       },departmentsList
-    )
-    const dataEmployes: any = resultEmployes
-    for await (const employee of dataEmployes) {
+    ) */
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+    const employees = await Employee.query()
+      .whereIn('businessUnitId', businessUnitsList)
+      .orderBy('employee_id')
+
+    for await (const employee of employees) {
       const filter: SyncAssistsServiceIndexInterface = {
         date: this.formatDate(dateStart),
         dateEnd: this.formatDate(dateEnd),

@@ -311,7 +311,6 @@ export default class SyncAssistsService {
   }
 
   async setDateCalendar (filters: SyncAssistsServiceIndexInterface) {
-   
     if (filters.employeeID !== undefined) {
       const empCalendar = await this.index(filters)
       if (empCalendar && empCalendar.status === 200 && empCalendar.data) {

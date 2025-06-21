@@ -4,7 +4,6 @@ import Holiday from '../models/holiday.js'
 import { createOrUpdateHolidayValidator } from '../validators/holiday.js'
 import { HttpContext } from '@adonisjs/core/http'
 import env from '../../start/env.js'
-import UserService from '#services/user_service'
 
 /**
  * @swagger
@@ -144,7 +143,7 @@ export default class HolidayController {
    *       400:
    *         description: Validation error
    */
-  async store({ auth, request, response }: HttpContext) {
+  async store({ request, response }: HttpContext) {
     // try {
 
     let holiday = null as any
@@ -187,16 +186,9 @@ export default class HolidayController {
 
     const newHolidayDate = new Date(dateParts + 'T00:00:00')
     if (newHolidayDate <= todayAtMidnight) {
-      await auth.check()
-      const user = auth.user
-      let departmentsList = [] as Array<number>
-      if (user) {
-        const userService = new UserService()
-        departmentsList = await userService.getRoleDepartments(user.userId)
-      }
       const holidayService = new HolidayService()
       const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
-      await holidayService.updateAssistCalendar(date, departmentsList)
+      await holidayService.updateAssistCalendar(date)
     }
 
     return response.status(201).json({
@@ -313,7 +305,7 @@ export default class HolidayController {
    *       400:
    *         description: Validation error
    */
-  async update({ auth, params, request, response }: HttpContext) {
+  async update({ params, request, response }: HttpContext) {
     try {
       let holidayDate = request.input('holidayDate')
       holidayDate = (holidayDate.split('T')[0] + ' 00:000:00').replace('"', '')
@@ -322,23 +314,28 @@ export default class HolidayController {
       const icon = await Icon.findOrFail(holidayIconId)
       const holidayIcon = icon.iconSvg
       const holiday = await Holiday.findOrFail(params.id)
+      const holidayDatePast = holiday.holidayDate
       data = { ...data, holidayDate: holidayDate, holidayIcon: holidayIcon }
       holiday.merge(data)
       await holiday.save()
+
       const today = new Date()
       const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      
-      if (holidayDate <= todayAtMidnight) {
-        await auth.check()
-        const user = auth.user
-        let departmentsList = [] as Array<number>
-        if (user) {
-          const userService = new UserService()
-          departmentsList = await userService.getRoleDepartments(user.userId)
-        }
+      const dateParts = holidayDate.split(' ')[0]
+      const newHolidayDate = new Date(dateParts + 'T00:00:00')
+      if (newHolidayDate <= todayAtMidnight) {
         const holidayService = new HolidayService()
-        const date = typeof holidayDate === 'string' ? new Date(holidayDate) : holidayDate
-        await holidayService.updateAssistCalendar(date, departmentsList)
+        const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
+        await holidayService.updateAssistCalendar(date)
+      }
+
+      const newHolidayDatePast = new Date(holidayDatePast)
+      const datePast = typeof newHolidayDatePast === 'string' ? new Date(newHolidayDatePast) : newHolidayDatePast
+      if (newHolidayDate.toISOString() !== datePast.toISOString()) {
+        if (datePast <= todayAtMidnight) {
+          const holidayService = new HolidayService()
+          await holidayService.updateAssistCalendar(datePast)
+        }
       }
       return response.status(200).json({
         type: 'success',
@@ -392,7 +389,7 @@ export default class HolidayController {
    *       404:
    *         description: Resource not found
    */
-  async destroy({ auth, params, response }: HttpContext) {
+  async destroy({ params, response }: HttpContext) {
     try {
       const holiday = await Holiday.findOrFail(params.id)
       await holiday.delete()
@@ -401,21 +398,14 @@ export default class HolidayController {
       const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
       
       const holidayDate = holiday.holidayDate
-      const date = typeof holidayDate === 'string' ? new Date(holidayDate) : holidayDate
-
+      const newHolidayDate = new Date(holidayDate)
+      const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
 
       if (date <= todayAtMidnight) {
-        await auth.check()
-        const user = auth.user
-        let departmentsList = [] as Array<number>
-        if (user) {
-          const userService = new UserService()
-          departmentsList = await userService.getRoleDepartments(user.userId)
-        }
         const holidayService = new HolidayService()
-       
-        await holidayService.updateAssistCalendar(date, departmentsList)
+        await holidayService.updateAssistCalendar(date)
       }
+
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
