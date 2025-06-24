@@ -358,6 +358,12 @@ export default class DepartmentController {
    *         description: Departmemnt id
    *         schema:
    *           type: integer
+   *       - name: getAll
+   *         in: query
+   *         required: false
+   *         description: Get all
+   *         schema:
+   *           type: boolean
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -473,6 +479,28 @@ export default class DepartmentController {
       // Si el departmentId es 9999, retornar todas las posiciones
       if (Number.parseInt(departmentId) === 9999) {
         const allPositions = await DepartmentPosition.query()
+          .whereHas('position', (queryPosition) => {
+            queryPosition.whereIn('businessUnitId', businessUnitsList)
+          })
+          .preload('position', (queryPosition) => {
+            queryPosition.whereIn('businessUnitId', businessUnitsList)
+          })
+          .orderBy('position_id')
+
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Positions by department',
+          message: 'All positions have been found successfully',
+          data: {
+            positions: allPositions,
+          },
+        }
+      }
+      const getAll = request.input('getAll')
+      if (getAll) {
+        const allPositions = await DepartmentPosition.query()
+        .where('department_id', departmentId)
           .whereHas('position', (queryPosition) => {
             queryPosition.whereIn('businessUnitId', businessUnitsList)
           })

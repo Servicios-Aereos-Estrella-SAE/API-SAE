@@ -218,7 +218,7 @@ export default class EmployeeService {
     return employees
   }
 
-  async create(employee: Employee) {
+  async create(employee: Employee, usersResponsible: User[]) {
     const newEmployee = new Employee()
     newEmployee.employeeFirstName = employee.employeeFirstName
     newEmployee.employeeLastName = employee.employeeLastName
@@ -240,6 +240,7 @@ export default class EmployeeService {
     newEmployee.employeeIgnoreConsecutiveAbsences = employee.employeeIgnoreConsecutiveAbsences
     await newEmployee.save()
     await newEmployee.load('businessUnit')
+    await this.setUserResponsible(newEmployee.employeeId, usersResponsible ? usersResponsible : [])
     return newEmployee
   }
 
