@@ -1687,6 +1687,9 @@ export default class AssistsService {
       }
     }
 
+    const delayTolerances = this.getFaultsFromDelays(tolerances, filters.toleranceCountPerAbsences)
+    delays += delayTolerances
+
     delayFaults = this.getFaultsFromDelays(delays, filters.tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, filters.tardies)
     rows.push({
@@ -2034,6 +2037,7 @@ export default class AssistsService {
       const start = thursday.minus({ days: 24 })
       const firstDayPeriod = start.minus({ days: 1 }).startOf('day').setZone('utc')
       const tardies = await this.getTardiesTolerance()
+      const toleranceCountPerAbsences = await this.getToleranceCountPerAbsence()
       const syncAssistsService = new SyncAssistsService()
       const period = this.calculatePayPeriod(date)
       const dateNew = new Date(date)
@@ -2076,7 +2080,7 @@ export default class AssistsService {
         const data: any = result.data
         if (data) {
           const employeeCalendar = data.employeeCalendar as AssistDayInterface[]
-          const faults = await this.getFaultsFromEmployeeCalendar(employeeCalendar, tardies)
+          const faults = await this.getFaultsFromEmployeeCalendar(employeeCalendar, tardies, toleranceCountPerAbsences)
           faultsTotal += faults
           if (faults > 0) {
             worksheet.addRow({
@@ -2113,7 +2117,7 @@ export default class AssistsService {
     }
   }
 
-  async getFaultsFromEmployeeCalendar(employeeCalendar: AssistDayInterface[], tardies: number) {
+  async getFaultsFromEmployeeCalendar(employeeCalendar: AssistDayInterface[], tardies: number, toleranceCountPerAbsences: number) {
     let daysWorked = 0
     let daysOnTime = 0
     let tolerances = 0
@@ -2194,6 +2198,10 @@ export default class AssistsService {
         }
       }
     }
+
+    const delayTolerances = this.getFaultsFromDelays(tolerances, toleranceCountPerAbsences)
+    delays += delayTolerances
+
     delayFaults = this.getFaultsFromDelays(delays, tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, tardies)
     faults = faults + delayFaults + earlyOutsFaults
@@ -2441,7 +2449,6 @@ export default class AssistsService {
     let holidaysWorked = 0
     let faults = 0
     let delayFaults = 0
-    // let delayTolerances = 0
     let earlyOutsFaults = 0
     let vacationBonus = 0
     let daysWorkDisability = 0
@@ -2551,9 +2558,13 @@ export default class AssistsService {
         }
       }
     }
-    // delayTolerances = this.getFaultsFromDelays(tolerances, filters.toleranceCountPerAbsences)
+
+    const delayTolerances = this.getFaultsFromDelays(tolerances, filters.toleranceCountPerAbsences)
+    delays += delayTolerances
+
     delayFaults = this.getFaultsFromDelays(delays, filters.tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, filters.tardies)
+   
     vacationBonus = this.getVacationBonus(filters.employee, filters.datePay)
     daysWorkDisability = await this.getDaysWorkDisability(filters.employee, filters.datePay)
     let company = ''

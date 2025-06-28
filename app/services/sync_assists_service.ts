@@ -1157,7 +1157,6 @@ export default class SyncAssistsService {
 
       return checkAssist
     }
-
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssist.assist.checkInStatus = 'delay'
     }
@@ -1173,7 +1172,6 @@ export default class SyncAssistsService {
     if (discriminated) {
       checkAssist.assist.checkInStatus = ''
     }
-
     return checkAssist
   }
 
