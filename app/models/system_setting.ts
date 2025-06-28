@@ -33,6 +33,9 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
  *          systemSettingBusinessUnits:
  *            type: string
  *            description: Available business Units
+ *          systemSettingToleranceCountPerAbsence:
+ *            type: number
+ *            description: System setting tolerance count per absence
  *          systemSettingActive:
  *            type: number
  *            description: System setting status
@@ -61,13 +64,16 @@ export default class SystemSetting extends compose(BaseModel, SoftDeletes) {
   declare systemSettingSidebarColor: string
 
   @column()
-  declare systemSettingBusinessUnits: string
-
-  @column()
   declare systemSettingFavicon: string
 
   @column()
   declare systemSettingActive: number
+
+  @column()
+  declare systemSettingBusinessUnits: string
+
+  @column()
+  declare systemSettingToleranceCountPerAbsence: number
 
   @column.dateTime({ autoCreate: true })
   declare systemSettingCreatedAt: DateTime
