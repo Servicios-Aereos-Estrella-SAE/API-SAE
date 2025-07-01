@@ -24,6 +24,7 @@ import SystemSetting from '#models/system_setting'
 import User from '#models/user'
 import Role from '#models/role'
 import AssistsService from '#services/assist_service'
+import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -227,10 +228,13 @@ export default class EmployeeController {
       apiUrl = `${apiUrl}&departmentId=${departmentId || ''}`
       apiUrl = `${apiUrl}&positionId=${positionId || ''}`
       apiUrl = `${apiUrl}&hireDate=${hireDate || ''}`
+
       const apiResponse = await axios.get(apiUrl)
       const data = apiResponse.data.data
+
       let withOutDepartmentId = null
       let withOutPositionId = null
+
       const department = await Department.query()
         .whereNull('department_deleted_at')
         .where('department_name', 'Sin departamento')
@@ -245,41 +249,52 @@ export default class EmployeeController {
       if (position) {
         withOutPositionId = position.positionId
       }
-      const role = await Role.query()
-        .where('role_slug', 'rh-manager')
+      const roles = await Role.query()
+        .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
         .whereNull('role_deleted_at')
-        .first()
-      let usersResponsible = [] as Array<User>
-      if (role) {
+
+      let usersResponsible: Array<User> = []
+
+      if (roles.length) {
+        const roleIds = roles.map((role) => role.roleId)
         usersResponsible = await User.query()
-          .where('role_id', role.roleId)
+          .whereIn('role_id', roleIds)
+          .preload('role')
           .orderBy('user_id')
       }
+
       if (data) {
         const employeeService = new EmployeeService()
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
 
         let employeeCountSaved = 0
+
         for await (const employee of data) {
           let existInBusinessUnitList = false
+          let businessUnitApply = null
+
           if (employee.payrollNum) {
-            if (businessUnitsList.includes(employee.payrollNum)) {
+            if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
               existInBusinessUnitList = true
+              businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${employee.payrollNum}`.toLocaleLowerCase())
             }
           } else if (employee.personnelEmployeeArea.length > 0) {
             for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
               if (personnelEmployeeArea.personnelArea) {
-                if (businessUnitsList.includes(personnelEmployeeArea.personnelArea.areaName)) {
+                if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
                   existInBusinessUnitList = true
+                  businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())
                   break
                 }
               }
             }
           }
+
           if (existInBusinessUnitList) {
             employee.departmentId = withOutDepartmentId
             employee.positionId = withOutPositionId
             employee.usersResponsible = usersResponsible
+            employee.businessUnitId = businessUnitApply?.businessUnitId || 1
             employeeCountSaved += 1
 
             await this.verify(employee, employeeService)
@@ -2860,8 +2875,15 @@ export default class EmployeeController {
         .if(userResponsibleId &&
           typeof userResponsibleId && userResponsibleId > 0,
           (query) => {
-            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-              userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+            query.where((subQuery) => {
+              subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+                userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+              })
+              subQuery.orWhereHas('person', (personQuery) => {
+                personQuery.whereHas('user', (userQuery) => {
+                  userQuery.where('userId', userResponsibleId!)
+                })
+              })
             })
           }
         )
@@ -4177,6 +4199,12 @@ export default class EmployeeController {
    *       - Employees
    *     summary: get days work disability by employee id
    *     parameters:
+   *       - in: path
+   *         name: employeeId
+   *         schema:
+   *           type: number
+   *         description: Employee id
+   *         required: true
    *       - name: datePay
    *         in: query
    *         schema:
@@ -4310,6 +4338,159 @@ export default class EmployeeController {
         title: 'Employees',
         message: 'The days work disability were found successfully',
         data: { data: days },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/get-days-work-disability-all:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get days work disability all employees
+   *     parameters:
+   *       - name: datePay
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: Pay date for filtering
+   *       - name: departmentId
+   *         in: query
+   *         required: false
+   *         description: Department Id
+   *         schema:
+   *           type: integer
+   *       - name: employeeId
+   *         in: query
+   *         required: false
+   *         description: Employee Id
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getDaysWorkDisabilityAll({ request, response }: HttpContext) {
+    try {
+
+      const datePay = request.input('datePay')
+
+      if (!datePay) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The date pay was not found',
+          data: { datePay },
+        }
+      }
+      const departmentId = request.input('departmentId')
+      const employeeId = request.input('employeeId')
+
+      const assistService = new AssistsService()
+      const filter = {
+        datePay: datePay,
+        departmentId: departmentId ? departmentId : 0,
+        employeeId: employeeId ? employeeId : 0,
+      } as EmployeeWorkDaysDisabilityFilterInterface
+
+      const employees = await assistService.getDaysWorkDisabilityAll(filter)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees with days work disability were found successfully',
+        data: { data: employees },
       }
     } catch (error) {
       response.status(500)
@@ -4739,6 +4920,151 @@ export default class EmployeeController {
         type: 'error',
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/proxy-image:
+   *   get:
+   *     tags:
+   *       - Employees
+   *     summary: Proxy endpoint to serve external images securely
+   *     parameters:
+   *       - in: query
+   *         name: url
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: URL of the external image to proxy
+   *     responses:
+   *       '200':
+   *         description: Image served successfully
+   *         content:
+   *           image/*:
+   *             schema:
+   *               type: string
+   *               format: binary
+   *       '400':
+   *         description: Invalid or missing URL parameter
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                 title:
+   *                   type: string
+   *                 message:
+   *                   type: string
+   *       '500':
+   *         description: Error loading the image
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                 title:
+   *                   type: string
+   *                 message:
+   *                   type: string
+   */
+  async proxyImage({ request, response }: HttpContext) {
+    try {
+      const imageUrl = request.input('url')
+
+      if (!imageUrl) {
+        response.status(400)
+        return {
+          type: 'error',
+          title: 'Invalid request',
+          message: 'URL parameter is required',
+        }
+      }
+
+      // Validar que la URL sea válida
+      try {
+        new URL(imageUrl)
+      } catch {
+        response.status(400)
+        return {
+          type: 'error',
+          title: 'Invalid URL',
+          message: 'The provided URL is not valid',
+        }
+      }
+
+      // Validar que la URL apunte a un dominio permitido (opcional, por seguridad)
+      const allowedDomains = [
+        '201.150.46.146:81',
+        'sfo3.digitaloceanspaces.com'
+        // Agrega aquí los dominios que consideres seguros
+      ]
+
+      const urlObject = new URL(imageUrl)
+      // Crear el host completo (hostname + puerto si existe)
+      const fullHost = urlObject.port
+        ? `${urlObject.hostname}:${urlObject.port}`
+        : urlObject.hostname
+
+      if (allowedDomains.length > 0 && !allowedDomains.includes(fullHost) && !allowedDomains.includes(urlObject.hostname)) {
+        response.status(403)
+        return {
+          type: 'error',
+          title: 'Forbidden domain',
+          message: `The requested domain "${fullHost}" is not allowed`,
+        }
+      }
+
+      // Realizar la petición a la imagen externa
+      const imageResponse = await axios.get(imageUrl, {
+        responseType: 'stream',
+        timeout: 10000, // 10 segundos de timeout
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
+        },
+      })
+
+      // Obtener el content-type de la respuesta
+      const contentType = imageResponse.headers['content-type']
+
+      // Validar que sea realmente una imagen
+      if (!contentType || !contentType.startsWith('image/')) {
+        response.status(400)
+        return {
+          type: 'error',
+          title: 'Invalid content type',
+          message: 'The requested URL does not point to an image',
+        }
+      }
+
+      // Configurar las cabeceras de respuesta
+      response.header('Content-Type', contentType)
+      response.header('Cache-Control', 'public, max-age=86400') // Cache por 24 horas
+
+      // Transmitir la imagen
+      return response.stream(imageResponse.data)
+
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        response.status(408)
+        return {
+          type: 'error',
+          title: 'Request timeout',
+          message: 'The image request timed out',
+        }
+      }
+
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'Error loading the image',
         error: error.message,
       }
     }

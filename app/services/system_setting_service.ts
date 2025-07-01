@@ -46,6 +46,7 @@ export default class SystemSettingService {
     newSystemSetting.systemSettingFavicon = systemSetting.systemSettingFavicon
     newSystemSetting.systemSettingActive = systemSetting.systemSettingActive
     newSystemSetting.systemSettingBusinessUnits = systemSetting.systemSettingBusinessUnits
+    newSystemSetting.systemSettingToleranceCountPerAbsence = systemSetting.systemSettingToleranceCountPerAbsence
     await newSystemSetting.save()
     return newSystemSetting
   }
@@ -57,6 +58,7 @@ export default class SystemSettingService {
     currentSystemSetting.systemSettingBanner = systemSetting.systemSettingBanner
     currentSystemSetting.systemSettingFavicon = systemSetting.systemSettingFavicon
     currentSystemSetting.systemSettingActive = systemSetting.systemSettingActive
+    currentSystemSetting.systemSettingToleranceCountPerAbsence = systemSetting.systemSettingToleranceCountPerAbsence
     await currentSystemSetting.save()
     return currentSystemSetting
   }

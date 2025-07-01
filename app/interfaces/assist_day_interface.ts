@@ -13,6 +13,7 @@ interface AssistDayInterface {
     checkEatOut: AssistInterface | null
     dateShift: ShiftInterface | null
     dateShiftApplySince: string | Date | null
+    employeeShiftId: number | null
     shiftCalculateFlag: string
     checkInDateTime: DateTime | null
     checkOutDateTime: DateTime | null

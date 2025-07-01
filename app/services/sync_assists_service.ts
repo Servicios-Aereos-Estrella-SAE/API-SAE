@@ -580,6 +580,7 @@ export default class SyncAssistsService {
             checkOut: this.getCheckOutDate(dayAssist),
             dateShift: dateShift ? dateShift.shift : null,
             dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+            employeeShiftId: dateShift ? dateShift.employeeShiftId : null,
             shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
             checkInDateTime: null,
             checkOutDateTime: null,
@@ -677,6 +678,7 @@ export default class SyncAssistsService {
           checkEatOut: null,
           dateShift: dateShift ? dateShift.shift : null,
           dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+          employeeShiftId: dateShift ? dateShift.employeeShiftId : null,
           shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
           checkInDateTime: null,
           checkOutDateTime: null,
@@ -730,6 +732,7 @@ export default class SyncAssistsService {
       this.hasSomeExceptionTimeCheckIn(dateAssistItem, TOLERANCE_DELAY_MINUTES)
       this.hasSomeExceptionTimeCheckOut(dateAssistItem)
       this.hasSomeException(employeeID, dateAssistItem, employee)
+      this.verifyCheckOutToday(dateAssistItem)
       if (dateAssistItem.assist.dateShift) {
         const isShiftChanged = dateAssistItem.assist.dateShift.shiftIsChange
         const shift = JSON.parse(JSON.stringify(dateAssistItem.assist.dateShift))
@@ -815,9 +818,12 @@ export default class SyncAssistsService {
     if (employee.shiftChanges.length > 0) {
       if (employee.shiftChanges[0].shiftTo) {
         checkAssist.assist.dateShift = employee.shiftChanges[0].shiftTo
+        checkAssist.assist.isRestDay = false
+
         if (employee.shiftChanges[0].employeeShiftChangeDateToIsRestDay) {
           checkAssist.assist.isRestDay = true
         }
+
         if (checkAssist.assist.dateShift) {
           checkAssist.assist.dateShift.shiftIsChange = true
         }
@@ -907,13 +913,16 @@ export default class SyncAssistsService {
     }
 
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('UTC-6')
-    const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, startDay, dateAssistItem.assist.shiftCalculateFlag)
+    const shangeShiftStartDay = dateAssistItem.assist.dateShift?.shiftIsChange ? evaluatedDay : startDay
+
+    const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, shangeShiftStartDay, dateAssistItem.assist.shiftCalculateFlag)
 
     let isStartWorkday = calendarDayStatus.isStartWorkday
     let isRestWorkday = calendarDayStatus.isRestWorkday
+
     if (isRestWorkday !==  dateAssistItem.assist.isRestDay &&  dateAssistItem.assist.dateShift?.shiftIsChange) {
       isRestWorkday = dateAssistItem.assist.isRestDay
-      }
+    }
     dateAssistItem.assist.isFutureDay = calendarDayStatus.isNextDay
 
     if (dateAssistItem.assist.exceptions.length > 0) {
@@ -943,7 +952,21 @@ export default class SyncAssistsService {
         }
       }
 
-      
+      const vacationDay = dateAssistItem.assist.exceptions.find((ex) => ex.shiftExceptionEnjoymentOfSalary !== 0 && ex.exceptionType?.exceptionTypeSlug === 'vacation')
+
+      if (vacationDay) {
+        dateAssistItem.assist.isVacationDate = true
+
+        dateAssistItem.assist.checkInStatus = ''
+        dateAssistItem.assist.checkOutStatus = ''
+
+        dateAssistItem.assist.checkIn = null
+        dateAssistItem.assist.checkEatIn = null
+        dateAssistItem.assist.checkEatOut = null
+        dateAssistItem.assist.checkOut = null
+      }
+
+
     }
 
     if (isStartWorkday) {
@@ -1134,7 +1157,6 @@ export default class SyncAssistsService {
 
       return checkAssist
     }
-
     if (diffTime > TOLERANCE_DELAY_MINUTES) {
       checkAssist.assist.checkInStatus = 'delay'
     }
@@ -1150,7 +1172,6 @@ export default class SyncAssistsService {
     if (discriminated) {
       checkAssist.assist.checkInStatus = ''
     }
-
     return checkAssist
   }
 
@@ -1687,4 +1708,31 @@ export default class SyncAssistsService {
 
     return checkAssist
   }
+
+  private verifyCheckOutToday(checkAssist: AssistDayInterface) {
+    if (!checkAssist?.assist?.dateShift) {
+      return checkAssist
+    }
+    if (checkAssist.assist.checkInStatus === 'fault') {
+      return checkAssist
+    }
+    const hourStart = checkAssist.assist.dateShift.shiftTimeStart
+    const shiftActiveHours = checkAssist.assist.dateShift.shiftActiveHours
+    const day = checkAssist.day
+
+    const stringDate = `${day}T${hourStart}`
+    const start = DateTime.fromISO(stringDate, { zone: 'UTC-6' })
+    const end = start.plus({ hours: shiftActiveHours })
+
+    const now = DateTime.now().setZone('UTC-6')
+
+    if (end < now) {
+      if (checkAssist.assist.checkIn && !checkAssist.assist.checkOut) {
+        checkAssist.assist.checkInStatus = 'fault'
+      }
+    }
+
+      return checkAssist
+    }
+
 }

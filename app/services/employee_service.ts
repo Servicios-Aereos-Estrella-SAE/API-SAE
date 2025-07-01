@@ -32,7 +32,7 @@ export default class EmployeeService {
       .where('employee_type_slug', 'employee')
       .whereNull('employee_type_deleted_at')
       .first()
-    
+
     if (newPerson) {
       newEmployee.personId = newPerson.personId
     }
@@ -45,6 +45,8 @@ export default class EmployeeService {
     newEmployee.companyId = employee.companyId
     newEmployee.departmentId = employee.departmentId
     newEmployee.positionId = employee.positionId
+    newEmployee.businessUnitId = employee.businessUnitId || 1
+
     if (employeeType?.employeeTypeId) {
       newEmployee.employeeTypeId = employeeType.employeeTypeId
     }
@@ -60,7 +62,6 @@ export default class EmployeeService {
     await this.setUserResponsible(newEmployee.employeeId, employee.usersResponsible ? employee.usersResponsible : [])
    /*  await newEmployee.load('employeeType')
     if (newEmployee.employeeType.employeeTypeSlug === 'employee' && newPerson) {
-      
       const user = {
         userEmail: newPerson.personEmail,
         userPassword: '',
@@ -188,8 +189,16 @@ export default class EmployeeService {
       .if(filters.userResponsibleId &&
         typeof filters.userResponsibleId && filters.userResponsibleId > 0,
         (query) => {
-          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+          query.where((subQuery) => {
+            subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+              userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+            })
+            subQuery.orWhereHas('person', (personQuery) => {
+              personQuery.whereHas('user', (userQuery) => {
+                userQuery.where('userId', filters.userResponsibleId!)
+              })
+            })
           })
         }
       )
@@ -303,8 +312,16 @@ export default class EmployeeService {
       .if(userResponsibleId &&
         typeof userResponsibleId && userResponsibleId > 0,
         (query) => {
-          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+          query.where((subQuery) => {
+            subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', userResponsibleId!)
+              userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+            })
+            subQuery.orWhereHas('person', (personQuery) => {
+              personQuery.whereHas('user', (userQuery) => {
+                userQuery.where('userId', userResponsibleId!)
+              })
+            })
           })
         }
       )
@@ -1243,6 +1260,9 @@ export default class EmployeeService {
       const userResponsibleEmployee = new UserResponsibleEmployee
       userResponsibleEmployee.userId = user.userId
       userResponsibleEmployee.employeeId = employeeId
+      if (user.role.roleSlug === 'nominas') {
+        userResponsibleEmployee.userResponsibleEmployeeReadonly = 1
+      }
       await userResponsibleEmployee.save()
     }
   }

@@ -212,8 +212,16 @@ export default class UserService {
       .if(userId &&
         typeof userId,
         (query) => {
-          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', userId!)
+          query.where((subQuery) => {
+            subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', userId!)
+              userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+            })
+            subQuery.orWhereHas('person', (personQuery) => {
+              personQuery.whereHas('user', (userQuery) => {
+                userQuery.where('userId', userId!)
+              })
+            })
           })
         }
       )
@@ -315,8 +323,16 @@ export default class UserService {
       .if(userId &&
         typeof userId,
         (query) => {
-          query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-            userResponsibleEmployeeQuery.where('userId', userId!)
+          query.where((subQuery) => {
+            subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+              userResponsibleEmployeeQuery.where('userId', userId!)
+              userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+            })
+            subQuery.orWhereHas('person', (personQuery) => {
+              personQuery.whereHas('user', (userQuery) => {
+                userQuery.where('userId', userId!)
+              })
+            })
           })
         }
       )
@@ -349,8 +365,16 @@ export default class UserService {
         employeeQuery.if(filters.userResponsibleId &&
           typeof filters.userResponsibleId && filters.userResponsibleId > 0,
           (query) => {
-            query.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
-              userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+            query.where((subQuery) => {
+              subQuery.whereHas('userResponsibleEmployee', (userResponsibleEmployeeQuery) => {
+                userResponsibleEmployeeQuery.where('userId', filters.userResponsibleId!)
+                userResponsibleEmployeeQuery.whereNull('user_responsible_employee_deleted_at')
+              })
+              subQuery.orWhereHas('person', (personQuery) => {
+                personQuery.whereHas('user', (userQuery) => {
+                  userQuery.where('userId', filters.userResponsibleId!)
+                })
+              })
             })
           }
         )
