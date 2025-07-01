@@ -14,6 +14,7 @@ router
     router.post('/synchronize', '#controllers/assists_controller.synchronize')
     router.post('/employee-synchronize', '#controllers/assists_controller.employeeSynchronize')
     router.post('/', '#controllers/assists_controller.store')
+    router.put('/:assistId/inactivate', '#controllers/assists_controller.inactivate')
   })
   .use(middleware.auth())
   .prefix('/api/v1/assists')
