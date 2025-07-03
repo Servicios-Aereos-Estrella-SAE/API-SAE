@@ -1193,6 +1193,153 @@ export default class AssistsController {
     }
   }
 
+
+  /**
+   * @swagger
+   * /api/assists/{assistId}/inactivate:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Assists
+   *     summary: inactivate assist
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: assistId
+   *         schema:
+   *           type: number
+   *         description: Assist id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async inactivate({ request, response }: HttpContext) {
+    try {
+      const assistId = request.param('assistId')
+      if (!assistId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The assistId Id was not found',
+          data: { ...request.all() },
+        }
+      }
+      const currentAssist = await Assist.query()
+        .whereNull('assist_deleted_at')
+        .where('assist_id', assistId)
+        .first()
+      if (!currentAssist) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The assist was not found',
+          message: 'The assist was not found with the entered ID',
+          data: { assistId },
+        }
+      }
+      currentAssist.assistActive = 0
+      await currentAssist.save()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The assist was inactivate successfully',
+        data: { assist: currentAssist },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
   private getMexicoDSTChangeDates (year: number) {
     const startDST = new Date(year, 3, 1)
     startDST.setDate(1 + (7 - startDST.getDay()) % 7) // Asegura que es el primer domingo
