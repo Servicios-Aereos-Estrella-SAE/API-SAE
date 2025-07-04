@@ -196,6 +196,10 @@ export default class SystemSettingController {
    *                 description: System setting status
    *                 required: false
    *                 default: true
+   *               systemSettingToleranceCountPerAbsence:
+   *                 type: number
+   *                 description: System setting tolerance count per absence
+   *                 required: false
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -282,6 +286,7 @@ export default class SystemSettingController {
       const systemSettingTradeName = request.input('systemSettingTradeName')
       const systemSettingSidebarColor = request.input('systemSettingSidebarColor')
       const systemSettingActive = request.input('systemSettingActive')
+      const systemSettingToleranceCountPerAbsence = request.input('systemSettingToleranceCountPerAbsence')
       const systemSetting = {
         systemSettingTradeName: systemSettingTradeName,
         systemSettingSidebarColor: systemSettingSidebarColor,
@@ -289,6 +294,7 @@ export default class SystemSettingController {
           systemSettingActive && (systemSettingActive === 'true' || systemSettingActive === '1')
             ? 1
             : 0,
+        systemSettingToleranceCountPerAbsence: systemSettingToleranceCountPerAbsence,
       } as SystemSetting
       const systemSettingService = new SystemSettingService()
       const data = await request.validateUsing(createSystemSettingValidator)
@@ -466,6 +472,10 @@ export default class SystemSettingController {
    *                 description: System setting status
    *                 required: false
    *                 default: true
+   *               systemSettingToleranceCountPerAbsence:
+   *                 type: number
+   *                 description: System setting tolerance count per absence
+   *                 required: false
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -553,6 +563,7 @@ export default class SystemSettingController {
       const systemSettingTradeName = request.input('systemSettingTradeName')
       const systemSettingSidebarColor = request.input('systemSettingSidebarColor')
       const systemSettingActive = request.input('systemSettingActive')
+      const systemSettingToleranceCountPerAbsence = request.input('systemSettingToleranceCountPerAbsence')
       const systemSetting = {
         systemSettingId: systemSettingId,
         systemSettingTradeName: systemSettingTradeName,
@@ -561,6 +572,7 @@ export default class SystemSettingController {
           systemSettingActive && (systemSettingActive === 'true' || systemSettingActive === '1')
             ? 1
             : 0,
+        systemSettingToleranceCountPerAbsence: systemSettingToleranceCountPerAbsence,
       } as SystemSetting
       if (!systemSettingId) {
         response.status(400)

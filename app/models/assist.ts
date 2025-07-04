@@ -43,6 +43,8 @@ import { compose } from '@adonisjs/core/helpers'
  *        assistPunchTimeOrigin:
  *          type: string
  *          format: date-time
+ *        assistActive:
+ *          type: integer
  *        assistCreatedAt:
  *          type: string
  *          format: date-time
@@ -86,6 +88,9 @@ export default class Assist extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare assistSyncId: number
+
+  @column()
+  declare assistActive: number
 
   @column.dateTime({ autoCreate: true })
   declare assistPunchTime: DateTime
