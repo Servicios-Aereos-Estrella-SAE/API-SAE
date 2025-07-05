@@ -179,7 +179,7 @@ export default class UserService {
     }
   }
 
-  async getRoleDepartments(userId: number) {
+  async getRoleDepartments(userId: number, hasAccessToFullEmployes: boolean = false) {
     const user = await User.query()
       .whereNull('user_deleted_at')
       .where('user_id', userId)
@@ -190,7 +190,7 @@ export default class UserService {
       return []
     }
 
-    if (user.role.roleSlug === 'root') {
+    if (user.role.roleSlug === 'root' || hasAccessToFullEmployes) {
       const departmentsList = await Department.query()
         .whereNull('department_deleted_at')
         .orderBy('departmentId')

@@ -25,6 +25,7 @@ import User from '#models/user'
 import Role from '#models/role'
 import AssistsService from '#services/assist_service'
 import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
+import RoleService from '#services/role_service'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -475,17 +476,22 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
+      let hasAccessToFullEmployes = false 
       let userResponsibleId = null
       if (user) {
         await user.preload('role')
         if (user.role.roleSlug !== 'root') {
+          const roleService = new RoleService()
+          hasAccessToFullEmployes = await roleService.hasAccessToFullEmployees(user.role.roleId)
+        }
+        if (user.role.roleSlug !== 'root' && !hasAccessToFullEmployes) {
           userResponsibleId = user?.userId
         }
       }
       const userService = new UserService()
       let departmentsList = [] as Array<number>
       if (user) {
-        departmentsList = await userService.getRoleDepartments(user.userId)
+        departmentsList = await userService.getRoleDepartments(user.userId, hasAccessToFullEmployes)
       }
       const search = request.input('search')
       const departmentId = request.input('departmentId')

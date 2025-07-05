@@ -139,6 +139,7 @@ export default class SyncAssistsService {
 
   async getAssistsRecords(dateParam: Date, page: number, limit: number) {
     return Assist.query()
+      .where('assist_active', 1)
       .where('assistPunchTimeUtc', '>', dateParam)
       .orderBy('assistPunchTimeUtc', 'asc')
       .paginate(page, limit)
@@ -503,6 +504,7 @@ export default class SyncAssistsService {
     const timeEndCST = timeEnd.setZone('UTC-6').plus({ days: 1 })
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
     const query = Assist.query()
+      .where('assist_active', 1)
     let employee = null
 
     if (bodyParams.date && !bodyParams.dateEnd) {
