@@ -29,6 +29,8 @@ import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employe
 import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
 import { AssistIncidentPayrollCalendarExcelFilterInterface } from '../interfaces/assist_incident_payroll_calendar_excel_filter_interface.js'
 import { AssistIncidentSummaryCalendarExcelFilterInterface } from '../interfaces/assist_incident_summary_calendar_excel_filter_interface.js'
+import { AssistInterface } from '../interfaces/assist_interface.js'
+import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
 
 export default class AssistsService {
   async getExcelByEmployeeAssistance(
@@ -2876,4 +2878,103 @@ export default class AssistsService {
    
     return employees.filter(a => a.shift_exceptions.length > 0)
   }
+
+  async getAssistFlatList (filters: AssistFlatFilterInterface) {
+    const stringDate = `${filters.dateStart}T00:00:00.000-06:00`
+    const time = DateTime.fromISO(stringDate, { setZone: true })
+    const timeCST = time.setZone('UTC-6')
+    const filterInitialDate = timeCST.toFormat('yyyy-LL-dd HH:mm:ss')
+    const stringEndDate = `${filters.dateEnd}T23:59:59.000-06:00`
+    const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
+    const timeEndCST = timeEnd.setZone('UTC-6').plus({ days: 1 })
+    const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd HH:mm:ss')
+    const query = Assist.query()
+      .where('assist_active', 1)
+    let employee = null
+
+
+    if (filters.dateEnd && filters.dateStart) {
+      query.where('assist_punch_time_origin', '>=', filterInitialDate)
+      query.where('assist_punch_time_origin', '<=', filterEndDate)
+    }
+
+    if (filters.employeeId) {
+      employee = await Employee.query()
+        .where('employee_id', filters.employeeId || 0)
+        .withTrashed()
+        .first()
+
+      if (!employee) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'Invalid data',
+          message: 'Employee not found',
+          data: null,
+        }
+      }
+
+      query.where('assist_emp_code', employee.employeeCode)
+    }
+
+    query.orderBy('assist_punch_time_origin', 'desc')
+
+    const assistList = await query.paginate(1, 500)
+    const assistListFlat = assistList.toJSON().data as AssistInterface[]
+    const assistDayCollection: AssistDayInterface[] = []
+    
+
+
+    for await (const item of assistListFlat) {
+      const assist = item as AssistInterface
+      const assistDate = DateTime
+        .fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true })
+        .setZone('UTC-6')
+      const assistDayStr = assistDate.toFormat('yyyy-LL-dd')
+  
+      const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDayStr)
+  
+      if (!existDay) {
+        let dayAssist: AssistInterface[] = []
+  
+        for await (const dayItem of assistListFlat) {
+          const currentDay = DateTime
+            .fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true })
+            .setZone('UTC-6')
+            .toFormat('yyyy-LL-dd')
+  
+          if (currentDay === assistDayStr) {
+            dayAssist.push(dayItem)
+          }
+        }
+  
+        dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
+  
+        return dayAssist
+      }
+    }
+  
+    return []
+  }
+
+  async updateAssistCalendar(employeeId: number, date: Date) {
+    const dateStart = new Date(date)
+    dateStart.setDate(dateStart.getDate() - 1)
+
+    const dateEnd = new Date(date)
+    dateEnd.setDate(dateEnd.getDate() + 1)
+
+    const filter: SyncAssistsServiceIndexInterface = {
+      date: this.formatDate(dateStart),
+      dateEnd: this.formatDate(dateEnd),
+      employeeID: employeeId
+    }
+    const syncAssistsService = new SyncAssistsService()
+    await syncAssistsService.setDateCalendar(filter)
+  }
+
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0]
+  }
+
 }
