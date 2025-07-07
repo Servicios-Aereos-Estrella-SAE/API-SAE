@@ -221,4 +221,22 @@ export default class RoleService {
       data: roleSystemPermissions,
     }
   }
+
+  async hasAccessToFullEmployees(roleId: number) {
+    const systemPermissionFullEmployee = await SystemPermission.query()
+      .whereNull('system_permission_deleted_at')
+      .where('system_permission_slug', 'full-employee-assigned')
+      .first()
+    if (systemPermissionFullEmployee) {
+      const roleSystemPermission = await RoleSystemPermission.query()
+        .whereNull('role_system_permission_deleted_at')
+        .where('system_permission_id', systemPermissionFullEmployee.systemPermissionId)
+        .where('role_id', roleId)
+        .first()
+      if (roleSystemPermission) {
+        return true
+      }
+    }
+    return false
+  }
 }
