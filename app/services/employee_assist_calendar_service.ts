@@ -2,6 +2,13 @@ import { DateTime } from 'luxon'
 import Employee from '#models/employee'
 import { EmployeeAssistCalendarFilterInterface } from '../interfaces/employee_assist_calendar_filter_interface.js'
 import EmployeeAssistCalendar from '#models/employee_assist_calendar'
+import { AssistDayInterface } from '../interfaces/assist_day_interface.js'
+import AssistsService from './assist_service.js'
+import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
+import ShiftExceptionService from './shift_exception_service.js'
+import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_filter_interface.js'
+import HolidayService from './holiday_service.js'
+import SyncAssistsService from './sync_assists_service.js'
 
 export default class EmployeeAssistsCalendarService {
   async index (filters: EmployeeAssistCalendarFilterInterface) {
@@ -47,7 +54,60 @@ export default class EmployeeAssistsCalendarService {
     query.preload('checkEatIn')
     query.preload('checkEatOut')
     query.orderBy('day', 'asc')
-    const employeeCalendar = await query
+    
+
+    let employeeCalendar = [] as AssistDayInterface[]
+    const employeeAssistCalendar = await query
+    const assistService = new AssistsService()
+    const holidayService = new HolidayService()
+    const shiftExceptionService = new ShiftExceptionService()
+    const syncAssistService = new SyncAssistsService()
+    for await (const calendar of employeeAssistCalendar) {
+      let assistDay = {
+        day: calendar.day,
+        assist: JSON.parse(JSON.stringify(calendar)) as any,
+      } as AssistDayInterface
+
+      assistDay.assist.exceptions = []
+      if (assistDay.assist.hasExceptions) {
+        const filter = {
+          employeeId: filters.employeeID,
+          exceptionTypeId: 0,
+          dateStart: calendar.day,
+          dateEnd: calendar.day,
+        } as ShiftExceptionFilterInterface
+        const shiftExceptionResponse = await shiftExceptionService.getByEmployee(filter)
+        assistDay.assist.exceptions = JSON.parse(JSON.stringify(shiftExceptionResponse))
+      }
+
+      if (assistDay.assist.isHoliday) {
+        const response = await holidayService.index(
+          calendar.day,
+          calendar.day,
+          '',
+          1,
+          999999
+        )
+        if (response.status === 200) {
+          if (response.holidays && response.holidays.length > 0) {
+            assistDay.assist.holiday = JSON.parse(JSON.stringify(response.holidays[0]))
+          }
+        }
+      }
+
+      assistDay.assist.assitFlatList = []
+      if (assistDay.assist.hasAssitFlatList) {
+        const filter = {
+          employeeId: filters.employeeID,
+          dateStart: calendar.day,
+          dateEnd: calendar.day,
+        } as AssistFlatFilterInterface
+        const response = await assistService.getAssistFlatList(filter)
+        assistDay.assist.assitFlatList = response
+      }
+      assistDay = syncAssistService.verifyCheckOutToday(assistDay)
+      employeeCalendar.push(assistDay)
+    }
     return {
       status: 200,
       type: 'success',

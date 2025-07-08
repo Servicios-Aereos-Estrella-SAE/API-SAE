@@ -33,6 +33,8 @@ interface AssistDayInterface {
     isCheckOutNextDay?: boolean
     isCheckOutEatNextDay?: boolean
     isCheckInEatNextDay?: boolean
+    hasAssitFlatList?: boolean
+    employeeId?: number
   }
 }
 

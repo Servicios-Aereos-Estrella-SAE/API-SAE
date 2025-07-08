@@ -2905,13 +2905,7 @@ export default class AssistsService {
         .first()
 
       if (!employee) {
-        return {
-          status: 400,
-          type: 'warning',
-          title: 'Invalid data',
-          message: 'Employee not found',
-          data: null,
-        }
+        return []
       }
 
       query.where('assist_emp_code', employee.employeeCode)

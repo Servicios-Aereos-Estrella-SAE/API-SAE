@@ -1699,7 +1699,7 @@ export default class SyncAssistsService {
     return checkAssist
   }
 
-  private verifyCheckOutToday(checkAssist: AssistDayInterface) {
+  verifyCheckOutToday(checkAssist: AssistDayInterface) {
     if (!checkAssist?.assist?.dateShift) {
       return checkAssist
     }
