@@ -20,16 +20,7 @@ export default class EmployeeAssistsCalendarService {
     const timeEnd = DateTime.fromISO(stringEndDate, { setZone: true })
     const timeEndCST = timeEnd.setZone('UTC-6')//.plus({ days: 1 })
     const filterEndDate = timeEndCST.toFormat('yyyy-LL-dd')
-    const query = EmployeeAssistCalendar.query()
     let employee = null
-    if (filters.dateStart && !filters.dateEnd) {
-      query.where('day', '>=', filterInitialDate)
-    }
-
-    if (filters.dateEnd && filters.dateStart) {
-      query.where('day', '>=', filterInitialDate)
-      query.andWhere('day', '<=', filterEndDate)
-    }
     if (filters.employeeID) {
       employee = await Employee.query()
         .where('employee_id', filters.employeeID || 0)
@@ -46,68 +37,32 @@ export default class EmployeeAssistsCalendarService {
         }
       }
 
-      query.where('employee_id', employee.employeeId)
     }
-    query.preload('dateShift')
-    query.preload('checkIn')
-    query.preload('checkOut')
-    query.preload('checkEatIn')
-    query.preload('checkEatOut')
-    query.orderBy('day', 'asc')
-    
+   
+    let employeeCalendar = await this.fetchData(filters, filterInitialDate, filterEndDate, employee)
 
-    let employeeCalendar = [] as AssistDayInterface[]
-    const employeeAssistCalendar = await query
-    const assistService = new AssistsService()
-    const holidayService = new HolidayService()
-    const shiftExceptionService = new ShiftExceptionService()
-    const syncAssistService = new SyncAssistsService()
-    for await (const calendar of employeeAssistCalendar) {
-      let assistDay = {
-        day: calendar.day,
-        assist: JSON.parse(JSON.stringify(calendar)) as any,
-      } as AssistDayInterface
-
-      assistDay.assist.exceptions = []
-      if (assistDay.assist.hasExceptions) {
-        const filter = {
-          employeeId: filters.employeeID,
-          exceptionTypeId: 0,
-          dateStart: calendar.day,
-          dateEnd: calendar.day,
-        } as ShiftExceptionFilterInterface
-        const shiftExceptionResponse = await shiftExceptionService.getByEmployee(filter)
-        assistDay.assist.exceptions = JSON.parse(JSON.stringify(shiftExceptionResponse))
-      }
-
-      if (assistDay.assist.isHoliday) {
-        const response = await holidayService.index(
-          calendar.day,
-          calendar.day,
-          '',
-          1,
-          999999
-        )
-        if (response.status === 200) {
-          if (response.holidays && response.holidays.length > 0) {
-            assistDay.assist.holiday = JSON.parse(JSON.stringify(response.holidays[0]))
-          }
-        }
-      }
-
-      assistDay.assist.assitFlatList = []
-      if (assistDay.assist.hasAssitFlatList) {
-        const filter = {
-          employeeId: filters.employeeID,
-          dateStart: calendar.day,
-          dateEnd: calendar.day,
-        } as AssistFlatFilterInterface
-        const response = await assistService.getAssistFlatList(filter)
-        assistDay.assist.assitFlatList = response
-      }
-      assistDay = syncAssistService.verifyCheckOutToday(assistDay)
-      employeeCalendar.push(assistDay)
+    const allDatesInRange: string[] = []
+    for (
+      let dt = DateTime.fromISO(filters.dateStart);
+      dt <= DateTime.fromISO(filters.dateEnd);
+      dt = dt.plus({ days: 1 })
+    ) {
+      allDatesInRange.push(dt.toFormat('yyyy-LL-dd'))
     }
+
+    const datesWithData = new Set(employeeCalendar.map(c => c.day))
+    const missingDates = allDatesInRange.filter(date => !datesWithData.has(date))
+
+    if (missingDates.length > 0 && employee) {
+      const assistService = new AssistsService()
+      for await (const day of missingDates) {
+        const date = typeof day === 'string' ? new Date(day) : day
+        await assistService.updateAssistCalendar(employee.employeeId, date)
+      }
+
+      employeeCalendar = await this.fetchData(filters, filterInitialDate, filterEndDate, employee)
+    }
+
     return {
       status: 200,
       type: 'success',
@@ -117,5 +72,107 @@ export default class EmployeeAssistsCalendarService {
         employeeCalendar,
       },
     }
+  }
+
+  private async fetchData(
+    filters: EmployeeAssistCalendarFilterInterface,
+    filterInitialDate: string,
+    filterEndDate: string,
+    employee: any
+  ): Promise<AssistDayInterface[]> {
+    const query = EmployeeAssistCalendar.query()
+  
+    if (filters.dateStart && !filters.dateEnd) {
+      query.where('day', '>=', filterInitialDate)
+    }
+  
+    if (filters.dateEnd && filters.dateStart) {
+      query.where('day', '>=', filterInitialDate)
+      query.andWhere('day', '<=', filterEndDate)
+    }
+  
+    if (employee) {
+      query.where('employee_id', employee.employeeId)
+    }
+  
+    query
+      .preload('dateShift')
+      .preload('checkIn')
+      .preload('checkOut')
+      .preload('checkEatIn')
+      .preload('checkEatOut')
+      .orderBy('day', 'asc')
+  
+    const assistService = new AssistsService()
+    const holidayService = new HolidayService()
+    const shiftExceptionService = new ShiftExceptionService()
+    const syncAssistService = new SyncAssistsService()
+  
+    const employeeAssistCalendar = await query
+    const employeeCalendar: AssistDayInterface[] = []
+  
+    for await (const calendar of employeeAssistCalendar) {
+      let assistDay: AssistDayInterface = {
+        day: calendar.day,
+        assist: JSON.parse(JSON.stringify(calendar)) as any,
+      }
+  
+      assistDay.assist.exceptions = []
+  
+      const promises: Promise<any>[] = []
+  
+      if (assistDay.assist.hasExceptions) {
+        const filter = {
+          employeeId: filters.employeeID,
+          exceptionTypeId: 0,
+          dateStart: calendar.day,
+          dateEnd: calendar.day,
+        } as ShiftExceptionFilterInterface
+  
+        promises.push(
+          shiftExceptionService.getByEmployee(filter).then(response => {
+            assistDay.assist.exceptions = JSON.parse(JSON.stringify(response))
+          })
+        )
+      }
+  
+      if (assistDay.assist.isHoliday) {
+        promises.push(
+          holidayService.index(calendar.day, calendar.day, '', 1, 999999).then(response => {
+            if (response.status === 200 && response.holidays && response.holidays?.length > 0) {
+              assistDay.assist.holiday = JSON.parse(JSON.stringify(response.holidays[0]))
+            }
+          })
+        )
+      }
+  
+      assistDay.assist.assitFlatList = []
+  
+      if (assistDay.assist.hasAssitFlatList) {
+        const filter = {
+          employeeId: filters.employeeID,
+          dateStart: calendar.day,
+          dateEnd: calendar.day,
+        } as AssistFlatFilterInterface
+  
+        promises.push(
+          assistService.getAssistFlatList(filter).then(response => {
+            assistDay.assist.assitFlatList = response
+          })
+        )
+      }
+  
+      await Promise.all(promises)
+      assistDay = syncAssistService.verifyCheckOutToday(assistDay)
+  
+      employeeCalendar.push(assistDay)
+    }
+  
+    // Ordenar el resultado por día
+    employeeCalendar.sort((a, b) => {
+      return DateTime.fromISO(a.day).toMillis() - DateTime.fromISO(b.day).toMillis()
+    })
+  
+    return employeeCalendar
   }
 }
