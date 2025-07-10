@@ -9,6 +9,7 @@ import ShiftExceptionService from './shift_exception_service.js'
 import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_filter_interface.js'
 import HolidayService from './holiday_service.js'
 import SyncAssistsService from './sync_assists_service.js'
+import EmployeeShift from '#models/employee_shift'
 
 export default class EmployeeAssistsCalendarService {
   async index (filters: EmployeeAssistCalendarFilterInterface) {
@@ -36,18 +37,36 @@ export default class EmployeeAssistsCalendarService {
           data: null,
         }
       }
+    }
 
+    let employeeCalendar = await this.fetchCalendarData(filters, filterInitialDate, filterEndDate, employee)
+    const allDatesInRange: string[] = []
+    let employeeShifts = [] as EmployeeShift[]
+    if (employee) {
+       employeeShifts = await EmployeeShift.query()
+        .where('employee_id', employee.employeeId)
+        .whereBetween('employe_shifts_apply_since', [filterInitialDate, filterEndDate])
+        .whereNull('employe_shifts_deleted_at')
+        .orderBy('employe_shifts_apply_since', 'asc')
+      
     }
    
-    let employeeCalendar = await this.fetchData(filters, filterInitialDate, filterEndDate, employee)
-
-    const allDatesInRange: string[] = []
     for (
       let dt = DateTime.fromISO(filters.dateStart);
       dt <= DateTime.fromISO(filters.dateEnd);
       dt = dt.plus({ days: 1 })
     ) {
-      allDatesInRange.push(dt.toFormat('yyyy-LL-dd'))
+      const existShift = employeeShifts.find(a => {
+        const shiftDate = DateTime.fromISO(
+          typeof a.employeShiftsApplySince === 'string'
+            ? a.employeShiftsApplySince
+            : a.employeShiftsApplySince.toISOString()
+        );
+        return shiftDate <= dt;
+      });
+      if (existShift) {
+        allDatesInRange.push(dt.toFormat('yyyy-LL-dd'))
+      }
     }
 
     const datesWithData = new Set(employeeCalendar.map(c => c.day))
@@ -59,8 +78,7 @@ export default class EmployeeAssistsCalendarService {
         const date = typeof day === 'string' ? new Date(day) : day
         await assistService.updateAssistCalendar(employee.employeeId, date)
       }
-
-      employeeCalendar = await this.fetchData(filters, filterInitialDate, filterEndDate, employee)
+      employeeCalendar = await this.fetchCalendarData(filters, filterInitialDate, filterEndDate, employee)
     }
 
     return {
@@ -74,7 +92,7 @@ export default class EmployeeAssistsCalendarService {
     }
   }
 
-  private async fetchData(
+  private async fetchCalendarData(
     filters: EmployeeAssistCalendarFilterInterface,
     filterInitialDate: string,
     filterEndDate: string,
