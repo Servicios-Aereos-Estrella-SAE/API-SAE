@@ -366,6 +366,54 @@ export default class SyncAssistsService {
           employeeAssistCalendar.hasAssitFlatList = calendarObject.assist.assitFlatList && calendarObject.assist.assitFlatList?.length > 0 ? true : false
           await employeeAssistCalendar.save()
         })
+      } else if (empCalendar && empCalendar.status === 400 && empCalendar.title === 'no_employee_shifts') {
+        const start = DateTime.fromISO(filters.date)
+        const end = DateTime.fromISO(filters.dateEnd)
+
+        let current = start
+
+        while (current <= end) {
+         if (current) {
+          const day = current.toFormat('yyyy-MM-dd')
+          const existEmployeeAssistCalendar = await EmployeeAssistCalendar.query()
+            .whereNull('employee_assist_calendar_deleted_at')
+            .where('employee_id' , filters.employeeID as number)
+            .where('day' , day)
+            .first()
+        
+          if (!existEmployeeAssistCalendar) {
+            const employeeAssistCalendar = new EmployeeAssistCalendar()
+            employeeAssistCalendar.day = day
+            employeeAssistCalendar.employeeId = filters.employeeID as number
+            employeeAssistCalendar.checkInAssistId = null
+            employeeAssistCalendar.checkInDateTime = null
+            employeeAssistCalendar.checkInStatus = ''
+            employeeAssistCalendar.checkOutAssistId = null
+            employeeAssistCalendar.checkOutDateTime = null
+            employeeAssistCalendar.checkOutStatus = ''
+            employeeAssistCalendar.checkEatInAssistId = null
+            employeeAssistCalendar.checkEatOutAssistId = null
+            employeeAssistCalendar.shiftId = null
+            employeeAssistCalendar.shiftIsChange = false
+            employeeAssistCalendar.hasExceptions = false
+            employeeAssistCalendar.holidayId = null
+            employeeAssistCalendar.isBirthday = false
+            employeeAssistCalendar.isCheckInEatNextDay = false
+            employeeAssistCalendar.isCheckOutEatNextDay = false
+            employeeAssistCalendar.isCheckOutNextDay = false
+            employeeAssistCalendar.isFutureDay = false
+            employeeAssistCalendar.isHoliday = false
+            employeeAssistCalendar.isRestDay = false
+            employeeAssistCalendar.isSundayBonus = false
+            employeeAssistCalendar.isVacationDate = false
+            employeeAssistCalendar.isWorkDisabilityDate = false
+            employeeAssistCalendar.shiftCalculateFlag = null
+            employeeAssistCalendar.hasAssitFlatList = false
+            await employeeAssistCalendar.save()
+          }
+         }
+         current = current.plus({ days: 1 })
+        }
       }
     }
    
