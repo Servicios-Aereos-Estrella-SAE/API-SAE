@@ -13,6 +13,7 @@ import EmployeeShift from '#models/employee_shift'
 
 export default class EmployeeAssistsCalendarService {
   async index (filters: EmployeeAssistCalendarFilterInterface) {
+    const intialSyncDate = '2024-01-01T00:00:00.000-06:00'
     const stringDate = `${filters.dateStart}T00:00:00.000-06:00`
     const time = DateTime.fromISO(stringDate, { setZone: true })
     const timeCST = time.setZone('UTC-6')
@@ -45,12 +46,11 @@ export default class EmployeeAssistsCalendarService {
     if (employee) {
        employeeShifts = await EmployeeShift.query()
         .where('employee_id', employee.employeeId)
-        .whereBetween('employe_shifts_apply_since', [filterInitialDate, filterEndDate])
+        .whereBetween('employe_shifts_apply_since', [intialSyncDate, filterEndDate])
         .whereNull('employe_shifts_deleted_at')
         .orderBy('employe_shifts_apply_since', 'asc')
       
     }
-   
     for (
       let dt = DateTime.fromISO(filters.dateStart);
       dt <= DateTime.fromISO(filters.dateEnd);
@@ -80,7 +80,6 @@ export default class EmployeeAssistsCalendarService {
       }
       employeeCalendar = await this.fetchCalendarData(filters, filterInitialDate, filterEndDate, employee)
     }
-
     return {
       status: 200,
       type: 'success',

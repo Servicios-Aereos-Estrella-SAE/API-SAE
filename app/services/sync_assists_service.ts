@@ -27,6 +27,10 @@ import Tolerance from '#models/tolerance'
 import { ShiftInterface } from '../interfaces/shift_interface.js'
 import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
 import EmployeeAssistCalendar from '#models/employee_assist_calendar'
+import Department from '#models/department'
+import BusinessUnit from '#models/business_unit'
+import DepartmentService from './department_service.js'
+import EmployeeService from './employee_service.js'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -89,6 +93,7 @@ export default class SyncAssistsService {
       }
     }
 
+
     let result = await this.getAssistsRecords(dateParam, page, limit)
     let result2 = result.toJSON()
 
@@ -99,7 +104,13 @@ export default class SyncAssistsService {
       apiPage: page,
       apiPageSize: limit,
     }
+    const year = dateParam.getUTCFullYear()
+    const month = String(dateParam.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(dateParam.getUTCDate()).padStart(2, '0')
+    const dateStart = `${year}-${month}-${day}`
 
+    const today = DateTime.utc().toISODate()
+    await this.syncronizeAssistAllEmployeesCalendar(dateStart, today)
     return result2
   }
 
@@ -1723,6 +1734,54 @@ export default class SyncAssistsService {
     }
 
       return checkAssist
+    }
+
+    async syncronizeAssistAllEmployeesCalendar(dateStart: string, dateEnd: string) {
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+  
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+      const departmentService = new DepartmentService()
+      const employeeService = new EmployeeService()
+      const departments = await Department.query()
+        .whereIn('businessUnitId', businessUnitsList)
+        .where('departmentId', '<>', 999)
+        .orderBy('departmentName', 'asc')
+      for await (const department of departments) {
+        const departmentId = department.departmentId
+        const page = 1
+        const limit = 999999999999999
+        const resultPositions = await departmentService.getPositions(departmentId, null)
+        for await (const position of resultPositions) {
+          const resultEmployes = await employeeService.index(
+            {
+              search: '',
+              departmentId: departmentId,
+              positionId: position.positionId,
+              employeeWorkSchedule: '',
+              page: page,
+              limit: limit,
+              ignoreDiscriminated: 0,
+              ignoreExternal: 1,
+              onlyPayroll: false,
+              userResponsibleId: 0,
+            },
+            [departmentId]
+          )
+          const dataEmployes: any = resultEmployes
+          for await (const employee of dataEmployes) {
+            const filter: SyncAssistsServiceIndexInterface = {
+              date: dateStart,
+              dateEnd: dateEnd,
+              employeeID: employee.employeeId
+            }
+            await this.setDateCalendar(filter)
+          }
+        }
+      }
     }
 
 }
