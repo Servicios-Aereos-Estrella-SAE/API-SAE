@@ -22,6 +22,7 @@ import axios from 'axios'
 import EmployeeContract from '#models/employee_contract'
 import EmployeeBank from '#models/employee_bank'
 import UserResponsibleEmployee from '#models/user_responsible_employee'
+import { EmployeeSyncInterface } from '../interfaces/employee_sync_interface.js'
 
 export default class EmployeeService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -1265,5 +1266,83 @@ export default class EmployeeService {
       }
       await userResponsibleEmployee.save()
     }
+  }
+
+  async verifyExistFromBiometrics(employee: BiometricEmployeeInterface) {
+    // console.log('==============================================')
+    /* if (employee.empCode.toString() === '27800388') {
+      console.log('&&&&&&&&&&&&&&&&&&&&&&&&******************')
+    } */
+    // console.log(employee.empCode + ' ' + employee.firstName + ' ' + employee.lastName)
+    const fullName = `${employee.firstName} ${employee.lastName}`
+    const data = { 
+      message: '',
+      show: false,
+      canSelect: false
+    } as EmployeeSyncInterface
+    const existEmployeeCode = await Employee.query()
+      .where('employee_code', employee.empCode)
+      .withTrashed()
+      .first()
+    if (existEmployeeCode) {
+      // console.log(existEmployeeCode.employeeCode + ' ' + existEmployeeCode.employeeFirstName + ' ' + existEmployeeCode.employeeLastName)
+      const fullNameFind = `${existEmployeeCode.employeeFirstName} ${existEmployeeCode.employeeLastName}`
+      if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
+        // console.log('#El ID ESTA SIENDO USADO POR OTRO EMPLEADO')
+        data.show = true
+        data.message = `Este empleado no se puede seleccionar ya que su ID se encuentra ocupado por "${fullNameFind}"`
+        data.canSelect = false
+      } else {
+        data.show = false
+        data.message = ''
+        data.canSelect = false
+      }
+      return data
+    }
+    
+   
+    const existEmployeeCodeDelete = await Employee.query()
+      .whereRaw("SUBSTRING_INDEX(employee_code, '-', 1) = ?", [employee.empCode])
+      .withTrashed()
+      .first()
+    if (existEmployeeCodeDelete) {
+      // console.log(existEmployeeCodeDelete.employeeCode + ' ' + existEmployeeCodeDelete.employeeFirstName + ' ' + existEmployeeCodeDelete.employeeLastName)
+      const fullNameFind = `${existEmployeeCodeDelete.employeeFirstName} ${existEmployeeCodeDelete.employeeLastName}`
+      if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
+        // console.log('#El ID ESTA SIENDO USADO POR OTRO EMPLEADO')
+        data.show = true
+        data.message = `Este empleado no se puede seleccionar ya que su ID se encuentra ocupado por "${fullNameFind}"`
+        data.canSelect = false
+      } else {
+        data.show = false
+        data.message = ''
+        data.canSelect = false
+      }
+      return data
+    }
+    const existEmployeeName = await Employee.query()
+      .whereRaw("LOWER(CONCAT(employee_first_name, ' ', employee_last_name)) = LOWER(?)", [fullName])
+      .withTrashed()
+      .first()
+    if (existEmployeeName) {
+      // console.log(existEmployeeName.employeeCode + ' ' + existEmployeeName.employeeFirstName + ' ' + existEmployeeName.employeeLastName)
+      data.show = true
+      data.message = 'Actualmente existe un empleado con el mismo nombre en el sistema, Verifica antes de seleccionar'
+      data.canSelect = true
+      return data
+    }
+    data.show = true
+    data.message = ''
+    data.canSelect = true
+    return data
+  }
+
+  cleanString(str: string): string {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z\s]/g, '')
+      .toLowerCase()
+      .trim()
   }
 }

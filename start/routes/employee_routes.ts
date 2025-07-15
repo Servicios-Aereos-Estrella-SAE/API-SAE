@@ -4,7 +4,7 @@ import { middleware } from '#start/kernel'
 router
   .group(() => {
     router.get('/employee-generate-excel', '#controllers/employee_controller.getExcel')
-
+    router.get('/get-biometrics', '#controllers/employee_controller.getBiometrics')
     router.get('/get-days-work-disability-all', '#controllers/employee_controller.getDaysWorkDisabilityAll')
     router.get('/get-birthday', '#controllers/employee_controller.getBirthday')
     router.get('/get-vacations', '#controllers/employee_controller.getVacations')
@@ -46,6 +46,7 @@ router
       '/:employeeId/export-excel',
       '#controllers/employee_controller.exportShiftExceptionsToExcel'
     )
+
   })
   .prefix('/api/employees')
   .use(middleware.auth())
