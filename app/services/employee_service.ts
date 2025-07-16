@@ -1268,12 +1268,60 @@ export default class EmployeeService {
     }
   }
 
+  async getEmployeesToSyncFromBiometrics() {
+
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitName)
+
+
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees`
+    apiUrl = `${apiUrl}?page=${1 || ''}`
+    apiUrl = `${apiUrl}&limit=${9999999 || ''}`
+
+    const apiResponse = await axios.get(apiUrl)
+    const data = apiResponse.data.data
+    const employeesSync = [] as EmployeeSyncInterface[]
+    if (data) {
+    
+      data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+      for await (const employee of data) {
+        let existInBusinessUnitList = false
+
+        if (employee.payrollNum) {
+          if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
+            existInBusinessUnitList = true
+          }
+        } else if (employee.personnelEmployeeArea.length > 0) {
+          for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
+            if (personnelEmployeeArea.personnelArea) {
+              if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
+                existInBusinessUnitList = true
+                break
+              }
+            }
+          }
+        }
+
+        if (existInBusinessUnitList) {
+          const dataEmployee = await this.verifyExistFromBiometrics(employee)
+          if (dataEmployee.show) {
+            dataEmployee.employeeCode = employee.empCode
+            dataEmployee.employeeFirstName = employee.firstName
+            dataEmployee.employeeLastName = employee.lastName
+            employeesSync.push(dataEmployee)
+          }
+        }
+      }
+    }
+    return employeesSync
+  }
+
   async verifyExistFromBiometrics(employee: BiometricEmployeeInterface) {
-    // console.log('==============================================')
-    /* if (employee.empCode.toString() === '27800388') {
-      console.log('&&&&&&&&&&&&&&&&&&&&&&&&******************')
-    } */
-    // console.log(employee.empCode + ' ' + employee.firstName + ' ' + employee.lastName)
     const fullName = `${employee.firstName} ${employee.lastName}`
     const data = { 
       message: '',
@@ -1285,37 +1333,24 @@ export default class EmployeeService {
       .withTrashed()
       .first()
     if (existEmployeeCode) {
-      // console.log(existEmployeeCode.employeeCode + ' ' + existEmployeeCode.employeeFirstName + ' ' + existEmployeeCode.employeeLastName)
       const fullNameFind = `${existEmployeeCode.employeeFirstName} ${existEmployeeCode.employeeLastName}`
       if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
-        // console.log('#El ID ESTA SIENDO USADO POR OTRO EMPLEADO')
         data.show = true
         data.message = `Este empleado no se puede seleccionar ya que su ID se encuentra ocupado por "${fullNameFind}"`
-        data.canSelect = false
-      } else {
-        data.show = false
-        data.message = ''
         data.canSelect = false
       }
       return data
     }
-    
    
     const existEmployeeCodeDelete = await Employee.query()
       .whereRaw("SUBSTRING_INDEX(employee_code, '-', 1) = ?", [employee.empCode])
       .withTrashed()
       .first()
     if (existEmployeeCodeDelete) {
-      // console.log(existEmployeeCodeDelete.employeeCode + ' ' + existEmployeeCodeDelete.employeeFirstName + ' ' + existEmployeeCodeDelete.employeeLastName)
       const fullNameFind = `${existEmployeeCodeDelete.employeeFirstName} ${existEmployeeCodeDelete.employeeLastName}`
       if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
-        // console.log('#El ID ESTA SIENDO USADO POR OTRO EMPLEADO')
         data.show = true
         data.message = `Este empleado no se puede seleccionar ya que su ID se encuentra ocupado por "${fullNameFind}"`
-        data.canSelect = false
-      } else {
-        data.show = false
-        data.message = ''
         data.canSelect = false
       }
       return data
@@ -1325,7 +1360,6 @@ export default class EmployeeService {
       .withTrashed()
       .first()
     if (existEmployeeName) {
-      // console.log(existEmployeeName.employeeCode + ' ' + existEmployeeName.employeeFirstName + ' ' + existEmployeeName.employeeLastName)
       data.show = true
       data.message = 'Actualmente existe un empleado con el mismo nombre en el sistema, Verifica antes de seleccionar'
       data.canSelect = true
