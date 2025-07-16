@@ -1336,7 +1336,7 @@ export default class EmployeeService {
       const fullNameFind = `${existEmployeeCode.employeeFirstName} ${existEmployeeCode.employeeLastName}`
       if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
         data.show = true
-        data.message = `Este empleado no se puede seleccionar ya que su ID se encuentra ocupado por "${fullNameFind}"`
+        data.message = `This employee cannot be selected because their ID is already in use by "${fullNameFind}".`
         data.canSelect = false
       }
       return data
@@ -1350,7 +1350,7 @@ export default class EmployeeService {
       const fullNameFind = `${existEmployeeCodeDelete.employeeFirstName} ${existEmployeeCodeDelete.employeeLastName}`
       if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
         data.show = true
-        data.message = `Este empleado no se puede seleccionar ya que su ID se encuentra ocupado por "${fullNameFind}"`
+        data.message = `This employee cannot be selected because their ID is already in use by "${fullNameFind}".`
         data.canSelect = false
       }
       return data
@@ -1361,7 +1361,7 @@ export default class EmployeeService {
       .first()
     if (existEmployeeName) {
       data.show = true
-      data.message = 'Actualmente existe un empleado con el mismo nombre en el sistema, Verifica antes de seleccionar'
+      data.message = 'One employee with the same name already exists in the system. Please verify before making a selection.'
       data.canSelect = true
       return data
     }
