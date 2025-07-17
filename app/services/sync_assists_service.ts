@@ -1001,7 +1001,7 @@ export default class SyncAssistsService {
            * QUEDADO MAS TIEMPO EL EMPLEADO Y YA NO HAGA CONFLICTO CON LAS HORAS DEL PROXIMO TURNO
            * =================================================================================================================
            */
-          const checkOutToNexCalendarDay = this.setNexCalendarDayCheckOuts(evaluatedDay, assistList, checkOutDateTime)
+          const checkOutToNexCalendarDay = this.setNexCalendarDayCheckOuts(evaluatedDay, assistList, checkOutDateTime, dateAssistItem.assist.exceptions)
           calendarDay.push(...checkOutToNexCalendarDay)
 
           /**
@@ -1189,7 +1189,6 @@ export default class SyncAssistsService {
     const stringDate = `${dateYear}-${dateMonth}-${dateDay}T${hourStart}.000-06:00`
     const timeToAdd = checkAssist.assist.dateShift.shiftActiveHours * 60 - 1
     const timeToEnd = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6').plus({ minutes: timeToAdd })
-
     const currentNowTime = DateTime.now().setZone('UTC-6')
 
     if (!checkAssist?.assist?.checkOut?.assistPunchTimeUtc) {
@@ -1214,7 +1213,6 @@ export default class SyncAssistsService {
         checkAssist.assist.checkEatIn = null
       }
     }
-
     if (diffTime > 10 && (currentNowTime > timeToEnd)) {
       checkAssist.assist.checkOutStatus = 'delay'
     }
@@ -1253,7 +1251,7 @@ export default class SyncAssistsService {
     return calendarDay
   }
 
-  private setNexCalendarDayCheckOuts (evaluatedDay: DateTime, assistList: AssistDayInterface[], checkOutDateTime: DateTime): AssistInterface[] {
+  private setNexCalendarDayCheckOuts (evaluatedDay: DateTime, assistList: AssistDayInterface[], checkOutDateTime: DateTime, exceptions: ShiftExceptionInterface[]): AssistInterface[] {
     const calendarDay: AssistInterface[] = []
     const nextEvaluatedDay = evaluatedDay.plus({ days: 1 }).toFormat('yyyy-LL-dd')
     const nextDay = assistList.find((assistDate) => assistDate.day === nextEvaluatedDay)
@@ -1263,14 +1261,39 @@ export default class SyncAssistsService {
       const nexDayCheckList: AssistInterface[] = JSON.parse(JSON.stringify(nextDay.assist.assitFlatList))
       const fixedNexDayCheckList = this.fixedCSTSummerTime(evaluatedSummerNextDay, nexDayCheckList)
       fixedNexDayCheckList.forEach((checkItem) => {
+       
         const punchTime = DateTime.fromISO(`${checkItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
-        const diffToCheckOut = punchTime.diff(checkOutDateTime.plus({ hours: 3 }), 'milliseconds').milliseconds
-
+        let diffToCheckOut = punchTime.diff(checkOutDateTime.plus({ hours: 3 }), 'milliseconds').milliseconds
         if (diffToCheckOut <= 0) {
           checkItem.assistPunchTime = punchTime.setZone('UTC')
           checkItem.assistPunchTimeUtc = punchTime.setZone('UTC')
           checkItem.assistPunchTimeOrigin = punchTime.setZone('UTC')
           calendarDay.push(checkItem)
+        } else {
+          const workingDuringNonWorkingHoursShiftException = exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'working-during-non-working-hours')
+          if (
+            workingDuringNonWorkingHoursShiftException?.shiftExceptionCheckInTime &&
+            workingDuringNonWorkingHoursShiftException?.shiftExceptionCheckOutTime
+          ) {
+            const { shiftExceptionCheckInTime, shiftExceptionCheckOutTime } = workingDuringNonWorkingHoursShiftException
+          
+            const checkIn = DateTime.fromFormat(shiftExceptionCheckInTime, 'HH:mm:ss')
+            const checkOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
+          
+            const diffInHours = checkOut.diff(checkIn, 'hours').hours
+          
+            const extendedCheckOut = checkOutDateTime.plus({ hours: diffInHours + 1 })
+            diffToCheckOut = punchTime.diff(extendedCheckOut, 'milliseconds').milliseconds
+          
+            if (diffToCheckOut <= 0) {
+              const punchInUTC = punchTime.setZone('UTC')
+              checkItem.assistPunchTime = punchInUTC
+              checkItem.assistPunchTimeUtc = punchInUTC
+              checkItem.assistPunchTimeOrigin = punchInUTC
+          
+              calendarDay.push(checkItem)
+            }
+          }
         }
       })
     }
