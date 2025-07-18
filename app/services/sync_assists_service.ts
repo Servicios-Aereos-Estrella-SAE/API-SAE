@@ -1255,7 +1255,6 @@ export default class SyncAssistsService {
     const calendarDay: AssistInterface[] = []
     const nextEvaluatedDay = evaluatedDay.plus({ days: 1 }).toFormat('yyyy-LL-dd')
     const nextDay = assistList.find((assistDate) => assistDate.day === nextEvaluatedDay)
-
     if (nextDay && nextDay?.assist?.assitFlatList) {
       const evaluatedSummerNextDay = new Date(nextDay?.day)
       const nexDayCheckList: AssistInterface[] = JSON.parse(JSON.stringify(nextDay.assist.assitFlatList))
@@ -1277,14 +1276,13 @@ export default class SyncAssistsService {
           ) {
             const { shiftExceptionCheckInTime, shiftExceptionCheckOutTime } = workingDuringNonWorkingHoursShiftException
           
-            const checkIn = DateTime.fromFormat(shiftExceptionCheckInTime, 'HH:mm:ss')
-            const checkOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
+            const exceptionCheckIn = DateTime.fromFormat(shiftExceptionCheckInTime, 'HH:mm:ss')
+            const exceptionCheckOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
           
-            const diffInHours = checkOut.diff(checkIn, 'hours').hours
-          
+            const diffInHours = exceptionCheckOut.diff(exceptionCheckIn, 'hours').hours
+         
             const extendedCheckOut = checkOutDateTime.plus({ hours: diffInHours + 1 })
             diffToCheckOut = punchTime.diff(extendedCheckOut, 'milliseconds').milliseconds
-          
             if (diffToCheckOut <= 0) {
               const punchInUTC = punchTime.setZone('UTC')
               checkItem.assistPunchTime = punchInUTC
