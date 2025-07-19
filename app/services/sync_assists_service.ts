@@ -26,6 +26,7 @@ import SystemSetting from '#models/system_setting'
 import Tolerance from '#models/tolerance'
 import { ShiftInterface } from '../interfaces/shift_interface.js'
 import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
+import ShiftException from '#models/shift_exception'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -553,19 +554,63 @@ export default class SyncAssistsService {
 
     const dailyShifts: EmployeeRecordInterface[] = serviceResponse.status === 200 ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[]) : []
     const employeeShifts: ShiftRecordInterface[] = dailyShifts[0].employeeShifts as ShiftRecordInterface[]
-
     assistListFlat.forEach((item) => {
+     
       const assist = item as AssistInterface
+      const currentShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
+      
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
+      const timeToStart = currentShift.shift.shiftTimeStart
+      
       const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd'))
 
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
-        assistListFlat.forEach((dayItem: AssistInterface, index) => {
+        assistListFlat.forEach(async (dayItem: AssistInterface, index) => {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
-
+          // console.log('currentDay: ' + currentDay)
+          // console.log('dia anterior: ' + DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd'))
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
-            dayAssist.push(assistListFlat[index])
+            // console.log('timeToStart:' + timeToStart)
+            // console.log('hora:' + DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss'))
+            const assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
+            // Convertimos ambas horas en DateTime
+            const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
+            const startDateTime = DateTime.fromISO(`${today}T${timeToStart}`, { zone: 'UTC-6' })
+            const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
+
+            // Calculamos la diferencia en horas
+            let diffInHours = startDateTime.diff(checkInDateTime, 'hours').hours
+
+            // console.log('Horas de diferencia:', diffInHours)
+            let canAdd = true
+            if (diffInHours > 1) {
+              const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
+              // console.log('aqui se debe validar si hay excepcion el dia anterior')
+              const workingDuringNonWorkingHoursPreviousDay = await ShiftException.query()
+                .whereNull('shift_exceptions_deleted_at')
+                .where('shift_exceptions_date', previousDay)
+                .where('employee_id', assist.assistEmpId)
+                .whereHas('exceptionType', queryExceptionType => {
+                  queryExceptionType.where('exception_type_slug', 'working-during-non-working-hours')
+                })
+                .first()
+              if (workingDuringNonWorkingHoursPreviousDay?.shiftExceptionCheckOutTime) {
+                // console.log('si existe la excepcion el dia anterior')
+                const { shiftExceptionCheckOutTime } = workingDuringNonWorkingHoursPreviousDay
+                const exceptionCheckOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
+                // console.log('el empleado tubo que salir a las: ' + exceptionCheckOut.toFormat('HH:mm:ss'))
+                if (checkInDateTime < exceptionCheckOut ) {
+                  // esto quiere decir que si el check actual es menor o igual a esta hora , no se debe tomar en cuenta como assist del dia actual
+                  // canAdd = false
+                }
+              }
+            }
+            if (canAdd) {
+              dayAssist.push(assistListFlat[index])
+            }
+            //console.log(assistListFlat[index])
+            
           }
         })
 
@@ -915,6 +960,8 @@ export default class SyncAssistsService {
     }
 
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('UTC-6')
+    // console.log('checkInDateTime: ' + checkInDateTime.toFormat('yyyy-LL-dd HH:mm:ss'))
+    // console.log('dateAssistItem.assist.checkIn.assistPunchTimeUtc: ' + dateAssistItem.assist.checkIn?.assistPunchTimeUtc.toFormat('yyyy-LL-dd HH:mm:ss'))
     const shangeShiftStartDay = dateAssistItem.assist.dateShift?.shiftIsChange ? evaluatedDay : startDay
 
     const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, shangeShiftStartDay, dateAssistItem.assist.shiftCalculateFlag)
@@ -940,6 +987,11 @@ export default class SyncAssistsService {
         const restDay = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'rest-day')
         if (restDay) {
           isRestWorkday = true
+        } else {
+          const workingDuringNonWorkingHours = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'working-during-non-working-hours')
+          if (workingDuringNonWorkingHours) {
+            isStartWorkday = true
+          }
         }
       }
 
@@ -970,11 +1022,15 @@ export default class SyncAssistsService {
 
 
     }
-
+    // console.log('day: ' + dateAssistItem.day)
+    // console.log('isStartWorkday: ' + isStartWorkday)
     if (isStartWorkday) {
+      // console.log('checkOutDateTime: ' + checkOutDateTime.toFormat('yyyy-LL-dd HH:mm:ss'))
+      // console.log('checkInDateTime: ' + checkInDateTime.toFormat('yyyy-LL-dd HH:mm:ss'))
       const checkOutShouldbeNextDay = checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')
-
-      if (checkOutShouldbeNextDay) {
+      //console.log('checkOutShouldbeNextDay: ' + checkOutShouldbeNextDay)
+      const workingDuringNonWorkingHours = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'working-during-non-working-hours')
+      if (checkOutShouldbeNextDay || workingDuringNonWorkingHours) {
         dateAssistItem.assist.checkIn = null
         dateAssistItem.assist.checkEatIn = null
         dateAssistItem.assist.checkEatOut = null
@@ -992,6 +1048,8 @@ export default class SyncAssistsService {
            * =================================================================================================================
            */
           const checkInToNexCalendarDay = this.setNexCalendarDayCheckIns(dateAssistItem.assist.assitFlatList, checkInDateTime)
+          // console.log('checkInToNexCalendarDay: ')
+          // console.log(checkInToNexCalendarDay)
           calendarDay.push(...checkInToNexCalendarDay)
 
           /**
@@ -1002,6 +1060,8 @@ export default class SyncAssistsService {
            * =================================================================================================================
            */
           const checkOutToNexCalendarDay = this.setNexCalendarDayCheckOuts(evaluatedDay, assistList, checkOutDateTime, dateAssistItem.assist.exceptions)
+          // console.log('checkOutToNexCalendarDay: ')
+          // console.log(checkOutToNexCalendarDay)
           calendarDay.push(...checkOutToNexCalendarDay)
 
           /**
@@ -1011,6 +1071,7 @@ export default class SyncAssistsService {
            * =================================================================================================================
            */
           if (calendarDay.length > 0) {
+            // console.log('por aca')
             dateAssistItem.assist.checkIn = calendarDay[0]
 
             if (calendarDay.length >= 2) {
@@ -1044,6 +1105,7 @@ export default class SyncAssistsService {
          * =================================================================================================================
          */
         if (dateAssistItem.assist.assitFlatList && dateAssistItem.assist.assitFlatList.length > 0) {
+          // console.log('aqui se guarda')
           dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[0]
 
           if (dateAssistItem.assist.assitFlatList.length >= 2) {
@@ -1101,7 +1163,6 @@ export default class SyncAssistsService {
     }
 
     dateAssistItem.assist.checkOutStatus = ''
-
     return dateAssistItem
   }
 
@@ -1255,6 +1316,8 @@ export default class SyncAssistsService {
     const calendarDay: AssistInterface[] = []
     const nextEvaluatedDay = evaluatedDay.plus({ days: 1 }).toFormat('yyyy-LL-dd')
     const nextDay = assistList.find((assistDate) => assistDate.day === nextEvaluatedDay)
+    //console.log('nextDay: ---')
+    //console.log(nextDay?.assist)
     if (nextDay && nextDay?.assist?.assitFlatList) {
       const evaluatedSummerNextDay = new Date(nextDay?.day)
       const nexDayCheckList: AssistInterface[] = JSON.parse(JSON.stringify(nextDay.assist.assitFlatList))
@@ -1277,10 +1340,14 @@ export default class SyncAssistsService {
             const { shiftExceptionCheckInTime, shiftExceptionCheckOutTime } = workingDuringNonWorkingHoursShiftException
           
             const exceptionCheckIn = DateTime.fromFormat(shiftExceptionCheckInTime, 'HH:mm:ss')
-            const exceptionCheckOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
-          
+            let exceptionCheckOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
+            
+            // Si el checkout es antes que el checkin, se asume que es del día siguiente
+            if (exceptionCheckOut < exceptionCheckIn) {
+              exceptionCheckOut = exceptionCheckOut.plus({ days: 1 })
+            }
+            
             const diffInHours = exceptionCheckOut.diff(exceptionCheckIn, 'hours').hours
-         
             const extendedCheckOut = checkOutDateTime.plus({ hours: diffInHours + 1 })
             diffToCheckOut = punchTime.diff(extendedCheckOut, 'milliseconds').milliseconds
             if (diffToCheckOut <= 0) {
@@ -1293,6 +1360,7 @@ export default class SyncAssistsService {
             }
           }
         }
+
       })
     }
 
