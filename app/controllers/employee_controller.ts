@@ -26,6 +26,7 @@ import Role from '#models/role'
 import AssistsService from '#services/assist_service'
 import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
 import RoleService from '#services/role_service'
+import { EmployeeSyncInterface } from '../interfaces/employee_sync_interface.js'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -5071,6 +5072,336 @@ export default class EmployeeController {
         type: 'error',
         title: 'Server error',
         message: 'Error loading the image',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/get-biometrics:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get all biometrics
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getBiometrics({ response }: HttpContext) {
+    try {
+      const employeeService = new EmployeeService()
+      let employeesSync = [] as EmployeeSyncInterface[]
+      employeesSync = await employeeService.getEmployeesToSyncFromBiometrics()
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees were found successfully',
+        data: {
+          employeesSync
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/synchronization/by-selection/employees:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: sync information by selection
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               employees:
+   *                 type: array
+   *                 description: Employees selected
+   *                 required: true
+   *                 default: []
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async synchronizationBySelection({ request, response }: HttpContext) {
+    try {
+      const employees = request.input('employees')
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitName)
+      const params = new URLSearchParams()
+      params.set('employees', employees.join(','))
+
+      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees-by-selection?${params.toString()}`
+      const apiResponse = await axios.get(apiUrl)
+      const data = apiResponse.data
+      let withOutDepartmentId = null
+      let withOutPositionId = null
+
+      const department = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_name', 'Sin departamento')
+        .first()
+      if (department) {
+        withOutDepartmentId = department.departmentId
+      }
+      const position = await Position.query()
+        .whereNull('position_deleted_at')
+        .where('position_name', 'Sin posición')
+        .first()
+      if (position) {
+        withOutPositionId = position.positionId
+      }
+      const roles = await Role.query()
+        .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
+        .whereNull('role_deleted_at')
+
+      let usersResponsible: Array<User> = []
+
+      if (roles.length) {
+        const roleIds = roles.map((role) => role.roleId)
+        usersResponsible = await User.query()
+          .whereIn('role_id', roleIds)
+          .preload('role')
+          .orderBy('user_id')
+      }
+
+      if (data) {
+        const employeeService = new EmployeeService()
+        data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+
+        let employeeCountSaved = 0
+
+        for await (const employee of data) {
+          let existInBusinessUnitList = false
+          let businessUnitApply = null
+
+          if (employee.payrollNum) {
+            if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
+              existInBusinessUnitList = true
+              businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${employee.payrollNum}`.toLocaleLowerCase())
+            }
+          } else if (employee.personnelEmployeeArea.length > 0) {
+            for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
+              if (personnelEmployeeArea.personnelArea) {
+                if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
+                  existInBusinessUnitList = true
+                  businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())
+                  break
+                }
+              }
+            }
+          }
+
+          if (existInBusinessUnitList) {
+            employee.departmentId = withOutDepartmentId
+            employee.positionId = withOutPositionId
+            employee.usersResponsible = usersResponsible
+            employee.businessUnitId = businessUnitApply?.businessUnitId || 1
+            employeeCountSaved += 1
+            await this.verify(employee, employeeService)
+          }
+        }
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Employee synchronization',
+          message: 'Employees have been synchronized successfully',
+          data: {
+            data,
+          },
+        }
+      } else {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Employee synchronization',
+          message: 'No data found to synchronize',
+          data: { data },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }
