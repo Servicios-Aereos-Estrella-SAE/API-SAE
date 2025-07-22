@@ -842,7 +842,7 @@ export default class AssistsController {
    *                 type: string
    *                 format: date
    *                 description: Assist punch time (YYYY-MM-DD HH:mm:ss)
-   *                 required: true
+   *                 required: false
    *                 default: ''
    *               assistLongitude:
    *                 type: string
@@ -938,7 +938,7 @@ export default class AssistsController {
   async store({ auth, request, response }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
-      const assistPunchTime = request.input('assistPunchTime')
+      let assistPunchTime = request.input('assistPunchTime')
       const assistLongitude = request.input('assistLongitude')
       const assistLatitude = request.input('assistLatitude')
       const employee = await Employee.query()
@@ -959,13 +959,7 @@ export default class AssistsController {
       }
 
       if (!assistPunchTime) {
-        response.status(400)
-        return {
-          type: 'warning',
-          title: 'The datetime was not found',
-          message: 'The datetime was not found or is invalid',
-          data: { employeeId, assistPunchTime },
-        }
+        assistPunchTime = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd HH:mm:ss')
       }
 
 
