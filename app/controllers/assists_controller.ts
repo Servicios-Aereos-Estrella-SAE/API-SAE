@@ -959,7 +959,7 @@ export default class AssistsController {
       }
 
       if (!assistPunchTime) {
-        assistPunchTime = DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss')
+        assistPunchTime = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd HH:mm:ss')
       }
 
 
