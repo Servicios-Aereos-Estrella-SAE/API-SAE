@@ -551,10 +551,9 @@ export default class SyncAssistsService {
     if (serviceResponse.status !== 200) {
       return serviceResponse
     }
-
     const dailyShifts: EmployeeRecordInterface[] = serviceResponse.status === 200 ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[]) : []
     const employeeShifts: ShiftRecordInterface[] = dailyShifts[0].employeeShifts as ShiftRecordInterface[]
-    assistListFlat.forEach((item) => {
+    for await (const item of assistListFlat) {
      
       const assist = item as AssistInterface
       const currentShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
@@ -566,27 +565,18 @@ export default class SyncAssistsService {
 
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
-        assistListFlat.forEach(async (dayItem: AssistInterface, index) => {
+        for (const [index, dayItem] of assistListFlat.entries()) {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
-          // console.log('currentDay: ' + currentDay)
-          // console.log('dia anterior: ' + DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd'))
+         
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
-            // console.log('timeToStart:' + timeToStart)
-            // console.log('hora:' + DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss'))
             const assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
-            // Convertimos ambas horas en DateTime
             const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
             const startDateTime = DateTime.fromISO(`${today}T${timeToStart}`, { zone: 'UTC-6' })
             const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
-
-            // Calculamos la diferencia en horas
             let diffInHours = startDateTime.diff(checkInDateTime, 'hours').hours
-
-            // console.log('Horas de diferencia:', diffInHours)
             let canAdd = true
             if (diffInHours > 1) {
               const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
-              // console.log('aqui se debe validar si hay excepcion el dia anterior')
               const workingDuringNonWorkingHoursPreviousDay = await ShiftException.query()
                 .whereNull('shift_exceptions_deleted_at')
                 .where('shift_exceptions_date', previousDay)
@@ -596,26 +586,26 @@ export default class SyncAssistsService {
                 })
                 .first()
               if (workingDuringNonWorkingHoursPreviousDay?.shiftExceptionCheckOutTime) {
-                // console.log('si existe la excepcion el dia anterior')
                 const { shiftExceptionCheckOutTime } = workingDuringNonWorkingHoursPreviousDay
                 const exceptionCheckOut = DateTime.fromFormat(shiftExceptionCheckOutTime, 'HH:mm:ss')
-                // console.log('el empleado tubo que salir a las: ' + exceptionCheckOut.toFormat('HH:mm:ss'))
-                if (checkInDateTime < exceptionCheckOut ) {
-                  // esto quiere decir que si el check actual es menor o igual a esta hora , no se debe tomar en cuenta como assist del dia actual
-                  // canAdd = false
+                const checkInTimeOnly = DateTime.fromObject({
+                  hour: checkInDateTime.hour,
+                  minute: checkInDateTime.minute,
+                  second: checkInDateTime.second,
+                })
+                if (checkInTimeOnly <= exceptionCheckOut ) {
+                   assistListFlat[index].notIsCheckin = true
                 }
               }
             }
             if (canAdd) {
               dayAssist.push(assistListFlat[index])
             }
-            //console.log(assistListFlat[index])
-            
           }
-        })
+        }
 
         dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
-
+       
         const dateShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
 
         assistDayCollection.push({
@@ -647,7 +637,7 @@ export default class SyncAssistsService {
           },
         })
       }
-    })
+    }
 
     const { delayTolerance, faultTolerance } = await this.getTolerances()
     const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
@@ -960,8 +950,6 @@ export default class SyncAssistsService {
     }
 
     const checkInDateTime = DateTime.fromJSDate(new Date(`${dateAssistItem.assist.checkInDateTime}`)).setZone('UTC-6')
-    // console.log('checkInDateTime: ' + checkInDateTime.toFormat('yyyy-LL-dd HH:mm:ss'))
-    // console.log('dateAssistItem.assist.checkIn.assistPunchTimeUtc: ' + dateAssistItem.assist.checkIn?.assistPunchTimeUtc.toFormat('yyyy-LL-dd HH:mm:ss'))
     const shangeShiftStartDay = dateAssistItem.assist.dateShift?.shiftIsChange ? evaluatedDay : startDay
 
     const calendarDayStatus = this.calendarDayStatus(dateAssistItem, evaluatedDay, shangeShiftStartDay, dateAssistItem.assist.shiftCalculateFlag)
@@ -1019,16 +1007,9 @@ export default class SyncAssistsService {
         dateAssistItem.assist.checkEatOut = null
         dateAssistItem.assist.checkOut = null
       }
-
-
     }
-    // console.log('day: ' + dateAssistItem.day)
-    // console.log('isStartWorkday: ' + isStartWorkday)
     if (isStartWorkday) {
-      // console.log('checkOutDateTime: ' + checkOutDateTime.toFormat('yyyy-LL-dd HH:mm:ss'))
-      // console.log('checkInDateTime: ' + checkInDateTime.toFormat('yyyy-LL-dd HH:mm:ss'))
       const checkOutShouldbeNextDay = checkOutDateTime.toFormat('yyyy-LL-dd') > checkInDateTime.toFormat('yyyy-LL-dd')
-      //console.log('checkOutShouldbeNextDay: ' + checkOutShouldbeNextDay)
       const workingDuringNonWorkingHours = dateAssistItem.assist.exceptions.find((ex) => ex.exceptionType?.exceptionTypeSlug === 'working-during-non-working-hours')
       if (checkOutShouldbeNextDay || workingDuringNonWorkingHours) {
         dateAssistItem.assist.checkIn = null
@@ -1048,8 +1029,6 @@ export default class SyncAssistsService {
            * =================================================================================================================
            */
           const checkInToNexCalendarDay = this.setNexCalendarDayCheckIns(dateAssistItem.assist.assitFlatList, checkInDateTime)
-          // console.log('checkInToNexCalendarDay: ')
-          // console.log(checkInToNexCalendarDay)
           calendarDay.push(...checkInToNexCalendarDay)
 
           /**
@@ -1060,8 +1039,6 @@ export default class SyncAssistsService {
            * =================================================================================================================
            */
           const checkOutToNexCalendarDay = this.setNexCalendarDayCheckOuts(evaluatedDay, assistList, checkOutDateTime, dateAssistItem.assist.exceptions)
-          // console.log('checkOutToNexCalendarDay: ')
-          // console.log(checkOutToNexCalendarDay)
           calendarDay.push(...checkOutToNexCalendarDay)
 
           /**
@@ -1071,7 +1048,6 @@ export default class SyncAssistsService {
            * =================================================================================================================
            */
           if (calendarDay.length > 0) {
-            // console.log('por aca')
             dateAssistItem.assist.checkIn = calendarDay[0]
 
             if (calendarDay.length >= 2) {
@@ -1105,7 +1081,6 @@ export default class SyncAssistsService {
          * =================================================================================================================
          */
         if (dateAssistItem.assist.assitFlatList && dateAssistItem.assist.assitFlatList.length > 0) {
-          // console.log('aqui se guarda')
           dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[0]
 
           if (dateAssistItem.assist.assitFlatList.length >= 2) {
@@ -1308,7 +1283,6 @@ export default class SyncAssistsService {
         calendarDay.push(checkItem)
       }
     })
-
     return calendarDay
   }
 
@@ -1316,8 +1290,6 @@ export default class SyncAssistsService {
     const calendarDay: AssistInterface[] = []
     const nextEvaluatedDay = evaluatedDay.plus({ days: 1 }).toFormat('yyyy-LL-dd')
     const nextDay = assistList.find((assistDate) => assistDate.day === nextEvaluatedDay)
-    //console.log('nextDay: ---')
-    //console.log(nextDay?.assist)
     if (nextDay && nextDay?.assist?.assitFlatList) {
       const evaluatedSummerNextDay = new Date(nextDay?.day)
       const nexDayCheckList: AssistInterface[] = JSON.parse(JSON.stringify(nextDay.assist.assitFlatList))
@@ -1597,9 +1569,9 @@ export default class SyncAssistsService {
     return checkAssist
   }
 
-  private getCheckInDate(dayAssist: AssistInterface[]) {
-    const assist = dayAssist.length > 0 ? dayAssist[0] : null
-    return assist
+   private getCheckInDate(dayAssist: AssistInterface[]) {
+    const assist = dayAssist.find(item => item.notIsCheckin !== true)
+    return assist ?? null
   }
 
   private getCheckEatInDate(dayAssist: AssistInterface[]) {

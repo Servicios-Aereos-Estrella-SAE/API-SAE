@@ -17,6 +17,7 @@ interface AssistInterface {
   assistAssistSyncId: string
   assistCreatedAt: string | Date | null
   assistUpdatedAt: string | Date | null
+  notIsCheckin: boolean
 }
 
 export type { AssistInterface }
