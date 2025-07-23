@@ -565,7 +565,7 @@ export default class SyncAssistsService {
 
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
-        for (const [index, dayItem] of assistListFlat.entries()) {
+        for await (const [index, dayItem] of assistListFlat.entries()) {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
          
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
@@ -605,7 +605,6 @@ export default class SyncAssistsService {
         }
 
         dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
-       
         const dateShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
 
         assistDayCollection.push({
@@ -1080,28 +1079,29 @@ export default class SyncAssistsService {
          * FORMAR EL CALENDARIO PARA EL RESTO DE LOS TURNOS QUE NO ABARCAN DOS DIAS
          * =================================================================================================================
          */
-        if (dateAssistItem.assist.assitFlatList && dateAssistItem.assist.assitFlatList.length > 0) {
-          dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[0]
+        const assitFlatList = dateAssistItem.assist.assitFlatList?.filter(item => item.notIsCheckin !== true)
+        if (assitFlatList && assitFlatList.length > 0) {
+          dateAssistItem.assist.checkIn = assitFlatList[0]
 
-          if (dateAssistItem.assist.assitFlatList.length >= 2) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[1]
+          if (assitFlatList.length >= 2) {
+            dateAssistItem.assist.checkEatIn = assitFlatList[1]
           }
 
-          if (dateAssistItem.assist.assitFlatList.length >= 3) {
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[2]
+          if (assitFlatList.length >= 3) {
+            dateAssistItem.assist.checkEatOut = assitFlatList[2]
           }
 
           const nowDate = DateTime.now().setZone('UTC-6')
           const diffOutNow = nowDate.diff(checkOutDateTime, 'milliseconds').milliseconds
 
           if (diffOutNow >= 0) {
-            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList.length >= 2 ? dateAssistItem.assist.assitFlatList[dateAssistItem.assist.assitFlatList.length - 1] : null
+            dateAssistItem.assist.checkOut = assitFlatList.length >= 2 ? assitFlatList[assitFlatList.length - 1] : null
 
-            if (dateAssistItem.assist.assitFlatList.length <= 2) {
+            if (assitFlatList.length <= 2) {
               dateAssistItem.assist.checkEatIn = null
             }
 
-            if (dateAssistItem.assist.assitFlatList.length <= 3) {
+            if (assitFlatList.length <= 3) {
               dateAssistItem.assist.checkEatOut = null
             }
           }
@@ -1576,9 +1576,9 @@ export default class SyncAssistsService {
 
   private getCheckEatInDate(dayAssist: AssistInterface[]) {
     let assist = null
-
-    if (dayAssist.length > 1) {
-      assist = dayAssist[1]
+    const assistListFlat = dayAssist.filter(item => item.notIsCheckin !== true)
+    if (assistListFlat.length > 2) {
+      assist = assistListFlat[1]
     }
 
     return assist
@@ -1587,8 +1587,10 @@ export default class SyncAssistsService {
   private getCheckEatOutDate(dayAssist: AssistInterface[]) {
     let assist = null
 
-    if (dayAssist.length > 2) {
-      assist = dayAssist[2]
+    const assistListFlat = dayAssist.filter(item => item.notIsCheckin !== true)
+   
+    if (assistListFlat.length > 3) {
+      assist = assistListFlat[2]
     }
 
     return assist
