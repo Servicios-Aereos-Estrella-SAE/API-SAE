@@ -15,6 +15,7 @@ import SystemSettingService from './system_setting_service.js'
 import SystemSetting from '#models/system_setting'
 import sharp from 'sharp'
 import { EmployeeVacationExcelRowSummaryInterface } from '../interfaces/employee_vacation_excel_row_summary_interface.js'
+import { EmployeeVacationExcelRowSummaryYearInterface } from '../interfaces/employee_vacation_excel_row_summary_year_interface.js'
 
 export default class EmployeeVacationService {
   async getExcelAll(filters: EmployeeVacationExcelFilterInterface) {
@@ -668,12 +669,10 @@ export default class EmployeeVacationService {
       const title = `Vacations Control Summary, ${start.toFormat('DDD')} to ${end.toFormat('DDD')}` 
       const sheet = workbook.addWorksheet('Vacations Control Summary')
       await this.addHeadRowSummary(workbook, sheet, title, years)
-      for await (const year of years) {
-      
-        const rows = await this.addEmployeesSummary(employees, year)
-        await this.addRowToWorkSheetSummary(rows, sheet)
-        this.paintBorderAllSummary(sheet, rows.length, years)
-      }
+      const rows = await this.addEmployeesSummary(employees, years)
+      await this.addRowToWorkSheetSummary(rows, sheet)
+      this.paintBorderAllSummary(sheet, rows.length, years)
+     
       // Crear un buffer del archivo Excel
       const buffer = await workbook.xlsx.writeBuffer()
       return {
@@ -709,16 +708,39 @@ export default class EmployeeVacationService {
     })
     worksheet.getRow(1).height = 64
     worksheet.addRow([])
+    worksheet.mergeCells('A1:B1')
     worksheet.getCell('C1').value = title
     worksheet.mergeCells('C1:E1')
-    worksheet.getCell('C1').font = { size: 16 ,bold: true, color: { argb: fgColor} } // texto negro
+    worksheet.getCell('C1').font = { size: 16 ,bold: true, color: { argb: '000000'} } // texto negro
     worksheet.getCell('C1').alignment = { vertical: 'middle', horizontal: 'center' }
     worksheet.addRow([])
+    let cell = null
+    let color = '4EA72E'
+    const headers = [
+      'ID',
+      'Employee',
+      'Department',
+      'Position',
+      'Hire Date',
+    ]
+   
+    // Agregar los encabezados al worksheet
+    const headerRow = worksheet.addRow(headers)
+    color = '156082'
+    for (let col = 1; col <= 5; col++) {
+      cell = worksheet.getCell(4, col)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+    }
+    headerRow.font = { bold: true, color: { argb: fgColor } }
 
     const labels = ['Years', 'Vac', 'Used', 'Rest', 'Acc. Disp.']
     let startColIndex = 7
     const rowNumber = 3
-    let cell = null
+  
     for (const year of years) {
       const startColLetter = worksheet.getColumn(startColIndex).letter
       const endColLetter = worksheet.getColumn(startColIndex + 4).letter
@@ -733,8 +755,8 @@ export default class EmployeeVacationService {
       cell.value = year
       cell.alignment = { horizontal: 'center', vertical: 'middle' }
       cell.font = { bold: true, color: { argb: 'FFFFFF' } }
-
-      const color = '156082'
+     
+      color = '156082'
       for (let col = startColIndex; col <= startColIndex + 4; col++) {
         cell = worksheet.getCell(3, col)
         cell.fill = {
@@ -760,46 +782,29 @@ export default class EmployeeVacationService {
       startColIndex += 6
     }
     
-    let color = '4EA72E'
-    const headers = [
-      'ID',
-      'Employee',
-      'Department',
-      'Position',
-      'Hire Date',
-    ]
    
-    // Agregar los encabezados al worksheet
-    const headerRow = worksheet.addRow(headers)
-    color = '156082'
-    for (let col = 1; col <= 5; col++) {
-      cell = worksheet.getCell(4, col)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: color },
-      }
-    }
-    headerRow.font = { bold: true, color: { argb: fgColor } }
     const columnA = worksheet.getColumn(1)
     columnA.width = 15
     
     columnA.alignment = { vertical: 'middle', horizontal: 'center' }
     const columnB = worksheet.getColumn(2)
     columnB.width = 40
-    columnB.alignment = { vertical: 'middle', horizontal: 'center' }
+    columnB.alignment = { vertical: 'middle' }
     const columnC = worksheet.getColumn(3)
     columnC.width = 34
-    columnC.alignment = { vertical: 'middle', horizontal: 'center' }
+    columnC.alignment = { vertical: 'middle' }
     const columnD = worksheet.getColumn(4)
     columnD.width = 46
-    columnD.alignment = { vertical: 'middle', horizontal: 'center' }
+    columnD.alignment = { vertical: 'middle' }
     const columnE = worksheet.getColumn(5)
     columnE.width = 16
     columnE.alignment = { vertical: 'middle', horizontal: 'center' }
   
     worksheet.views = [
-      { state: 'frozen', ySplit: 1 }, // Fija la primera fila
+      { state: 'frozen', ySplit: 1 },
+      { state: 'frozen', ySplit: 2 },
+      { state: 'frozen', ySplit: 3 },
+      { state: 'frozen', ySplit: 4 },
     ]
     const row = worksheet.getRow(1)
     row.eachCell({ includeEmpty: true }, (currentCell) => {
@@ -809,35 +814,52 @@ export default class EmployeeVacationService {
 
   async addRowToWorkSheetSummary(rows: EmployeeVacationExcelRowSummaryInterface[], worksheet: ExcelJS.Worksheet) {
     for await (const rowData of rows) {
-      const row = [
+      const row: (string | number)[] = [
         rowData.employeeCode,
         rowData.employeeName,
         rowData.department,
         rowData.position,
         rowData.employeeHireDate,
       ]
+      for await (const year of rowData.years) {
+        row.push('')
+        row.push(year.years)
+        row.push(year.daysVacations)
+        row.push(year.daysUsed)
+        row.push(year.daysRest)
+        row.push(year.daysAccumulateAvailable)
+      }
       worksheet.addRow(row)
     }
   }
 
-  async addEmployeesSummary(employees: Employee[], year: number) {
+  async addEmployeesSummary(employees: Employee[], years: number[]) {
     const employeeService = new EmployeeService()
     const rows = [] as EmployeeVacationExcelRowSummaryInterface[]
     for await (const employee of employees) {
-      const yearsWorked = await employeeService.getYearWorked(employee, year)
-      const vacationsUsed = [] as Array<string>
-     if (yearsWorked.status === 200) {
-        if (yearsWorked.data.vacationUsedList) {
-          for await (const shiftException of yearsWorked.data.vacationUsedList) {
-            vacationsUsed.push(this.getDateFromHttp(shiftException.shiftExceptionsDate.toString()))
+      const yearsInfo = [] as EmployeeVacationExcelRowSummaryYearInterface[]
+      for (const year of years) {
+        const vacationsUsed = [] as Array<string>
+        const yearsWorked = await employeeService.getYearWorked(employee, year)
+        let yearsPassed = 0
+        let daysVacations = 0
+        let daysUsed = 0
+        if (yearsWorked.status === 200) {
+          if (yearsWorked.data.vacationUsedList) {
+            for await (const shiftException of yearsWorked.data.vacationUsedList) {
+              vacationsUsed.push(this.getDateFromHttp(shiftException.shiftExceptionsDate.toString()))
+            }
           }
-        }
-       /*  yearsPassed = yearsWorked.data.yearsPassed ? yearsWorked.data.yearsPassed : 0
-        daysVacations = yearsWorked.data.vacationSetting?.vacationSettingVacationDays
-          ? yearsWorked.data.vacationSetting?.vacationSettingVacationDays
-          : 0
-        daysUsed = yearsWorked.data.vacationUsedList ? yearsWorked.data.vacationUsedList.length : 0 */
-      } 
+          yearsPassed = yearsWorked.data.yearsPassed ? yearsWorked.data.yearsPassed : 0
+          daysVacations = yearsWorked.data.vacationSetting?.vacationSettingVacationDays
+            ? yearsWorked.data.vacationSetting?.vacationSettingVacationDays
+            : 0
+          daysUsed = yearsWorked.data.vacationUsedList ? yearsWorked.data.vacationUsedList.length : 0 
+        } 
+        const yearinfo = { year: year, years: yearsPassed, daysVacations: daysVacations, daysUsed: daysUsed, daysRest: daysVacations - daysUsed ,daysAccumulateAvailable: 0 } as EmployeeVacationExcelRowSummaryYearInterface
+        yearsInfo.push(yearinfo)
+      }
+    
       const newRow = {
         employeeCode: employee.employeeCode.toString(),
         employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
@@ -846,6 +868,7 @@ export default class EmployeeVacationService {
         employeeHireDate: employee.employeeHireDate
           ? this.getDate(employee.employeeHireDate.toString())
           : '',
+          years: yearsInfo
       } as EmployeeVacationExcelRowSummaryInterface
       rows.push(newRow)
     }
@@ -853,8 +876,11 @@ export default class EmployeeVacationService {
   }
 
   paintBorderAllSummary(worksheet: ExcelJS.Worksheet, rowCount: number, years: number[]) {
-    for (let rowIndex = 1; rowIndex <= rowCount + 1; rowIndex++) {
+    const today = DateTime.now()
+    const rowTempYear = worksheet.getRow(3)
+    for (let rowIndex = 1; rowIndex <= rowCount + 4; rowIndex++) {
       const row = worksheet.getRow(rowIndex)
+      const cellDate = row.getCell(5)
       for (let colNumber = 1; colNumber <= 5; colNumber++) {
         let cell = row.getCell(colNumber)
         cell.border = {
@@ -864,15 +890,58 @@ export default class EmployeeVacationService {
           right: { style: 'thin', color: { argb: 'FF000000' } },
         }
         let startColIndex = 7
-    
+        const cellValue = cellDate.value
+        const hireDate = typeof cellValue === 'string'
+          ? DateTime.fromISO(cellValue)
+          : DateTime.fromJSDate(cellValue as Date)
         for (let i = 0; i < years.length; i++) {
+          let cellYear = rowTempYear.getCell(startColIndex)
+          const currentYear = cellYear.value
+          const cellYearQuantity = row.getCell(startColIndex)
+          const currentYearQuantity = cellYearQuantity.value
+          let canUseDays = true
+          if (today.year === currentYear && currentYearQuantity === 1) {
+            if (cellValue) {
+              if (hireDate.isValid) {
+                if (hireDate.startOf('day') <= today.startOf('day')) {
+                  canUseDays = false
+                }
+              }
+            }
+          }
+
           for (let j = 0; j < 5; j++) {
-            cell = row.getCell(startColIndex + j)
-            cell.border = {
+            cellYear = row.getCell(startColIndex + j)
+            cellYear.border = {
               top: { style: 'thin', color: { argb: 'FF000000' } },
               left: { style: 'thin', color: { argb: 'FF000000' } },
               bottom: { style: 'thin', color: { argb: 'FF000000' } },
               right: { style: 'thin', color: { argb: 'FF000000' } },
+            }
+            cellYear.alignment = {
+              vertical: 'middle',
+              horizontal: 'center',
+            }
+            
+            if ((j === 3 || j === 4) && rowIndex > 4) {
+              let bgColor = 'F2F2F2'
+              let color = '969696'
+              if (typeof cellYear.value === 'number' && cellYear.value > 0) {
+                bgColor = 'ECF1E0'
+                color = '50AE5D'
+                if (j === 3 ) {
+                  if (!canUseDays) {
+                    bgColor = 'FAEADB'
+                    color = 'D3722D'
+                  }
+                }
+              }
+              cellYear.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: bgColor },
+              }
+              cellYear.font = { color: { argb: color } }
             }
           }
           startColIndex += 6
