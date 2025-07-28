@@ -178,7 +178,7 @@ export default class PersonController {
    *               personSecondLastname:
    *                 type: string
    *                 description: Person second last name
-   *                 required: true
+   *                 required: false
    *                 default: ''
    *               personGender:
    *                 type: string
@@ -315,7 +315,7 @@ export default class PersonController {
       const person = {
         personFirstname: personFirstname,
         personLastname: personLastname,
-        personSecondLastname: personSecondLastname,
+        personSecondLastname: personSecondLastname || '',
         personGender: personGender,
         personBirthday: personBirthday,
         personPhone: personPhone,
@@ -386,7 +386,7 @@ export default class PersonController {
    *               personSecondLastname:
    *                 type: string
    *                 description: Person second last name
-   *                 required: true
+   *                 required: false
    *                 default: ''
    *               personGender:
    *                 type: string
@@ -530,7 +530,7 @@ export default class PersonController {
         personId: personId,
         personFirstname: personFirstname,
         personLastname: personLastname,
-        personSecondLastname: personSecondLastname,
+        personSecondLastname: personSecondLastname || '',
         personGender: personGender,
         personBirthday: personBirthday,
         personPhone: personPhone,

@@ -5,7 +5,7 @@ export const createPersonValidator = vine.compile(
   vine.object({
     personFirstname: vine.string().trim().minLength(1).maxLength(150),
     personLastname: vine.string().trim().minLength(0).maxLength(150),
-    personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
+    personSecondLastname: vine.string().trim().minLength(0).maxLength(150).optional(),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
     personEmail: vine
       .string()
@@ -73,7 +73,7 @@ export const updatePersonValidator = vine.compile(
   vine.object({
     personFirstname: vine.string().trim().minLength(1).maxLength(150),
     personLastname: vine.string().trim().minLength(0).maxLength(150),
-    personSecondLastname: vine.string().trim().minLength(0).maxLength(150),
+    personSecondLastname: vine.string().trim().minLength(0).maxLength(150).optional(),
     personPhone: vine.string().trim().minLength(0).maxLength(45).optional(),
     personEmail: vine.string().trim().minLength(0).maxLength(200).optional(),
     personGender: vine.string().trim().minLength(0).maxLength(10).optional(),
