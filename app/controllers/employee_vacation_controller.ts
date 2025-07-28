@@ -320,6 +320,13 @@ export default class EmployeeVacationController {
    *         default: false
    *         schema:
    *           type: boolean
+   *       - name: onlyOneYear
+   *         in: query
+   *         required: false
+   *         description: Include one year
+   *         default: true
+   *         schema:
+   *           type: boolean
    *     responses:
    *       200:
    *         description: Resource action successful
@@ -353,6 +360,7 @@ export default class EmployeeVacationController {
       const filterStartDate = request.input('startDate')
       const filterEndDate = request.input('endDate')
       const onlyInactive = request.input('onlyInactive')
+      const onlyOneYear = request.input('onlyOneYear')
       const filters = {
         search: search,
         employeeId: employeeId,
@@ -362,6 +370,7 @@ export default class EmployeeVacationController {
         filterEndDate: filterEndDate,
         onlyInactive: onlyInactive,
         userResponsibleId: userResponsibleId,
+        onlyOneYear: onlyOneYear,
       } as EmployeeVacationExcelFilterInterface
       const emplpoyeeVacationService = new EmployeeVacationService()
       const buffer = await emplpoyeeVacationService.getVacationsSummaryExcel(filters)

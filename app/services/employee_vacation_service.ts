@@ -361,7 +361,7 @@ export default class EmployeeVacationService {
         years.push(year)
       }
       for await (const year of years) {
-        const sheet = workbook.addWorksheet('Vacations used')
+        const sheet = workbook.addWorksheet(`${year} Vacations used`)
         await this.addVacationUsedHeadRow(sheet, workbook)
         const rows = await this.addEmployeesVacationUsed(employees, year)
         await this.addRowVacationUsedToWorkSheet(rows, sheet)
