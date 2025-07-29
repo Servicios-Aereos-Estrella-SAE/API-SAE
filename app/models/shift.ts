@@ -44,6 +44,10 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         shiftBusinessUnits:
  *            type: string
  *            description: Available business Units
+ *         shiftTemp:
+ *           type: number
+ *           description: Shift is temp
+ *           nullable: true
  *         shiftCreatedAt:
  *           type: string
  *           format: date-time
@@ -65,6 +69,7 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         shiftActiveHours: 8
  *         shiftRestDays: "0,6"
  *         shiftAccumulatedFault: 1
+ *         shiftTemp: 0
  *         shiftCreatedAt: "2024-06-20T12:00:00Z"
  *         shiftUpdatedAt: "2024-06-20T13:00:00Z"
  *         shiftDeletedAt: null
@@ -97,6 +102,9 @@ export default class Shift extends BaseModel {
 
   @column()
   declare shiftBusinessUnits: string
+
+  @column()
+  declare shiftTemp: number
 
   @column.dateTime({ autoCreate: true })
   declare shiftCreatedAt: DateTime
