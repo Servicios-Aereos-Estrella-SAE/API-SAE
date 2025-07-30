@@ -540,8 +540,8 @@ export default class SyncAssistsService {
 
     query.orderBy('assist_punch_time_origin', 'desc')
 
-    const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
-    const assistListFlat = assistList.toJSON().data as AssistInterface[]
+    //const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
+   // const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
     const endDate = timeEndCST.minus({ days: 1 })
     const employeeShiftFilter = { dateStart: intialSyncDate, dateEnd: stringEndDate, employeeId: bodyParams.employeeID }
@@ -553,21 +553,29 @@ export default class SyncAssistsService {
 
     const dailyShifts: EmployeeRecordInterface[] = serviceResponse.status === 200 ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[]) : []
     const employeeShifts: ShiftRecordInterface[] = dailyShifts[0].employeeShifts as ShiftRecordInterface[]
+    const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
 
-    assistListFlat.forEach((item) => {
+    const assistListFlat  = assistList.map((assist) => {
+      const serialized = assist.serialize()
+      return {
+        ...serialized,
+        assistUsed: false,
+      }
+    }) as AssistInterface[]
+    for await (const item of assistListFlat) {
       const assist = item as AssistInterface
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
       const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd'))
 
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
-        assistListFlat.forEach((dayItem: AssistInterface, index) => {
+        for await (const [index, dayItem] of assistListFlat.entries()) {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
 
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
             dayAssist.push(assistListFlat[index])
           }
-        })
+        }
 
         dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
 
@@ -602,7 +610,7 @@ export default class SyncAssistsService {
           },
         })
       }
-    })
+    }
 
     const { delayTolerance, faultTolerance } = await this.getTolerances()
     const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
@@ -1025,7 +1033,13 @@ export default class SyncAssistsService {
             const diffOutNow = nowDate.diff(checkOutDateTime, 'milliseconds').milliseconds
 
             if (diffOutNow >= 0) {
-              dateAssistItem.assist.checkOut = calendarDay.length >= 2 ? calendarDay[calendarDay.length - 1] : null
+              if (calendarDay.length >= 2) {
+                calendarDay[calendarDay.length - 1].assistUsed = true
+                dateAssistItem.assist.checkOut = calendarDay[calendarDay.length - 1]
+              } else {
+                dateAssistItem.assist.checkOut = null
+              }
+             
 
               if (calendarDay.length <= 2) {
                 dateAssistItem.assist.checkEatIn = null
@@ -1509,7 +1523,8 @@ export default class SyncAssistsService {
   }
 
   private getCheckInDate(dayAssist: AssistInterface[]) {
-    const assist = dayAssist.length > 0 ? dayAssist[0] : null
+    const assistTemp = dayAssist.filter(a => a.assistUsed === false)
+    const assist = assistTemp.length > 0 ? assistTemp[0] : null
     return assist
   }
 
@@ -1535,9 +1550,9 @@ export default class SyncAssistsService {
 
   private getCheckOutDate(dayAssist: AssistInterface[]) {
     let assist = null
-
     if (dayAssist.length > 1) {
       assist = dayAssist[dayAssist.length - 1]
+      assist.assistUsed = true
     }
 
     return assist
