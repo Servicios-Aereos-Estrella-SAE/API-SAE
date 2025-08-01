@@ -559,16 +559,21 @@ export default class SyncAssistsService {
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
       const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd'))
 
+      // const currentShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
+      // const timeToStart = currentShift.shift.shiftTimeStart
+
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
         for await (const [index, dayItem] of assistListFlat.entries()) {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
 
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
+            // console.log('timeToStart: ' + timeToStart)
             assistListFlat[index].assistUsed = false
             const assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
             const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
             const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
+
             if ( employee) {
               const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
 
@@ -598,8 +603,10 @@ export default class SyncAssistsService {
                   const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
                   const shiftEndHour = shiftEnd.hour + shiftEnd.minute / 60
                   const hourDifference = Math.abs(checkInHour - shiftEndHour)
-
-                  if (hourDifference <= 1) {
+                  // console.log('----------------')
+                  // console.log(DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss'))
+                  // console.log('hourDifference: ' + hourDifference)
+                  if (hourDifference >= 0.7 && hourDifference <= 2) {
                    assistListFlat[index].assistUsed = true
                   }
                 }
@@ -610,6 +617,7 @@ export default class SyncAssistsService {
         }
 
         dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
+
         const dateShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
 
         assistDayCollection.push({
@@ -1065,7 +1073,12 @@ export default class SyncAssistsService {
 
             if (diffOutNow >= 0) {
               if (calendarDay.length >= 2) {
-                dateAssistItem.assist.checkOut = calendarDay[calendarDay.length - 1]
+                if (calendarDay.length > 4) {
+                  dateAssistItem.assist.checkOut = calendarDay[calendarDay.length - 2]
+                } else {
+                  dateAssistItem.assist.checkOut = calendarDay[calendarDay.length - 1]
+                }
+               
               } else {
                 dateAssistItem.assist.checkOut = null
               }
@@ -1087,29 +1100,32 @@ export default class SyncAssistsService {
          * FORMAR EL CALENDARIO PARA EL RESTO DE LOS TURNOS QUE NO ABARCAN DOS DIAS
          * =================================================================================================================
          */
-        if (dateAssistItem.assist.assitFlatList && dateAssistItem.assist.assitFlatList.length > 0) {
-          dateAssistItem.assist.checkIn = dateAssistItem.assist.assitFlatList[0]
+        if (dateAssistItem.assist.assitFlatList) {
+          const assists = dateAssistItem.assist.assitFlatList.filter(a => a.assistUsed === false)
+          if (assists.length > 0) {
+            dateAssistItem.assist.checkIn = assists[0]
 
-          if (dateAssistItem.assist.assitFlatList.length >= 2) {
-            dateAssistItem.assist.checkEatIn = dateAssistItem.assist.assitFlatList[1]
-          }
-
-          if (dateAssistItem.assist.assitFlatList.length >= 3) {
-            dateAssistItem.assist.checkEatOut = dateAssistItem.assist.assitFlatList[2]
-          }
-
-          const nowDate = DateTime.now().setZone('UTC-6')
-          const diffOutNow = nowDate.diff(checkOutDateTime, 'milliseconds').milliseconds
-
-          if (diffOutNow >= 0) {
-            dateAssistItem.assist.checkOut = dateAssistItem.assist.assitFlatList.length >= 2 ? dateAssistItem.assist.assitFlatList[dateAssistItem.assist.assitFlatList.length - 1] : null
-
-            if (dateAssistItem.assist.assitFlatList.length <= 2) {
-              dateAssistItem.assist.checkEatIn = null
+            if (assists.length >= 2) {
+              dateAssistItem.assist.checkEatIn = assists[1]
             }
 
-            if (dateAssistItem.assist.assitFlatList.length <= 3) {
-              dateAssistItem.assist.checkEatOut = null
+            if (assists.length >= 3) {
+              dateAssistItem.assist.checkEatOut = assists[2]
+            }
+
+            const nowDate = DateTime.now().setZone('UTC-6')
+            const diffOutNow = nowDate.diff(checkOutDateTime, 'milliseconds').milliseconds
+
+            if (diffOutNow >= 0) {
+              dateAssistItem.assist.checkOut = assists.length >= 2 ? assists[assists.length - 1] : null
+
+              if (assists.length <= 2) {
+                dateAssistItem.assist.checkEatIn = null
+              }
+
+              if (assists.length <= 3) {
+                dateAssistItem.assist.checkEatOut = null
+              }
             }
           }
         }
@@ -1553,16 +1569,16 @@ export default class SyncAssistsService {
   }
 
   private getCheckInDate(dayAssist: AssistInterface[]) {
-    const assistTemp = dayAssist.filter(a => a.assistUsed === false)
-    const assist = assistTemp.length > 0 ? assistTemp[0] : null
+    const assists = dayAssist.filter(a => a.assistUsed === false)
+    const assist = assists.length > 0 ? assists[0] : null
     return assist
   }
 
   private getCheckEatInDate(dayAssist: AssistInterface[]) {
     let assist = null
-
-    if (dayAssist.length > 1) {
-      assist = dayAssist[1]
+    const assists = dayAssist.filter(a => a.assistUsed === false)
+    if (assists.length > 2) {
+      assist = assists[1]
     }
 
     return assist
@@ -1570,9 +1586,9 @@ export default class SyncAssistsService {
 
   private getCheckEatOutDate(dayAssist: AssistInterface[]) {
     let assist = null
-
-    if (dayAssist.length > 2) {
-      assist = dayAssist[2]
+    const assists = dayAssist.filter(a => a.assistUsed === false)
+    if (assists.length > 3) {
+      assist = assists[2]
     }
 
     return assist
@@ -1580,8 +1596,9 @@ export default class SyncAssistsService {
 
   private getCheckOutDate(dayAssist: AssistInterface[]) {
     let assist = null
-    if (dayAssist.length > 1) {
-      assist = dayAssist[dayAssist.length - 1]
+    const assists = dayAssist.filter(a => a.assistUsed === false)
+    if (assists.length > 1) {
+      assist = assists[assists.length - 1]
     }
 
     return assist
