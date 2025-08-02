@@ -559,29 +559,56 @@ export default class SyncAssistsService {
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
       const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd'))
 
-      // const currentShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
-      // const timeToStart = currentShift.shift.shiftTimeStart
-
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
         for await (const [index, dayItem] of assistListFlat.entries()) {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
-
+          // let canProcess = true
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
-            // console.log('timeToStart: ' + timeToStart)
+            const isSummerTime = this.checkDSTSummerTime(new Date(currentDay))
             assistListFlat[index].assistUsed = false
-            const assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
+            let assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
+            if (isSummerTime) {
+              assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').plus({ hour: 1 }).toFormat('HH:mm:ss')
+            }
             const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
             const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
+            const checkInTimeOnly = DateTime.fromObject({
+              hour: checkInDateTime.hour,
+              minute: checkInDateTime.minute,
+              second: checkInDateTime.second,
+            })
+            if (employee) {
+              /* const startDate = `${currentDay} 00:00:00`
+              const endDate = `${currentDay} 23:59:59`
+              employee.$setRelated('shiftChanges', [])
+              await employee.load('shiftChanges', (queryShiftChange) => {
+                queryShiftChange.where('employeeShiftChangeDateFrom', '>=', startDate)
+                queryShiftChange.where('employeeShiftChangeDateFrom', '<=', endDate)
+              })
+            
+               if (employee.shiftChanges.length > 0) {
+                if (employee.shiftChanges[0].shiftTo) {
+                  const shift = employee.shiftChanges[0].shiftTo
+                  const shiftTimeStart = shift.shiftTimeStart
+                  currentDayTimeStart = shiftTimeStart
 
-            if ( employee) {
+                  const shiftStart = DateTime.fromISO(`${currentDay}T${shiftTimeStart}`)
+                  const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
+                  const shiftStartHour = shiftStart.hour + shiftStart.minute / 60
+                  const hourDifference = Math.abs(checkInHour - shiftStartHour)
+                  if (hourDifference <= 0) {
+                    canProcess = false
+                  }
+                }
+              }*/
+
               const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
-
               const stringDatePrevious = `${previousDay}T00:00:00.000-06:00`
               const timeToStartPrevious = DateTime.fromISO(stringDatePrevious, { setZone: true }).setZone('UTC-6')
               const startDatePrevious = `${timeToStartPrevious.toFormat('yyyy-LL-dd')} 00:00:00`
               const endDatePrevious = `${timeToStartPrevious.toFormat('yyyy-LL-dd')} 23:59:59`
-
+              employee.$setRelated('shiftChanges', [])
               await employee.load('shiftChanges', (queryShiftChange) => {
                 queryShiftChange.where('employeeShiftChangeDateFrom', '>=', startDatePrevious)
                 queryShiftChange.where('employeeShiftChangeDateFrom', '<=', endDatePrevious)
@@ -595,19 +622,13 @@ export default class SyncAssistsService {
 
                   const shiftStart = DateTime.fromISO(`${previousDay}T${shiftTimeStart}`)
                   const shiftEnd = shiftStart.plus({ hours: shiftActiveHours })
-                  const checkInTimeOnly = DateTime.fromObject({
-                    hour: checkInDateTime.hour,
-                    minute: checkInDateTime.minute,
-                    second: checkInDateTime.second,
-                  })
+                
                   const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
                   const shiftEndHour = shiftEnd.hour + shiftEnd.minute / 60
                   const hourDifference = Math.abs(checkInHour - shiftEndHour)
-                  // console.log('----------------')
-                  // console.log(DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss'))
-                  // console.log('hourDifference: ' + hourDifference)
-                  if (hourDifference >= 0.7 && hourDifference <= 2) {
-                   assistListFlat[index].assistUsed = true
+                  
+                  if (hourDifference >= 0 && hourDifference <= 2) {
+                    assistListFlat[index].assistUsed = true
                   }
                 }
               }
@@ -617,7 +638,6 @@ export default class SyncAssistsService {
         }
 
         dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
-
         const dateShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
 
         assistDayCollection.push({
