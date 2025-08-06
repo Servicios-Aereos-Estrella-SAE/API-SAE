@@ -727,6 +727,7 @@ export default class EmployeeController {
     try {
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
@@ -748,6 +749,7 @@ export default class EmployeeController {
         employeeId: 0,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
+        employeeSecondLastName: `${employeeSecondLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
@@ -1023,6 +1025,7 @@ export default class EmployeeController {
       const employeeId = request.param('employeeId')
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
@@ -1041,6 +1044,7 @@ export default class EmployeeController {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
+        employeeSecondLastName: `${employeeSecondLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,

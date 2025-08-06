@@ -103,6 +103,11 @@ export default class EmployeeShiftChange extends compose(BaseModel, SoftDeletes)
 
   @belongsTo(() => Employee, {
     foreignKey: 'employeeIdTo',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+      }
+    }
   })
   declare employeeTo: BelongsTo<typeof Employee>
 

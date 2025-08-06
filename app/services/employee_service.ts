@@ -222,6 +222,7 @@ export default class EmployeeService {
     const newEmployee = new Employee()
     newEmployee.employeeFirstName = employee.employeeFirstName
     newEmployee.employeeLastName = employee.employeeLastName
+    newEmployee.employeeSecondLastName = employee.employeeSecondLastName
     newEmployee.employeeCode = employee.employeeCode
     newEmployee.employeePayrollNum = employee.employeePayrollNum
     newEmployee.employeeHireDate = employee.employeeHireDate
@@ -246,6 +247,7 @@ export default class EmployeeService {
   async update(currentEmployee: Employee, employee: Employee) {
     currentEmployee.employeeFirstName = employee.employeeFirstName
     currentEmployee.employeeLastName = employee.employeeLastName
+    currentEmployee.employeeSecondLastName = employee.employeeSecondLastName
     currentEmployee.employeeCode = employee.employeeCode
     currentEmployee.employeePayrollNum = employee.employeePayrollNum
     currentEmployee.employeeHireDate = employee.employeeHireDate
@@ -601,6 +603,7 @@ export default class EmployeeService {
       .whereNotIn('person_id', persons)
       .preload('department')
       .preload('position')
+      .preload('person')
       .orderBy('employee_id')
       .paginate(filters.page, filters.limit)
     return employees
