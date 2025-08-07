@@ -81,6 +81,7 @@ export default class EmployeeVacationService {
         .preload('businessUnit')
         .preload('department')
         .preload('position')
+        .preload('person')
         .orderBy('employee_code')
 
       const firstVacation = await ShiftException.query()
@@ -241,7 +242,7 @@ export default class EmployeeVacationService {
       }
       const newRow = {
         employeeCode: employee.employeeCode.toString(),
-        employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        employeeName: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`, 
         department: employee.department ? employee.department.departmentName : '',
         position: employee.position ? employee.position.positionName : '',
         employeeHireDate: employee.employeeHireDate
@@ -348,6 +349,7 @@ export default class EmployeeVacationService {
         .preload('businessUnit')
         .preload('department')
         .preload('position')
+        .preload('person')
         .orderBy('employee_code')
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
@@ -405,7 +407,7 @@ export default class EmployeeVacationService {
             const newRow = {
               date: this.getDateFromHttp(shiftException.shiftExceptionsDate.toString()),
               employeeCode: employee.employeeCode.toString(),
-              employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+              employeeName: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
               department: employee.department ? employee.department.departmentName : '',
               position: employee.position ? employee.position.positionName : '',
             } as EmployeeVacationUsedDaysExcelRowInterface

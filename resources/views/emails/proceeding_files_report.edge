@@ -31,7 +31,7 @@
     margin: auto;
     padding: 1.5rem;
     box-sizing: border-box;">
-
+ 
     <div class="head">
       <img src="{{ backgroundImageLogo }}" style="width: 7rem;">
     </div>
@@ -64,8 +64,9 @@
                     @if(file.employeeProceedingFile)
                       <span style="margin: 0.5rem 0;">
                         Property:
-                        {{ file.employeeProceedingFile.employee.employeeFirstName }}
-                        {{ file.employeeProceedingFile.employee.employeeLastName }}
+                        {{ file.employeeProceedingFile.employee.person?.personFirstname }}
+                        {{ file.employeeProceedingFile.employee.person?.personLastname }} 
+                        {{ file.employeeProceedingFile.employee.person?.personSecondLastname }} 
                       </span>
                       <br>
                     @endif

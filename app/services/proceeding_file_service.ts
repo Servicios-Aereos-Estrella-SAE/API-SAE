@@ -289,7 +289,6 @@ export default class ProceedingFileService {
           tradeName = systemSettingActive.systemSettingTradeName
         }
       }
-
       for await (const email of emails) {
         if (
           email.employeesProceedingFilesExpired.length > 0 ||
@@ -306,7 +305,7 @@ export default class ProceedingFileService {
           const dateNow = Math.round(DateTime.now().toSeconds())
           await mail.send((message) => {
             message
-              .to(email.email)
+              .to('jsoto@siler-mx.com')//.to(email.email)
               .from(userEmail, tradeName)
               .subject(`Matrix Expiration Alert -  ${dateNow}`)
               .htmlView('emails/proceeding_files_report', {
@@ -451,7 +450,9 @@ export default class ProceedingFileService {
         query.preload('emails')
       })
       .preload('employeeProceedingFile', (query) => {
-        query.preload('employee')
+        query.preload('employee', (queryEmployee) => {
+          queryEmployee.preload('person')
+        })
       })
       .preload('pilotProceedingFile', (query) => {
         query.preload('pilot', (queryPilot) => {

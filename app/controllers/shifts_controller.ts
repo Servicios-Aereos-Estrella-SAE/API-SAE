@@ -512,7 +512,9 @@ export default class ShiftController {
                 employeeSubQuery.where('positionId', positionId)
               }
             })
-            .preload('employee')
+            .preload('employee', (employeeSubQuery) => {
+              employeeSubQuery.preload('person')
+            })
             .whereNull('deletedAt')
         })
 
@@ -549,8 +551,8 @@ export default class ShiftController {
             employee_count: shift.$extras.employees_count,
             employees: shift.employees.map((employeeShift) => ({
               employeeId: employeeShift.employeeId,
-              employeeFirstName: employeeShift.employee?.employeeFirstName,
-              employeeLastName: employeeShift.employee?.employeeLastName,
+              employeeFirstName: employeeShift.employee?.person?.personFirstname,
+              employeeLastName: `${employeeShift.employee.person?.personLastname} ${employeeShift.employee.person?.personSecondLastname}`,
             })),
           })),
         },

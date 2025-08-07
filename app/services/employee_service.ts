@@ -136,7 +136,7 @@ export default class EmployeeService {
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery
-            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name, " ", employee_second_last_name)) LIKE ?', [
               `%${filters.search.toUpperCase()}%`,
             ])
             .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])

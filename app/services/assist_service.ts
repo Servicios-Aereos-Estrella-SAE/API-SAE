@@ -1359,10 +1359,10 @@ export default class AssistsService {
       const rowLunchTime = calendar.assist?.checkEatIn?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
       const rowReturnLunchTime = calendar?.assist?.checkEatOut?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
       const rowCheckOutTime = calendar.assist.checkOut?.assistPunchTimeUtc && !calendar.assist.isFutureDay ? DateTime.fromISO(calendar.assist.checkOut?.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('ff') : ''
-
+   
       rows.push({
         code: employee.employeeCode.toString(),
-        name: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        name: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
         department: department,
         position: position,
         date: calendarDay,
@@ -1694,7 +1694,7 @@ export default class AssistsService {
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, filters.tardies)
     rows.push({
       employeeId: filters.employee.employeeCode.toString(),
-      employeeName: `${filters.employee.employeeFirstName} ${filters.employee.employeeLastName}`,
+      employeeName: `${filters.employee.person?.personFirstname} ${filters.employee.person?.personLastname} ${filters.employee.person?.personSecondLastname}`,
       department: department,
       daysWorked: daysWorked,
       daysOnTime: daysOnTime,
@@ -2578,7 +2578,7 @@ export default class AssistsService {
       }
     }
     rows.push({
-      employeeName: `${filters.employee.employeeFirstName} ${filters.employee.employeeLastName}`,
+      employeeName: `${filters.employee.person?.personFirstname} ${filters.employee.person?.personLastname} ${filters.employee.person?.personSecondLastname}`,
       employeeId: filters.employee.employeeCode.toString(),
       department: department,
       company: company,

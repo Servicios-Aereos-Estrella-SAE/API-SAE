@@ -2957,8 +2957,8 @@ export default class EmployeeController {
           : ''
         worksheet.addRow({
           employeeId: employee.employeeId,
-          employeeFirstName: employee.employeeFirstName,
-          employeeLastName: employee.employeeLastName,
+          employeeFirstName: `${employee.person?.personFirstname}`,
+          employeeLastName: `${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
           departmentName,
           positionName: employee.positionId,
           employeeHireDate: hireDate,
@@ -3170,6 +3170,7 @@ export default class EmployeeController {
 
       const employee = await Employee.query()
         .where('employeeId', employeeId)
+        .preload('person')
         .preload('department')
         .preload('position')
         .preload('shift_exceptions', (shiftExceptionsQuery) => {
@@ -3288,7 +3289,7 @@ export default class EmployeeController {
 
         const row = worksheet.addRow({
           employeeCode: employee.employeeCode,
-          employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+          employeeName: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
           department: employee.department?.departmentName || 'N/A',
           position: employee.position?.positionName || 'N/A',
           date: exception.shiftExceptionsDate,
@@ -3396,7 +3397,7 @@ export default class EmployeeController {
     employees.forEach((employee) => {
       worksheet.addRow([
         employee.employeeCode,
-        `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
         employee.department?.departmentName || '',
         employee.position?.positionName || '',
         employee.employeeHireDate ? employee.employeeHireDate.toISODate() : '',
