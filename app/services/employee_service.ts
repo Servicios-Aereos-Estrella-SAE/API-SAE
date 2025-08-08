@@ -40,6 +40,7 @@ export default class EmployeeService {
     newEmployee.employeeCode = employee.empCode
     newEmployee.employeeFirstName = employee.firstName
     newEmployee.employeeLastName = employee.lastName
+    newEmployee.employeeSecondLastName = employee.secondLastName
     newEmployee.employeePayrollNum = employee.payrollNum
     newEmployee.employeeHireDate = employee.hireDate
     newEmployee.companyId = employee.companyId
@@ -100,6 +101,7 @@ export default class EmployeeService {
     currentEmployee.employeeCode = employee.empCode
     currentEmployee.employeeFirstName = employee.firstName
     currentEmployee.employeeLastName = employee.lastName
+    currentEmployee.employeeSecondLastName = employee.secondLastName
     currentEmployee.employeePayrollNum = employee.payrollNum
     currentEmployee.employeeHireDate = employee.hireDate
     currentEmployee.companyId = employee.companyId
@@ -1267,6 +1269,77 @@ export default class EmployeeService {
         userResponsibleEmployee.userResponsibleEmployeeReadonly = 1
       }
       await userResponsibleEmployee.save()
+    }
+  }
+
+  splitCompoundSurnames(fullSurnames: string): { paternalSurname: string, maternalSurname: string } {
+    const particles = [
+      'de', 'del', 'de la', 'de los', 'de las',
+      'la', 'las', 'los',
+      'san', 'santa',
+      'mc', 'mac',
+      'van', 'von',
+      'di', 'da',
+      'dos', 'do'
+    ]
+  
+    const knownCompoundSurnames = [
+      'de la rosa', 'de la mora', 'de la cruz', 'de la fuente', 'de la vega', 'de la torre',
+      'de la peña', 'de la garza', 'de la madrid', 'de la serna', 'de la luz', 'de la paz', 'de la parra',
+      'del río', 'del valle', 'del ángel', 'del monte', 'del campo', 'del toro', 'del real',
+      'del castillo', 'del villar', 'del olmo', 'del carmen',
+      'de los santos', 'de los ángeles', 'de todos los ángeles', 'de los ríos', 'de las nieves',
+      'san martín', 'san juan', 'san román', 'santa cruz', 'santa maría', 'santa ana',
+      'mac gregor', 'mc gregor', 'van rijn', 'von humboldt',
+      'de jesus', 'de gracia', 'de león', 'de anda', 'de aquino', 'de haro', 'de la ossa'
+    ]
+  
+    const words = fullSurnames.trim().split(/\s+/)
+    const total = words.length
+  
+    if (total === 1) {
+      return { paternalSurname: words[0], maternalSurname: '' }
+    }
+  
+    let bestMatch: { paternalSurname: string, maternalSurname: string } | null = null
+    let bestScore = 0
+  
+    // Probar todas las divisiones posibles
+    for (let i = 1; i < total; i++) {
+      const paternalWords = words.slice(0, i).join(' ').toLowerCase()
+      const maternalWords = words.slice(i).join(' ').toLowerCase()
+  
+      const isPaternalKnown = knownCompoundSurnames.includes(paternalWords)
+      const isMaternalKnown = knownCompoundSurnames.includes(maternalWords)
+      const maternalStartsWithParticle = particles.some(p =>
+        maternalWords.startsWith(p + ' ') || maternalWords === p
+      )
+  
+      let score = 0
+      if (isPaternalKnown) score += 2
+      if (isMaternalKnown) score += 2
+      else if (maternalStartsWithParticle) score += 1
+  
+      // Guardar si tiene mejor score que el anterior
+      if (score > bestScore) {
+        bestScore = score
+        bestMatch = {
+          paternalSurname: words.slice(0, i).join(' '),
+          maternalSurname: words.slice(i).join(' ')
+        }
+  
+        // ✅ si ambos apellidos son compuestos conocidos, este es el mejor posible
+        if (score === 4) break
+      }
+    }
+  
+    if (bestMatch) return bestMatch
+    // Fallback
+    const midpoint = Math.floor(total / 2)
+
+    return {
+      paternalSurname: words.slice(0, midpoint).join(' '),
+      maternalSurname: words.slice(midpoint).join(' ')
     }
   }
 }

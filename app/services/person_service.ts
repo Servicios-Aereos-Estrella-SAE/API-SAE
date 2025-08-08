@@ -7,9 +7,8 @@ export default class PersonService {
   async syncCreate(employee: BiometricEmployeeInterface) {
     const newPerson = new Person()
     newPerson.personFirstname = employee.firstName
-    const lastNames = await this.getLastNames(employee.lastName)
-    newPerson.personLastname = lastNames.lastName
-    newPerson.personSecondLastname = lastNames.secondLastName
+    newPerson.personLastname = employee.lastName
+    newPerson.personSecondLastname = employee.secondLastName
     if (employee.gender) {
       if (employee.gender === 'M') {
         newPerson.personGender = 'Hombre'
@@ -91,23 +90,6 @@ export default class PersonService {
       .preload('user')
       .first()
     return person ? person : null
-  }
-
-  private getLastNames(lastNames: string) {
-    const names = {
-      lastName: '',
-      secondLastName: '',
-    }
-    if (lastNames) {
-      const lastNameParts = lastNames.trim().split(' ')
-      if (lastNameParts.length > 1) {
-        names.lastName = lastNameParts[0]
-        names.secondLastName = lastNameParts.slice(1).join(' ')
-      } else {
-        names.lastName = lastNameParts[0]
-      }
-    }
-    return names
   }
 
   async getEmployee(personId: number) {

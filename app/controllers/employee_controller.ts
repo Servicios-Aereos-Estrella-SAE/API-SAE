@@ -271,6 +271,14 @@ export default class EmployeeController {
         let employeeCountSaved = 0
 
         for await (const employee of data) {
+          let employeeLastName = ''
+          let employeeSecondLastName = ''
+          if (employee.lastName) {
+            const surnames = employeeService.splitCompoundSurnames(employee.lastName)
+            employeeLastName = surnames.paternalSurname
+            employeeSecondLastName = surnames.maternalSurname
+          }
+         
           let existInBusinessUnitList = false
           let businessUnitApply = null
 
@@ -292,6 +300,8 @@ export default class EmployeeController {
           }
 
           if (existInBusinessUnitList) {
+            employee.lastName = employeeLastName
+            employee.secondLastName = employeeSecondLastName
             employee.departmentId = withOutDepartmentId
             employee.positionId = withOutPositionId
             employee.usersResponsible = usersResponsible

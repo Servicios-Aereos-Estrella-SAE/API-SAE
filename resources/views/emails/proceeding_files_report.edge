@@ -94,8 +94,9 @@
                     @if(file.employeeProceedingFile)
                       <span style="margin: 0.5rem 0;">
                         Property:
-                        {{ file.employeeProceedingFile.employee.employeeFirstName }}
-                        {{ file.employeeProceedingFile.employee.employeeLastName }}
+                        {{ file.employeeProceedingFile.employee.person?.personFirstname }}
+                        {{ file.employeeProceedingFile.employee.person?.personLastname }} 
+                        {{ file.employeeProceedingFile.employee.person?.personSecondLastname }} 
                       </span>
                       <br>
                     @endif
@@ -228,7 +229,6 @@
       @endif
       <br>
       @endif
-
       @if((customersProceedingFilesExpired && customersProceedingFilesExpired.length > 0) || (customersProceedingFilesExpiring && customersProceedingFilesExpiring.length > 0))
       <div style="border: 1px solid #ccc;"></div>
       <h3 style="font-size: 1rem; text-align: left;">Customer Files</h3>
