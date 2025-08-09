@@ -176,6 +176,11 @@ export default class RoleController {
    *                 description: Permissions
    *                 required: true
    *                 default: []
+   *               roleManagementDays:
+   *                 type: number
+   *                 description: Role management days
+   *                 required: false
+   *                 default: null
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -271,6 +276,10 @@ export default class RoleController {
           data: { ...request.all() },
         }
       }
+
+      role.roleManagementDays = data.roleManagementDays
+      await role.save()
+
       const roleService = new RoleService()
       const roleSystemPermissions = await roleService.assignPermissions(roleId, data.permissions)
       response.status(201)
