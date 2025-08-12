@@ -41,6 +41,7 @@ export default class EmployeeService {
     newEmployee.employeeCode = employee.empCode
     newEmployee.employeeFirstName = employee.firstName
     newEmployee.employeeLastName = employee.lastName
+    newEmployee.employeeSecondLastName = employee.secondLastName
     newEmployee.employeePayrollNum = employee.payrollNum
     newEmployee.employeeHireDate = employee.hireDate
     newEmployee.companyId = employee.companyId
@@ -101,6 +102,7 @@ export default class EmployeeService {
     currentEmployee.employeeCode = employee.empCode
     currentEmployee.employeeFirstName = employee.firstName
     currentEmployee.employeeLastName = employee.lastName
+    currentEmployee.employeeSecondLastName = employee.secondLastName
     currentEmployee.employeePayrollNum = employee.payrollNum
     currentEmployee.employeeHireDate = employee.hireDate
     currentEmployee.companyId = employee.companyId
@@ -137,7 +139,7 @@ export default class EmployeeService {
       .if(filters.search, (query) => {
         query.where((subQuery) => {
           subQuery
-            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name)) LIKE ?', [
+            .whereRaw('UPPER(CONCAT(employee_first_name, " ", employee_last_name, " ", employee_second_last_name)) LIKE ?', [
               `%${filters.search.toUpperCase()}%`,
             ])
             .orWhereRaw('UPPER(employee_code) = ?', [`${filters.search.toUpperCase()}`])
@@ -223,6 +225,7 @@ export default class EmployeeService {
     const newEmployee = new Employee()
     newEmployee.employeeFirstName = employee.employeeFirstName
     newEmployee.employeeLastName = employee.employeeLastName
+    newEmployee.employeeSecondLastName = employee.employeeSecondLastName
     newEmployee.employeeCode = employee.employeeCode
     newEmployee.employeePayrollNum = employee.employeePayrollNum
     newEmployee.employeeHireDate = employee.employeeHireDate
@@ -247,6 +250,7 @@ export default class EmployeeService {
   async update(currentEmployee: Employee, employee: Employee) {
     currentEmployee.employeeFirstName = employee.employeeFirstName
     currentEmployee.employeeLastName = employee.employeeLastName
+    currentEmployee.employeeSecondLastName = employee.employeeSecondLastName
     currentEmployee.employeeCode = employee.employeeCode
     currentEmployee.employeePayrollNum = employee.employeePayrollNum
     currentEmployee.employeeHireDate = employee.employeeHireDate
@@ -602,6 +606,7 @@ export default class EmployeeService {
       .whereNotIn('person_id', persons)
       .preload('department')
       .preload('position')
+      .preload('person')
       .orderBy('employee_id')
       .paginate(filters.page, filters.limit)
     return employees
@@ -1268,6 +1273,77 @@ export default class EmployeeService {
     }
   }
 
+  splitCompoundSurnames(fullSurnames: string): { paternalSurname: string, maternalSurname: string } {
+    const particles = [
+      'de', 'del', 'de la', 'de los', 'de las',
+      'la', 'las', 'los',
+      'san', 'santa',
+      'mc', 'mac',
+      'van', 'von',
+      'di', 'da',
+      'dos', 'do'
+    ]
+
+    const knownCompoundSurnames = [
+      'de la rosa', 'de la mora', 'de la cruz', 'de la fuente', 'de la vega', 'de la torre',
+      'de la peña', 'de la garza', 'de la madrid', 'de la serna', 'de la luz', 'de la paz', 'de la parra',
+      'del río', 'del valle', 'del ángel', 'del monte', 'del campo', 'del toro', 'del real',
+      'del castillo', 'del villar', 'del olmo', 'del carmen',
+      'de los santos', 'de los ángeles', 'de todos los ángeles', 'de los ríos', 'de las nieves',
+      'san martín', 'san juan', 'san román', 'santa cruz', 'santa maría', 'santa ana',
+      'mac gregor', 'mc gregor', 'van rijn', 'von humboldt',
+      'de jesus', 'de gracia', 'de león', 'de anda', 'de aquino', 'de haro', 'de la ossa'
+    ]
+
+    const words = fullSurnames.trim().split(/\s+/)
+    const total = words.length
+
+    if (total === 1) {
+      return { paternalSurname: words[0], maternalSurname: '' }
+    }
+
+    let bestMatch: { paternalSurname: string, maternalSurname: string } | null = null
+    let bestScore = 0
+
+    // Probar todas las divisiones posibles
+    for (let i = 1; i < total; i++) {
+      const paternalWords = words.slice(0, i).join(' ').toLowerCase()
+      const maternalWords = words.slice(i).join(' ').toLowerCase()
+
+      const isPaternalKnown = knownCompoundSurnames.includes(paternalWords)
+      const isMaternalKnown = knownCompoundSurnames.includes(maternalWords)
+      const maternalStartsWithParticle = particles.some(p =>
+        maternalWords.startsWith(p + ' ') || maternalWords === p
+      )
+
+      let score = 0
+      if (isPaternalKnown) score += 2
+      if (isMaternalKnown) score += 2
+      else if (maternalStartsWithParticle) score += 1
+
+      // Guardar si tiene mejor score que el anterior
+      if (score > bestScore) {
+        bestScore = score
+        bestMatch = {
+          paternalSurname: words.slice(0, i).join(' '),
+          maternalSurname: words.slice(i).join(' ')
+        }
+
+        // ✅ si ambos apellidos son compuestos conocidos, este es el mejor posible
+        if (score === 4) break
+      }
+    }
+
+    if (bestMatch) return bestMatch
+    // Fallback
+    const midpoint = Math.floor(total / 2)
+
+    return {
+      paternalSurname: words.slice(0, midpoint).join(' '),
+      maternalSurname: words.slice(midpoint).join(' ')
+    }
+  }
+
   async getEmployeesToSyncFromBiometrics() {
 
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
@@ -1278,16 +1354,15 @@ export default class EmployeeService {
 
     const businessUnitsList = businessUnits.map((business) => business.businessUnitName)
 
-
     let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees`
-    apiUrl = `${apiUrl}?page=${1 || ''}`
-    apiUrl = `${apiUrl}&limit=${9999999 || ''}`
+    apiUrl = `${apiUrl}?page=${1}`
+    apiUrl = `${apiUrl}&limit=${9999999}`
 
     const apiResponse = await axios.get(apiUrl)
     const data = apiResponse.data.data
     const employeesSync = [] as EmployeeSyncInterface[]
     if (data) {
-    
+
       data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
       for await (const employee of data) {
         let existInBusinessUnitList = false
@@ -1323,7 +1398,7 @@ export default class EmployeeService {
 
   async verifyExistFromBiometrics(employee: BiometricEmployeeInterface) {
     const fullName = `${employee.firstName} ${employee.lastName}`
-    const data = { 
+    const data = {
       message: '',
       show: false,
       canSelect: false
@@ -1341,7 +1416,7 @@ export default class EmployeeService {
       }
       return data
     }
-   
+
     const existEmployeeCodeDelete = await Employee.query()
       .whereRaw("SUBSTRING_INDEX(employee_code, '-', 1) = ?", [employee.empCode])
       .withTrashed()

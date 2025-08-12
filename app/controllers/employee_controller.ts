@@ -272,6 +272,14 @@ export default class EmployeeController {
         let employeeCountSaved = 0
 
         for await (const employee of data) {
+          let employeeLastName = ''
+          let employeeSecondLastName = ''
+          if (employee.lastName) {
+            const surnames = employeeService.splitCompoundSurnames(employee.lastName)
+            employeeLastName = surnames.paternalSurname
+            employeeSecondLastName = surnames.maternalSurname
+          }
+         
           let existInBusinessUnitList = false
           let businessUnitApply = null
 
@@ -293,6 +301,8 @@ export default class EmployeeController {
           }
 
           if (existInBusinessUnitList) {
+            employee.lastName = employeeLastName
+            employee.secondLastName = employeeSecondLastName
             employee.departmentId = withOutDepartmentId
             employee.positionId = withOutPositionId
             employee.usersResponsible = usersResponsible
@@ -728,6 +738,7 @@ export default class EmployeeController {
     try {
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
@@ -749,6 +760,7 @@ export default class EmployeeController {
         employeeId: 0,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
+        employeeSecondLastName: `${employeeSecondLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
@@ -1024,6 +1036,7 @@ export default class EmployeeController {
       const employeeId = request.param('employeeId')
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
@@ -1042,6 +1055,7 @@ export default class EmployeeController {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
+        employeeSecondLastName: `${employeeSecondLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
@@ -2954,8 +2968,8 @@ export default class EmployeeController {
           : ''
         worksheet.addRow({
           employeeId: employee.employeeId,
-          employeeFirstName: employee.employeeFirstName,
-          employeeLastName: employee.employeeLastName,
+          employeeFirstName: `${employee.person?.personFirstname}`,
+          employeeLastName: `${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
           departmentName,
           positionName: employee.positionId,
           employeeHireDate: hireDate,
@@ -3167,6 +3181,7 @@ export default class EmployeeController {
 
       const employee = await Employee.query()
         .where('employeeId', employeeId)
+        .preload('person')
         .preload('department')
         .preload('position')
         .preload('shift_exceptions', (shiftExceptionsQuery) => {
@@ -3285,7 +3300,7 @@ export default class EmployeeController {
 
         const row = worksheet.addRow({
           employeeCode: employee.employeeCode,
-          employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+          employeeName: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
           department: employee.department?.departmentName || 'N/A',
           position: employee.position?.positionName || 'N/A',
           date: exception.shiftExceptionsDate,
@@ -3393,7 +3408,7 @@ export default class EmployeeController {
     employees.forEach((employee) => {
       worksheet.addRow([
         employee.employeeCode,
-        `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
         employee.department?.departmentName || '',
         employee.position?.positionName || '',
         employee.employeeHireDate ? employee.employeeHireDate.toISODate() : '',

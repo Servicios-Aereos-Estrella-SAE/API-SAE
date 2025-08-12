@@ -130,6 +130,11 @@ export default class Position extends compose(BaseModel, SoftDeletes) {
 
   @hasMany(() => Employee, {
     foreignKey: 'positionId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+      }
+    },
   })
   declare employees: HasMany<typeof Employee>
 

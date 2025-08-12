@@ -30,7 +30,9 @@ export default class ShiftForEmployeeService {
 
     let query = EmployeeShift.query()
       .whereBetween('employeShiftsApplySince', [onlyDateStart, onliDateEnd])
-      .preload('employee')
+      .preload('employee', (employeeQuery) => {
+        employeeQuery.preload('person')
+      })
       .preload('shift')
       .whereNull('deletedAt')
       .orderBy('employeShiftsApplySince', 'asc')
@@ -57,8 +59,8 @@ export default class ShiftForEmployeeService {
             employeeId: record.employeeId,
             employeeSyncId: record.employee.employeeSyncId,
             employeeCode: record.employee.employeeCode,
-            employeeFirstName: record.employee.employeeFirstName,
-            employeeLastName: record.employee.employeeLastName,
+            employeeFirstName: record.employee.person?.personFirstname,
+            employeeLastName: `${record.employee.person?.personLastname} ${record.employee.person?.personSecondLastname}`,
             employeePayrollNum: record.employee.employeePayrollNum,
             employeeHireDate: record.employee.employeeHireDate,
             companyId: record.employee.companyId,
@@ -96,7 +98,6 @@ export default class ShiftForEmployeeService {
       },
       {} as { [key: number]: EmployeeRecordInterface }
     )
-
     Object.values(employeeRecords).forEach((employee: EmployeeRecordInterface) => {
       employee.employeeShifts.sort(
         (a, b) =>

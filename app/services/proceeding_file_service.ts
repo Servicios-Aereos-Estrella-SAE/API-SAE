@@ -178,7 +178,6 @@ export default class ProceedingFileService {
       } as SetProceedingFileToEmailInterface
       await this.setProceedingFileToEmail(filtersToSetEmail)
     }
-
     for await (const proceedingFile of employeesProceedingFiles.proceedingFilesExpiring) {
       const filtersToSetEmail = {
         emails: emails,
@@ -240,7 +239,6 @@ export default class ProceedingFileService {
       } as SetProceedingFileToEmailInterface
       await this.setProceedingFileToEmail(filtersToSetEmail)
     }
-
     for await (const proceedingFile of customersProceedingFiles.proceedingFilesExpiring) {
       const filtersToSetEmail = {
         emails: emails,
@@ -289,7 +287,6 @@ export default class ProceedingFileService {
           tradeName = systemSettingActive.systemSettingTradeName
         }
       }
-
       for await (const email of emails) {
         if (
           email.employeesProceedingFilesExpired.length > 0 ||
@@ -441,8 +438,9 @@ export default class ProceedingFileService {
       .where('proceeding_file_type_area_to_use', areaToUse)
       .orderBy('proceeding_file_type_id')
       .select('proceeding_file_type_id')
-
+  
     const proceedingFileTypesIds = proceedingFileTypes.map((item) => item.proceedingFileTypeId)
+    
     const proceedingFilesExpired = await ProceedingFile.query()
       .whereNull('proceeding_file_deleted_at')
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
@@ -451,7 +449,9 @@ export default class ProceedingFileService {
         query.preload('emails')
       })
       .preload('employeeProceedingFile', (query) => {
-        query.preload('employee')
+        query.preload('employee', (queryEmployee) => {
+          queryEmployee.preload('person')
+        })
       })
       .preload('pilotProceedingFile', (query) => {
         query.preload('pilot', (queryPilot) => {
@@ -487,7 +487,9 @@ export default class ProceedingFileService {
         query.preload('emails')
       })
       .preload('employeeProceedingFile', (query) => {
-        query.preload('employee')
+        query.preload('employee', (queryEmployee) => {
+          queryEmployee.preload('person')
+        })
       })
       .preload('pilotProceedingFile', (query) => {
         query.preload('pilot', (queryPilot) => {

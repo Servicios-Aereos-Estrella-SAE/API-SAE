@@ -320,6 +320,7 @@ export default class AssistsController {
         .where('employee_id', employeeId)
         .preload('position')
         .preload('department')
+        .preload('person')
         .first()
       if (!employee) {
         response.status(400)

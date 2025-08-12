@@ -6,6 +6,7 @@ export default interface BiometricEmployeeInterface {
   empCode: number
   firstName: string
   lastName: string
+  secondLastName: string
   payrollNum: string
   hireDate: DateTime
   companyId: number

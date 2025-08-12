@@ -524,7 +524,6 @@ export default class SyncAssistsService {
         })
         .withTrashed()
         .first()
-
       if (!employee) {
         return {
           status: 400,
@@ -537,7 +536,6 @@ export default class SyncAssistsService {
 
       query.where('assist_emp_code', employee.employeeCode)
     }
-
     query.orderBy('assist_punch_time_origin', 'desc')
 
     const assistDayCollection: AssistDayInterface[] = []
