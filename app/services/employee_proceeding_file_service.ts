@@ -7,6 +7,7 @@ import ProceedingFile from '#models/proceeding_file'
 import ProceedingFileType from '#models/proceeding_file_type'
 import { DateTime } from 'luxon'
 import { EmployeeProceedingFileFilterInterface } from '../interfaces/employee_proceeding_file_filter_interface.js'
+import EmployeeContract from '#models/employee_contract'
 
 export default class EmployeeProceedingFileService {
   async create(employeeProceedingFile: EmployeeProceedingFile) {
@@ -169,6 +170,7 @@ export default class EmployeeProceedingFileService {
     const proceedingFileTypesIds = proceedingFileTypes.map((item) => item.proceedingFileTypeId)
     const proceedingFilesExpired = await ProceedingFile.query()
       .whereNull('proceeding_file_deleted_at')
+      .where('proceeding_file_active', 1)
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereBetween('proceeding_file_expiration_at', [filters.dateStart, filters.dateEnd])
       .whereHas('employeeProceedingFile', (query) => {
@@ -184,6 +186,7 @@ export default class EmployeeProceedingFileService {
     const newDateEnd = DateTime.fromISO(filters.dateEnd).plus({ days: 30 }).toFormat('yyyy-MM-dd')
     const proceedingFilesExpiring = await ProceedingFile.query()
       .whereNull('proceeding_file_deleted_at')
+      .where('proceeding_file_active', 1)
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereBetween('proceeding_file_expiration_at', [newDateStart, newDateEnd])
       .whereHas('employeeProceedingFile', (query) => {
@@ -197,6 +200,7 @@ export default class EmployeeProceedingFileService {
 
     const allCounted = await ProceedingFile.query()
       .whereNull('proceeding_file_deleted_at')
+      .where('proceeding_file_active', 1)
       .whereIn('proceeding_file_type_id', proceedingFileTypesIds)
       .whereHas('employeeProceedingFile', (query) => {
         query.whereHas('employee', (subQuery) => {
@@ -207,10 +211,44 @@ export default class EmployeeProceedingFileService {
 
     const quantityFiles = allCounted[0].$extras.quantity_files || 0
 
+
+    const contractsExpired = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_contract_active', 1)
+      .whereBetween('employee_contract_end_date', [filters.dateStart, filters.dateEnd])
+      .whereHas('employee', (query) => {
+        query.whereIn('departmentId', departmentsList)
+      })
+      .preload('employee')
+      .orderBy('employee_contract_end_date')
+
+    const contractsExpiring = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_contract_active', 1)
+      .whereBetween('employee_contract_end_date', [newDateStart, newDateEnd])
+      .whereHas('employee', (query) => {
+        query.whereIn('departmentId', departmentsList)
+      })
+      .preload('employee')
+      .orderBy('employee_contract_end_date')
+    
+    const allCountedContracts = await EmployeeContract.query()
+      .whereNull('employee_contract_deleted_at')
+      .where('employee_contract_active', 1)
+      .whereHas('employee', (query) => {
+        query.whereIn('departmentId', departmentsList)
+      })
+      .count('employee_contract_id as quantity_files')
+
+    const quantityContracts = allCountedContracts[0].$extras.quantity_files || 0
+
     return {
       proceedingFilesExpired: proceedingFilesExpired ? proceedingFilesExpired : [],
       proceedingFilesExpiring: proceedingFilesExpiring ? proceedingFilesExpiring : [],
-      quantityFiles
+      quantityFiles,
+      contractsExpired: contractsExpired,
+      contractsExpiring: contractsExpiring,
+      quantityContracts
     }
   }
 }
