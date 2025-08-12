@@ -22,6 +22,7 @@ import axios from 'axios'
 import EmployeeContract from '#models/employee_contract'
 import EmployeeBank from '#models/employee_bank'
 import UserResponsibleEmployee from '#models/user_responsible_employee'
+import { EmployeeSyncInterface } from '../interfaces/employee_sync_interface.js'
 
 export default class EmployeeService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -1282,7 +1283,7 @@ export default class EmployeeService {
       'di', 'da',
       'dos', 'do'
     ]
-  
+
     const knownCompoundSurnames = [
       'de la rosa', 'de la mora', 'de la cruz', 'de la fuente', 'de la vega', 'de la torre',
       'de la peña', 'de la garza', 'de la madrid', 'de la serna', 'de la luz', 'de la paz', 'de la parra',
@@ -1293,33 +1294,33 @@ export default class EmployeeService {
       'mac gregor', 'mc gregor', 'van rijn', 'von humboldt',
       'de jesus', 'de gracia', 'de león', 'de anda', 'de aquino', 'de haro', 'de la ossa'
     ]
-  
+
     const words = fullSurnames.trim().split(/\s+/)
     const total = words.length
-  
+
     if (total === 1) {
       return { paternalSurname: words[0], maternalSurname: '' }
     }
-  
+
     let bestMatch: { paternalSurname: string, maternalSurname: string } | null = null
     let bestScore = 0
-  
+
     // Probar todas las divisiones posibles
     for (let i = 1; i < total; i++) {
       const paternalWords = words.slice(0, i).join(' ').toLowerCase()
       const maternalWords = words.slice(i).join(' ').toLowerCase()
-  
+
       const isPaternalKnown = knownCompoundSurnames.includes(paternalWords)
       const isMaternalKnown = knownCompoundSurnames.includes(maternalWords)
       const maternalStartsWithParticle = particles.some(p =>
         maternalWords.startsWith(p + ' ') || maternalWords === p
       )
-  
+
       let score = 0
       if (isPaternalKnown) score += 2
       if (isMaternalKnown) score += 2
       else if (maternalStartsWithParticle) score += 1
-  
+
       // Guardar si tiene mejor score que el anterior
       if (score > bestScore) {
         bestScore = score
@@ -1327,12 +1328,12 @@ export default class EmployeeService {
           paternalSurname: words.slice(0, i).join(' '),
           maternalSurname: words.slice(i).join(' ')
         }
-  
+
         // ✅ si ambos apellidos son compuestos conocidos, este es el mejor posible
         if (score === 4) break
       }
     }
-  
+
     if (bestMatch) return bestMatch
     // Fallback
     const midpoint = Math.floor(total / 2)
@@ -1341,5 +1342,116 @@ export default class EmployeeService {
       paternalSurname: words.slice(0, midpoint).join(' '),
       maternalSurname: words.slice(midpoint).join(' ')
     }
+  }
+
+  async getEmployeesToSyncFromBiometrics() {
+
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
+
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitName)
+
+    let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees`
+    apiUrl = `${apiUrl}?page=${1}`
+    apiUrl = `${apiUrl}&limit=${9999999}`
+
+    const apiResponse = await axios.get(apiUrl)
+    const data = apiResponse.data.data
+    const employeesSync = [] as EmployeeSyncInterface[]
+    if (data) {
+
+      data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+      for await (const employee of data) {
+        let existInBusinessUnitList = false
+
+        if (employee.payrollNum) {
+          if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
+            existInBusinessUnitList = true
+          }
+        } else if (employee.personnelEmployeeArea.length > 0) {
+          for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
+            if (personnelEmployeeArea.personnelArea) {
+              if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
+                existInBusinessUnitList = true
+                break
+              }
+            }
+          }
+        }
+
+        if (existInBusinessUnitList) {
+          const dataEmployee = await this.verifyExistFromBiometrics(employee)
+          if (dataEmployee.show) {
+            dataEmployee.employeeCode = employee.empCode
+            dataEmployee.employeeFirstName = employee.firstName
+            dataEmployee.employeeLastName = employee.lastName
+            employeesSync.push(dataEmployee)
+          }
+        }
+      }
+    }
+    return employeesSync
+  }
+
+  async verifyExistFromBiometrics(employee: BiometricEmployeeInterface) {
+    const fullName = `${employee.firstName} ${employee.lastName}`
+    const data = {
+      message: '',
+      show: false,
+      canSelect: false
+    } as EmployeeSyncInterface
+    const existEmployeeCode = await Employee.query()
+      .where('employee_code', employee.empCode)
+      .withTrashed()
+      .first()
+    if (existEmployeeCode) {
+      const fullNameFind = `${existEmployeeCode.employeeFirstName} ${existEmployeeCode.employeeLastName}`
+      if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
+        data.show = true
+        data.message = `This employee cannot be selected because their ID is already in use by "${fullNameFind}".`
+        data.canSelect = false
+      }
+      return data
+    }
+
+    const existEmployeeCodeDelete = await Employee.query()
+      .whereRaw("SUBSTRING_INDEX(employee_code, '-', 1) = ?", [employee.empCode])
+      .withTrashed()
+      .first()
+    if (existEmployeeCodeDelete) {
+      const fullNameFind = `${existEmployeeCodeDelete.employeeFirstName} ${existEmployeeCodeDelete.employeeLastName}`
+      if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
+        data.show = true
+        data.message = `This employee cannot be selected because their ID is already in use by "${fullNameFind}".`
+        data.canSelect = false
+      }
+      return data
+    }
+    const existEmployeeName = await Employee.query()
+      .whereRaw("LOWER(CONCAT(employee_first_name, ' ', employee_last_name)) = LOWER(?)", [fullName])
+      .withTrashed()
+      .first()
+    if (existEmployeeName) {
+      data.show = true
+      data.message = 'One employee with the same name already exists in the system. Please verify before making a selection.'
+      data.canSelect = true
+      return data
+    }
+    data.show = true
+    data.message = ''
+    data.canSelect = true
+    return data
+  }
+
+  cleanString(str: string): string {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z\s]/g, '')
+      .toLowerCase()
+      .trim()
   }
 }
