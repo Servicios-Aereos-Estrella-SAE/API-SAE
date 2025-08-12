@@ -12,6 +12,7 @@ export default class ShiftService {
     newShift.shiftRestDays = shift.shiftRestDays
     newShift.shiftAccumulatedFault = shift.shiftAccumulatedFault
     newShift.shiftBusinessUnits = shift.shiftBusinessUnits
+    newShift.shiftTemp = shift.shiftTemp
     await newShift.save()
 
     return newShift
@@ -25,6 +26,7 @@ export default class ShiftService {
       .if(shift.shiftId > 0, (query) => {
         query.whereNot('shift_id', shift.shiftId)
       })
+      .where('shift_temp', 0)
       .whereNull('shift_deleted_at')
       .where('shift_name', shift.shiftName)
       .andWhere((subQuery) => {

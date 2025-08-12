@@ -30,6 +30,8 @@ import ShiftService from '#services/shift_service'
  *                 type: string
  *               shiftAccumulatedFault:
  *                 type: number
+ *               shiftTemp:
+ *                 type: number
  *     responses:
  *       '201':
  *         description: Shift created successfully
@@ -76,6 +78,7 @@ export default class ShiftController {
         shiftAccumulatedFault: data.shiftAccumulatedFault,
         shiftCalculateFlag: request.input('shiftCalculateFlag'),
         shiftBusinessUnits: businessConf,
+        shiftTemp: data.shiftTemp,
       } as Shift
       const verifyInfo = await shiftService.verifyInfo(shift)
       if (verifyInfo.status !== 200) {
@@ -158,6 +161,7 @@ export default class ShiftController {
 
       const shiftQuery = Shift.query()
         .whereNull('shiftDeletedAt')
+        .where('shift_temp', 0)
         .andWhere((query) => {
           query.whereNotNull('shift_business_units')
           query.andWhere((subQuery) => {
@@ -237,6 +241,8 @@ export default class ShiftController {
    *                   type: number
    *                 shiftRestDays:
    *                   type: string
+   *                 shiftTemp:
+   *                   type: number
    *       '404':
    *         description: Shift not found
    *         content:
@@ -301,6 +307,8 @@ export default class ShiftController {
    *                 type: string
    *               shiftAccumulatedFault:
    *                 type: number
+   *               shiftTemp:
+   *                 type: number
    *     responses:
    *       '200':
    *         description: Shift updated successfully
@@ -322,6 +330,8 @@ export default class ShiftController {
    *                 shiftRestDays:
    *                   type: string
    *                 shiftAccumulatedFault:
+   *                   type: number
+   *                 shiftTemp:
    *                   type: number
    *       '400':
    *         description: Invalid input, validation error
@@ -369,6 +379,7 @@ export default class ShiftController {
         shiftAccumulatedFault: data.shiftAccumulatedFault,
         shiftCalculateFlag: request.input('shiftCalculateFlag'),
         shiftBusinessUnits: businessConf,
+        shiftTemp: data.shiftTemp,
       } as Shift
 
       const verifyInfo = await shiftService.verifyInfo(updateShift)

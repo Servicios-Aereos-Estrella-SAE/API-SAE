@@ -21,6 +21,7 @@ export const createShiftValidator = vine.compile(
       return value
     }),
     shiftAccumulatedFault: vine.number().min(1),
+    shiftTemp: vine.number().optional(),
   })
 )
 
@@ -45,5 +46,6 @@ export const updateShiftValidator = vine.compile(
         return restDaysArray.join(',')
       }),
       shiftAccumulatedFault: vine.number().min(1),
+      shiftTemp: vine.number().optional(),
     })
   )

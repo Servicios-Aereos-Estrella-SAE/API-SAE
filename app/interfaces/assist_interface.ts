@@ -15,6 +15,7 @@ interface AssistInterface {
   assistEmpId: number
   assistTerminalId: number
   assistAssistSyncId: string
+  assistUsed: boolean
   assistCreatedAt: string | Date | null
   assistUpdatedAt: string | Date | null
 }
