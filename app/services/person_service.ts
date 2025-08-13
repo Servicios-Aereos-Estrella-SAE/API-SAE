@@ -8,7 +8,7 @@ export default class PersonService {
     const newPerson = new Person()
     newPerson.personFirstname = employee.firstName
     newPerson.personLastname = employee.lastName
-    newPerson.personSecondLastname = employee.secondLastName
+    newPerson.personSecondLastname = employee.secondLastName || ''
     if (employee.gender) {
       if (employee.gender === 'M') {
         newPerson.personGender = 'Hombre'
@@ -41,7 +41,7 @@ export default class PersonService {
     const newPerson = new Person()
     newPerson.personFirstname = person.personFirstname
     newPerson.personLastname = person.personLastname
-    newPerson.personSecondLastname = person.personSecondLastname
+    newPerson.personSecondLastname = person.personSecondLastname || ''
     newPerson.personBirthday = person.personBirthday
     newPerson.personGender = person.personGender
     newPerson.personPhone = person.personPhone
@@ -61,7 +61,7 @@ export default class PersonService {
   async update(currentPerson: Person, person: Person) {
     currentPerson.personFirstname = person.personFirstname
     currentPerson.personLastname = person.personLastname
-    currentPerson.personSecondLastname = person.personSecondLastname
+    currentPerson.personSecondLastname = person.personSecondLastname || ''
     currentPerson.personBirthday = person.personBirthday
     currentPerson.personGender = person.personGender
     currentPerson.personPhone = person.personPhone

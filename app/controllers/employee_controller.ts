@@ -279,7 +279,7 @@ export default class EmployeeController {
             employeeLastName = surnames.paternalSurname
             employeeSecondLastName = surnames.maternalSurname
           }
-         
+
           let existInBusinessUnitList = false
           let businessUnitApply = null
 
@@ -487,7 +487,7 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
-      let hasAccessToFullEmployes = false 
+      let hasAccessToFullEmployes = false
       let userResponsibleId = null
       if (user) {
         await user.preload('role')
@@ -504,6 +504,7 @@ export default class EmployeeController {
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId, hasAccessToFullEmployes)
       }
+
       const search = request.input('search')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -5188,6 +5189,7 @@ export default class EmployeeController {
       let employeesSync = [] as EmployeeSyncInterface[]
       employeesSync = await employeeService.getEmployeesToSyncFromBiometrics()
       response.status(200)
+
       return {
         type: 'success',
         title: 'Employees',
