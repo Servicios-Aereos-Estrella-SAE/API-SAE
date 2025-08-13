@@ -1362,9 +1362,10 @@ export default class EmployeeService {
     const apiResponse = await axios.get(apiUrl)
     const data = apiResponse.data.data
     const employeesSync = [] as EmployeeSyncInterface[]
-    if (data) {
 
+    if (data) {
       data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+
       for await (const employee of data) {
         let existInBusinessUnitList = false
 
@@ -1385,6 +1386,7 @@ export default class EmployeeService {
 
         if (existInBusinessUnitList) {
           const dataEmployee = await this.verifyExistFromBiometrics(employee)
+
           if (dataEmployee.show) {
             dataEmployee.employeeCode = employee.empCode
             dataEmployee.employeeFirstName = employee.firstName
@@ -1394,6 +1396,7 @@ export default class EmployeeService {
         }
       }
     }
+
     return employeesSync
   }
 
@@ -1404,46 +1407,57 @@ export default class EmployeeService {
       show: false,
       canSelect: false
     } as EmployeeSyncInterface
+
     const existEmployeeCode = await Employee.query()
       .where('employee_code', employee.empCode)
       .withTrashed()
       .first()
+
     if (existEmployeeCode) {
       const fullNameFind = `${existEmployeeCode.employeeFirstName} ${existEmployeeCode.employeeLastName}`
+
       if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
         data.show = true
         data.message = `This employee cannot be selected because their ID is already in use by "${fullNameFind}".`
         data.canSelect = false
       }
+
       return data
     }
 
     const existEmployeeCodeDelete = await Employee.query()
       .whereRaw("SUBSTRING_INDEX(employee_code, '-', 1) = ?", [employee.empCode])
-      .withTrashed()
+      // .withTrashed()
       .first()
+
     if (existEmployeeCodeDelete) {
       const fullNameFind = `${existEmployeeCodeDelete.employeeFirstName} ${existEmployeeCodeDelete.employeeLastName}`
+
       if (this.cleanString(fullName) !== this.cleanString(fullNameFind)) {
         data.show = true
         data.message = `This employee cannot be selected because their ID is already in use by "${fullNameFind}".`
         data.canSelect = false
       }
+
       return data
     }
+
     const existEmployeeName = await Employee.query()
       .whereRaw("LOWER(CONCAT(employee_first_name, ' ', employee_last_name)) = LOWER(?)", [fullName])
       .withTrashed()
       .first()
+
     if (existEmployeeName) {
       data.show = true
       data.message = 'One employee with the same name already exists in the system. Please verify before making a selection.'
       data.canSelect = true
       return data
     }
+
     data.show = true
     data.message = ''
     data.canSelect = true
+
     return data
   }
 
