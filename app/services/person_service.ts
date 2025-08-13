@@ -1,7 +1,10 @@
 import Employee from '#models/employee'
 import Person from '#models/person'
+import { DateTime } from 'luxon'
 import BiometricEmployeeInterface from '../interfaces/biometric_employee_interface.js'
 import { PersonFilterSearchInterface } from '../interfaces/person_filter_search_interface.js'
+import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
+import SyncAssistsService from './sync_assists_service.js'
 
 export default class PersonService {
   async syncCreate(employee: BiometricEmployeeInterface) {
@@ -55,10 +58,29 @@ export default class PersonService {
     newPerson.personPlaceOfBirthState = person.personPlaceOfBirthState
     newPerson.personPlaceOfBirthCity = person.personPlaceOfBirthCity
     await newPerson.save()
+
+    await newPerson.load('employee')
+    if (newPerson.employee) {
+      if (newPerson.personBirthday) {
+        const birthdayDate = newPerson.personBirthday;
+        const date = typeof birthdayDate === 'string' ? new Date(birthdayDate) : birthdayDate;
+        
+        const currentYear = new Date().getFullYear()
+        const month = date.getMonth()
+        const day = date.getDate()
+        
+        let updatedBirthday = new Date(currentYear, month, day)
+        if (updatedBirthday.getMonth() !== month || updatedBirthday.getDate() !== day) {
+          updatedBirthday = new Date(currentYear, 1, 28)
+        }
+        await this.updateAssistCalendar(newPerson.employee.employeeId, updatedBirthday)
+      }
+    }
     return newPerson
   }
 
   async update(currentPerson: Person, person: Person) {
+    const personBirthdayPast = currentPerson.personBirthday
     currentPerson.personFirstname = person.personFirstname
     currentPerson.personLastname = person.personLastname
     currentPerson.personSecondLastname = person.personSecondLastname
@@ -75,6 +97,41 @@ export default class PersonService {
     currentPerson.personPlaceOfBirthState = person.personPlaceOfBirthState
     currentPerson.personPlaceOfBirthCity = person.personPlaceOfBirthCity
     await currentPerson.save()
+
+    await currentPerson.load('employee')
+    if (currentPerson.employee) {
+      if (currentPerson.personBirthday) {
+        const birthdayDate = currentPerson.personBirthday;
+        const date = typeof birthdayDate === 'string' ? new Date(birthdayDate) : birthdayDate;
+        
+        const currentYear = new Date().getFullYear()
+        const month = date.getMonth()
+        const day = date.getDate()
+        
+        let updatedBirthday = new Date(currentYear, month, day)
+        if (updatedBirthday.getMonth() !== month || updatedBirthday.getDate() !== day) {
+          updatedBirthday = new Date(currentYear, 1, 28)
+        }
+        await this.updateAssistCalendar(currentPerson.employee.employeeId, updatedBirthday)
+      }
+      if (personBirthdayPast) {
+        const newPersonBirthdayPast = new Date(personBirthdayPast)
+        const datePast = typeof newPersonBirthdayPast === 'string' ? new Date(newPersonBirthdayPast) : newPersonBirthdayPast
+        const fixedBirthdayString = person.personBirthday.replace('00:000:00', '00:00:00')
+
+        const birthdayISO = DateTime.fromFormat(fixedBirthdayString, 'yyyy-MM-dd HH:mm:ss').toISO()
+        const datePastISO = DateTime.fromJSDate(datePast).toISO()
+
+        if (datePastISO !== birthdayISO) {
+          const today = new Date()
+          const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+          if (datePast <= todayAtMidnight) {
+            await this.updateAssistCalendar(currentPerson.employee.employeeId, datePast)
+          }
+        }
+      }
+    }
+
     return currentPerson
   }
 
@@ -196,5 +253,25 @@ export default class PersonService {
       .orderBy(column)
 
     return persons
+  }
+
+  async updateAssistCalendar(employeeId: number, date: Date) {
+    const dateStart = new Date(date)
+    dateStart.setDate(dateStart.getDate())
+
+    const dateEnd = new Date(date)
+    dateEnd.setDate(dateEnd.getDate())
+
+    const filter: SyncAssistsServiceIndexInterface = {
+        date: this.formatDate(dateStart),
+        dateEnd: this.formatDate(dateEnd),
+        employeeID: employeeId
+      }
+      const syncAssistsService = new SyncAssistsService()
+      await syncAssistsService.setDateCalendar(filter)
+  }
+
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0]
   }
 }

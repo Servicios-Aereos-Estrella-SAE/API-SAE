@@ -3,6 +3,8 @@ import { DateTime } from 'luxon'
 import { EmployeeShiftFilterInterface } from '../interfaces/employee_shift_filter_interface.js'
 import { LogStore } from '#models/MongoDB/log_store'
 import { LogEmployeeShift } from '../interfaces/MongoDB/log_employee_shift.js'
+import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
+import SyncAssistsService from './sync_assists_service.js'
 
 export default class EmployeeShiftService {
   async verifyInfo(employeeShift: EmployeeShift) {
@@ -149,5 +151,24 @@ export default class EmployeeShiftService {
   getHeaderValue(headers: Array<string>, headerName: string) {
     const index = headers.indexOf(headerName)
     return index !== -1 ? headers[index + 1] : null
+  }
+
+  async updateAssistCalendar(employeeId: number, date: Date) {
+    const dateStart = new Date(date)
+    dateStart.setDate(dateStart.getDate() - 24)
+
+    const dateEnd = new Date()
+
+    const filter: SyncAssistsServiceIndexInterface = {
+        date: this.formatDate(dateStart),
+        dateEnd: this.formatDate(dateEnd),
+        employeeID: employeeId
+      }
+      const syncAssistsService = new SyncAssistsService()
+      await syncAssistsService.setDateCalendar(filter)
+  }
+
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0]
   }
 }

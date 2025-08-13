@@ -18,7 +18,6 @@ export default class SyncAssistance extends BaseCommand {
   @inject()
   async run(syncAssistsService: SyncAssistsService) {
     const startLogTime = DateTime.now()
-
     try {
       if (env.get('NODE_ENV') !== 'production') {
         logger.info('Skipping synchronization as the environment is not production.')

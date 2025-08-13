@@ -734,8 +734,17 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
       const employeeSecondLastName = request.input('employeeSecondLastName')
@@ -817,7 +826,27 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
-      const newEmployee = await employeeService.create(employee)
+      const roles = await Role.query()
+        .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
+        .whereNull('role_deleted_at')
+
+      let usersResponsible: Array<User> = []
+
+      if (roles.length) {
+        const roleIds = roles.map((role) => role.roleId)
+        usersResponsible = await User.query()
+          .whereIn('role_id', roleIds)
+          .preload('role')
+          .orderBy('user_id')
+      }
+      if (userResponsibleId && user) {
+        const existUser = usersResponsible.find(a => a.userId === userResponsibleId)
+        if (!existUser) {
+          usersResponsible.push(user)
+        }
+      }
+
+      const newEmployee = await employeeService.create(employee, usersResponsible)
       if (newEmployee) {
         response.status(201)
         return {

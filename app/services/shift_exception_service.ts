@@ -4,6 +4,8 @@ import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_fil
 import { LogShiftException } from '../interfaces/MongoDB/log_shift_exception.js'
 import { LogStore } from '#models/MongoDB/log_store'
 import ShiftExceptionEvidence from '#models/shift_exception_evidence'
+import SyncAssistsService from './sync_assists_service.js'
+import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_service_index_interface.js'
 
 export default class ShiftExceptionService {
   async create(shiftException: ShiftException) {
@@ -20,6 +22,11 @@ export default class ShiftExceptionService {
     newShiftException.shiftExceptionTimeByTime = shiftException.shiftExceptionTimeByTime
     newShiftException.workDisabilityPeriodId = shiftException.workDisabilityPeriodId
     await newShiftException.save()
+
+    const exceptionDate = newShiftException.shiftExceptionsDate
+    const date = typeof exceptionDate === 'string' ? new Date(exceptionDate) : exceptionDate
+    await this.updateAssistCalendar(shiftException.employeeId, date)
+
     return newShiftException
   }
 
@@ -35,6 +42,11 @@ export default class ShiftExceptionService {
       shiftException.shiftExceptionEnjoymentOfSalary
     currentShiftException.shiftExceptionTimeByTime = shiftException.shiftExceptionTimeByTime
     await currentShiftException.save()
+
+    const exceptionDate = currentShiftException.shiftExceptionsDate
+    const date = typeof exceptionDate === 'string' ? new Date(exceptionDate) : exceptionDate
+    await this.updateAssistCalendar(shiftException.employeeId, date)
+
     return currentShiftException
   }
 
@@ -166,5 +178,25 @@ export default class ShiftExceptionService {
       .where('shift_exception_id', shiftExceptionId)
 
     return shiftExceptionEvidences ? shiftExceptionEvidences : []
+  }
+
+  async updateAssistCalendar(employeeId: number, date: Date) {
+    const dateStart = new Date(date)
+    dateStart.setDate(dateStart.getDate() - 24)
+
+    const dateEnd = new Date(date)
+    dateEnd.setDate(dateEnd.getDate() + 1)
+
+    const filter: SyncAssistsServiceIndexInterface = {
+        date: this.formatDate(dateStart),
+        dateEnd: this.formatDate(dateEnd),
+        employeeID: employeeId
+      }
+      const syncAssistsService = new SyncAssistsService()
+      await syncAssistsService.setDateCalendar(filter)
+  }
+
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0]
   }
 }

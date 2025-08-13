@@ -12,6 +12,7 @@ import UserService from '#services/user_service'
 import Assist from '#models/assist'
 import { DateTime } from 'luxon'
 import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
+import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
 
 export default class AssistsController {
   /**
@@ -229,7 +230,23 @@ export default class AssistsController {
     const filterDateEnd = request.input('date-end')
     const page = request.input('page')
     const limit = request.input('limit')
-
+    /*     if (employeeID) {
+      const employee = await Employee.query()
+        .where('employee_id', employeeID)
+        .first()
+      if (employee) {
+    
+          const filter: SyncAssistsServiceIndexInterface = {
+            date: filterDate,
+            dateEnd: filterDateEnd,
+            employeeID: employee.employeeId
+          }
+          console.log('procesando: ' + employee.employeeId)
+          const syncAssistsService = new SyncAssistsService()
+          await syncAssistsService.setDateCalendar(filter)
+        
+      }
+    } */
     try {
       const result = await syncAssistsService.index(
         {
@@ -1315,6 +1332,12 @@ export default class AssistsController {
       }
       currentAssist.assistActive = 0
       await currentAssist.save()
+      if (currentAssist.assistPunchTimeUtc) {
+        const assistService = new AssistsService()
+        const date: Date = currentAssist.assistPunchTimeUtc.toJSDate()
+        await assistService.updateAssistCalendar(currentAssist.assistEmpId, date)
+      }
+     
       response.status(200)
       return {
         type: 'success',
@@ -1331,6 +1354,161 @@ export default class AssistsController {
         title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/assists/get-flat-list:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Assists
+   *     summary: get assist flat list by employee id
+   *     parameters:
+   *       - name: employeeId
+   *         in: query
+   *         required: true
+   *         description: Employee Id
+   *         schema:
+   *           type: integer
+   *       - name: dateStart
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *         required: true
+   *         description: Start date
+   *       - name: dateEnd
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *         required: true
+   *         description: End date
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getAssistFlatList({ request, response }: HttpContext) {
+    try {
+
+      const employeeId = request.input('employeeId')
+
+      if (!employeeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The employee Id was not found',
+          data: { employeeId },
+        }
+      }
+      const dateStart = request.input('dateStart')
+      const dateEnd = request.input('dateEnd')
+
+      const assistService = new AssistsService()
+      const filter = {
+        employeeId: employeeId,
+        dateStart: dateStart,
+        dateEnd: dateEnd,
+      } as AssistFlatFilterInterface
+
+      const assistsFlatList = await assistService.getAssistFlatList(filter)
+
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'Assists',
+        message: 'The assists flat list were found successfully',
+        data: { data: assistsFlatList },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
       }
     }
   }

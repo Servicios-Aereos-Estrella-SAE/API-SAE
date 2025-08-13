@@ -4,6 +4,7 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
+    router.get('/get-flat-list', '#controllers/assists_controller.getAssistFlatList')
     router.get('/get-format-payroll', '#controllers/assists_controller.getFormatPayRoll')
     router.get('/get-excel-by-employee', '#controllers/assists_controller.getExcelByEmployee')
     router.get('/get-excel-by-position', '#controllers/assists_controller.getExcelByPosition')
