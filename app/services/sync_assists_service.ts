@@ -139,7 +139,7 @@ export default class SyncAssistsService {
       .first()
     if (employee) {
 
-    
+
       const filter: SyncAssistsServiceIndexInterface = {
         date: filters.startDate,
         dateEnd: filters.endDate,
@@ -270,7 +270,7 @@ export default class SyncAssistsService {
             assistPunchTimeOrigin: DateTime.fromISO(item.punch_time_origin_real.toString()),
           })
           .save()
-        
+
       } else {
         const newAssist = new Assist()
         newAssist.assistEmpCode = item.emp_code
@@ -287,7 +287,7 @@ export default class SyncAssistsService {
         newAssist.assistPunchTimeOrigin = DateTime.fromISO(item.punch_time_origin_real.toString())
         newAssist.assistSyncId = item.id
         await newAssist.save()
-       
+
       }
     }
   }
@@ -338,13 +338,14 @@ export default class SyncAssistsService {
           if (existEmployeeAssistCalendar) {
             employeeAssistCalendar = existEmployeeAssistCalendar
           }
+
           employeeAssistCalendar.day = calendarObject.day
           employeeAssistCalendar.employeeId = filters.employeeID as number
           employeeAssistCalendar.checkInAssistId = calendarObject.assist.checkIn ? calendarObject.assist.checkIn.assistId : null
-          employeeAssistCalendar.checkInDateTime = `${calendarObject.assist.checkInDateTime?.toString()}`
+          employeeAssistCalendar.checkInDateTime = calendarObject.assist.checkInDateTime?.toISO() || null
           employeeAssistCalendar.checkInStatus = calendarObject.assist.checkInStatus
           employeeAssistCalendar.checkOutAssistId = calendarObject.assist.checkOut ? calendarObject.assist.checkOut.assistId : null
-          employeeAssistCalendar.checkOutDateTime = `${calendarObject.assist.checkOutDateTime?.toString()}`
+          employeeAssistCalendar.checkOutDateTime = calendarObject.assist.checkOutDateTime?.toISO() || null
           employeeAssistCalendar.checkOutStatus = calendarObject.assist.checkOutStatus
           employeeAssistCalendar.checkEatInAssistId = calendarObject.assist.checkEatIn ? calendarObject.assist.checkEatIn.assistId : null
           employeeAssistCalendar.checkEatOutAssistId = calendarObject.assist.checkEatOut ? calendarObject.assist.checkEatOut.assistId : null
@@ -380,7 +381,7 @@ export default class SyncAssistsService {
             .where('employee_id' , filters.employeeID as number)
             .where('day' , day)
             .first()
-        
+
           if (!existEmployeeAssistCalendar) {
             const employeeAssistCalendar = new EmployeeAssistCalendar()
             employeeAssistCalendar.day = day
@@ -416,7 +417,7 @@ export default class SyncAssistsService {
         }
       }
     }
-   
+
   }
 
   async updatePageSync(page: number, status: string, itemsCount: number) {
@@ -596,8 +597,8 @@ export default class SyncAssistsService {
     const dailyShifts: EmployeeRecordInterface[] = serviceResponse.status === 200 ? ((serviceResponse.data?.data || []) as EmployeeRecordInterface[]) : []
     const employeeShifts: ShiftRecordInterface[] = dailyShifts[0].employeeShifts as ShiftRecordInterface[]
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
-
     const assistListFlat  = assistList.toJSON().data as AssistInterface[]
+
     for await (const item of assistListFlat) {
       const assist = item as AssistInterface
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
@@ -605,16 +606,20 @@ export default class SyncAssistsService {
 
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
+
         for await (const [index, dayItem] of assistListFlat.entries()) {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
-          // let canProcess = true
+
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
             const isSummerTime = this.checkDSTSummerTime(new Date(currentDay))
             assistListFlat[index].assistUsed = false
+
             let assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
+
             if (isSummerTime) {
               assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').plus({ hour: 1 }).toFormat('HH:mm:ss')
             }
+
             const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
             const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
             const checkInTimeOnly = DateTime.fromObject({
@@ -622,61 +627,41 @@ export default class SyncAssistsService {
               minute: checkInDateTime.minute,
               second: checkInDateTime.second,
             })
+
             if (employee) {
-              /* const startDate = `${currentDay} 00:00:00`
-              const endDate = `${currentDay} 23:59:59`
-              employee.$setRelated('shiftChanges', [])
-              await employee.load('shiftChanges', (queryShiftChange) => {
-                queryShiftChange.where('employeeShiftChangeDateFrom', '>=', startDate)
-                queryShiftChange.where('employeeShiftChangeDateFrom', '<=', endDate)
-              })
-            
-               if (employee.shiftChanges.length > 0) {
-                if (employee.shiftChanges[0].shiftTo) {
-                  const shift = employee.shiftChanges[0].shiftTo
-                  const shiftTimeStart = shift.shiftTimeStart
-                  currentDayTimeStart = shiftTimeStart
-
-                  const shiftStart = DateTime.fromISO(`${currentDay}T${shiftTimeStart}`)
-                  const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
-                  const shiftStartHour = shiftStart.hour + shiftStart.minute / 60
-                  const hourDifference = Math.abs(checkInHour - shiftStartHour)
-                  if (hourDifference <= 0) {
-                    canProcess = false
-                  }
-                }
-              }*/
-
               const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
               const stringDatePrevious = `${previousDay}T00:00:00.000-06:00`
               const timeToStartPrevious = DateTime.fromISO(stringDatePrevious, { setZone: true }).setZone('UTC-6')
               const startDatePrevious = `${timeToStartPrevious.toFormat('yyyy-LL-dd')} 00:00:00`
               const endDatePrevious = `${timeToStartPrevious.toFormat('yyyy-LL-dd')} 23:59:59`
+
               employee.$setRelated('shiftChanges', [])
+
               await employee.load('shiftChanges', (queryShiftChange) => {
                 queryShiftChange.where('employeeShiftChangeDateFrom', '>=', startDatePrevious)
                 queryShiftChange.where('employeeShiftChangeDateFrom', '<=', endDatePrevious)
               })
-          
-              if (employee.shiftChanges.length > 0) {
-                if (employee.shiftChanges[0].shiftTo) {
-                  const shift = employee.shiftChanges[0].shiftTo
-                  const shiftTimeStart = shift.shiftTimeStart
-                  const shiftActiveHours = shift.shiftActiveHours
 
-                  const shiftStart = DateTime.fromISO(`${previousDay}T${shiftTimeStart}`)
-                  const shiftEnd = shiftStart.plus({ hours: shiftActiveHours })
-                
-                  const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
-                  const shiftEndHour = shiftEnd.hour + shiftEnd.minute / 60
-                  const hourDifference = Math.abs(checkInHour - shiftEndHour)
-                  
-                  if (hourDifference >= 0 && hourDifference <= 2) {
-                    assistListFlat[index].assistUsed = true
-                  }
-                }
-              }
+              // if (employee.shiftChanges.length > 0) {
+              //   if (employee.shiftChanges[0].shiftTo) {
+              //     const shift = employee.shiftChanges[0].shiftTo
+              //     const shiftTimeStart = shift.shiftTimeStart
+              //     const shiftActiveHours = shift.shiftActiveHours
+
+              //     const shiftStart = DateTime.fromISO(`${previousDay}T${shiftTimeStart}`)
+              //     const shiftEnd = shiftStart.plus({ hours: shiftActiveHours })
+
+              //     const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
+              //     const shiftEndHour = shiftEnd.hour + shiftEnd.minute / 60
+              //     const hourDifference = Math.abs(checkInHour - shiftEndHour)
+
+              //     if (hourDifference >= 0 && hourDifference <= 2) {
+              //       assistListFlat[index].assistUsed = true
+              //     }
+              //   }
+              // }
             }
+
             dayAssist.push(assistListFlat[index])
           }
         }
@@ -729,7 +714,7 @@ export default class SyncAssistsService {
       TOLERANCE_FAULT_MINUTES,
       employee
     )
-  
+
 
     return {
       status: 200,
@@ -847,6 +832,7 @@ export default class SyncAssistsService {
       this.hasSomeExceptionTimeCheckOut(dateAssistItem)
       this.hasSomeException(employeeID, dateAssistItem, employee)
       this.verifyCheckOutToday(dateAssistItem)
+
       if (dateAssistItem.assist.dateShift) {
         const isShiftChanged = dateAssistItem.assist.dateShift.shiftIsChange
         const shift = JSON.parse(JSON.stringify(dateAssistItem.assist.dateShift))
@@ -857,6 +843,7 @@ export default class SyncAssistsService {
       dailyAssistList[dailyAssistListCounter] = dateAssistItem
       dailyAssistListCounter = dailyAssistListCounter + 1
     }
+
     return dailyAssistList
   }
 
@@ -1079,8 +1066,6 @@ export default class SyncAssistsService {
         dateAssistItem.assist.checkEatOut = null
         dateAssistItem.assist.checkOut = null
       }
-
-
     }
 
     if (isStartWorkday) {
@@ -1143,11 +1128,11 @@ export default class SyncAssistsService {
                 } else {
                   dateAssistItem.assist.checkOut = calendarDay[calendarDay.length - 1]
                 }
-               
+
               } else {
                 dateAssistItem.assist.checkOut = null
               }
-             
+
 
               if (calendarDay.length <= 2) {
                 dateAssistItem.assist.checkEatIn = null
@@ -1869,7 +1854,7 @@ export default class SyncAssistsService {
       const businessUnits = await BusinessUnit.query()
         .where('business_unit_active', 1)
         .whereIn('business_unit_slug', businessList)
-  
+
       const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
       const departmentService = new DepartmentService()
       const employeeService = new EmployeeService()

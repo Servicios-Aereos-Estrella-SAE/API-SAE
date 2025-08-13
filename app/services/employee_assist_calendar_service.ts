@@ -9,6 +9,7 @@ import ShiftExceptionService from './shift_exception_service.js'
 import { ShiftExceptionFilterInterface } from '../interfaces/shift_exception_filter_interface.js'
 import HolidayService from './holiday_service.js'
 import SyncAssistsService from './sync_assists_service.js'
+// import { AssistInterface } from '../interfaces/assist_interface.js'
 
 export default class EmployeeAssistsCalendarService {
   async index (filters: EmployeeAssistCalendarFilterInterface) {
@@ -77,20 +78,20 @@ export default class EmployeeAssistsCalendarService {
     employee: any
   ): Promise<AssistDayInterface[]> {
     const query = EmployeeAssistCalendar.query()
-  
+
     if (filters.dateStart && !filters.dateEnd) {
       query.where('day', '>=', filterInitialDate)
     }
-  
+
     if (filters.dateEnd && filters.dateStart) {
       query.where('day', '>=', filterInitialDate)
       query.andWhere('day', '<=', filterEndDate)
     }
-  
+
     if (employee) {
       query.where('employee_id', employee.employeeId)
     }
-  
+
     query
       .preload('dateShift')
       .preload('checkIn')
@@ -98,25 +99,25 @@ export default class EmployeeAssistsCalendarService {
       .preload('checkEatIn')
       .preload('checkEatOut')
       .orderBy('day', 'asc')
-  
+
     const assistService = new AssistsService()
     const holidayService = new HolidayService()
     const shiftExceptionService = new ShiftExceptionService()
     const syncAssistService = new SyncAssistsService()
-  
+
     const employeeAssistCalendar = await query
     const employeeCalendar: AssistDayInterface[] = []
-  
+
     for await (const calendar of employeeAssistCalendar) {
       let assistDay: AssistDayInterface = {
         day: calendar.day,
         assist: JSON.parse(JSON.stringify(calendar)) as any,
       }
-  
+
       assistDay.assist.exceptions = []
-  
+
       const promises: Promise<any>[] = []
-  
+
       if (assistDay.assist.hasExceptions) {
         const filter = {
           employeeId: filters.employeeID,
@@ -124,14 +125,14 @@ export default class EmployeeAssistsCalendarService {
           dateStart: calendar.day,
           dateEnd: calendar.day,
         } as ShiftExceptionFilterInterface
-  
+
         promises.push(
           shiftExceptionService.getByEmployee(filter).then(response => {
             assistDay.assist.exceptions = JSON.parse(JSON.stringify(response))
           })
         )
       }
-  
+
       if (assistDay.assist.isHoliday) {
         promises.push(
           holidayService.index(calendar.day, calendar.day, '', 1, 999999).then(response => {
@@ -141,33 +142,83 @@ export default class EmployeeAssistsCalendarService {
           })
         )
       }
-  
+
       assistDay.assist.assitFlatList = []
-  
+
       if (assistDay.assist.hasAssitFlatList) {
         const filter = {
           employeeId: filters.employeeID,
           dateStart: calendar.day,
           dateEnd: calendar.day,
         } as AssistFlatFilterInterface
-  
+
         promises.push(
           assistService.getAssistFlatList(filter).then(response => {
             assistDay.assist.assitFlatList = response
           })
         )
       }
-  
+
       await Promise.all(promises)
       assistDay = syncAssistService.verifyCheckOutToday(assistDay)
-  
+
+      assistDay.assist = this.fixedCSTSummerTime(DateTime.fromISO(assistDay.day).toJSDate(), assistDay.assist)
+
       employeeCalendar.push(assistDay)
     }
     // Ordenar el resultado por día
     employeeCalendar.sort((a, b) => {
       return DateTime.fromISO(a.day).toMillis() - DateTime.fromISO(b.day).toMillis()
     })
-  
+
     return employeeCalendar
+  }
+
+  private getMexicoDSTChangeDates (year: number) {
+    const startDST = new Date(year, 3, 1)
+    startDST.setDate(1 + (7 - startDST.getDay()) % 7) // Asegura que es el primer domingo
+
+    // Último domingo de octubre (fin del horario de verano)
+    const endDST = new Date(year, 9, 31)
+    endDST.setDate(endDST.getDate() - endDST.getDay()) // Asegura que es el último domingo
+
+    return { startDST, endDST }
+  }
+
+  private checkDSTSummerTime (date: Date): boolean {
+    const year = date.getFullYear()
+    const { startDST, endDST } = this.getMexicoDSTChangeDates(year)
+
+    if (date >= startDST && date < endDST) {
+      // En horario de verano
+      return true
+    } else {
+      // En horario estándar
+      return false
+    }
+  }
+
+  private fixedCSTSummerTime (evaluatedDay: Date, assist: any) {
+    const isSummerTime = this.checkDSTSummerTime(evaluatedDay)
+
+    if (isSummerTime) {
+      if (assist?.checkIn?.assistPunchTimeUtc) {
+        assist.checkIn.assistPunchTimeUtc = DateTime.fromISO(assist.checkIn.assistPunchTimeUtc.toString()).setZone('UTC').plus({ hour: 1 }).toISO()
+      }
+
+      if (assist?.checkEatIn?.assistPunchTimeUtc) {
+        assist.checkEatIn.assistPunchTimeUtc = DateTime.fromISO(assist.checkEatIn.assistPunchTimeUtc.toString()).setZone('UTC').plus({ hour: 1 }).toISO()
+      }
+
+      if (assist?.checkEatOut?.assistPunchTimeUtc) {
+        assist.checkEatOut.assistPunchTimeUtc = DateTime.fromISO(assist.checkEatOut.assistPunchTimeUtc.toString()).setZone('UTC').plus({ hour: 1 }).toISO()
+      }
+
+      if (assist?.checkOut?.assistPunchTimeUtc) {
+        assist.checkOut.assistPunchTimeUtc = DateTime.fromISO(assist.checkOut.assistPunchTimeUtc.toString()).setZone('UTC').plus({ hour: 1 }).toISO()
+      }
+    }
+
+    return assist
   }
 }
