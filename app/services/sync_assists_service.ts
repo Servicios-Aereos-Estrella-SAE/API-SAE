@@ -611,22 +611,22 @@ export default class SyncAssistsService {
           const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
 
           if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
-            const isSummerTime = this.checkDSTSummerTime(new Date(currentDay))
+            // const isSummerTime = this.checkDSTSummerTime(new Date(currentDay))
             assistListFlat[index].assistUsed = false
 
-            let assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
+            // let assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
 
-            if (isSummerTime) {
-              assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').plus({ hour: 1 }).toFormat('HH:mm:ss')
-            }
+            // if (isSummerTime) {
+            //   assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').plus({ hour: 1 }).toFormat('HH:mm:ss')
+            // }
 
-            const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
-            const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
-            const checkInTimeOnly = DateTime.fromObject({
-              hour: checkInDateTime.hour,
-              minute: checkInDateTime.minute,
-              second: checkInDateTime.second,
-            })
+            // const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
+            // const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
+            // const checkInTimeOnly = DateTime.fromObject({
+            //   hour: checkInDateTime.hour,
+            //   minute: checkInDateTime.minute,
+            //   second: checkInDateTime.second,
+            // })
 
             if (employee) {
               const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
