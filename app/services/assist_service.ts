@@ -1331,7 +1331,7 @@ export default class AssistsService {
       if (calendar && calendar.assist && calendar.assist.dateShift) {
         shiftName = calendar.assist.dateShift.shiftName
         shiftStartDate = calendar.assist.dateShift.shiftTimeStart
-        const hoursToAddParsed = 0
+        const hoursToAddParsed = calendar.assist.dateShift.shiftActiveHours
         const time = DateTime.fromFormat(shiftStartDate, 'HH:mm:ss')
         const newTime = time.plus({ hours: hoursToAddParsed })
         shiftEndsDate = newTime.toFormat('HH:mm:ss')
