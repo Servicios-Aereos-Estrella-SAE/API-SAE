@@ -200,6 +200,11 @@ export default class SystemSettingController {
    *                 type: number
    *                 description: System setting tolerance count per absence
    *                 required: false
+   *               systemSettingRestrictFutureVacation:
+   *                 type: boolean
+   *                 description: System setting restrict future vacation
+   *                 required: false
+   *                 default: true
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -287,6 +292,7 @@ export default class SystemSettingController {
       const systemSettingSidebarColor = request.input('systemSettingSidebarColor')
       const systemSettingActive = request.input('systemSettingActive')
       const systemSettingToleranceCountPerAbsence = request.input('systemSettingToleranceCountPerAbsence')
+      const systemSettingRestrictFutureVacation = request.input('systemSettingRestrictFutureVacation')
       const systemSetting = {
         systemSettingTradeName: systemSettingTradeName,
         systemSettingSidebarColor: systemSettingSidebarColor,
@@ -295,6 +301,10 @@ export default class SystemSettingController {
             ? 1
             : 0,
         systemSettingToleranceCountPerAbsence: systemSettingToleranceCountPerAbsence,
+        systemSettingRestrictFutureVacation:
+        systemSettingRestrictFutureVacation && (systemSettingRestrictFutureVacation === 'true' || systemSettingRestrictFutureVacation === '1')
+            ? 1
+            : 0,
       } as SystemSetting
       const systemSettingService = new SystemSettingService()
       const data = await request.validateUsing(createSystemSettingValidator)
@@ -476,6 +486,11 @@ export default class SystemSettingController {
    *                 type: number
    *                 description: System setting tolerance count per absence
    *                 required: false
+   *               systemSettingRestrictFutureVacation:
+   *                 type: boolean
+   *                 description: System setting restrict future vacation
+   *                 required: false
+   *                 default: true
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -564,6 +579,7 @@ export default class SystemSettingController {
       const systemSettingSidebarColor = request.input('systemSettingSidebarColor')
       const systemSettingActive = request.input('systemSettingActive')
       const systemSettingToleranceCountPerAbsence = request.input('systemSettingToleranceCountPerAbsence')
+      const systemSettingRestrictFutureVacation = request.input('systemSettingRestrictFutureVacation')
       const systemSetting = {
         systemSettingId: systemSettingId,
         systemSettingTradeName: systemSettingTradeName,
@@ -573,6 +589,10 @@ export default class SystemSettingController {
             ? 1
             : 0,
         systemSettingToleranceCountPerAbsence: systemSettingToleranceCountPerAbsence,
+        systemSettingRestrictFutureVacation:
+        systemSettingRestrictFutureVacation && (systemSettingRestrictFutureVacation === 'true' || systemSettingRestrictFutureVacation === '1')
+            ? 1
+            : 0,
       } as SystemSetting
       if (!systemSettingId) {
         response.status(400)
