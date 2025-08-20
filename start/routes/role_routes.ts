@@ -18,6 +18,9 @@ router
       '#controllers/role_controller.getAccessByModule'
     )
     router.get('/', '#controllers/role_controller.index')
+    router.post('/', '#controllers/role_controller.store')
+    router.put('/:roleId', '#controllers/role_controller.update')
+    router.delete('/:roleId', '#controllers/role_controller.delete')
     router.get('/:roleId', '#controllers/role_controller.show')
   })
   .prefix('/api/roles')
