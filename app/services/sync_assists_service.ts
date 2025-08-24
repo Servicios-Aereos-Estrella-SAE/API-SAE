@@ -1845,55 +1845,54 @@ export default class SyncAssistsService {
       }
     }
 
-      return checkAssist
-    }
+    return checkAssist
+  }
 
-    async syncronizeAssistAllEmployeesCalendar(dateStart: string, dateEnd: string) {
-      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
-      const businessList = businessConf.split(',')
-      const businessUnits = await BusinessUnit.query()
-        .where('business_unit_active', 1)
-        .whereIn('business_unit_slug', businessList)
+  async syncronizeAssistAllEmployeesCalendar(dateStart: string, dateEnd: string) {
+    const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+    const businessList = businessConf.split(',')
+    const businessUnits = await BusinessUnit.query()
+      .where('business_unit_active', 1)
+      .whereIn('business_unit_slug', businessList)
 
-      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-      const departmentService = new DepartmentService()
-      const employeeService = new EmployeeService()
-      const departments = await Department.query()
-        .whereIn('businessUnitId', businessUnitsList)
-        .where('departmentId', '<>', 999)
-        .orderBy('departmentName', 'asc')
-      for await (const department of departments) {
-        const departmentId = department.departmentId
-        const page = 1
-        const limit = 999999999999999
-        const resultPositions = await departmentService.getPositions(departmentId, null)
-        for await (const position of resultPositions) {
-          const resultEmployes = await employeeService.index(
-            {
-              search: '',
-              departmentId: departmentId,
-              positionId: position.positionId,
-              employeeWorkSchedule: '',
-              page: page,
-              limit: limit,
-              ignoreDiscriminated: 0,
-              ignoreExternal: 1,
-              onlyPayroll: false,
-              userResponsibleId: 0,
-            },
-            [departmentId]
-          )
-          const dataEmployes: any = resultEmployes
-          for await (const employee of dataEmployes) {
-            const filter: SyncAssistsServiceIndexInterface = {
-              date: dateStart,
-              dateEnd: dateEnd,
-              employeeID: employee.employeeId
-            }
-            await this.setDateCalendar(filter)
+    const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+    const departmentService = new DepartmentService()
+    const employeeService = new EmployeeService()
+    const departments = await Department.query()
+      .whereIn('businessUnitId', businessUnitsList)
+      .where('departmentId', '<>', 999)
+      .orderBy('departmentName', 'asc')
+    for await (const department of departments) {
+      const departmentId = department.departmentId
+      const page = 1
+      const limit = 999999999999999
+      const resultPositions = await departmentService.getPositions(departmentId, null)
+      for await (const position of resultPositions) {
+        const resultEmployes = await employeeService.index(
+          {
+            search: '',
+            departmentId: departmentId,
+            positionId: position.positionId,
+            employeeWorkSchedule: '',
+            page: page,
+            limit: limit,
+            ignoreDiscriminated: 0,
+            ignoreExternal: 1,
+            onlyPayroll: false,
+            userResponsibleId: 0,
+          },
+          [departmentId]
+        )
+        const dataEmployes: any = resultEmployes
+        for await (const employee of dataEmployes) {
+          const filter: SyncAssistsServiceIndexInterface = {
+            date: dateStart,
+            dateEnd: dateEnd,
+            employeeID: employee.employeeId
           }
+          await this.setDateCalendar(filter)
         }
       }
     }
-
+  }
 }
