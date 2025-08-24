@@ -33,6 +33,32 @@ export default class RoleService {
     return roles
   }
 
+  async create(role: Role) {
+    const newRole = new Role()
+    newRole.roleName = role.roleName
+    newRole.roleDescription = role.roleDescription
+    newRole.roleSlug = role.roleSlug
+    newRole.roleActive = role.roleActive
+    newRole.roleBusinessAccess = role.roleBusinessAccess
+    await newRole.save()
+    return newRole
+  }
+
+  async update(currentRole: Role, role: Role) {
+    currentRole.roleName = role.roleName
+    currentRole.roleDescription = role.roleDescription
+    currentRole.roleSlug = role.roleSlug
+    currentRole.roleActive = role.roleActive
+    currentRole.roleBusinessAccess = role.roleBusinessAccess
+    await currentRole.save()
+    return currentRole
+  }
+
+  async delete(currentRole: Role) {
+    await currentRole.delete()
+    return currentRole
+  }
+
   async assignPermissions(roleId: number, permissions: Array<number>) {
     let rolePermissions = await RoleSystemPermission.query()
       .whereNull('role_system_permission_deleted_at')
@@ -238,5 +264,56 @@ export default class RoleService {
       }
     }
     return false
+  }
+
+  async verifyInfo(role: Role) {
+    const action = role.roleId > 0 ? 'updated' : 'created'
+  
+    const query = Role.query()
+      .where('role_name', role.roleName)
+      .whereNull('role_deleted_at')
+  
+    if (role.roleId > 0) {
+      query.whereNot('role_id', role.roleId)
+    }
+  
+    const rolesWithSameName = await query
+  
+    const inputAccess = role.roleBusinessAccess
+      ? role.roleBusinessAccess.split(',').map(e => e.trim())
+      : []
+  
+    const hasConflict = rolesWithSameName.some(existingRole => {
+      const existingAccess = existingRole.roleBusinessAccess
+        ? existingRole.roleBusinessAccess.split(',').map(e => e.trim())
+        : []
+  
+      return inputAccess.some(company => existingAccess.includes(company))
+    })
+  
+    if (hasConflict && role.roleName) {
+      return {
+        status: 400,
+        type: 'warning',
+        title: 'The role exists for another role',
+        message: `The role resource cannot be ${action} because the role name is already assigned to another role in the same company`,
+        data: { ...role },
+      }
+    }
+  
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verified successfully',
+      message: 'Info verified successfully',
+      data: { ...role },
+    }
+  }
+
+  generateSlug(input: string): string {
+    return input
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
   }
 }

@@ -2,6 +2,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import RoleService from '#services/role_service'
 import { RoleFilterSearchInterface } from '../interfaces/role_filter_search_interface.js'
 import Role from '#models/role'
+import { createRoleValidator, updateRoleValidator } from '#validators/role'
 
 export default class RoleController {
   /**
@@ -141,6 +142,527 @@ export default class RoleController {
       return {
         type: 'error',
         title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+
+  /**
+   * @swagger
+   * /api/roles:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: create new role
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               roleName:
+   *                 type: string
+   *                 description: Role name
+   *                 required: true
+   *                 default: ''
+   *               roleDescription:
+   *                 type: string
+   *                 description: Role description
+   *                 required: true
+   *                 default: ''
+   *               roleActive:
+   *                 type: boolean
+   *                 description: Role status
+   *                 required: false
+   *                 default: false
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async store({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      let roleBusinessAccess = ''
+      if (user) {
+          roleBusinessAccess = user?.userBusinessAccess
+      }
+
+      const roleService = new RoleService()
+      const roleName = request.input('roleName')
+      const roleDescription = request.input('roleDescription')
+      const roleSlug = roleService.generateSlug(roleName)
+      const roleActive = request.input('roleActive')
+
+      const role = {
+        roleName: roleName,
+        roleDescription: roleDescription,
+        roleSlug: roleSlug,
+        roleActive: roleActive,
+        roleBusinessAccess: roleBusinessAccess,
+      } as Role
+
+    
+      const data = await request.validateUsing(createRoleValidator)
+      const valid = await roleService.verifyInfo(role)
+      if (valid.status !== 200) {
+        response.status(valid.status)
+        return {
+          type: valid.type,
+          title: valid.title,
+          message: valid.message,
+          data: { ...data },
+        }
+      }
+
+      const newRole = await roleService.create(role)
+
+      if (newRole) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Roles',
+          message: 'The role was created successfully',
+          data: { role: newRole },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+
+  /**
+   * @swagger
+   * /api/roles/{roleId}:
+   *   put:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: update role
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: roleId
+   *         schema:
+   *           type: number
+   *         description: Role id
+   *         required: true
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               roleName:
+   *                 type: string
+   *                 description: Role name
+   *                 required: true
+   *                 default: ''
+   *               roleDescription:
+   *                 type: string
+   *                 description: Role description
+   *                 required: true
+   *                 default: ''
+   *               roleActive:
+   *                 type: boolean
+   *                 description: Role status
+   *                 required: false
+   *                 default: false
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ auth, request, response }: HttpContext) {
+    try {
+      const roleId = request.param('roleId')
+      const roleService = new RoleService()
+      await auth.check()
+      const user = auth.user
+      let roleBusinessAccess = ''
+      if (user) {
+          roleBusinessAccess = user?.userBusinessAccess
+      }
+      const roleName = request.input('roleName')
+      const roleDescription = request.input('roleDescription')
+      const roleSlug = roleService.generateSlug(roleName)
+      const roleActive = request.input('roleActive')
+
+      const role = {
+        roleId: roleId,
+        roleName: roleName,
+        roleDescription: roleDescription,
+        roleSlug: roleSlug,
+        roleActive: roleActive,
+        roleBusinessAccess: roleBusinessAccess,
+      } as Role
+
+      if (!roleId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The role Id was not found',
+          data: { ...role },
+        }
+      }
+      const currentRole = await Role.query()
+        .whereNull('role_deleted_at')
+        .where('role_id', roleId)
+        .first()
+      if (!currentRole) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The role was not found',
+          message: 'The role was not found with the entered ID',
+          data: { ...role },
+        }
+      }
+      const data = await request.validateUsing(updateRoleValidator)
+      const verifyInfo = await roleService.verifyInfo(role)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
+          data: { ...data },
+        }
+      }
+      const updateRole = await roleService.update(currentRole, role)
+      if (updateRole) {
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Roles',
+          message: 'The role was updated successfully',
+          data: { role: updateRole },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+
+  /**
+   * @swagger
+   * /api/roles/{roleId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Roles
+   *     summary: delete role
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: roleId
+   *         schema:
+   *           type: number
+   *         description: Role id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async delete({ request, response }: HttpContext) {
+    try {
+      const roleId = request.param('roleId')
+      if (!roleId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The role Id was not found',
+          data: { roleId },
+        }
+      }
+      const currentRole = await Role.query()
+        .whereNull('role_deleted_at')
+        .where('role_id', roleId)
+        .first()
+      if (!currentRole) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The role was not found',
+          message: 'The role was not found with the entered ID',
+          data: { roleId },
+        }
+      }
+      const roleService = new RoleService()
+      const deleteRole = await roleService.delete(currentRole)
+      if (deleteRole) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'Roles',
+          message: 'The role was deleted successfully',
+          data: { role: deleteRole },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
