@@ -145,6 +145,7 @@ export default class HolidayController {
    */
   async store({ request, response }: HttpContext) {
     // try {
+
     let holiday = null as any
     const holidayName = request.input('holidayName')
     let holidayDate = request.input('holidayDate')
@@ -177,6 +178,17 @@ export default class HolidayController {
       } else {
         await Holiday.create(holidayData)
       }
+    }
+
+    const today = new Date()
+    const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const dateParts = holidayDate.split(' ')[0]
+
+    const newHolidayDate = new Date(dateParts + 'T00:00:00')
+    if (newHolidayDate <= todayAtMidnight) {
+      const holidayService = new HolidayService()
+      const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
+      await holidayService.updateAssistCalendar(date)
     }
 
     return response.status(201).json({
@@ -302,10 +314,29 @@ export default class HolidayController {
       const icon = await Icon.findOrFail(holidayIconId)
       const holidayIcon = icon.iconSvg
       const holiday = await Holiday.findOrFail(params.id)
+      const holidayDatePast = holiday.holidayDate
       data = { ...data, holidayDate: holidayDate, holidayIcon: holidayIcon }
       holiday.merge(data)
       await holiday.save()
 
+      const today = new Date()
+      const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const dateParts = holidayDate.split(' ')[0]
+      const newHolidayDate = new Date(dateParts + 'T00:00:00')
+      if (newHolidayDate <= todayAtMidnight) {
+        const holidayService = new HolidayService()
+        const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
+        await holidayService.updateAssistCalendar(date)
+      }
+
+      const newHolidayDatePast = new Date(holidayDatePast)
+      const datePast = typeof newHolidayDatePast === 'string' ? new Date(newHolidayDatePast) : newHolidayDatePast
+      if (newHolidayDate.toISOString() !== datePast.toISOString()) {
+        if (datePast <= todayAtMidnight) {
+          const holidayService = new HolidayService()
+          await holidayService.updateAssistCalendar(datePast)
+        }
+      }
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
@@ -362,6 +393,18 @@ export default class HolidayController {
     try {
       const holiday = await Holiday.findOrFail(params.id)
       await holiday.delete()
+      
+      const today = new Date()
+      const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      
+      const holidayDate = holiday.holidayDate
+      const newHolidayDate = new Date(holidayDate)
+      const date = typeof newHolidayDate === 'string' ? new Date(newHolidayDate) : newHolidayDate
+
+      if (date <= todayAtMidnight) {
+        const holidayService = new HolidayService()
+        await holidayService.updateAssistCalendar(date)
+      }
 
       return response.status(200).json({
         type: 'success',

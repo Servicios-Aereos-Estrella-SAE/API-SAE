@@ -39,6 +39,9 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
  *          systemSettingActive:
  *            type: number
  *            description: System setting status
+ *          systemSettingRestrictFutureVacation:
+ *            type: number
+ *            description: System setting restrict future vacations
  *          systemSettingCreatedAt:
  *            type: string
  *          systemSettingUpdatedAt:
@@ -74,6 +77,9 @@ export default class SystemSetting extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare systemSettingToleranceCountPerAbsence: number
+
+  @column()
+  declare systemSettingRestrictFutureVacation: number
 
   @column.dateTime({ autoCreate: true })
   declare systemSettingCreatedAt: DateTime

@@ -26,6 +26,7 @@ import Role from '#models/role'
 import AssistsService from '#services/assist_service'
 import { EmployeeWorkDaysDisabilityFilterInterface } from '../interfaces/employee_work_days_disability_filter_interface.js'
 import RoleService from '#services/role_service'
+import { EmployeeSyncInterface } from '../interfaces/employee_sync_interface.js'
 
 // import { wrapper } from 'axios-cookiejar-support'
 // import { CookieJar } from 'tough-cookie'
@@ -271,6 +272,14 @@ export default class EmployeeController {
         let employeeCountSaved = 0
 
         for await (const employee of data) {
+          let employeeLastName = ''
+          let employeeSecondLastName = ''
+          if (employee.lastName) {
+            const surnames = employeeService.splitCompoundSurnames(employee.lastName)
+            employeeLastName = surnames.paternalSurname
+            employeeSecondLastName = surnames.maternalSurname
+          }
+
           let existInBusinessUnitList = false
           let businessUnitApply = null
 
@@ -292,6 +301,8 @@ export default class EmployeeController {
           }
 
           if (existInBusinessUnitList) {
+            employee.lastName = employeeLastName
+            employee.secondLastName = employeeSecondLastName
             employee.departmentId = withOutDepartmentId
             employee.positionId = withOutPositionId
             employee.usersResponsible = usersResponsible
@@ -476,7 +487,7 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
-      let hasAccessToFullEmployes = false 
+      let hasAccessToFullEmployes = false
       let userResponsibleId = null
       if (user) {
         await user.preload('role')
@@ -493,6 +504,7 @@ export default class EmployeeController {
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId, hasAccessToFullEmployes)
       }
+
       const search = request.input('search')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -723,10 +735,20 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
@@ -748,6 +770,7 @@ export default class EmployeeController {
         employeeId: 0,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
+        employeeSecondLastName: `${employeeSecondLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
@@ -804,7 +827,27 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
-      const newEmployee = await employeeService.create(employee)
+      const roles = await Role.query()
+        .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
+        .whereNull('role_deleted_at')
+
+      let usersResponsible: Array<User> = []
+
+      if (roles.length) {
+        const roleIds = roles.map((role) => role.roleId)
+        usersResponsible = await User.query()
+          .whereIn('role_id', roleIds)
+          .preload('role')
+          .orderBy('user_id')
+      }
+      if (userResponsibleId && user) {
+        const existUser = usersResponsible.find(a => a.userId === userResponsibleId)
+        if (!existUser) {
+          usersResponsible.push(user)
+        }
+      }
+
+      const newEmployee = await employeeService.create(employee, usersResponsible)
       if (newEmployee) {
         response.status(201)
         return {
@@ -937,6 +980,12 @@ export default class EmployeeController {
    *                 description: If true, the employee is not considered on report consecutive faults
    *                 required: true
    *                 default: 0
+   *               employeeTerminatedDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee terminated date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -1023,6 +1072,7 @@ export default class EmployeeController {
       const employeeId = request.param('employeeId')
       const employeeFirstName = request.input('employeeFirstName')
       const employeeLastName = request.input('employeeLastName')
+      const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
       let employeeHireDate = request.input('employeeHireDate')
@@ -1037,10 +1087,13 @@ export default class EmployeeController {
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
       const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
+      let employeeTerminatedDate = request.input('employeeTerminatedDate')
+      employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace('"', '')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
         employeeLastName: `${employeeLastName}`,
+        employeeSecondLastName: `${employeeSecondLastName}`,
         employeeCode: employeeCode,
         employeePayrollNum: employeePayrollNum,
         employeeHireDate: employeeHireDate,
@@ -1054,7 +1107,8 @@ export default class EmployeeController {
         employeeBusinessEmail: employeeBusinessEmail,
         employeeAssistDiscriminator: employeeAssistDiscriminator,
         employeeTypeOfContract: employeeTypeOfContract,
-        employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences
+        employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences,
+        employeeTerminatedDate: employeeTerminatedDate,
       } as Employee
       if (!employeeId) {
         response.status(400)
@@ -1066,8 +1120,8 @@ export default class EmployeeController {
         }
       }
       const currentEmployee = await Employee.query()
-        .whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
+        .withTrashed()
         .first()
       if (!currentEmployee) {
         response.status(404)
@@ -2953,8 +3007,8 @@ export default class EmployeeController {
           : ''
         worksheet.addRow({
           employeeId: employee.employeeId,
-          employeeFirstName: employee.employeeFirstName,
-          employeeLastName: employee.employeeLastName,
+          employeeFirstName: `${employee.person?.personFirstname}`,
+          employeeLastName: `${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
           departmentName,
           positionName: employee.positionId,
           employeeHireDate: hireDate,
@@ -3166,6 +3220,7 @@ export default class EmployeeController {
 
       const employee = await Employee.query()
         .where('employeeId', employeeId)
+        .preload('person')
         .preload('department')
         .preload('position')
         .preload('shift_exceptions', (shiftExceptionsQuery) => {
@@ -3284,7 +3339,7 @@ export default class EmployeeController {
 
         const row = worksheet.addRow({
           employeeCode: employee.employeeCode,
-          employeeName: `${employee.employeeFirstName} ${employee.employeeLastName}`,
+          employeeName: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
           department: employee.department?.departmentName || 'N/A',
           position: employee.position?.positionName || 'N/A',
           date: exception.shiftExceptionsDate,
@@ -3392,7 +3447,7 @@ export default class EmployeeController {
     employees.forEach((employee) => {
       worksheet.addRow([
         employee.employeeCode,
-        `${employee.employeeFirstName} ${employee.employeeLastName}`,
+        `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
         employee.department?.departmentName || '',
         employee.position?.positionName || '',
         employee.employeeHireDate ? employee.employeeHireDate.toISODate() : '',
@@ -5071,6 +5126,337 @@ export default class EmployeeController {
         type: 'error',
         title: 'Server error',
         message: 'Error loading the image',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/employees/get-biometrics:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: get all biometrics
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Object processed
+   *       '404':
+   *         description: The resource could not be found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getBiometrics({ response }: HttpContext) {
+    try {
+      const employeeService = new EmployeeService()
+      let employeesSync = [] as EmployeeSyncInterface[]
+      employeesSync = await employeeService.getEmployeesToSyncFromBiometrics()
+      response.status(200)
+
+      return {
+        type: 'success',
+        title: 'Employees',
+        message: 'The employees were found successfully',
+        data: {
+          employeesSync
+        },
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/synchronization/by-selection/employees:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: sync information by selection
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               employees:
+   *                 type: array
+   *                 description: Employees selected
+   *                 required: true
+   *                 default: []
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async synchronizationBySelection({ request, response }: HttpContext) {
+    try {
+      const employees = request.input('employees')
+      const businessConf = `${env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitName)
+      const params = new URLSearchParams()
+      params.set('employees', employees.join(','))
+
+      let apiUrl = `${env.get('API_BIOMETRICS_HOST')}/employees-by-selection?${params.toString()}`
+      const apiResponse = await axios.get(apiUrl)
+      const data = apiResponse.data
+      let withOutDepartmentId = null
+      let withOutPositionId = null
+
+      const department = await Department.query()
+        .whereNull('department_deleted_at')
+        .where('department_name', 'Sin departamento')
+        .first()
+      if (department) {
+        withOutDepartmentId = department.departmentId
+      }
+      const position = await Position.query()
+        .whereNull('position_deleted_at')
+        .where('position_name', 'Sin posición')
+        .first()
+      if (position) {
+        withOutPositionId = position.positionId
+      }
+      const roles = await Role.query()
+        .whereIn('role_slug', ['rh-manager', 'admin', 'nominas'])
+        .whereNull('role_deleted_at')
+
+      let usersResponsible: Array<User> = []
+
+      if (roles.length) {
+        const roleIds = roles.map((role) => role.roleId)
+        usersResponsible = await User.query()
+          .whereIn('role_id', roleIds)
+          .preload('role')
+          .orderBy('user_id')
+      }
+
+      if (data) {
+        const employeeService = new EmployeeService()
+        data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
+
+        let employeeCountSaved = 0
+
+        for await (const employee of data) {
+          let existInBusinessUnitList = false
+          let businessUnitApply = null
+
+          if (employee.payrollNum) {
+            if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${employee.payrollNum}`.toLocaleLowerCase())) {
+              existInBusinessUnitList = true
+              businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${employee.payrollNum}`.toLocaleLowerCase())
+            }
+          } else if (employee.personnelEmployeeArea.length > 0) {
+            for await (const personnelEmployeeArea of employee.personnelEmployeeArea) {
+              if (personnelEmployeeArea.personnelArea) {
+                if (`${businessUnitsList}`.toLocaleLowerCase().includes(`${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())) {
+                  existInBusinessUnitList = true
+                  businessUnitApply = businessUnits.find((business) => `${business.businessUnitName}`.toLocaleLowerCase() === `${personnelEmployeeArea.personnelArea.areaName}`.toLocaleLowerCase())
+                  break
+                }
+              }
+            }
+          }
+
+          if (existInBusinessUnitList) {
+            employee.departmentId = withOutDepartmentId
+            employee.positionId = withOutPositionId
+            employee.usersResponsible = usersResponsible
+            employee.businessUnitId = businessUnitApply?.businessUnitId || 1
+            employeeCountSaved += 1
+            await this.verify(employee, employeeService)
+          }
+        }
+        response.status(201)
+        return {
+          type: 'success',
+          title: 'Employee synchronization',
+          message: 'Employees have been synchronized successfully',
+          data: {
+            data,
+          },
+        }
+      } else {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'Employee synchronization',
+          message: 'No data found to synchronize',
+          data: { data },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
     }

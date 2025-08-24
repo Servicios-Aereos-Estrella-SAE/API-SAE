@@ -45,6 +45,8 @@ import { compose } from '@adonisjs/core/helpers'
  *          format: date-time
  *        assistActive:
  *          type: integer
+ *        assistUsed:
+ *          type: integer
  *        assistCreatedAt:
  *          type: string
  *          format: date-time

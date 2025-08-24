@@ -124,6 +124,11 @@ export default class ExceptionRequest extends compose(BaseModel, SoftDeletes) {
 
   @belongsTo(() => Employee, {
     foreignKey: 'employeeId',
+    onQuery(query) {
+      if (!query.isRelatedSubQuery) {
+        query.preload('person')
+      }
+    }
   })
   employee!: relations.BelongsTo<typeof Employee>
 

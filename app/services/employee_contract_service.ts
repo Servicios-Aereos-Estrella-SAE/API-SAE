@@ -22,6 +22,7 @@ export default class EmployeeContractService {
     newEmployeeContract.departmentId = employeeContract.departmentId
     newEmployeeContract.positionId = employeeContract.positionId
     newEmployeeContract.payrollBusinessUnitId = employeeContract.payrollBusinessUnitId
+    newEmployeeContract.employeeContractActive = employeeContract.employeeContractActive
     await newEmployeeContract.save()
     await this.setHireDateFromFirstContract(employeeContract)
     await this.setDepartmentAndPositionFromLastContract(employeeContract)
@@ -42,6 +43,7 @@ export default class EmployeeContractService {
     currentEmployeeContract.departmentId = employeeContract.departmentId
     currentEmployeeContract.positionId = employeeContract.positionId
     currentEmployeeContract.payrollBusinessUnitId = employeeContract.payrollBusinessUnitId
+    currentEmployeeContract.employeeContractActive = employeeContract.employeeContractActive
     await currentEmployeeContract.save()
     await this.setHireDateFromFirstContract(employeeContract)
     await this.setDepartmentAndPositionFromLastContract(employeeContract)
