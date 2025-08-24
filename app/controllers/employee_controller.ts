@@ -980,6 +980,12 @@ export default class EmployeeController {
    *                 description: If true, the employee is not considered on report consecutive faults
    *                 required: true
    *                 default: 0
+   *               employeeTerminatedDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Employee terminated date (YYYY-MM-DD)
+   *                 required: false
+   *                 default: ''
    *     responses:
    *       '201':
    *         description: Resource processed successfully
@@ -1081,6 +1087,8 @@ export default class EmployeeController {
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
       const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
+      let employeeTerminatedDate = request.input('employeeTerminatedDate')
+      employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace('"', '')
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -1099,7 +1107,8 @@ export default class EmployeeController {
         employeeBusinessEmail: employeeBusinessEmail,
         employeeAssistDiscriminator: employeeAssistDiscriminator,
         employeeTypeOfContract: employeeTypeOfContract,
-        employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences
+        employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences,
+        employeeTerminatedDate: employeeTerminatedDate,
       } as Employee
       if (!employeeId) {
         response.status(400)
@@ -1111,8 +1120,8 @@ export default class EmployeeController {
         }
       }
       const currentEmployee = await Employee.query()
-        .whereNull('employee_deleted_at')
         .where('employee_id', employeeId)
+        .withTrashed()
         .first()
       if (!currentEmployee) {
         response.status(404)
