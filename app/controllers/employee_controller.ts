@@ -487,20 +487,26 @@ export default class EmployeeController {
     try {
       await auth.check()
       const user = auth.user
+
       let hasAccessToFullEmployes = false
       let userResponsibleId = null
+
       if (user) {
-        await user.preload('role')
+        await user.load('role')
+
         if (user.role.roleSlug !== 'root') {
           const roleService = new RoleService()
           hasAccessToFullEmployes = await roleService.hasAccessToFullEmployees(user.role.roleId)
         }
+
         if (user.role.roleSlug !== 'root' && !hasAccessToFullEmployes) {
           userResponsibleId = user?.userId
         }
       }
+
       const userService = new UserService()
       let departmentsList = [] as Array<number>
+
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId, hasAccessToFullEmployes)
       }
@@ -513,6 +519,7 @@ export default class EmployeeController {
       const employeeTypeId = request.input('employeeTypeId')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
+
       const filters = {
         search: search,
         departmentId: departmentId,
@@ -524,9 +531,12 @@ export default class EmployeeController {
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
+
       const employeeService = new EmployeeService()
       const employees = await employeeService.index(filters, departmentsList)
+
       response.status(200)
+
       return {
         type: 'success',
         title: 'Employees',
