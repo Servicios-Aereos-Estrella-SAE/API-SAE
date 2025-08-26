@@ -1085,8 +1085,10 @@ export default class EmployeeController {
       const employeeSecondLastName = request.input('employeeSecondLastName')
       const employeeCode = request.input('employeeCode')
       const employeePayrollNum = request.input('employeePayrollNum')
+
       let employeeHireDate = request.input('employeeHireDate')
-      employeeHireDate = (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      employeeHireDate = employeeHireDate ? (employeeHireDate.split('T')[0] + ' 00:000:00').replace('"', '') : null
+
       const companyId = request.input('companyId')
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -1097,8 +1099,10 @@ export default class EmployeeController {
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
       const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
+
       let employeeTerminatedDate = request.input('employeeTerminatedDate')
-      employeeTerminatedDate = (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace('"', '')
+      employeeTerminatedDate = employeeTerminatedDate ? (employeeTerminatedDate.split('T')[0] + ' 00:000:00').replace('"', '') : null
+
       const employee = {
         employeeId: employeeId,
         employeeFirstName: employeeFirstName,
@@ -1120,6 +1124,7 @@ export default class EmployeeController {
         employeeIgnoreConsecutiveAbsences: employeeIgnoreConsecutiveAbsences,
         employeeTerminatedDate: employeeTerminatedDate,
       } as Employee
+
       if (!employeeId) {
         response.status(400)
         return {
@@ -1129,12 +1134,15 @@ export default class EmployeeController {
           data: { ...employee },
         }
       }
+
       const currentEmployee = await Employee.query()
         .where('employee_id', employeeId)
         .withTrashed()
         .first()
-      if (!currentEmployee) {
+
+        if (!currentEmployee) {
         response.status(404)
+
         return {
           type: 'warning',
           title: 'The employee was not found',
@@ -1142,9 +1150,11 @@ export default class EmployeeController {
           data: { ...employee },
         }
       }
+
       const employeeService = new EmployeeService()
       const data = await request.validateUsing(updateEmployeeValidator)
       const exist = await employeeService.verifyInfoExist(employee)
+
       if (exist.status !== 200) {
         response.status(exist.status)
         return {
@@ -1154,7 +1164,9 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
+
       const verifyInfo = await employeeService.verifyInfo(employee)
+
       if (verifyInfo.status !== 200) {
         response.status(verifyInfo.status)
         return {
@@ -1164,7 +1176,9 @@ export default class EmployeeController {
           data: { ...data },
         }
       }
+
       const updateEmployee = await employeeService.update(currentEmployee, employee)
+
       if (updateEmployee) {
         response.status(201)
         return {
