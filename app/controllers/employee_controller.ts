@@ -629,6 +629,11 @@ export default class EmployeeController {
    *                 description: Business unit id
    *                 required: true
    *                 default: 1
+   *               dailySalary:
+   *                 type: number
+   *                 description: Daily salary
+   *                 required: false
+   *                 default: 0
    *               payrollBusinessUnitId:
    *                 type: number
    *                 description: Payroll Business Unit id
@@ -774,6 +779,7 @@ export default class EmployeeController {
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
       const employeeTypeOfContract = request.input('employeeTypeOfContract')
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
+      const dailySalary = request.input('dailySalary') || 0
       const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
       const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
       const employee = {
@@ -789,6 +795,7 @@ export default class EmployeeController {
         positionId: positionId,
         personId: personId,
         businessUnitId: request.input('businessUnitId'),
+        dailySalary: dailySalary,
         payrollBusinessUnitId: payrollBusinessUnitId,
         employeeWorkSchedule: workSchedule,
         employeeTypeId: employeeTypeId,
@@ -955,6 +962,11 @@ export default class EmployeeController {
    *                 description: Business unit id
    *                 required: true
    *                 default: 1
+   *               dailySalary:
+   *                 type: number
+   *                 description: Daily salary
+   *                 required: false
+   *                 default: 0
    *               payrollBusinessUnitId:
    *                 type: number
    *                 description: Payroll Business Unit id
@@ -1096,6 +1108,7 @@ export default class EmployeeController {
       const employeeTypeId = request.input('employeeTypeId')
       const employeeBusinessEmail = request.input('employeeBusinessEmail')
       const employeeTypeOfContract = request.input('employeeTypeOfContract')
+      const dailySalary = request.input('dailySalary') || 0
       const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
       const employeeAssistDiscriminator = request.input('employeeAssistDiscriminator')
       const employeeIgnoreConsecutiveAbsences = request.input('employeeIgnoreConsecutiveAbsences')
@@ -1115,6 +1128,7 @@ export default class EmployeeController {
         departmentId: departmentId,
         positionId: positionId,
         businessUnitId: request.input('businessUnitId'),
+        dailySalary: dailySalary,
         payrollBusinessUnitId: payrollBusinessUnitId,
         employeeWorkSchedule: employeeWorkSchedule,
         employeeTypeId: employeeTypeId,
