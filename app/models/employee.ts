@@ -68,6 +68,9 @@ import UserResponsibleEmployee from './user_responsible_employee.js'
  *          businessUnitId:
  *            type: number
  *            description: business id from the employee business unit
+ *          dailySalary:
+ *            type: number
+ *            description: Daily salary
  *          payrollBusinessUnitId:
  *            type: number
  *            description: payroll business unit id
@@ -151,6 +154,9 @@ export default class Employee extends compose(BaseModel, SoftDeletes) {
 
   @column()
   declare businessUnitId: number
+
+  @column()
+  declare dailySalary: number
 
   @column()
   declare payrollBusinessUnitId: number

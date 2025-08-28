@@ -236,6 +236,7 @@ export default class EmployeeService {
     newEmployee.positionId = employee.positionId
     newEmployee.personId = employee.personId
     newEmployee.businessUnitId = employee.businessUnitId
+    newEmployee.dailySalary = employee.dailySalary || 0
     newEmployee.payrollBusinessUnitId = employee.payrollBusinessUnitId
     newEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     newEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
@@ -261,6 +262,7 @@ export default class EmployeeService {
     currentEmployee.departmentId = employee.departmentId
     currentEmployee.positionId = employee.positionId
     currentEmployee.businessUnitId = employee.businessUnitId
+    currentEmployee.dailySalary = employee.dailySalary || 0
     currentEmployee.payrollBusinessUnitId = employee.payrollBusinessUnitId
     currentEmployee.employeeWorkSchedule = employee.employeeWorkSchedule
     currentEmployee.employeeAssistDiscriminator = employee.employeeAssistDiscriminator
