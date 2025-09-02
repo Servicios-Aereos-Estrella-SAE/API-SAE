@@ -104,13 +104,13 @@ export default class SyncAssistsService {
       apiPage: page,
       apiPageSize: limit,
     }
-    const year = dateParam.getUTCFullYear()
-    const month = String(dateParam.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(dateParam.getUTCDate()).padStart(2, '0')
-    const dateStart = `${year}-${month}-${day}`
+    // const year = dateParam.getUTCFullYear()
+    // const month = String(dateParam.getUTCMonth() + 1).padStart(2, '0')
+    // const day = String(dateParam.getUTCDate()).padStart(2, '0')
+    // const dateStart = `${year}-${month}-${day}`
 
-    const today = DateTime.utc().toISODate()
-    await this.syncronizeAssistAllEmployeesCalendar(dateStart, today)
+    // const today = DateTime.utc().toISODate()
+    // await this.syncronizeAssistAllEmployeesCalendar(dateStart, today)
     return result2
   }
 
