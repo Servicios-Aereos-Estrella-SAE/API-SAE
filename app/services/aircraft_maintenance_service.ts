@@ -7,6 +7,11 @@ import { GenericFilterSearchInterface } from '../interfaces/generic_filter_searc
 // Importa aquí otros modelos si necesitas verificar datos (ej. Customer, Pilot, etc.)
 
 export default class AircraftMaintenanceService {
+  private t: (key: string) => string
+
+  constructor(i18n: any) {
+    this.t = i18n.formatMessage.bind(i18n)
+  }
   /**
    * Listado de reservations con paginación y/o filtros
    */
@@ -138,8 +143,8 @@ export default class AircraftMaintenanceService {
       return {
         status: 400,
         type: 'error',
-        title: 'aircraft not found',
-        message: 'aircraft not found',
+        title: `${this.t('aircraft')} ${this.t('was_not_found')}`,
+        message: `${this.t('aircraft')} ${this.t('was_not_found')}`,
       }
     }
 
@@ -149,8 +154,8 @@ export default class AircraftMaintenanceService {
       return {
         status: 400,
         type: 'error',
-        title: 'Maintenance Type not found',
-        message: 'Maintenance Type not found',
+        title: `${this.t('maintenance_type')} ${this.t('was_not_found')}`,
+        message: `${this.t('maintenance_type')} ${this.t('was_not_found')}`,
       }
     }
     // verify that the pilotSic exists
@@ -161,8 +166,8 @@ export default class AircraftMaintenanceService {
       return {
         status: 400,
         type: 'error',
-        title: 'Aircraft Maintenance Status not found',
-        message: 'Aircraft Maintenance Status not found',
+        title: `${this.t('aircraft_maintenance_status')} ${this.t('was_not_found')}`,
+        message: `${this.t('aircraft_maintenance_status')} ${this.t('was_not_found')}`,
       }
     }
 
@@ -174,8 +179,8 @@ export default class AircraftMaintenanceService {
       return {
         status: 400,
         type: 'error',
-        title: 'Aircraft Maintenance Urgency Level not found',
-        message: 'Aircraft Maintenance Urgency Level not found',
+        title: `${this.t('aircraft_maintenance_urgency_level')} ${this.t('was_not_found')}`,
+        message: `${this.t('aircraft_maintenance_urgency_level')} ${this.t('was_not_found')}`,
       }
     }
 
@@ -187,8 +192,8 @@ export default class AircraftMaintenanceService {
       return {
         status: 400,
         type: 'error',
-        title: 'Start date is after end date',
-        message: 'Start date is after end date',
+        title: this.t('start_date_is_after_end_date'),
+        message: this.t('start_date_is_after_end_date'),
       }
     }
     let dateStartString = aircraftMaintenance.aircraftMaintenanceStartDate.toString()
@@ -210,16 +215,16 @@ export default class AircraftMaintenanceService {
       return {
         status: 400,
         type: 'error',
-        title: 'Already exist maintenance in the same date',
-        message: 'Already exist maintenance in the same date',
+        title: this.t('already_exist_maintenance_in_the_same_date'),
+        message: this.t('already_exist_maintenance_in_the_same_date'),
       }
     }
 
     return {
       status: 200,
       type: 'success',
-      title: 'Info verified successfully',
-      message: 'Info verified successfully',
+      title: this.t('info_verify_successfully'),
+      message: this.t('info_verify_successfully'),
       data: { ...aircraftMaintenance },
     }
   }

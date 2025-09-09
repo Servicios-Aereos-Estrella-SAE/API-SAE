@@ -2,6 +2,13 @@ import Address from '#models/address'
 import AddressType from '#models/address_type'
 
 export default class AddressService {
+
+  private t: (key: string) => string
+
+  constructor(i18n: any) {
+    this.t = i18n.formatMessage.bind(i18n)
+  }
+
   async create(address: Address) {
     const newAddress = new Address()
     newAddress.addressZipcode = address.addressZipcode
@@ -50,8 +57,8 @@ export default class AddressService {
         return {
           status: 400,
           type: 'warning',
-          title: 'The address was not found',
-          message: 'The address was not found with the entered ID',
+          title: this.t('the_address_was_not_found'),
+          message: this.t('the_address_was_not_found_with_the_entered_id'),
           data: { ...address },
         }
       }
@@ -59,8 +66,8 @@ export default class AddressService {
     return {
       status: 200,
       type: 'success',
-      title: 'Info verifiy successfully',
-      message: 'Info verify successfully',
+      title: this.t('info_verify_successfully'),
+      message: this.t('info_verify_successfully'),
       data: { ...address },
     }
   }
