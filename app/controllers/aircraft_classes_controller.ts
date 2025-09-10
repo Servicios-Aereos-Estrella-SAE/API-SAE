@@ -343,14 +343,14 @@ export default class AircraftClassController {
           formatResponse(
             'success',
             t('successfully_fetched'),
-            t('resources_fetched'),
+            t('resource_fetched'),
             aircraftClass.toJSON()
           )
         )
     } catch (error) {
       return response
         .status(404)
-        .json(formatResponse('error', t('not_found'), t('resource_not_found'), t('no_data')))
+        .json(formatResponse('error', t('not_found'), t('resource_not_found'), error))
     }
   }
 

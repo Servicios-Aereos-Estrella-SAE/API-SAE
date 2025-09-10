@@ -36,6 +36,11 @@ export default class SyncAssistsService {
    * Retrieves the status sync of assists.
    * @returns {Promise<AssistStatusResponseDto>} The assist status response DTO.
    */
+  /* private t: (key: string,params?: { [key: string]: string | number }) => string
+
+  constructor(i18n: any) {
+    this.t = i18n.formatMessage.bind(i18n)
+  } */
   async getStatusSync(): Promise<AssistStatusResponseDto | null> {
     const assistStatusSync = await this.getAssistStatusSync()
     let lastPageSync = await this.getLastPageSync()
@@ -572,11 +577,12 @@ export default class SyncAssistsService {
         .withTrashed()
         .first()
       if (!employee) {
+        // const entity = this.t('employee')
         return {
           status: 400,
           type: 'warning',
-          title: 'Invalid data',
-          message: 'Employee not found',
+          title: 'not found',//this.t('entity_was_not_found', { entity }),
+          message: 'not found', //this.t('entity_was_not_found', { entity }),
           data: null,
         }
       }
@@ -719,8 +725,8 @@ export default class SyncAssistsService {
     return {
       status: 200,
       type: 'success',
-      title: 'Successfully action',
-      message: 'Success access data',
+      title: 'resources',//this.t('resources'),
+      message: 'resources_were_found_successfully',//this.t('resources_were_found_successfully'),
       data: {
         employeeCalendar,
       },

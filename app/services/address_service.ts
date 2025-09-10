@@ -3,7 +3,7 @@ import AddressType from '#models/address_type'
 
 export default class AddressService {
 
-  private t: (key: string) => string
+  private t: (key: string,params?: { [key: string]: string | number }) => string
 
   constructor(i18n: any) {
     this.t = i18n.formatMessage.bind(i18n)
@@ -52,13 +52,13 @@ export default class AddressService {
         .whereNull('address_type_deleted_at')
         .where('address_type_id', address.addressTypeId)
         .first()
-
+      const entity = this.t('address_type')
       if (!existAddressType && address.addressTypeId) {
         return {
           status: 400,
           type: 'warning',
-          title: this.t('the_address_was_not_found'),
-          message: this.t('the_address_was_not_found_with_the_entered_id'),
+          title: this.t('entity_was_not_found', { entity }),
+          message: this.t('entity_was_not_found_with_entered_id', { entity }),
           data: { ...address },
         }
       }

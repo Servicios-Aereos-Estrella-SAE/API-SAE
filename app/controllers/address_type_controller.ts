@@ -130,8 +130,8 @@ export default class AddressTypeController {
       response.status(200)
       return {
         type: 'success',
-        title: t('address_types'),
-        message: `${t('address_types')} ${t('were_found_successfully')}`,
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: {
           addressTypes,
         },

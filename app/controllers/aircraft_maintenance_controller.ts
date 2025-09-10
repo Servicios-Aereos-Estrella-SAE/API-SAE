@@ -73,8 +73,8 @@ export default class AircraftMaintenanceController {
       response.status(200)
       return {
         type: 'success',
-        title: t('aircraft_maintenances'),
-        message: `${t('aircraft_maintenances')} ${t('were_found_successfully')}`,
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: { aircraftMaintenances },
       }
     } catch (error) {
@@ -181,8 +181,8 @@ export default class AircraftMaintenanceController {
       response.status(201)
       return {
         type: 'success',
-        title: t('reservations'),
-        message: t('reservation_created_successfully'),
+        title: t('resource'),
+        message: t('resource_was_created_successfully'),
         data: { reservation: newReservation },
       }
     } catch (error) {
@@ -258,8 +258,8 @@ export default class AircraftMaintenanceController {
         response.status(400)
         return {
           type: 'warning',
-          title: `${t('aircraft_maintenance')} ${t('id_was_not_found')}`,
-          message: t('missing_data_to_process'),
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { aircraftMaintenanceId },
         }
       }
@@ -307,8 +307,8 @@ export default class AircraftMaintenanceController {
         response.status(404)
         return {
           type: 'warning',
-          title: `${t('the_aircraft_maintenance')} ${t('was_not_found')}`,
-          message: t('aircraft_maintenance_not_found_with_entered_id'),
+          title: t('resource'),
+          message: t('resource_was_not_found_with_the_entered_id'),
           data: { aircraftMaintenanceId },
         }
       }
@@ -337,8 +337,8 @@ export default class AircraftMaintenanceController {
       response.status(200)
       return {
         type: 'success',
-        title: t('aircraft_maintenance'),
-        message: `${t('the_aircraft_maintenance')} ${t('was_updated_successfully')}`,
+        title: t('resource'),
+        message: t('resource_was_updated_successfully'),
         data: { reservation: updatedReservation },
       }
     } catch (error) {
@@ -385,8 +385,8 @@ export default class AircraftMaintenanceController {
         response.status(400)
         return {
           type: 'warning',
-          title: `${t('aircraft_maintenance')} ${t('id_was_not_found')}`,
-          message: t('missing_data_to_process'),
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { aircraftMaintenanceId },
         }
       }
@@ -399,8 +399,8 @@ export default class AircraftMaintenanceController {
         response.status(404)
         return {
           type: 'warning',
-          title: `${t('the_aircraft_maintenance')} ${t('was_not_found')}`,
-          message: t('aircraft_maintenance_not_found_with_entered_id'),
+          title: t('resource'),
+          message: t('resource_was_not_found_with_the_entered_id'),
           data: { aircraftMaintenanceId },
         }
       }
@@ -412,8 +412,8 @@ export default class AircraftMaintenanceController {
         response.status(200)
         return {
           type: 'success',
-          title: t('reservations'),
-          message: `${t('the_aircraft_maintenance')} ${t('was_deleted_successfully')}`,
+          title: t('resource'),
+          message: t('resource_was_deleted_successfully'),
           data: { reservation: deleteAircraftMaintenance },
         }
       }
@@ -463,8 +463,8 @@ export default class AircraftMaintenanceController {
         response.status(400)
         return {
           type: 'warning',
-          title: `${t('aircraft_maintenance')} ${t('id_was_not_found')}`,
-          message: t('missing_data_to_process'),
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { aircraftMaintenanceId },
         }
       }
@@ -475,16 +475,16 @@ export default class AircraftMaintenanceController {
         response.status(404)
         return {
           type: 'warning',
-          title: `${t('the_aircraft_maintenance')} ${t('was_not_found')}`,
-          message: t('aircraft_maintenance_not_found_with_entered_id'),
+          title: t('resource'),
+          message: t('resource_was_not_found_with_the_entered_id'),
           data: { aircraftMaintenanceId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: t('aircraft_maintenance'),
-          message: `${t('the_aircraft_maintenance')} ${t('was_found_successfully')}`,
+          title: t('resource'),
+          message: t('resource_was_found_successfully'),
           data: { reservation: showAircraftMaintenance },
         }
       }

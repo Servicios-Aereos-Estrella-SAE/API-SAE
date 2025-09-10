@@ -7,7 +7,7 @@ import { GenericFilterSearchInterface } from '../interfaces/generic_filter_searc
 // Importa aquí otros modelos si necesitas verificar datos (ej. Customer, Pilot, etc.)
 
 export default class AircraftMaintenanceService {
-  private t: (key: string) => string
+  private t: (key: string,params?: { [key: string]: string | number }) => string
 
   constructor(i18n: any) {
     this.t = i18n.formatMessage.bind(i18n)
@@ -138,49 +138,60 @@ export default class AircraftMaintenanceService {
     // Aquí podrías verificar si la FK customerId existe, etc.
     // O si existe el pilotPicId, pilotSicId, etc.
     // verify that the customer exists
-    const aircraft = await Aircraft.findOrFail(aircraftMaintenance.aircraftId)
+    const aircraft = await Aircraft.query()
+      .whereNull('aircraft_deleted_at')
+      .where('aircraft_id',aircraftMaintenance.aircraftId)
+      .first()
     if (!aircraft) {
+      const entity = this.t('aircraft')
       return {
         status: 400,
         type: 'error',
-        title: `${this.t('aircraft')} ${this.t('was_not_found')}`,
-        message: `${this.t('aircraft')} ${this.t('was_not_found')}`,
+        title: this.t('entity_was_not_found', { entity }),
+        message: this.t('entity_was_not_found', { entity }),
       }
     }
 
     // verify that the pilotPic exists
-    const maintenanceType = await MaintenanceType.findOrFail(aircraftMaintenance.maintenanceTypeId)
+    const maintenanceType = await MaintenanceType.query()
+      .whereNull('maintenance_type_deleted_at')
+      .where('maintenance_type_id',aircraftMaintenance.maintenanceTypeId).first()
     if (!maintenanceType) {
+      const entity = this.t('maintenance_type')
       return {
         status: 400,
         type: 'error',
-        title: `${this.t('maintenance_type')} ${this.t('was_not_found')}`,
-        message: `${this.t('maintenance_type')} ${this.t('was_not_found')}`,
+        title: this.t('entity_was_not_found', { entity }),
+        message: this.t('entity_was_not_found', { entity }),
       }
     }
     // verify that the pilotSic exists
-    const aircraftMaintenanceStatus = await AircraftMaintenanceStatus.findOrFail(
-      aircraftMaintenance.aircraftMaintenanceStatusId
-    )
+    const aircraftMaintenanceStatus = await AircraftMaintenanceStatus.query()
+      .whereNull('aircraft_maintenance_status_deleted_at')
+      .where('aircraft_maintenance_status_id',aircraftMaintenance.aircraftMaintenanceStatusId)
+      .first()
     if (!aircraftMaintenanceStatus) {
+      const entity = this.t('aircraft_maintenance_status')
       return {
         status: 400,
         type: 'error',
-        title: `${this.t('aircraft_maintenance_status')} ${this.t('was_not_found')}`,
-        message: `${this.t('aircraft_maintenance_status')} ${this.t('was_not_found')}`,
+        title: this.t('entity_was_not_found', { entity }),
+        message: this.t('entity_was_not_found', { entity }),
       }
     }
 
     // verify that the flightAttendant exists
-    const aircraftMaintenanceUrgencyLevel = await AircraftMaintenanceUrgencyLevel.findOrFail(
-      aircraftMaintenance.maintenanceUrgencyLevelId
-    )
+    const aircraftMaintenanceUrgencyLevel = await AircraftMaintenanceUrgencyLevel.query()
+      .whereNull('maintenance_urgency_level_deleted_at')
+      .where('maintenance_urgency_level_id',aircraftMaintenance.maintenanceUrgencyLevelId)
+      .first()
     if (!aircraftMaintenanceUrgencyLevel) {
+      const entity = this.t('aircraft_maintenance_urgency_level')
       return {
         status: 400,
         type: 'error',
-        title: `${this.t('aircraft_maintenance_urgency_level')} ${this.t('was_not_found')}`,
-        message: `${this.t('aircraft_maintenance_urgency_level')} ${this.t('was_not_found')}`,
+        title: this.t('entity_was_not_found', { entity }),
+        message: this.t('entity_was_not_found', { entity }),
       }
     }
 

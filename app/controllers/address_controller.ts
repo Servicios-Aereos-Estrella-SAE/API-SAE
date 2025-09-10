@@ -216,8 +216,8 @@ export default class AddressController {
         response.status(201)
         return {
           type: 'success',
-          title: t('address'),
-          message: t('the_address_was_created_successfully'),
+          title: t('resource'),
+          message: t('resource_was_created_successfully'),
           data: { address: newAddress },
         }
       }
@@ -443,7 +443,7 @@ export default class AddressController {
         return {
           type: 'warning',
           title: t('missing_data_to_process'),
-          message: `${t('the_address')} ${t('id_was_not_found')}`,
+          message: t('resource_id_not_was_found'),
           data: { ...address },
         }
       }
@@ -455,13 +455,14 @@ export default class AddressController {
         response.status(404)
         return {
           type: 'warning',
-          title: t('the_address_was_not_found'),
-          message: t('the_address_was_not_found_with_the_entered_id'),
+          title: t('resource_was_not_found'),
+          message: t('resource_was_not_found_with_the_entered_id'),
           data: { ...address },
         }
       }
       const addressService = new AddressService(i18n)
       const data = await request.validateUsing(updateAddressValidator)
+      
       const verifyExist = await addressService.verifyInfoExist(address)
       if (verifyExist.status !== 200) {
         response.status(verifyExist.status)
@@ -477,8 +478,8 @@ export default class AddressController {
         response.status(201)
         return {
           type: 'success',
-          title: t('address'),
-          message: t('the_address_was_updated_successfully'),
+          title: t('resource'),
+          message: t('resource_was_updated_successfully'),
           data: { address: updateAddress },
         }
       }
@@ -608,8 +609,8 @@ export default class AddressController {
       response.status(200)
       return {
         type: 'success',
-        title: t('address'),
-        message: t('the_address_places_were_found_successfully'),
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: {
           places,
         },

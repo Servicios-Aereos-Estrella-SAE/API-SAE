@@ -223,7 +223,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async index({ request, response }: HttpContext) {
+  async index({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     const syncAssistsService = new SyncAssistsService()
     const employeeID = request.input('employeeId')
     const filterDate = request.input('date')
@@ -261,8 +262,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -325,7 +326,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByEmployee({ request, response }: HttpContext) {
+  async getExcelByEmployee({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
@@ -396,8 +398,8 @@ export default class AssistsController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Server Error',
-          message: 'An unexpected error has occurred on the server buffer not found',
+          title: t('server_error'),
+          message: t('an_unexpected_error_has_occurred_on_the_server_buffer_not_found'),
           data: { employeeId },
         }
       }
@@ -405,8 +407,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -462,7 +464,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByPosition({ request, response }: HttpContext) {
+  async getExcelByPosition({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -523,8 +526,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -593,7 +596,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByDepartment({ auth, request, response }: HttpContext) {
+  async getExcelByDepartment({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -671,8 +675,8 @@ export default class AssistsController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Server Error',
-          message: 'An unexpected error has occurred on the server buffer not found',
+          title: t('server_error'),
+          message: t('an_unexpected_error_has_occurred_on_the_server_buffer_not_found'),
           data: { filters },
         }
       }
@@ -680,8 +684,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -750,7 +754,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelAll({ auth, request, response }: HttpContext) {
+  async getExcelAll({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -818,8 +823,8 @@ export default class AssistsController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Server Error',
-          message: 'An unexpected error has occurred on the server buffer not found',
+          title: t('server_error'),
+          message: t('an_unexpected_error_has_occurred_on_the_server_buffer_not_found'),
           data: { filters },
         }
       }
@@ -827,8 +832,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -953,7 +958,8 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async store({ auth, request, response }: HttpContext) {
+  async store({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const employeeId = request.input('employeeId')
       let assistPunchTime = request.input('assistPunchTime')
@@ -1048,8 +1054,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -1155,7 +1161,8 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async getFormatPayRoll({ request, response }: HttpContext) {
+  async getFormatPayRoll({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const date = request.input('date')
       if (!date) {
@@ -1198,8 +1205,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1305,7 +1312,8 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async inactivate({ request, response }: HttpContext) {
+  async inactivate({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const assistId = request.param('assistId')
       if (!assistId) {
@@ -1351,8 +1359,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -1469,7 +1477,8 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async getAssistFlatList({ request, response }: HttpContext) {
+  async getAssistFlatList({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
 
       const employeeId = request.input('employeeId')
@@ -1506,8 +1515,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
