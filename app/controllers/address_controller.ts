@@ -453,10 +453,11 @@ export default class AddressController {
         .first()
       if (!currentAddress) {
         response.status(404)
+        const entity = t('address')
         return {
           type: 'warning',
-          title: t('resource_was_not_found'),
-          message: t('resource_was_not_found_with_the_entered_id'),
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { ...address },
         }
       }

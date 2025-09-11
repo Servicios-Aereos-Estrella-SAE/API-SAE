@@ -616,7 +616,7 @@ export default class DepartmentPositionController {
    *                     error:
    *                       type: string
    */
-  async deleteRelation({ request, response }: HttpContext) {
+  async deleteRelation({ request, response, i18n }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
       const positionId = request.param('positionId')
@@ -646,7 +646,7 @@ export default class DepartmentPositionController {
         }
       }
       // validate if Employee belongs to the Position
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const hasEmployeesPosition = await employeeService.hasEmployeesPosition(positionId)
       if (hasEmployeesPosition) {
         response.status(400)

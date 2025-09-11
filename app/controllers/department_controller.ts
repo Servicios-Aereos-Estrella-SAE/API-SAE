@@ -134,7 +134,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async synchronization({ request, response }: HttpContext) {
+  async synchronization({ request, response, i18n }: HttpContext) {
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 200)
@@ -149,7 +149,7 @@ export default class DepartmentController {
       const apiResponse = await axios.get(apiUrl)
       const data = apiResponse.data.data
       if (data) {
-        const departmentService = new DepartmentService()
+        const departmentService = new DepartmentService(i18n)
         data.sort((a: BiometricDepartmentInterface, b: BiometricDepartmentInterface) => a.id - b.id)
         for await (const department of data) {
           await this.verify(department, departmentService)
@@ -929,7 +929,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async getAll({ auth, request, response }: HttpContext) {
+  async getAll({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -951,7 +951,7 @@ export default class DepartmentController {
       }
 
       const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents, userResponsibleId }
-      const departments = await new DepartmentService().index(departmentsList, filters)
+      const departments = await new DepartmentService(i18n).index(departmentsList, filters)
 
       response.status(200)
       return {
@@ -1048,7 +1048,7 @@ export default class DepartmentController {
    *                   type: string
    *                   description: Response message
    */
-  async getOrganization({ auth, response }: HttpContext) {
+  async getOrganization({ auth, response, i18n }: HttpContext) {
     try {
       await auth.check()
 
@@ -1060,7 +1060,7 @@ export default class DepartmentController {
       //   departmentsList = await userService.getRoleDepartments(user.userId)
       // }
 
-      const departments = await new DepartmentService().buildOrganization(/* departmentsList */)
+      const departments = await new DepartmentService(i18n).buildOrganization(/* departmentsList */)
 
       response.status(200)
 
@@ -1216,7 +1216,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, i18n }: HttpContext) {
     try {
       const departmentName = request.input('departmentName')
       const departmentAlias = request.input('departmentAlias')
@@ -1235,7 +1235,7 @@ export default class DepartmentController {
         parentDepartmentId: parentDepartmentId,
       } as Department
 
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(i18n)
       const data = await request.validateUsing(createDepartmentValidator)
       const exist = await departmentService.verifyInfoExist(department)
 
@@ -1408,7 +1408,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async update({ request, response }: HttpContext) {
+  async update({ request, response, i18n }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
       const departmentCode = request.input('departmentCode')
@@ -1453,7 +1453,7 @@ export default class DepartmentController {
         }
       }
 
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(i18n)
       const data = await request.validateUsing(updateDepartmentValidator)
       const exist = await departmentService.verifyInfoExist(department)
 
@@ -1503,7 +1503,7 @@ export default class DepartmentController {
     }
   }
 
-  async delete({ request, response }: HttpContext) {
+  async delete({ request, response, i18n }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
       if (!departmentId) {
@@ -1544,7 +1544,7 @@ export default class DepartmentController {
           data: { departmentId, totalEmployees },
         }
       }
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(i18n)
       const deleteDepartment = await departmentService.delete(currentDepartment)
       if (deleteDepartment) {
         response.status(201)
@@ -1743,7 +1743,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async show({ auth, request, response }: HttpContext) {
+  async show({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -1766,7 +1766,7 @@ export default class DepartmentController {
         departmentsList = await userService.getRoleDepartments(user.userId)
       }
 
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(i18n)
       const showDepartment = await departmentService.show(departmentId)
 
       if (!showDepartment) {
@@ -1925,7 +1925,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async assignShift({ request, response }: HttpContext) {
+  async assignShift({ request, response, i18n }: HttpContext) {
     try {
       const departmentId = request.param('departmentId')
       const shiftId = request.input('shiftId')
@@ -1936,7 +1936,7 @@ export default class DepartmentController {
         applySince: applySince,
       } as DepartmentShiftFilterInterface
 
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(i18n)
       const isValidInfo = await departmentService.verifyInfoAssignShift(
         departmentShiftFilterInterface
       )
@@ -2084,7 +2084,7 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async getOnlyWithEmployees({ auth, request, response }: HttpContext) {
+  async getOnlyWithEmployees({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -2106,7 +2106,7 @@ export default class DepartmentController {
       }
 
       const filters: DepartmentIndexFilterInterface = { departmentName, onlyParents, userResponsibleId }
-      const departments = await new DepartmentService().getOnlyWithEmployees(
+      const departments = await new DepartmentService(i18n).getOnlyWithEmployees(
         departmentsList,
         filters
       )

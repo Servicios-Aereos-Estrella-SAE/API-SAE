@@ -31,8 +31,16 @@ import { AssistIncidentPayrollCalendarExcelFilterInterface } from '../interfaces
 import { AssistIncidentSummaryCalendarExcelFilterInterface } from '../interfaces/assist_incident_summary_calendar_excel_filter_interface.js'
 import { AssistInterface } from '../interfaces/assist_interface.js'
 import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
+import { I18n } from '@adonisjs/i18n'
 
 export default class AssistsService {
+  private t: (key: string,params?: { [key: string]: string | number }) => string
+  private i18n: I18n
+
+  constructor(i18n: I18n) {
+    this.t = i18n.formatMessage.bind(i18n)
+    this.i18n = i18n
+  }
   async getExcelByEmployeeAssistance(
     employee: Employee,
     filters: AssistEmployeeExcelFilterInterface
@@ -43,7 +51,7 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const result = await syncAssistsService.index(
         {
           date: filterDate,
@@ -63,7 +71,7 @@ export default class AssistsService {
         }
       }
       const workbook = new ExcelJS.Workbook()
-      let worksheet = workbook.addWorksheet('Assistance Report')
+      let worksheet = workbook.addWorksheet(this.t('assistance_report'))
       const assistExcelImageInterface = {
         workbook: workbook,
         worksheet: worksheet,
@@ -73,7 +81,7 @@ export default class AssistsService {
       await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:Q1')
-      const titleRow = worksheet.addRow(['Assistance Report'])
+      const titleRow = worksheet.addRow(this.t('assistance_report'))
       let color = '244062'
       let fgColor = 'FFFFFFF'
       worksheet.getCell('A' + 2).fill = {
@@ -110,16 +118,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -135,7 +143,7 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const result = await syncAssistsService.index(
         {
           date: filterDate,
@@ -156,8 +164,8 @@ export default class AssistsService {
       }
       const workbook = new ExcelJS.Workbook()
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      const worksheet = workbook.addWorksheet('Incident Summary')
-      const title = `Summary Report ${this.getRange(filterDate, filterDateEnd)}`
+      const worksheet = workbook.addWorksheet(this.t('incident_summary'))
+      const title = `${this.t('summary_report')} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
       const totalRowIncident = {} as AssistIncidentExcelRowInterface
@@ -192,16 +200,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -217,7 +225,7 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const result = await syncAssistsService.index(
         {
           date: filterDate,
@@ -242,8 +250,8 @@ export default class AssistsService {
       const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
-      const worksheet = workbook.addWorksheet('Incident Summary Payroll')
-      const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
+      const worksheet = workbook.addWorksheet(this.t('incident_summary_payroll'))
+      const titlePayroll = `${this.t('incidents')} ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       await this.addHeadRowIncidentPayroll(worksheet)
 
@@ -270,16 +278,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -293,7 +301,7 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(this.i18n)
       const resultEmployes = await employeeService.index(
         {
           search: '',
@@ -308,7 +316,7 @@ export default class AssistsService {
         [departmentId]
       )
       const dataEmployes: any = resultEmployes
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const rows = [] as AssistExcelRowInterface[]
       for await (const employee of dataEmployes) {
         const result = await syncAssistsService.index(
@@ -331,7 +339,7 @@ export default class AssistsService {
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
-      let worksheet = workbook.addWorksheet('Assistance Report')
+      let worksheet = workbook.addWorksheet(this.t('assistance_report'))
       const assistExcelImageInterface = {
         workbook: workbook,
         worksheet: worksheet,
@@ -341,7 +349,7 @@ export default class AssistsService {
       await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
-      const titleRow = worksheet.addRow(['Assistance Report'])
+      const titleRow = worksheet.addRow([this.t('assistance_report')])
       let color = '244062'
       let fgColor = 'FFFFFFF'
       worksheet.getCell('A' + 2).fill = {
@@ -376,8 +384,8 @@ export default class AssistsService {
       await this.addRowToWorkSheet(rows, worksheet)
       // hasta aquí era lo de asistencia
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      worksheet = workbook.addWorksheet('Incident Summary')
-      const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
+      worksheet = workbook.addWorksheet(this.t('incident_summary'))
+      const title = `${this.t('summary_report')} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
       const tardies = await this.getTardiesTolerance()
@@ -416,16 +424,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -438,12 +446,12 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(this.i18n)
       const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const rows = [] as AssistExcelRowInterface[]
       for await (const position of resultPositions) {
-        const employeeService = new EmployeeService()
+        const employeeService = new EmployeeService(this.i18n)
         const resultEmployes = await employeeService.index(
           {
             search: '',
@@ -481,7 +489,7 @@ export default class AssistsService {
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
-      let worksheet = workbook.addWorksheet('Assistance Report')
+      let worksheet = workbook.addWorksheet(this.t('assistance_report'))
       const assistExcelImageInterface = {
         workbook: workbook,
         worksheet: worksheet,
@@ -491,7 +499,7 @@ export default class AssistsService {
       await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
       worksheet.mergeCells('A1:P1')
-      const titleRow = worksheet.addRow(['Assistance Report'])
+      const titleRow = worksheet.addRow([this.t('assistance_report')])
       let color = '244062'
       let fgColor = 'FFFFFFF'
       worksheet.getCell('A' + 2).fill = {
@@ -528,16 +536,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -550,14 +558,14 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(this.i18n)
       const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      const worksheet = workbook.addWorksheet('Incident Summary')
-      const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
+      const worksheet = workbook.addWorksheet(this.t('incident_summary'))
+      const title = `${this.t('summary_report')} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
       const totalRowIncident = {} as AssistIncidentExcelRowInterface
@@ -567,7 +575,7 @@ export default class AssistsService {
       const tardies = await this.getTardiesTolerance()
       const toleranceCountPerAbsences = await this.getToleranceCountPerAbsence()
       for await (const position of resultPositions) {
-        const employeeService = new EmployeeService()
+        const employeeService = new EmployeeService(this.i18n)
         const resultEmployes = await employeeService.index(
           {
             search: '',
@@ -618,16 +626,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -640,20 +648,20 @@ export default class AssistsService {
       const filterDateEnd = filters.filterDateEnd
       const page = 1
       const limit = 999999999999999
-      const departmentService = new DepartmentService()
+      const departmentService = new DepartmentService(this.i18n)
       const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const workbook = new ExcelJS.Workbook()
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
-      const worksheet = workbook.addWorksheet('Incident Summary Payroll')
-      const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
+      const worksheet = workbook.addWorksheet(this.t('incident_summary_payroll'))
+      const titlePayroll = `${this.t('incidents')} ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       this.addHeadRowIncidentPayroll(worksheet)
       const tardies = await this.getTardiesTolerance()
       const toleranceCountPerAbsences = await this.getToleranceCountPerAbsence()
       for await (const position of resultPositions) {
-        const employeeService = new EmployeeService()
+        const employeeService = new EmployeeService(this.i18n)
         const resultEmployes = await employeeService.index(
           {
             search: '',
@@ -706,16 +714,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -730,14 +738,14 @@ export default class AssistsService {
       const rows = [] as AssistExcelRowInterface[]
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
-      const departmentService = new DepartmentService()
-      const employeeService = new EmployeeService()
+      const departmentService = new DepartmentService(this.i18n)
+      const employeeService = new EmployeeService(this.i18n)
       for await (const departmentRow of departments) {
         const departmentId = departmentRow.departmentId
         const page = 1
         const limit = 999999999999999
         const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
-        const syncAssistsService = new SyncAssistsService()
+        const syncAssistsService = new SyncAssistsService(this.i18n)
         for await (const position of resultPositions) {
           const resultEmployes = await employeeService.index(
             {
@@ -777,7 +785,7 @@ export default class AssistsService {
       }
       // Crear un nuevo libro de Excel
       const workbook = new ExcelJS.Workbook()
-      let worksheet = workbook.addWorksheet('Assistance Report')
+      let worksheet = workbook.addWorksheet(this.t('assistance_report'))
       const assistExcelImageInterface = {
         workbook: workbook,
         worksheet: worksheet,
@@ -786,8 +794,8 @@ export default class AssistsService {
       } as AssistExcelImageInterface
       await this.addImageLogo(assistExcelImageInterface)
       worksheet.getRow(1).height = 60
-      worksheet.mergeCells('A1:P1')
-      const titleRow = worksheet.addRow(['Assistance Report'])
+      worksheet.mergeCells('A1:Q1')
+      const titleRow = worksheet.addRow([this.t('assistance_report')])
       let color = '244062'
       let fgColor = 'FFFFFFF'
       worksheet.getCell('A' + 2).fill = {
@@ -798,7 +806,7 @@ export default class AssistsService {
       titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
       titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:P2')
+      worksheet.mergeCells('A2:Q2')
       color = '366092'
       const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
       periodRow.font = { size: 15, color: { argb: fgColor } }
@@ -810,7 +818,7 @@ export default class AssistsService {
       }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       periodRow.height = 30
-      worksheet.mergeCells('A3:P3')
+      worksheet.mergeCells('A3:Q3')
       worksheet.views = [
         { state: 'frozen', ySplit: 1 }, // Fija la primera fila
         { state: 'frozen', ySplit: 2 }, // Fija la segunda fila
@@ -824,16 +832,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -851,14 +859,14 @@ export default class AssistsService {
 
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
-      const departmentService = new DepartmentService()
-      const employeeService = new EmployeeService()
+      const departmentService = new DepartmentService(this.i18n)
+      const employeeService = new EmployeeService(this.i18n)
 
       const workbook = new ExcelJS.Workbook()
       // hasta aquí era lo de asistencia
       const rowsIncident = [] as AssistIncidentExcelRowInterface[]
-      const worksheet = workbook.addWorksheet('Incident Summary')
-      const title = `Summary Report  ${this.getRange(filterDate, filterDateEnd)}`
+      const worksheet = workbook.addWorksheet(this.t('incident_summary'))
+      const title = `${this.t('summary_report')} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentToWorkSheet(workbook, worksheet, title)
       this.addHeadRowIncident(worksheet)
       const totalRowIncident = {} as AssistIncidentExcelRowInterface
@@ -872,7 +880,7 @@ export default class AssistsService {
         const page = 1
         const limit = 999999999999999
         const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
-        const syncAssistsService = new SyncAssistsService()
+        const syncAssistsService = new SyncAssistsService(this.i18n)
         for await (const position of resultPositions) {
           const resultEmployes = await employeeService.index(
             {
@@ -925,16 +933,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -951,8 +959,8 @@ export default class AssistsService {
         .orderBy('departmentId')
       const filterDate = filters.filterDate
       const filterDateEnd = filters.filterDateEnd
-      const departmentService = new DepartmentService()
-      const employeeService = new EmployeeService()
+      const departmentService = new DepartmentService(this.i18n)
+      const employeeService = new EmployeeService(this.i18n)
       const tardies = await this.getTardiesTolerance()
       const toleranceCountPerAbsences = await this.getToleranceCountPerAbsence()
       // Crear un nuevo libro de Excel
@@ -960,8 +968,8 @@ export default class AssistsService {
       // hasta aquí era lo de incidencias
       const rowsIncidentPayroll = [] as AssistIncidentPayrollExcelRowInterface[]
       const tradeName = await this.getTradeName()
-      const worksheet = workbook.addWorksheet('Incident Summary Payroll')
-      const titlePayroll = `Incidencias ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
+      const worksheet = workbook.addWorksheet(this.t('incident_summary_payroll'))
+      const titlePayroll = `${this.t('incidents')} ${tradeName} ${this.getRange(filterDate, filterDateEnd)}`
       await this.addTitleIncidentPayrollToWorkSheet(workbook, worksheet, titlePayroll)
       this.addHeadRowIncidentPayroll(worksheet)
       for await (const departmentRow of departments) {
@@ -971,7 +979,7 @@ export default class AssistsService {
         const page = 1
         const limit = 999999999999999
         const resultPositions = await departmentService.getPositions(departmentId, filters.userResponsibleId)
-        const syncAssistsService = new SyncAssistsService()
+        const syncAssistsService = new SyncAssistsService(this.i18n)
         for await (const position of resultPositions) {
           const resultEmployes = await employeeService.index(
             {
@@ -1027,16 +1035,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'Excel',
-        message: 'Excel was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1045,29 +1053,29 @@ export default class AssistsService {
   private paintIncidents(worksheet: ExcelJS.Worksheet, row: number, value: string) {
     let color = 'FFFFFFF'
     let fgColor = 'FFFFFFF'
-    if (value === 'FAULT') {
+    if (value === this.t('fault').toUpperCase()) {
       color = 'FFD45633'
       fgColor = 'FFFFFFF'
-    } else if (value === 'ONTIME') {
+    } else if (value === this.t('ontime').toUpperCase()) {
       color = 'FF33D4AD'
       fgColor = 'FFFFFFF'
-    } else if (value === 'NEXT') {
+    } else if (value === this.t('next').toUpperCase()) {
       color = 'E4E4E4'
       fgColor = '000000'
-    } else if (value === 'REST') {
+    } else if (value === this.t('rest').toUpperCase()) {
       color = 'E4E4E4'
       fgColor = '000000'
-    } else if (value === 'VACATIONS') {
+    } else if (value === this.t('vacations').toUpperCase()) {
       color = 'FFFFFFF'
       fgColor = '000000'
-    } else if (value === 'HOLIDAY') {
+    } else if (value === this.t('holiday').toUpperCase()) {
       color = 'FFFFFFF'
       fgColor = '000000'
-    } else if (value === 'DELAY') {
+    } else if (value === this.t('delay').toUpperCase()) {
       color = 'FF993A'
-    } else if (value === 'TOLERANCE') {
+    } else if (value === this.t('tolerance').toUpperCase()) {
       color = '3CB4E5'
-    } else if (value === 'EXCEPTION') {
+    } else if (value === this.t('exception').toUpperCase()) {
       fgColor = '000000'
     }
     worksheet.getCell('P' + row).fill = {
@@ -1184,23 +1192,23 @@ export default class AssistsService {
 
   addHeadRow(worksheet: ExcelJS.Worksheet) {
     const headerRow = worksheet.addRow([
-      'Employee ID',
-      'Employee Name',
-      'Department',
-      'Position',
-      'Date',
+      `${this.t('employee')} ID`,
+      `${this.t('employee')} ${this.t('name')}`,
+      this.t('department'),
+      this.t('position'),
+      this.t('date'),
       '',
-      'Shift Assigned',
-      'Shift Start Date',
-      'Shift Ends Date',
+      this.t('shift_assigned'),
+      this.t('shift_start_date'),
+      this.t('shift_ends_date'),
       '',
-      'Check-in',
-      'Check go Eat',
-      'Check back from Eat',
-      'Check-out',
-      'Hours worked',
-      'Status',
-      'Exception Notes',
+      this.t('check_in'),
+      this.t('check_go_eat'),
+      this.t('check_back_from_eat'),
+      this.t('check_out'),
+      this.t('hours_worked'),
+      this.t('status'),
+      this.t('exception_notes')
     ])
     let fgColor = 'FFFFFFF'
     let color = '538DD5'
@@ -1379,7 +1387,7 @@ export default class AssistsService {
         checkOutTime: rowCheckOutTime,
         lastCheck: lastCheck,
         hoursWorked: hoursWorked,
-        incidents: status,
+        incidents: status ? this.t(status.toString().toLowerCase()).toUpperCase() : status,
         notes: '',
         sundayPremium: '',
         checkOutStatus: calendar.assist.checkOutStatus,
@@ -1420,7 +1428,7 @@ export default class AssistsService {
     let rowCount = 5
     let faultsTotal = 0
     for await (const rowData of rows) {
-      if (rowData.incidents.toString().toUpperCase() === 'FAULT') {
+      if (rowData.incidents.toString().toUpperCase() === this.t('fault').toUpperCase()) {
         faultsTotal += 1
       }
       let incidents =
@@ -1476,25 +1484,25 @@ export default class AssistsService {
 
   addHeadRowIncident(worksheet: ExcelJS.Worksheet) {
     const headerRow = worksheet.addRow([
-      'Department',
-      'Employee ID',
-      'Employee Name',
-      'Days Worked',
-      'On Time',
-      'Tolerances',
-      'Delays',
-      'Early Outs',
-      'Rests',
-      'Sunday Bonus',
-      'Vacations',
-      'Exceptions',
-      'Holidays Worked',
-      'Rest Worked',
-      'Faults',
-      'Delays Faults',
-      'Early Outs Faults',
-      'Total Faults',
-      'Total Hours Worked',
+      this.t('department'),
+      `${this.t('employee')} ID`,
+      `${this.t('employee')} ${this.t('name')}`,
+      this.t('days_worked'),
+      this.t('on_time'),
+      this.t('tolerances'),
+      this.t('delays'),
+      this.t('early_outs'),
+      this.t('rests'),
+      this.t('sunday_bonus'),
+      this.t('vacations'),
+      this.t('exceptions'),
+      this.t('holidays_worked'),
+      this.t('rest_worked'),
+      this.t('faults'),
+      this.t('delays_faults'),
+      this.t('early_outs_faults'),
+      this.t('total_faults'),
+      this.t('total_hours_worked')
     ])
     let fgColor = 'FFFFFFF'
     let color = '30869C'
@@ -1826,7 +1834,7 @@ export default class AssistsService {
             cell.font = { color: { argb: 'FFFFFF' } }
           }
         }
-        if (rowData.department === 'TOTALS') {
+        if (rowData.department === this.t('totals').toUpperCase()) {
           const color = '30869C'
           for (let col = 1; col <= 19; col++) {
             const cell = worksheet.getCell(rowCount - 1, col)
@@ -1900,7 +1908,7 @@ export default class AssistsService {
   ) {
     totalRowIncident.employeeId = ''
     totalRowIncident.employeeName = ''
-    totalRowIncident.department = 'TOTALS'
+    totalRowIncident.department = this.t('totals').toUpperCase()
     totalRowIncident.daysOnTime += rowByDepartment.daysOnTime
     totalRowIncident.tolerances += rowByDepartment.tolerances
     totalRowIncident.delays += rowByDepartment.delays
@@ -1964,7 +1972,7 @@ export default class AssistsService {
       .where('employee_code',assist.assistEmpCode )
       .first()
     if (employee) {
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const filter: SyncAssistsServiceIndexInterface = {
         date: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: -1 }).toFormat('yyyy-MM-dd'),
         dateEnd: newAssist.assistPunchTimeUtc.setZone('UTC-6').plus({ day: 1 }).toFormat('yyyy-MM-dd'),
@@ -2055,7 +2063,7 @@ export default class AssistsService {
       const firstDayPeriod = start.minus({ days: 1 }).startOf('day').setZone('utc')
       const tardies = await this.getTardiesTolerance()
       const toleranceCountPerAbsences = await this.getToleranceCountPerAbsence()
-      const syncAssistsService = new SyncAssistsService()
+      const syncAssistsService = new SyncAssistsService(this.i18n)
       const period = this.calculatePayPeriod(date)
       const dateNew = new Date(date)
       const year = dateNew.getFullYear()
@@ -2119,16 +2127,16 @@ export default class AssistsService {
       return {
         status: 201,
         type: 'success',
-        title: 'CSV',
-        message: 'CSV was created successfully',
+        title: this.t('resource'),
+        message: this.t('resource_was_created_successfully'),
         buffer: buffer,
       }
     } catch (error) {
       return {
         status: 500,
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: this.t('server_error'),
+        message: this.t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -2335,21 +2343,21 @@ export default class AssistsService {
 
   addHeadRowIncidentPayroll(worksheet: ExcelJS.Worksheet) {
     const headerRow = worksheet.addRow([
-      'NOMBRE COMPLETO',
-      'ID',
-      'DEPARTAMENTO',
-      'EMPRESA',
-      'FALTA',
-      'RETARDO',
-      'INC',
-      'HRS EX. DOB.',
-      'HRS EX. TRI.',
-      'P. DOM.',
-      'DESC. LAB.',
-      'P. VAC.',
-      'NIVELACION',
-      'BONO',
-      'OTROS',
+      `${this.t('employee')} ${this.t('name')}`,
+      `${this.t('employee')} ID`,
+      this.t('department'),
+      this.t('company'),
+      this.t('fault'),
+      this.t('delay'),
+      this.t('leaves'),
+      this.t('double_overtime_hours'),
+      this.t('triple_overtime_hours'),
+      this.t('sunday_bonus_abb'),
+      this.t('rest_day_worked'),
+      this.t('vacation_bonus'),
+      this.t('leveling'),
+      this.t('bonus'),
+      this.t('others')
     ])
     let fgColor = '000000'
     let color = 'C9C9C9'
@@ -2963,7 +2971,7 @@ export default class AssistsService {
       dateEnd: this.formatDate(dateEnd),
       employeeID: employeeId
     }
-    const syncAssistsService = new SyncAssistsService()
+    const syncAssistsService = new SyncAssistsService(this.i18n)
     await syncAssistsService.setDateCalendar(filter)
   }
 

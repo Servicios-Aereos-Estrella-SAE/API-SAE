@@ -66,7 +66,7 @@ export default class ShiftExceptionController {
    *       400:
    *         description: Validation error
    */
-  async store({ auth, request, response }: HttpContext) {
+  async store({ auth, request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
@@ -111,7 +111,7 @@ export default class ShiftExceptionController {
         } as ShiftException
         try {
           await request.validateUsing(createShiftExceptionValidator)
-          const shiftExceptionService = new ShiftExceptionService()
+          const shiftExceptionService = new ShiftExceptionService(i18n)
           const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
           if (verifyInfo.status !== 200) {
             shiftExceptionsError.push({
@@ -247,7 +247,7 @@ export default class ShiftExceptionController {
    *       404:
    *         description: Shift exception not found
    */
-  async update({ auth, params, request, response }: HttpContext) {
+  async update({ auth, params, request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.input('employeeId')
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
@@ -270,7 +270,7 @@ export default class ShiftExceptionController {
       const shiftExceptionEnjoymentOfSalary = request.input('shiftExceptionEnjoymentOfSalary')
       const shiftExceptionTimeByTime = request.input('shiftExceptionTimeByTime')
       await request.validateUsing(createShiftExceptionValidator)
-      const shiftExceptionService = new ShiftExceptionService()
+      const shiftExceptionService = new ShiftExceptionService(i18n)
       const currentShiftException = await ShiftException.findOrFail(params.id)
       const previousShiftException = JSON.parse(JSON.stringify(currentShiftException))
       const shiftException = {
@@ -365,11 +365,11 @@ export default class ShiftExceptionController {
    *       404:
    *         description: Shift exception not found
    */
-  async destroy({ auth, request, params, response }: HttpContext) {
+  async destroy({ auth, request, params, response, i18n }: HttpContext) {
     try {
       const shiftException = await ShiftException.findOrFail(params.id)
       await shiftException.delete()
-      const shiftExceptionService = new ShiftExceptionService()
+      const shiftExceptionService = new ShiftExceptionService(i18n)
 
       const exceptionDate = shiftException.shiftExceptionsDate
       const date = typeof exceptionDate === 'string' ? new Date(exceptionDate) : exceptionDate
@@ -532,7 +532,7 @@ export default class ShiftExceptionController {
    *                     error:
    *                       type: string
    */
-  async getByEmployee({ request, response }: HttpContext) {
+  async getByEmployee({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       const exceptionTypeId = request.input('exceptionTypeId')
@@ -553,7 +553,7 @@ export default class ShiftExceptionController {
         dateStart: dateStart,
         dateEnd: dateEnd,
       } as ShiftExceptionFilterInterface
-      const shiftExceptionService = new ShiftExceptionService()
+      const shiftExceptionService = new ShiftExceptionService(i18n)
       const shiftExceptions = await shiftExceptionService.getByEmployee(filters)
       response.status(200)
       return {
@@ -665,7 +665,7 @@ export default class ShiftExceptionController {
    *                     error:
    *                       type: string
    */
-  async getEvidences({ request, response }: HttpContext) {
+  async getEvidences({ request, response, i18n }: HttpContext) {
     try {
       const shiftExceptionId = request.param('shiftExceptionId')
 
@@ -679,7 +679,7 @@ export default class ShiftExceptionController {
         }
       }
 
-      const shiftExceptionService = new ShiftExceptionService()
+      const shiftExceptionService = new ShiftExceptionService(i18n)
       const showShiftException = await shiftExceptionService.show(shiftExceptionId)
 
       if (!showShiftException) {

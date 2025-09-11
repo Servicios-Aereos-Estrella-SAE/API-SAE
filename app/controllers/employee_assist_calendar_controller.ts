@@ -47,8 +47,8 @@ export default class EmployeeAssistCalendarController {
    *             schema:
    *               type: object
    */
-  async index({ request, response }: HttpContext) {
-    const syncAssistsService = new EmployeeAssistsCalendarService()
+  async index({ request, response, i18n }: HttpContext) {
+    const syncAssistsService = new EmployeeAssistsCalendarService(i18n)
     const employeeID = request.input('employeeId')
     const filterDate = request.input('date')
     const filterDateEnd = request.input('date-end')

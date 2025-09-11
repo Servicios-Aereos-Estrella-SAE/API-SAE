@@ -89,7 +89,7 @@ export default class ExceptionRequestsController {
    *                   type: string
    *                   example: ExceptionRequest not found
    */
-  async updateStatus({ auth, request, params, response }: HttpContext) {
+  async updateStatus({ auth, request, params, response, i18n }: HttpContext) {
     const { status, description } = request.only(['status', 'description'])
 
     if (status !== 'accepted' && status !== 'refused') {
@@ -151,7 +151,7 @@ export default class ExceptionRequestsController {
       }
     }
     if (status === 'accepted') {
-      const shiftExceptionService = new ShiftExceptionService()
+      const shiftExceptionService = new ShiftExceptionService(i18n)
       const shiftException = {
         shiftExceptionId: 0,
         employeeId: exceptionRequest.employeeId,

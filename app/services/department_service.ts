@@ -14,8 +14,16 @@ import env from '#start/env'
 import BusinessUnit from '#models/business_unit'
 import { DepartmentIndexFilterInterface } from '../interfaces/department_index_filter_interface.js'
 import Employee from '#models/employee'
+import { I18n } from '@adonisjs/i18n'
 
 export default class DepartmentService {
+
+  private i18n: I18n
+
+  constructor(i18n: I18n) {
+    this.i18n = i18n
+  }
+
   async index(departmentsList: Array<number>, filters?: DepartmentIndexFilterInterface) {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
@@ -218,7 +226,7 @@ export default class DepartmentService {
   }
 
   async addPosition(department: Department) {
-    const positionService = new PositionService()
+    const positionService = new PositionService(this.i18n)
     const newPosition: BiometricPositionInterface = {
       id: 0,
       positionName: department.departmentName,
@@ -245,7 +253,7 @@ export default class DepartmentService {
   }
 
   async assignShift(filters: DepartmentShiftFilterInterface) {
-    const employeeShiftService = new EmployeeShiftService()
+    const employeeShiftService = new EmployeeShiftService(this.i18n)
     if (!employeeShiftService.isValidDate(filters.applySince)) {
       return {
         status: 400,
@@ -257,7 +265,7 @@ export default class DepartmentService {
     }
     const page = 1
     const limit = 999999999999999
-    const employeeService = new EmployeeService()
+    const employeeService = new EmployeeService(this.i18n)
     const departmentId = filters.departmentId
     const departmentPositions = await DepartmentPosition.query()
       .whereNull('department_position_deleted_at')
