@@ -940,7 +940,7 @@ export default class DepartmentController {
           userResponsibleId = user?.userId
         }
       }
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
 
@@ -1747,7 +1747,7 @@ export default class DepartmentController {
     try {
       await auth.check()
       const user = auth.user
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       const departmentId = request.param('departmentId')
 
       let departmentsList = [] as Array<number>
@@ -2095,7 +2095,7 @@ export default class DepartmentController {
           userResponsibleId = user?.userId
         }
       }
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       const departmentName = request.input('department-name')
       const onlyParents = request.input('only-parents')
 

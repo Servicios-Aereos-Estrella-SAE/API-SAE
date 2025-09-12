@@ -36,10 +36,12 @@ import { I18n } from '@adonisjs/i18n'
 export default class AssistsService {
   private t: (key: string,params?: { [key: string]: string | number }) => string
   private i18n: I18n
+  private localeToUse: string
 
   constructor(i18n: I18n) {
     this.t = i18n.formatMessage.bind(i18n)
     this.i18n = i18n
+    this.localeToUse = i18n.locale
   }
   async getExcelByEmployeeAssistance(
     employee: Employee,
@@ -1120,7 +1122,7 @@ export default class AssistsService {
     const yearEnd = this.dateYear(dateEnd)
     const calendarDayEnd = this.calendarDay(yearEnd, monthEnd, dayEnd)
 
-    return `From ${calendarDayStart} to ${calendarDayEnd}`
+    return `${this.capitalizeFirstLetter(this.t('from'))} ${calendarDayStart} ${this.t('to')} ${calendarDayEnd}`
   }
 
   private dateYear(day: string) {
@@ -1151,13 +1153,13 @@ export default class AssistsService {
   }
 
   private calendarDay(dateYear: number, dateMonth: number, dateDay: number) {
-    const date = DateTime.local(dateYear, dateMonth, dateDay, 0)
+    const date = DateTime.local(dateYear, dateMonth, dateDay, 0).setLocale(this.localeToUse)
     const day = date.toFormat('DDD')
     return day
   }
 
   private calendarDayMonth(dateYear: number, dateMonth: number, dateDay: number) {
-    const date = DateTime.local(dateYear, dateMonth, dateDay, 0)
+    const date = DateTime.local(dateYear, dateMonth, dateDay, 0).setLocale(this.localeToUse)
     const day = date.toFormat('dd/MMMM')
     return day
   }
@@ -1169,7 +1171,7 @@ export default class AssistsService {
     const timeCheckIn = DateTime.fromISO(
       checkAssist.assist.checkIn.assistPunchTimeUtc.toString(),
       { setZone: true }
-    ).setZone('UTC-6')
+    ).setZone('UTC-6').setLocale(this.localeToUse)
     return timeCheckIn.toFormat('MMM d, yyyy, h:mm:ss a')
   }
 
@@ -1182,7 +1184,7 @@ export default class AssistsService {
     const timeCheckOut = DateTime.fromISO(
       checkAssist.assist.checkOut.assistPunchTimeUtc.toString(),
       { setZone: true }
-    ).setZone('UTC-6')
+    ).setZone('UTC-6').setLocale(this.localeToUse)
     if (timeCheckOut.toFormat('yyyy-LL-dd') === now) {
       checkAssist.assist.checkOutStatus = ''
       return ''
@@ -1367,8 +1369,8 @@ export default class AssistsService {
       }
 
       const rowCheckInTime = calendar.assist.checkIn?.assistPunchTimeUtc && !calendar.assist.isFutureDay ? DateTime.fromISO(calendar.assist.checkIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('ff') : ''
-      const rowLunchTime = calendar.assist?.checkEatIn?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
-      const rowReturnLunchTime = calendar?.assist?.checkEatOut?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
+      const rowLunchTime = calendar.assist?.checkEatIn?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').setLocale(this.localeToUse).toFormat('MMM d, yyyy, h:mm:ss a') : ''
+      const rowReturnLunchTime = calendar?.assist?.checkEatOut?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').setLocale(this.localeToUse).toFormat('MMM d, yyyy, h:mm:ss a') : ''
       const rowCheckOutTime = calendar.assist.checkOut?.assistPunchTimeUtc && !calendar.assist.isFutureDay ? DateTime.fromISO(calendar.assist.checkOut?.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('ff') : ''
    
       rows.push({
@@ -1989,11 +1991,13 @@ export default class AssistsService {
     const punchTime = DateTime.fromJSDate(new Date(assist.assistPunchTimeUtc.toString()))
     const sqlPunchTime = punchTime.isValid ? punchTime.toSQL() : null
     if (!sqlPunchTime) {
+      const entity = this.t('assist')
+      const param = this.t('assist_register')
       return {
         status: 400,
         type: 'warning',
-        title: 'The assistPunchTime is not valid',
-        message: `The assist resource cannot be ${action} because the assistPunchTime is not valid `,
+        title: this.t('entity_is_not_valid', { entity: param  }),
+        message: `${this.t('entity_resource_cannot_be', { entity })} ${this.t(action)} ${this.t('because_the_value_of_entity_is_not_valid', { entity: param })}`,
         data: { ...assist },
       }
     }
@@ -2005,11 +2009,13 @@ export default class AssistsService {
         .first()
 
       if (existDate) {
+        const entity = this.t('assist')
+        const param = this.t('assist_register')
         return {
           status: 400,
           type: 'warning',
-          title: 'The assistPunchTime already exists for another assist',
-          message: `The assist resource cannot be ${action} because the assistPunchTime is already assigned to another assist`,
+          title: this.t('the_value_of_entity_already_exists_for_another_register', { entity: param  }),
+          message: `${this.t('entity_resource_cannot_be', { entity })} ${this.t(action)} ${this.t('because_the_value_of_entity_is_already_assigned_to_another_register', { entity: param })}`,
           data: { ...assist },
         }
       }
@@ -2017,8 +2023,8 @@ export default class AssistsService {
     return {
       status: 200,
       type: 'success',
-      title: 'Info verifiy successfully',
-      message: 'Info verifiy successfully',
+      title: this.t('info_verify_successfully'),
+      message: this.t('info_verify_successfully'),
       data: { ...assist },
     }
   }
@@ -2977,6 +2983,10 @@ export default class AssistsService {
 
   formatDate(date: Date): string {
     return date.toISOString().split('T')[0]
+  }
+
+  capitalizeFirstLetter(text: string) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
 }

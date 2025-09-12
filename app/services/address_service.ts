@@ -52,8 +52,9 @@ export default class AddressService {
         .whereNull('address_type_deleted_at')
         .where('address_type_id', address.addressTypeId)
         .first()
-      const entity = this.t('address_type')
+     
       if (!existAddressType && address.addressTypeId) {
+        const entity = this.t('address_type')
         return {
           status: 400,
           type: 'warning',

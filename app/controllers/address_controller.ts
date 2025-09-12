@@ -442,8 +442,8 @@ export default class AddressController {
         response.status(400)
         return {
           type: 'warning',
-          title: t('missing_data_to_process'),
-          message: t('resource_id_not_was_found'),
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { ...address },
         }
       }

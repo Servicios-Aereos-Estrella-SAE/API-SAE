@@ -774,7 +774,7 @@ export default class AssistsController {
           userResponsibleId = user?.userId
         }
       }
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       let departmentsList = [] as Array<number>
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)

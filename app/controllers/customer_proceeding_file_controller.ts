@@ -100,23 +100,24 @@ export default class CustomerProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async index({ response }: HttpContext) {
+  async index({ response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const customerProceedingFileService = new CustomerProceedingFileService()
       const showCustomerProceedingFiles = await customerProceedingFileService.index()
       response.status(200)
       return {
         type: 'success',
-        title: 'Customers proceeding files',
-        message: 'The relation customer-proceedingfile were found successfully',
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: { customerProceedingFiles: showCustomerProceedingFiles },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -230,7 +231,9 @@ export default class CustomerProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
+
     try {
       const customerId = request.input('customerId')
       const proceedingFileId = request.input('proceedingFileId')
@@ -277,8 +280,8 @@ export default class CustomerProceedingFileController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -398,7 +401,8 @@ export default class CustomerProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async update({ request, response }: HttpContext) {
+  async update({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const customerProceedingFileId = request.param('customerProceedingFileId')
       const customerId = request.input('customerId')
@@ -471,8 +475,8 @@ export default class CustomerProceedingFileController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -576,7 +580,8 @@ export default class CustomerProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async delete({ request, response }: HttpContext) {
+  async delete({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const customerProceedingFileId = request.param('customerProceedingFileId')
       if (!customerProceedingFileId) {
@@ -618,8 +623,8 @@ export default class CustomerProceedingFileController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -723,7 +728,8 @@ export default class CustomerProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async show({ request, response }: HttpContext) {
+  async show({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const customerProceedingFileId = request.param('customerProceedingFileId')
       if (!customerProceedingFileId) {
@@ -759,8 +765,8 @@ export default class CustomerProceedingFileController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -873,7 +879,8 @@ export default class CustomerProceedingFileController {
    *                     error:
    *                       type: string
    */
-  async getExpiresAndExpiring({ request, response }: HttpContext) {
+  async getExpiresAndExpiring({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const dateStart = request.input('dateStart')
       const dateEnd = request.input('dateEnd')
@@ -897,8 +904,8 @@ export default class CustomerProceedingFileController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
