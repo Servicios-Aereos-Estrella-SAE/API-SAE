@@ -469,7 +469,7 @@ export default class CustomerController {
       return {
         type: 'success',
         title: t('resource'),
-          message: t('resource_was_updated_successfully'),
+        message: t('resource_was_updated_successfully'),
         data: { customer: updateCustomer },
       }
     } catch (error) {

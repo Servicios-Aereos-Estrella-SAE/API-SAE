@@ -103,7 +103,7 @@ export default class CustomerProceedingFileController {
   async index({ response, i18n }: HttpContext) {
     const t = i18n.formatMessage.bind(i18n)
     try {
-      const customerProceedingFileService = new CustomerProceedingFileService()
+      const customerProceedingFileService = new CustomerProceedingFileService(i18n)
       const showCustomerProceedingFiles = await customerProceedingFileService.index()
       response.status(200)
       return {
@@ -241,7 +241,7 @@ export default class CustomerProceedingFileController {
         customerId: customerId,
         proceedingFileId: proceedingFileId,
       } as CustomerProceedingFile
-      const customerProceedingFileService = new CustomerProceedingFileService()
+      const customerProceedingFileService = new CustomerProceedingFileService(i18n)
       const data = await request.validateUsing(createCustomerProceedingFileValidator)
       const exist = await customerProceedingFileService.verifyInfoExist(customerProceedingFile)
       if (exist.status !== 200) {
@@ -269,8 +269,8 @@ export default class CustomerProceedingFileController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Customers proceeding files',
-          message: 'The relation customer-proceedingfile was created successfully',
+          title: t('resource'),
+          message: t('resource_was_created_successfully'),
           data: { customerProceedingFile: newCustomerProceedingFile },
         }
       }
@@ -416,8 +416,8 @@ export default class CustomerProceedingFileController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The relation customer-proceedingfile Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { ...customerProceedingFile },
         }
       }
@@ -426,15 +426,16 @@ export default class CustomerProceedingFileController {
         .where('customer_proceeding_file_id', customerProceedingFileId)
         .first()
       if (!currentCustomerProceedingFile) {
+        const entity = `${t('relation')} ${t('customer')} - ${t('proceeding_files')}`
         response.status(404)
         return {
           type: 'warning',
-          title: 'The relation customer-proceedingfile was not found',
-          message: 'The relation customer-proceedingfile was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { ...customerProceedingFile },
         }
       }
-      const customerProceedingFileService = new CustomerProceedingFileService()
+      const customerProceedingFileService = new CustomerProceedingFileService(i18n)
       const data = await request.validateUsing(updateCustomerProceedingFileValidator)
       const exist = await customerProceedingFileService.verifyInfoExist(customerProceedingFile)
       if (exist.status !== 200) {
@@ -464,8 +465,8 @@ export default class CustomerProceedingFileController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Customer proceeding files',
-          message: 'The relation customer-proceedingfile was updated successfully',
+          title: t('resource'),
+          message: t('resource_was_updated_successfully'),
           data: { customerProceedingFile: updateCustomerProceedingFile },
         }
       }
@@ -588,8 +589,8 @@ export default class CustomerProceedingFileController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The relation customer-proceedingfile Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { customerProceedingFileId },
         }
       }
@@ -598,15 +599,16 @@ export default class CustomerProceedingFileController {
         .where('customer_proceeding_file_id', customerProceedingFileId)
         .first()
       if (!currentCustomerProceedingFile) {
+        const entity = `${t('relation')} ${t('customer')} - ${t('proceeding_files')}`
         response.status(404)
         return {
           type: 'warning',
-          title: 'The relation customer-proceedingfile was not found',
-          message: 'The relation customer-proceedingfile was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { customerProceedingFileId },
         }
       }
-      const customerProceedingFileService = new CustomerProceedingFileService()
+      const customerProceedingFileService = new CustomerProceedingFileService(i18n)
       const deleteCustomerProceedingFile = await customerProceedingFileService.delete(
         currentCustomerProceedingFile
       )
@@ -614,8 +616,8 @@ export default class CustomerProceedingFileController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Customers proceeding files',
-          message: 'The relation customer-proceedingfile was deleted successfully',
+          title: t('resource'),
+          message: t('resource_was_deleted_successfully'),
           data: { customerProceedingFile: deleteCustomerProceedingFile },
         }
       }
@@ -736,28 +738,29 @@ export default class CustomerProceedingFileController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The relation customer-proceedingfile Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { customerProceedingFileId },
         }
       }
-      const customerProceedingFileService = new CustomerProceedingFileService()
+      const customerProceedingFileService = new CustomerProceedingFileService(i18n)
       const showCustomerProceedingFile =
         await customerProceedingFileService.show(customerProceedingFileId)
       if (!showCustomerProceedingFile) {
+        const entity = `${t('relation')} ${t('customer')} - ${t('proceeding_files')}`
         response.status(404)
         return {
           type: 'warning',
-          title: 'The relation customer-proceedingfile was not found',
-          message: 'The relation customer-proceedingfile was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { customerProceedingFileId },
         }
       } else {
         response.status(200)
         return {
           type: 'success',
-          title: 'Customers proceeding files',
-          message: 'The relation customer-proceedingfile was found successfully',
+          title: t('resource'),
+          message: t('resource_was_found_successfully'),
           data: { customerProceedingFile: showCustomerProceedingFile },
         }
       }
@@ -888,14 +891,14 @@ export default class CustomerProceedingFileController {
         dateStart: dateStart,
         dateEnd: dateEnd,
       } as CustomerProceedingFileFilterInterface
-      const customerProceddingFileService = new CustomerProceedingFileService()
+      const customerProceddingFileService = new CustomerProceedingFileService(i18n)
       const customerProceedingFiles =
         await customerProceddingFileService.getExpiredAndExpiring(filters)
       response.status(200)
       return {
         type: 'success',
-        title: 'Customer proceeding files',
-        message: 'The customer proceeding files were found successfully',
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: {
           customerProceedingFiles: customerProceedingFiles,
         },

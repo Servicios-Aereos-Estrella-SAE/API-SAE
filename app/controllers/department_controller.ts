@@ -135,6 +135,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async synchronization({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 200)
@@ -154,21 +155,23 @@ export default class DepartmentController {
         for await (const department of data) {
           await this.verify(department, departmentService)
         }
+        const entity = t('departments')
         response.status(200)
         return {
           type: 'success',
-          title: 'Sync departments',
-          message: 'Departments have been synchronized successfully',
+          title: t('sync_entity', { entity }),
+          message: t('entity_have_been_synchronized_successfully', { entity }),
           data: {
             data,
           },
         }
       } else {
+        const entity = t('departments')
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sync departments',
-          message: 'No data found to synchronize',
+          title: t('sync_entity', { entity }),
+          message: t('no_data_found_to_synchronize'),
           data: { data },
         }
       }
@@ -176,8 +179,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -285,25 +288,27 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async syncPositions({ request, response }: HttpContext) {
+  async syncPositions({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.input('departmentId')
       if (!departmentId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Sync positions by department',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: {},
         }
       }
       const department = await Department.query().where('department_id', departmentId).first()
       if (!department) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'Sync positions by department',
-          message: 'Department not found',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { department_id: departmentId },
         }
       }
@@ -312,7 +317,7 @@ export default class DepartmentController {
         .where('department_id', departmentId)
         .preload('position')
         .orderBy('position_id')
-      const departmentPositionService = new DepartmentPositionService()
+      const departmentPositionService = new DepartmentPositionService(i18n)
       for await (const employee of employees) {
         if (employee.positionId) {
           await this.verifyRelatedPosition(
@@ -325,8 +330,8 @@ export default class DepartmentController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Sync positions by department',
-        message: 'The positions by department have been sync successfully',
+        title: t('resource'),
+        message: t('the_positions_by_department_have_been_sync_successfully'),
         data: {
           department,
         },
@@ -335,8 +340,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -446,7 +451,8 @@ export default class DepartmentController {
    *                       type: string
    */
 
-  async getPositions({ auth, request, response }: HttpContext) {
+  async getPositions({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -462,8 +468,8 @@ export default class DepartmentController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Positions by department',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: {},
         }
       }
@@ -490,8 +496,8 @@ export default class DepartmentController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Positions by department',
-          message: 'All positions have been found successfully',
+          title: t('resource'),
+          message: t('all_positions_have_been_found_successfully'),
           data: {
             positions: allPositions,
           },
@@ -512,8 +518,8 @@ export default class DepartmentController {
         response.status(200)
         return {
           type: 'success',
-          title: 'Positions by department',
-          message: 'All positions have been found successfully',
+          title: t('resource'),
+          message: t('all_positions_have_been_found_successfully'),
           data: {
             positions: allPositions,
           },
@@ -526,11 +532,12 @@ export default class DepartmentController {
         .first()
 
       if (!department) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'Positions by department',
-          message: 'Department not found',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { department_id: departmentId },
         }
       }
@@ -584,8 +591,8 @@ export default class DepartmentController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Positions by department',
-        message: 'The positions by department have been found successfully',
+        title: t('resource'),
+        message: t('the_positions_by_department_have_been_found_successfully'),
         data: {
           positions,
         },
@@ -594,8 +601,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -712,7 +719,8 @@ export default class DepartmentController {
    *                     error:
    *                       type: string
    */
-  async getRotationIndex({ request, response }: HttpContext) {
+  async getRotationIndex({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.param('departmentId')
 
@@ -720,8 +728,8 @@ export default class DepartmentController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Departments',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: {},
         }
       }
@@ -740,11 +748,12 @@ export default class DepartmentController {
         .first()
 
       if (!department) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'Positions by department',
-          message: 'Department not found',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { department_id: departmentId },
         }
       }
@@ -802,8 +811,8 @@ export default class DepartmentController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Rotation index by department',
-        message: 'The rotation index by department has calculate successfully',
+        title: t('rotation_index_by_department'),
+        message: t('the_rotation_index_by_department_has_calculate_successfully'),
         data: {
           numEployeesTerminated: numEployeesTerminated,
           numEmployeesAtStart: numEmployeesAtStart,
@@ -816,8 +825,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -930,6 +939,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async getAll({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -956,8 +966,8 @@ export default class DepartmentController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Departments',
-        message: 'Departments were found successfully',
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: {
           departments,
         },
@@ -966,8 +976,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1049,6 +1059,7 @@ export default class DepartmentController {
    *                   description: Response message
    */
   async getOrganization({ auth, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
 
@@ -1066,8 +1077,8 @@ export default class DepartmentController {
 
       return {
         type: 'success',
-        title: 'Departments',
-        message: 'Departments were found successfully',
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: {
           departments,
         },
@@ -1076,8 +1087,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1217,6 +1228,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async store({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentName = request.input('departmentName')
       const departmentAlias = request.input('departmentAlias')
@@ -1255,8 +1267,8 @@ export default class DepartmentController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Departments',
-          message: 'The department was created successfully',
+          title: t('resource'),
+          message: t('resource_was_created_successfully'),
           data: { department: newDepartment },
         }
       }
@@ -1266,8 +1278,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -1409,6 +1421,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async update({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.param('departmentId')
       const departmentCode = request.input('departmentCode')
@@ -1432,8 +1445,8 @@ export default class DepartmentController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { ...department },
         }
       }
@@ -1444,11 +1457,12 @@ export default class DepartmentController {
         .first()
 
       if (!currentDepartment) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { ...department },
         }
       }
@@ -1485,8 +1499,8 @@ export default class DepartmentController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Departments',
-          message: 'The department was updated successfully',
+          title: t('resource'),
+          message: t('resource_was_updated_successfully'),
           data: { department: updateDepartment },
         }
       }
@@ -1496,22 +1510,23 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
   }
 
   async delete({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.param('departmentId')
       if (!departmentId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { departmentId },
         }
       }
@@ -1521,11 +1536,12 @@ export default class DepartmentController {
         .first()
 
       if (!currentDepartment) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { departmentId },
         }
       }
@@ -1539,8 +1555,8 @@ export default class DepartmentController {
         response.status(206)
         return {
           type: 'warning',
-          title: 'Department has related employees',
-          message: 'The department cannot be deleted because it has related employees',
+          title: t('department_has_related_employees'),
+          message: t('the_department_cannot_be_deleted_because_it_has_related_employees'),
           data: { departmentId, totalEmployees },
         }
       }
@@ -1550,8 +1566,8 @@ export default class DepartmentController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Departments',
-          message: 'The department was deleted successfully',
+          title: t('resource'),
+          message: t('resource_was_deleted_successfully'),
           data: { department: deleteDepartment },
         }
       }
@@ -1559,22 +1575,23 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
   }
 
-  async forceDelete({ request, response }: HttpContext) {
+  async forceDelete({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.param('departmentId')
       if (!departmentId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { departmentId },
         }
       }
@@ -1583,11 +1600,12 @@ export default class DepartmentController {
         .where('department_id', departmentId)
         .first()
       if (!currentDepartment) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { departmentId },
         }
       }
@@ -1628,17 +1646,17 @@ export default class DepartmentController {
       response.status(201)
       return {
         type: 'success',
-        title: 'Departments',
+        title: t('departments'),
         message:
-          'The department, its related positions, and employees were reassigned successfully and the department was soft deleted',
+        t('the_department_its_related_positions_and_employees_were_reassigned_successfully_and_the_department_was_soft_deleted'),
         data: { department: currentDepartment },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1744,6 +1762,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async show({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -1756,8 +1775,8 @@ export default class DepartmentController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department Id was not found',
-          message: 'Missing data to process',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { departmentId },
         }
       }
@@ -1770,11 +1789,12 @@ export default class DepartmentController {
       const showDepartment = await departmentService.show(departmentId)
 
       if (!showDepartment) {
+        const entity = t('department')
         response.status(404)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { departmentId },
         }
       }
@@ -1782,11 +1802,12 @@ export default class DepartmentController {
       const validAccess = departmentsList.find((id) => showDepartment.departmentId === id)
 
       if (!validAccess) {
+        const entity = t('department')
         response.status(403)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID - not access',
+          title: t('entity_was_not_found', { entity }),
+          message: `${t('entity_was_not_found_with_entered_id', { entity })} - ${t('not_access')}`,
           data: { departmentId },
         }
       }
@@ -1794,16 +1815,16 @@ export default class DepartmentController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Departments',
-        message: 'The department was found successfully',
+        title: t('resource'),
+          message: t('resource_was_found_successfully'),
         data: { department: showDepartment },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1926,6 +1947,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async assignShift({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.param('departmentId')
       const shiftId = request.input('shiftId')
@@ -1954,8 +1976,8 @@ export default class DepartmentController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Departments',
-          message: 'The shift was assign to department successfully',
+          title: t('resource'),
+          message: t('the_shift_was_assign_to_department_successfully'),
           data: { department: assignDepartment },
         }
       } else {
@@ -1971,8 +1993,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -2085,6 +2107,7 @@ export default class DepartmentController {
    *                       type: string
    */
   async getOnlyWithEmployees({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -2114,8 +2137,8 @@ export default class DepartmentController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Departments',
-        message: 'Departments were found successfully',
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: {
           departments,
         },
@@ -2124,8 +2147,8 @@ export default class DepartmentController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }

@@ -13,10 +13,11 @@ import { I18n } from '@adonisjs/i18n'
 // import { AssistInterface } from '../interfaces/assist_interface.js'
 
 export default class EmployeeAssistsCalendarService {
-
+  private t: (key: string,params?: { [key: string]: string | number }) => string
   private i18n: I18n
 
   constructor(i18n: I18n) {
+    this.t = i18n.formatMessage.bind(i18n)
     this.i18n = i18n
   }
 
@@ -37,11 +38,12 @@ export default class EmployeeAssistsCalendarService {
         .first()
 
       if (!employee) {
+        const entity = this.t('employee')
         return {
           status: 400,
           type: 'warning',
-          title: 'Invalid data',
-          message: 'Employee not found',
+          title: this.t('entity_was_not_found', { entity }),
+          message: this.t('entity_was_not_found_with_entered_id', { entity }),
           data: null,
         }
       }
@@ -71,8 +73,8 @@ export default class EmployeeAssistsCalendarService {
     return {
       status: 200,
       type: 'success',
-      title: 'Successfully action',
-      message: 'Success access data',
+      title: this.t('resources'),
+      message: this.t('resources_were_found_successfully'),
       data: {
         employeeCalendar,
       },

@@ -11,6 +11,7 @@ export default class CustomerService {
   constructor(i18n: I18n) {
     this.t = i18n.formatMessage.bind(i18n)
   }
+
   async index(filters: CustomerFilterSearchInterface) {
     const customers = await Customer.query()
       .whereNull('customer_deleted_at')
