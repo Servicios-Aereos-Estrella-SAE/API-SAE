@@ -1,0 +1,641 @@
+import { HttpContext } from '@adonisjs/core/http'
+import { createSystemSettingValidator } from '#validators/system_setting'
+import SystemSettingPayrollConfig from '#models/system_setting_payroll_config'
+import SystemSettingPayrollConfigService from '#services/system_setting_payroll_config_service'
+export default class SystemSettingPayrollConfigController {
+  /**
+   * @swagger
+   * /api/system-setting-payroll-configs:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - System Setting Payroll Configs
+   *     summary: create new system setting payroll config
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               systemSettingPayrollConfigPaymentType:
+   *                 type: string
+   *                 description: System setting payroll config payment type
+   *                 required: true
+   *               systemSettingPayrollConfigNumberOfDaysToBePaid:
+   *                 type: number
+   *                 description: System setting payroll config number of days to be paid
+   *                 required: false
+   *               systemSettingPayrollConfigNumberOfOverdueDaysToOffset:
+   *                 type: number
+   *                 description: System setting payroll config number of overdue days to offset
+   *                 required: false
+   *               systemSettingPayrollConfigApplySince:
+   *                 type: string
+   *                 format: date
+   *                 description: System setting payroll config apply since (YYYY-MM-DD)
+   *                 required: false
+   *               systemSettingId:
+   *                 type: number
+   *                 description: System setting id
+   *                 required: true
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async store({ request, response }: HttpContext) {
+    try {
+      const systemSettingPayrollConfigPaymentType = request.input('systemSettingPayrollConfigPaymentType')
+      const systemSettingPayrollConfigNumberOfDaysToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysToBePaid')
+      const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
+      const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
+      const systemSettingId = request.input('systemSettingId')
+      const systemSettingPayrollConfig = {
+        systemSettingPayrollConfigPaymentType: systemSettingPayrollConfigPaymentType,
+        systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
+        systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
+        systemSettingPayrollConfigApplySince: systemSettingPayrollConfigApplySince,
+        systemSettingId: systemSettingId
+      } as SystemSettingPayrollConfig
+      const systemSettingPayrollConfigService = new SystemSettingPayrollConfigService()
+      const data = await request.validateUsing(createSystemSettingValidator)
+      const valid = await systemSettingPayrollConfigService.verifyInfoExist(systemSettingPayrollConfig)
+      if (valid.status !== 200) {
+        response.status(valid.status)
+        return {
+          type: valid.type,
+          title: valid.title,
+          message: valid.message,
+          data: { ...data },
+        }
+      }
+      const newSystemSettingPayrollConfig = await systemSettingPayrollConfigService.create(systemSettingPayrollConfig)
+      response.status(201)
+      return {
+        type: 'success',
+        title: 'System setting payroll configs',
+        message: 'The system setting payroll config was created successfully',
+        data: { systemSettingPayrollConfig: newSystemSettingPayrollConfig },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/system-setting-payroll-configs/{systemSettingPayrollConfigId}:
+   *   put:
+   *     tags:
+   *       - System Setting Payroll Configs
+   *     summary: update system setting payroll config
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: systemSettingPayrollConfigId
+   *         schema:
+   *           type: number
+   *         description: System setting payroll config id
+   *         required: true
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               systemSettingPayrollConfigPaymentType:
+   *                 type: string
+   *                 description: System setting payroll config payment type
+   *                 required: true
+   *               systemSettingPayrollConfigNumberOfDaysToBePaid:
+   *                 type: number
+   *                 description: System setting payroll config number of days to be paid
+   *                 required: false
+   *               systemSettingPayrollConfigNumberOfOverdueDaysToOffset:
+   *                 type: number
+   *                 description: System setting payroll config number of overdue days to offset
+   *                 required: false
+   *               systemSettingPayrollConfigApplySince:
+   *                 type: string
+   *                 format: date
+   *                 description: System setting payroll config apply since (YYYY-MM-DD)
+   *                 required: false
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async update({ request, response }: HttpContext) {
+    try {
+      const systemSettingPayrollConfigId = request.param('systemSettingPayrollConfigId')
+      const systemSettingPayrollConfigPaymentType = request.input('systemSettingPayrollConfigPaymentType')
+      const systemSettingPayrollConfigNumberOfDaysToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysToBePaid')
+      const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
+      const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
+      const systemSettingPayrollConfig = {
+        systemSettingPayrollConfigId: systemSettingPayrollConfigId,
+        systemSettingPayrollConfigPaymentType: systemSettingPayrollConfigPaymentType,
+        systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
+        systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
+        systemSettingPayrollConfigApplySince: systemSettingPayrollConfigApplySince,
+      } as SystemSettingPayrollConfig
+      if (!systemSettingPayrollConfigId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The system setting payroll config id was not found',
+          data: { ...systemSettingPayrollConfig },
+        }
+      }
+      const currentSystemSettingPayrollConfig = await SystemSettingPayrollConfig.query()
+        .whereNull('system_setting_payroll_config_deleted_at')
+        .where('system_setting_payroll_config_id', systemSettingPayrollConfigId)
+        .first()
+      if (!currentSystemSettingPayrollConfig) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The system setting payroll config was not found',
+          message: 'The system setting payroll config was not found with the entered ID',
+          data: { ...systemSettingPayrollConfig },
+        }
+      }
+      const systemSettingPayrollConfigService = new SystemSettingPayrollConfigService()
+      const updateSystemSettingPayrollConfig = await systemSettingPayrollConfigService.update(
+        currentSystemSettingPayrollConfig,
+        systemSettingPayrollConfig
+      )
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'System setting payroll configs',
+        message: 'The system setting payroll config was updated successfully',
+        data: { systemSettingPayrollConfig: updateSystemSettingPayrollConfig },
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/system-setting-payroll-configs/{systemSettingPayrollConfigId}:
+   *   delete:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - System Setting Payroll Configs
+   *     summary: delete system setting payroll config
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: systemSettingPayrollConfigId
+   *         schema:
+   *           type: number
+   *         description: System setting payroll config id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async delete({ request, response }: HttpContext) {
+    try {
+      const systemSettingPayrollConfigId = request.param('systemSettingPayrollConfigId')
+      if (!systemSettingPayrollConfigId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The system setting payroll config Id was not found',
+          message: 'Missing data to process',
+          data: { systemSettingPayrollConfigId },
+        }
+      }
+      const currentSystemSettingPayrollConfig = await SystemSettingPayrollConfig.query()
+        .whereNull('system_setting_payroll_config_deleted_at')
+        .where('system_setting_payroll_config_id', systemSettingPayrollConfigId)
+        .first()
+      if (!currentSystemSettingPayrollConfig) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The system setting payroll config was not found',
+          message: 'The system setting payroll config was not found with the entered ID',
+          data: { systemSettingPayrollConfigId },
+        }
+      }
+      const systemSettingPayrollConfigService = new SystemSettingPayrollConfigService()
+      const deleteSystemSettingPayrollConfig = await systemSettingPayrollConfigService.delete(currentSystemSettingPayrollConfig)
+      if (deleteSystemSettingPayrollConfig) {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'System setting payroll configs',
+          message: 'The system setting payroll config was deleted successfully',
+          data: { systemSettingPayrollConfig: deleteSystemSettingPayrollConfig },
+        }
+      }
+    } catch (error) {
+      const messageError =
+        error.code === 'E_VALIDATION_ERROR' ? error.messages[0].message : error.message
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: messageError,
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/system-setting-payroll-configs/{systemSettingPayrollConfigId}:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - System Setting Payroll Configs
+   *     summary: get system setting payroll config by id
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - in: path
+   *         name: systemSettingPayrollConfigId
+   *         schema:
+   *           type: number
+   *         description: System setting payroll config id
+   *         required: true
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async show({ request, response }: HttpContext) {
+    try {
+      const systemSettingPayrollConfigId = request.param('systemSettingPayrollConfigId')
+      if (!systemSettingPayrollConfigId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'The system setting payroll config Id was not found',
+          message: 'Missing data to process',
+          data: { systemSettingPayrollConfigId },
+        }
+      }
+      const systemSettingPayrollConfigService = new SystemSettingPayrollConfigService()
+      const showSystemSettingPayrollConfig = await systemSettingPayrollConfigService.show(systemSettingPayrollConfigId)
+      if (!showSystemSettingPayrollConfig) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The system setting payroll config was not found',
+          message: 'The system setting payroll config was not found with the entered ID',
+          data: { systemSettingPayrollConfigId },
+        }
+      } else {
+        response.status(200)
+        return {
+          type: 'success',
+          title: 'System setting payroll configs',
+          message: 'The system setting payroll config was found successfully',
+          data: { systemSettingPayrollConfig: showSystemSettingPayrollConfig },
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
+}
