@@ -24,6 +24,14 @@ export default class SystemSettingPayrollConfigController {
    *                 type: string
    *                 description: System setting payroll config payment type
    *                 required: true
+   *               systemSettingPayrollConfigFixedDay:
+   *                 type: string
+   *                 description: System setting payroll config fixed day
+   *                 required: false
+   *               systemSettingPayrollConfigFixedEveryNWeeks:
+   *                 type: number
+   *                 description: System setting payroll config fixed every N weeks
+   *                 required: false
    *               systemSettingPayrollConfigNumberOfDaysToBePaid:
    *                 type: number
    *                 description: System setting payroll config number of days to be paid
@@ -36,7 +44,7 @@ export default class SystemSettingPayrollConfigController {
    *                 type: string
    *                 format: date
    *                 description: System setting payroll config apply since (YYYY-MM-DD)
-   *                 required: false
+   *                 required: true
    *               systemSettingId:
    *                 type: number
    *                 description: System setting id
@@ -125,6 +133,8 @@ export default class SystemSettingPayrollConfigController {
   async store({ request, response }: HttpContext) {
     try {
       const systemSettingPayrollConfigPaymentType = request.input('systemSettingPayrollConfigPaymentType')
+      const systemSettingPayrollConfigFixedDay = request.input('systemSettingPayrollConfigFixedDay')
+      const systemSettingPayrollConfigFixedEveryNWeeks = request.input('systemSettingPayrollConfigFixedEveryNWeeks')
       const systemSettingPayrollConfigNumberOfDaysToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysToBePaid')
       const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
       const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
@@ -133,6 +143,8 @@ export default class SystemSettingPayrollConfigController {
       const dateApplySince = date.toISODate()
       const systemSettingPayrollConfig = {
         systemSettingPayrollConfigPaymentType: systemSettingPayrollConfigPaymentType,
+        systemSettingPayrollConfigFixedDay: systemSettingPayrollConfigFixedDay,
+        systemSettingPayrollConfigFixedEveryNWeeks: systemSettingPayrollConfigFixedEveryNWeeks,
         systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
         systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
         systemSettingPayrollConfigApplySince: dateApplySince,
@@ -208,6 +220,14 @@ export default class SystemSettingPayrollConfigController {
    *                 type: string
    *                 description: System setting payroll config payment type
    *                 required: true
+   *               systemSettingPayrollConfigFixedDay:
+   *                 type: string
+   *                 description: System setting payroll config fixed day
+   *                 required: false
+   *               systemSettingPayrollConfigFixedEveryNWeeks:
+   *                 type: number
+   *                 description: System setting payroll config fixed every N weeks
+   *                 required: false
    *               systemSettingPayrollConfigNumberOfDaysToBePaid:
    *                 type: number
    *                 description: System setting payroll config number of days to be paid
@@ -306,12 +326,16 @@ export default class SystemSettingPayrollConfigController {
     try {
       const systemSettingPayrollConfigId = request.param('systemSettingPayrollConfigId')
       const systemSettingPayrollConfigPaymentType = request.input('systemSettingPayrollConfigPaymentType')
+      const systemSettingPayrollConfigFixedDay = request.input('systemSettingPayrollConfigFixedDay')
+      const systemSettingPayrollConfigFixedEveryNWeeks = request.input('systemSettingPayrollConfigFixedEveryNWeeks')
       const systemSettingPayrollConfigNumberOfDaysToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysToBePaid')
       const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
       const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
       const systemSettingPayrollConfig = {
         systemSettingPayrollConfigId: systemSettingPayrollConfigId,
         systemSettingPayrollConfigPaymentType: systemSettingPayrollConfigPaymentType,
+        systemSettingPayrollConfigFixedDay: systemSettingPayrollConfigFixedDay,
+        systemSettingPayrollConfigFixedEveryNWeeks: systemSettingPayrollConfigFixedEveryNWeeks,
         systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
         systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
         systemSettingPayrollConfigApplySince: systemSettingPayrollConfigApplySince,

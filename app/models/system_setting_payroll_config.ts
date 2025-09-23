@@ -16,6 +16,12 @@ import { compose } from '@adonisjs/core/helpers'
  *          systemSettingPayrollConfigPaymentType:
  *            type: string
  *            description: System setting payroll config payment type
+ *          systemSettingPayrollConfigFixedDay:
+ *            type: string
+ *            description: System setting payroll config fixed day
+ *          systemSettingPayrollConfigFixedEveryNWeeks:
+ *            type: number
+ *            description: System setting payroll config fixed every n weeks
  *          systemSettingPayrollConfigNumberOfDaysToBePaid:
  *            type: number
  *            description: System setting payroll config number of days to be paid
@@ -42,6 +48,12 @@ export default class SystemSettingPayrollConfig extends compose(BaseModel, SoftD
 
   @column()
   declare systemSettingPayrollConfigPaymentType: string
+
+  @column()
+  declare systemSettingPayrollConfigFixedDay: string
+
+  @column()
+  declare systemSettingPayrollConfigFixedEveryNWeeks: number
 
   @column()
   declare systemSettingPayrollConfigNumberOfDaysToBePaid: number
