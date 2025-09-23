@@ -36,6 +36,32 @@ export default class SystemSettingPayrollConfigService {
     return systemSettingPayrollConfig ? systemSettingPayrollConfig : null
   }
 
+  async verifyInfo(systemSettingPayrollConfig: SystemSettingPayrollConfig) {
+      const action = 'create'
+      const existDate = await SystemSettingPayrollConfig.query()
+        .where('system_setting_id', systemSettingPayrollConfig.systemSettingId)
+        .whereNull('system_setting_payroll_config_deleted_at')
+        .where('system_setting_payroll_config_apply_since', systemSettingPayrollConfig.systemSettingPayrollConfigApplySince)
+        .first()
+  
+      if (existDate) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The date exists in other system setting payroll config',
+          message: `The system setting payroll config resource cannot be ${action} because this date is already assigned.`,
+          data: { ...systemSettingPayrollConfig },
+        }
+      }
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Info verifiy successfully',
+      message: 'Info verifiy successfully',
+      data: { ...systemSettingPayrollConfig },
+    }
+  }
+
   async verifyInfoExist(systemSettingPayrollConfig: SystemSettingPayrollConfig) {
     if (!systemSettingPayrollConfig.systemSettingPayrollConfigId) {
       const existSystemSetting = await SystemSetting.query()

@@ -7,6 +7,12 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('system_setting_payroll_config_id')
       table.enum('system_setting_payroll_config_payment_type', ['biweekly', 'fixed_day_every_n_weeks', 'specific_day_of_month'])
+        .notNullable()
+
+      table.string('system_setting_payroll_config_fixed_day', 10)
+        .nullable()
+      
+      table.integer('system_setting_payroll_config_fixed_every_n_weeks')
         .nullable()
 
       table.integer('system_setting_payroll_config_number_of_days_to_be_paid')
@@ -16,7 +22,7 @@ export default class extends BaseSchema {
         .nullable()
 
       table.date('system_setting_payroll_config_apply_since')
-        .nullable()
+        .notNullable()
 
       table.integer('system_setting_id').unsigned().notNullable()
       table

@@ -1,7 +1,8 @@
 import { HttpContext } from '@adonisjs/core/http'
-import { createSystemSettingValidator } from '#validators/system_setting'
 import SystemSettingPayrollConfig from '#models/system_setting_payroll_config'
 import SystemSettingPayrollConfigService from '#services/system_setting_payroll_config_service'
+import { createSystemSettingPayrollConfigValidator } from '#validators/system_setting_payroll_config'
+import { DateTime } from 'luxon'
 export default class SystemSettingPayrollConfigController {
   /**
    * @swagger
@@ -128,22 +129,34 @@ export default class SystemSettingPayrollConfigController {
       const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
       const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
       const systemSettingId = request.input('systemSettingId')
+      const date = DateTime.fromISO(systemSettingPayrollConfigApplySince)
+      const dateApplySince = date.toISODate()
       const systemSettingPayrollConfig = {
         systemSettingPayrollConfigPaymentType: systemSettingPayrollConfigPaymentType,
         systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
         systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
-        systemSettingPayrollConfigApplySince: systemSettingPayrollConfigApplySince,
+        systemSettingPayrollConfigApplySince: dateApplySince,
         systemSettingId: systemSettingId
       } as SystemSettingPayrollConfig
       const systemSettingPayrollConfigService = new SystemSettingPayrollConfigService()
-      const data = await request.validateUsing(createSystemSettingValidator)
-      const valid = await systemSettingPayrollConfigService.verifyInfoExist(systemSettingPayrollConfig)
-      if (valid.status !== 200) {
-        response.status(valid.status)
+      const data = await request.validateUsing(createSystemSettingPayrollConfigValidator)
+      const exist = await systemSettingPayrollConfigService.verifyInfoExist(systemSettingPayrollConfig)
+      if (exist.status !== 200) {
+        response.status(exist.status)
         return {
-          type: valid.type,
-          title: valid.title,
-          message: valid.message,
+          type: exist.type,
+          title: exist.title,
+          message: exist.message,
+          data: { ...data },
+        }
+      }
+      const verifyInfo = await systemSettingPayrollConfigService.verifyInfo(systemSettingPayrollConfig)
+      if (verifyInfo.status !== 200) {
+        response.status(verifyInfo.status)
+        return {
+          type: verifyInfo.type,
+          title: verifyInfo.title,
+          message: verifyInfo.message,
           data: { ...data },
         }
       }
