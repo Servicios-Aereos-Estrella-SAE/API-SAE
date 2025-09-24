@@ -1315,4 +1315,129 @@ export default class SystemSettingController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/system-settings-get-payroll-config:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - System Settings
+   *     summary: get system setting get payroll config
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       '200':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+  async getPayrollConfig({ response }: HttpContext) {
+    try {
+      const systemSettingService = new SystemSettingService()
+      const systemSetting = await systemSettingService.getActive()
+      if (!systemSetting) {
+        response.status(404)
+        return {
+          type: 'warning',
+          title: 'The system setting was not found',
+          message: 'The system setting active was not found ',
+          data: { },
+        }
+      }
+      const systemSettingPayrollConfig = await systemSettingService.getPayrollConfig(systemSetting.systemSettingId)
+      response.status(200)
+      return {
+        type: 'success',
+        title: 'System settings',
+        message: 'The system setting payroll config was found successfully',
+        data: { systemSettingPayrollConfig: systemSettingPayrollConfig },
+      }
+     
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred on the server',
+        error: error.message,
+      }
+    }
+  }
 }

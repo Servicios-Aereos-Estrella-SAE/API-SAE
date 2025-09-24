@@ -1,4 +1,5 @@
 import SystemSetting from '#models/system_setting'
+import SystemSettingPayrollConfig from '#models/system_setting_payroll_config'
 import SystemSettingSystemModule from '#models/system_setting_system_module'
 import env from '#start/env'
 
@@ -84,7 +85,7 @@ export default class SystemSettingService {
   async getActive() {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
-    let sistemSettingActive = null
+    let sistemSettingActive = null as SystemSetting | null
 
     const systemSettings = await SystemSetting.query().whereNull('system_setting_deleted_at')
 
@@ -101,6 +102,18 @@ export default class SystemSettingService {
     })
 
     return sistemSettingActive
+  }
+
+  async getPayrollConfig(systemSettingId: number) {
+    
+
+    const systemSettingPayrollConfig = await SystemSettingPayrollConfig
+      .query()
+      .whereNull('system_setting_payroll_config_deleted_at')
+      .where('system_setting_id', systemSettingId)
+      .first()
+
+    return systemSettingPayrollConfig
   }
 
   async verifyInfo(systemSetting: SystemSetting) {
