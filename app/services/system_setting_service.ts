@@ -2,6 +2,7 @@ import SystemSetting from '#models/system_setting'
 import SystemSettingPayrollConfig from '#models/system_setting_payroll_config'
 import SystemSettingSystemModule from '#models/system_setting_system_module'
 import env from '#start/env'
+import { DateTime } from 'luxon'
 
 export default class SystemSettingService {
   async index(/* filters: SystemSettingFilterSearchInterface */) {
@@ -106,11 +107,13 @@ export default class SystemSettingService {
 
   async getPayrollConfig(systemSettingId: number) {
     
-
+    const today = DateTime.local().toFormat('yyyy-LL-dd')
     const systemSettingPayrollConfig = await SystemSettingPayrollConfig
       .query()
       .whereNull('system_setting_payroll_config_deleted_at')
       .where('system_setting_id', systemSettingId)
+      .where('system_setting_payroll_config_apply_since', '<=', today)
+      .orderBy('system_setting_payroll_config_apply_since', 'desc')
       .first()
 
     return systemSettingPayrollConfig
