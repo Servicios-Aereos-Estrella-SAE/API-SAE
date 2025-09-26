@@ -1731,7 +1731,7 @@ export default class EmployeeService {
   /**
    * Import employees from Excel file
    */
-  async importFromExcel(file: any, businessUnitId: number, payrollBusinessUnitId: number) {
+  async importFromExcel(file: any) {
     const ExcelJSModule = await import('exceljs')
     const ExcelJS = ExcelJSModule.default
     const workbook = new ExcelJS.Workbook()
@@ -1748,7 +1748,7 @@ export default class EmployeeService {
       // Validar que la primera fila contenga los encabezados esperados
       const headers = this.validateExcelHeaders(worksheet)
 
-      // Obtener departamentos y posiciones existentes para mapeo
+      // Obtener departamentos, posiciones y unidades de negocio existentes para mapeo
       const departments = await Department.query()
         .whereNull('department_deleted_at')
         .select('departmentId', 'departmentName')
@@ -1756,6 +1756,11 @@ export default class EmployeeService {
       const positions = await Position.query()
         .whereNull('position_deleted_at')
         .select('positionId', 'positionName')
+
+      const businessUnits = await BusinessUnit.query()
+        .whereNull('business_unit_deleted_at')
+        .where('business_unit_active', 1)
+        .select('businessUnitId', 'businessUnitName')
 
       // Buscar departamento y posición por defecto
       const defaultDepartment = departments.find(dept =>
@@ -1774,14 +1779,7 @@ export default class EmployeeService {
       // Obtener códigos de empleado existentes para generar códigos únicos
       const existingEmployeeCodes = existingEmployees.map(emp => emp.employeeCode.toString())
 
-      // Verificar límite de empleados
-      const employeeLimit = await this.getEmployeeLimitForBusinessUnit(businessUnitId)
-      const currentEmployeeCount = await Employee.query()
-        .where('businessUnitId', businessUnitId)
-        .whereNull('deletedAt')
-        .count('* as total')
-
-      const currentCount = Number(currentEmployeeCount[0].$extras.total)
+      // Verificar límite de empleados (se verificará por unidad de negocio individual)
 
       const results = {
         totalRows: 0,
@@ -1800,7 +1798,10 @@ export default class EmployeeService {
         rows.push({ row, rowNumber })
       })
 
-      // Procesar todas las filas de forma secuencial
+      // Primero, procesar todas las filas para validar y contar empleados nuevos
+      let newEmployeesCount = 0
+      const validRows: Array<{ row: any; rowNumber: number; employeeData: any; businessUnitId: number }> = []
+
       for (const { row, rowNumber } of rows) {
         results.totalRows++
 
@@ -1814,49 +1815,128 @@ export default class EmployeeService {
             continue
           }
 
+          // Validar datos del empleado
+          const employeeValidation = this.validateEmployeeData(employeeData)
+          if (!employeeValidation.isValid) {
+            results.skipped++
+            results.errors.push(`Fila ${rowNumber}: ${employeeValidation.errors.join(', ')}`)
+            continue
+          }
+
+          // Validar datos de la persona
+          const personValidation = this.validatePersonData(employeeData)
+          if (!personValidation.isValid) {
+            results.skipped++
+            results.errors.push(`Fila ${rowNumber}: ${personValidation.errors.join(', ')}`)
+            continue
+          }
+
+          // Mapear unidad de negocio por nombre
+          const businessUnitId = this.mapBusinessUnit(employeeData.businessUnit, businessUnits)
+
           // Buscar empleado existente por número de empleado
           const existingEmployee = existingEmployees.find(emp =>
             emp.employeeCode.toString() === employeeData.employeeNumber
           )
 
           if (existingEmployee) {
-            // Actualizar empleado existente
-            await this.updateExistingEmployee(existingEmployee, employeeData, departments, positions, defaultDepartment, defaultPosition)
-            results.updated++
-            results.processed++
+            // Para empleados existentes, no contamos para el límite
+            validRows.push({ row, rowNumber, employeeData, businessUnitId })
           } else {
-            // Verificar límite antes de crear nuevo empleado
-            if (employeeLimit && currentCount + results.created >= employeeLimit) {
-              results.limitReached = true
-              results.skipped++
-              results.errors.push(`Fila ${rowNumber}: Límite de empleados alcanzado - ${employeeData.firstName} ${employeeData.lastName}`)
-              continue
-            }
-
-            // Generar código de empleado único si no se proporciona
-            let employeeCode = employeeData.employeeNumber
-            if (!employeeCode || existingEmployeeCodes.includes(employeeCode)) {
-              employeeCode = this.generateUniqueEmployeeCode(existingEmployeeCodes)
-            }
-            existingEmployeeCodes.push(employeeCode)
-
-            // Mapear departamento y posición
-            const departmentId = this.mapDepartment(employeeData.department, departments, defaultDepartment)
-            const positionId = this.mapPosition(employeeData.position, positions, defaultPosition)
-
-            // Crear persona
-            const person = await this.createPerson(employeeData)
-
-            // Crear empleado
-            await this.createEmployee(employeeData, person.personId, businessUnitId, payrollBusinessUnitId, departmentId, positionId, employeeCode)
-
-            results.created++
-            results.processed++
+            // Para empleados nuevos, contamos el total
+            newEmployeesCount++
+            validRows.push({ row, rowNumber, employeeData, businessUnitId })
           }
 
         } catch (error: any) {
           results.skipped++
           results.errors.push(`Fila ${rowNumber}: ${error.message}`)
+        }
+      }
+
+      // Verificar límite general de empleados
+      if (newEmployeesCount > 0) {
+        // Obtener el límite general del sistema (usando la primera unidad de negocio como referencia)
+        const firstBusinessUnit = businessUnits[0]
+        const employeeLimit = firstBusinessUnit ? await this.getEmployeeLimitForBusinessUnit(firstBusinessUnit.businessUnitId) : null
+
+        if (employeeLimit) {
+          const currentTotalCount = await Employee.query()
+            .whereNull('deletedAt')
+            .count('* as total')
+          const currentTotalEmployeeCount = Number(currentTotalCount[0].$extras.total)
+
+          if (currentTotalEmployeeCount + newEmployeesCount > employeeLimit) {
+            results.limitReached = true
+            results.errors.push(`Límite general de empleados alcanzado. Límite: ${employeeLimit}, Actual: ${currentTotalEmployeeCount}, Intentando crear: ${newEmployeesCount}`)
+          }
+        }
+      }
+
+      // Si se alcanzó el límite, no procesar más empleados nuevos
+      if (results.limitReached) {
+        // Procesar solo empleados existentes (actualizaciones)
+        for (const { rowNumber, employeeData } of validRows) {
+          const existingEmployee = existingEmployees.find(emp =>
+            emp.employeeCode.toString() === employeeData.employeeNumber
+          )
+
+          if (existingEmployee) {
+            try {
+              await this.updateExistingEmployee(existingEmployee, employeeData, departments, positions, defaultDepartment, defaultPosition)
+              results.updated++
+              results.processed++
+            } catch (error: any) {
+              results.skipped++
+              results.errors.push(`Fila ${rowNumber}: ${error.message}`)
+            }
+          } else {
+            results.skipped++
+            results.errors.push(`Fila ${rowNumber}: Límite de empleados alcanzado - ${employeeData.firstName} ${employeeData.lastName}`)
+          }
+        }
+      } else {
+        // Procesar todos los empleados (creaciones y actualizaciones)
+        for (const { rowNumber, employeeData, businessUnitId } of validRows) {
+          try {
+            const payrollBusinessUnitId = businessUnitId // Usar la misma unidad de negocio para nómina
+
+            // Buscar empleado existente por número de empleado
+            const existingEmployee = existingEmployees.find(emp =>
+              emp.employeeCode.toString() === employeeData.employeeNumber
+            )
+
+            if (existingEmployee) {
+              // Actualizar empleado existente
+              await this.updateExistingEmployee(existingEmployee, employeeData, departments, positions, defaultDepartment, defaultPosition)
+              results.updated++
+              results.processed++
+            } else {
+              // Generar código de empleado único si no se proporciona
+              let employeeCode = employeeData.employeeNumber
+              if (!employeeCode || existingEmployeeCodes.includes(employeeCode)) {
+                employeeCode = this.generateUniqueEmployeeCode(existingEmployeeCodes)
+              }
+              existingEmployeeCodes.push(employeeCode)
+
+              // Mapear departamento y posición usando búsqueda por similitud
+              const departmentId = this.mapDepartmentBySimilarity(employeeData.department, departments, defaultDepartment)
+              const positionId = this.mapPositionBySimilarity(employeeData.position, positions, defaultPosition)
+
+              // Crear persona
+              const person = await this.createPerson(employeeData)
+
+              // Crear empleado
+              await this.createEmployee(employeeData, person.personId, businessUnitId, payrollBusinessUnitId, departmentId, positionId, employeeCode)
+
+              results.created++
+              results.processed++
+            }
+
+          } catch (error: any) {
+            results.skipped++
+            results.errors.push(`Fila ${rowNumber}: ${error.message}`)
+          }
         }
       }
 
@@ -1874,6 +1954,7 @@ export default class EmployeeService {
     const expectedHeaders = [
       'N° de empleado',
       'Razón social',
+      'Unidad de negocios',
       'Nombre del empleado',
       'Apellido Paterno del empleado',
       'Apellido Materno del empleado',
@@ -1922,6 +2003,8 @@ export default class EmployeeService {
         data.employeeNumber = value
       } else if (header.includes('razón social')) {
         data.companyName = value
+      } else if (header.includes('unidad de negocios')) {
+        data.businessUnit = value
       } else if (header.includes('nombre del empleado')) {
         data.firstName = value
       } else if (header.includes('apellido paterno del empleado')) {
@@ -1964,9 +2047,9 @@ export default class EmployeeService {
     }
     existingEmployee.dailySalary = employeeData.dailySalary || existingEmployee.dailySalary
 
-    // Mapear departamento y posición
-    existingEmployee.departmentId = this.mapDepartment(employeeData.department, departments, defaultDepartment)
-    existingEmployee.positionId = this.mapPosition(employeeData.position, positions, defaultPosition)
+    // Mapear departamento y posición usando búsqueda por similitud
+    existingEmployee.departmentId = this.mapDepartmentBySimilarity(employeeData.department, departments, defaultDepartment)
+    existingEmployee.positionId = this.mapPositionBySimilarity(employeeData.position, positions, defaultPosition)
 
     await existingEmployee.save()
 
@@ -2009,29 +2092,75 @@ export default class EmployeeService {
   }
 
   /**
-   * Mapear departamento
+   * Mapear unidad de negocio por nombre
    */
-  private mapDepartment(departmentName: string, departments: any[], defaultDepartment: any): number | null {
-    if (!departmentName) return defaultDepartment ? defaultDepartment.departmentId : null
+  private mapBusinessUnit(businessUnitName: string, businessUnits: any[]): number {
+    if (!businessUnitName) return 1 // Valor por defecto
 
-    const department = departments.find(dept =>
-      dept.departmentName?.toLowerCase() === departmentName.toLowerCase()
+    // Buscar coincidencia exacta primero
+    const exactMatch = businessUnits.find(unit =>
+      unit.businessUnitName?.toLowerCase() === businessUnitName.toLowerCase()
     )
 
-    return department ? department.departmentId : (defaultDepartment ? defaultDepartment.departmentId : null)
+    if (exactMatch) return exactMatch.businessUnitId
+
+    // Buscar por similitud
+    const similarMatch = this.findMostSimilar(
+      businessUnitName,
+      businessUnits,
+      'businessUnitName',
+      0.6
+    )
+
+    return similarMatch ? similarMatch.businessUnitId : 1 // Valor por defecto si no se encuentra
   }
 
   /**
-   * Mapear posición
+   * Mapear departamento usando búsqueda por similitud
    */
-  private mapPosition(positionName: string, positions: any[], defaultPosition: any): number | null {
+  private mapDepartmentBySimilarity(departmentName: string, departments: any[], defaultDepartment: any): number | null {
+    if (!departmentName) return defaultDepartment ? defaultDepartment.departmentId : null
+
+    // Buscar coincidencia exacta primero
+    const exactMatch = departments.find(dept =>
+      dept.departmentName?.toLowerCase() === departmentName.toLowerCase()
+    )
+
+    if (exactMatch) return exactMatch.departmentId
+
+    // Buscar por similitud
+    const similarMatch = this.findMostSimilar(
+      departmentName,
+      departments,
+      'departmentName',
+      0.6
+    )
+
+    return similarMatch ? similarMatch.departmentId : (defaultDepartment ? defaultDepartment.departmentId : null)
+  }
+
+  /**
+   * Mapear posición usando búsqueda por similitud
+   */
+  private mapPositionBySimilarity(positionName: string, positions: any[], defaultPosition: any): number | null {
     if (!positionName) return defaultPosition ? defaultPosition.positionId : null
 
-    const position = positions.find(pos =>
+    // Buscar coincidencia exacta primero
+    const exactMatch = positions.find(pos =>
       pos.positionName?.toLowerCase() === positionName.toLowerCase()
     )
 
-    return position ? position.positionId : (defaultPosition ? defaultPosition.positionId : null)
+    if (exactMatch) return exactMatch.positionId
+
+    // Buscar por similitud
+    const similarMatch = this.findMostSimilar(
+      positionName,
+      positions,
+      'positionName',
+      0.6
+    )
+
+    return similarMatch ? similarMatch.positionId : (defaultPosition ? defaultPosition.positionId : null)
   }
 
   /**
@@ -2154,6 +2283,159 @@ export default class EmployeeService {
       return null
     } catch (error) {
       return null
+    }
+  }
+
+  /**
+   * Calcular similitud entre dos strings usando algoritmo de Levenshtein
+   */
+  private calculateSimilarity(str1: string, str2: string): number {
+    const s1 = str1.toLowerCase().trim()
+    const s2 = str2.toLowerCase().trim()
+
+    if (s1 === s2) return 1.0
+
+    const matrix = []
+    const len1 = s1.length
+    const len2 = s2.length
+
+    for (let i = 0; i <= len2; i++) {
+      matrix[i] = [i]
+    }
+
+    for (let j = 0; j <= len1; j++) {
+      matrix[0][j] = j
+    }
+
+    for (let i = 1; i <= len2; i++) {
+      for (let j = 1; j <= len1; j++) {
+        if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          )
+        }
+      }
+    }
+
+    const maxLen = Math.max(len1, len2)
+    return maxLen === 0 ? 1.0 : (maxLen - matrix[len2][len1]) / maxLen
+  }
+
+  /**
+   * Buscar el elemento más similar en una lista
+   */
+  private findMostSimilar<T>(
+    searchTerm: string,
+    items: T[],
+    nameField: keyof T,
+    threshold: number = 0.6
+  ): T | null {
+    if (!searchTerm || !items.length) return null
+
+    let bestMatch: T | null = null
+    let bestScore = 0
+
+    for (const item of items) {
+      const itemName = String(item[nameField] || '').trim()
+      if (!itemName) continue
+
+      const score = this.calculateSimilarity(searchTerm, itemName)
+
+      if (score > bestScore && score >= threshold) {
+        bestScore = score
+        bestMatch = item
+      }
+    }
+
+    return bestMatch
+  }
+
+  /**
+   * Validar datos del empleado usando las mismas reglas que los validadores
+   */
+  private validateEmployeeData(employeeData: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = []
+
+    // Validar código de empleado
+    if (!employeeData.employeeNumber || employeeData.employeeNumber.trim().length === 0) {
+      errors.push('El código de empleado es requerido')
+    } else if (employeeData.employeeNumber.length > 200) {
+      errors.push('El código de empleado no puede exceder 200 caracteres')
+    }
+
+    // Validar nombres
+    if (employeeData.firstName && employeeData.firstName.length > 25) {
+      errors.push('El nombre no puede exceder 25 caracteres')
+    }
+
+    if (employeeData.lastName && employeeData.lastName.length > 25) {
+      errors.push('El apellido paterno no puede exceder 25 caracteres')
+    }
+
+    if (employeeData.secondLastName && employeeData.secondLastName.length > 25) {
+      errors.push('El apellido materno no puede exceder 25 caracteres')
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  }
+
+  /**
+   * Validar datos de la persona usando las mismas reglas que los validadores
+   */
+  private validatePersonData(personData: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = []
+
+    // Validar nombre
+    if (!personData.firstName || personData.firstName.trim().length === 0) {
+      errors.push('El nombre de la persona es requerido')
+    } else if (personData.firstName.length > 150) {
+      errors.push('El nombre no puede exceder 150 caracteres')
+    }
+
+    // Validar apellidos
+    if (personData.lastName && personData.lastName.length > 150) {
+      errors.push('El apellido paterno no puede exceder 150 caracteres')
+    }
+
+    if (personData.secondLastName && personData.secondLastName.length > 150) {
+      errors.push('El apellido materno no puede exceder 150 caracteres')
+    }
+
+    // Validar teléfono
+    if (personData.phone && personData.phone.length > 45) {
+      errors.push('El teléfono no puede exceder 45 caracteres')
+    }
+
+    // Validar email
+    if (personData.email && personData.email.length > 200) {
+      errors.push('El email no puede exceder 200 caracteres')
+    }
+
+    // Validar CURP
+    if (personData.curp && personData.curp.length > 45) {
+      errors.push('La CURP no puede exceder 45 caracteres')
+    }
+
+    // Validar RFC
+    if (personData.rfc && personData.rfc.length > 45) {
+      errors.push('El RFC no puede exceder 45 caracteres')
+    }
+
+    // Validar NSS
+    if (personData.nss && personData.nss.length > 45) {
+      errors.push('El NSS no puede exceder 45 caracteres')
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
     }
   }
 }

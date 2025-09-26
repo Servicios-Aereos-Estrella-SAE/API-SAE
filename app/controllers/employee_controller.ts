@@ -5509,6 +5509,7 @@ export default class EmployeeController {
    *     tags:
    *       - Employees
    *     summary: Import employees from Excel file
+   *     description: Import employees from Excel file. The business unit and payroll business unit are automatically detected from the Excel file content using similarity matching.
    *     produces:
    *       - application/json
    *     requestBody:
@@ -5520,30 +5521,92 @@ export default class EmployeeController {
    *               file:
    *                 type: string
    *                 format: binary
-   *                 description: Excel file with employee data
-   *               businessUnitId:
-   *                 type: number
-   *                 description: Business unit ID
-   *               payrollBusinessUnitId:
-   *                 type: number
-   *                 description: Payroll business unit ID
+   *                 description: Excel file with employee data. Must contain columns for business unit names, department names, and position names.
    *             required:
    *               - file
-   *               - businessUnitId
-   *               - payrollBusinessUnitId
    *     responses:
    *       200:
    *         description: Employees imported successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Response type (success, warning, error)
+   *                 title:
+   *                   type: string
+   *                   description: Response title
+   *                 message:
+   *                   type: string
+   *                   description: Response message
+   *                 data:
+   *                   type: object
+   *                   description: Import results
+   *                   properties:
+   *                     totalRows:
+   *                       type: number
+   *                       description: Total rows processed
+   *                     processed:
+   *                       type: number
+   *                       description: Successfully processed rows
+   *                     created:
+   *                       type: number
+   *                       description: New employees created
+   *                     updated:
+   *                       type: number
+   *                       description: Existing employees updated
+   *                     skipped:
+   *                       type: number
+   *                       description: Rows skipped due to errors
+   *                     limitReached:
+   *                       type: boolean
+   *                       description: Whether employee limit was reached
+   *                     errors:
+   *                       type: array
+   *                       items:
+   *                         type: string
+   *                       description: List of error messages
    *       400:
-   *         description: Bad request
+   *         description: Bad request - Invalid file or validation errors
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Error type
+   *                 title:
+   *                   type: string
+   *                   description: Error title
+   *                 message:
+   *                   type: string
+   *                   description: Error message
    *       500:
    *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Error type
+   *                 title:
+   *                   type: string
+   *                   description: Error title
+   *                 message:
+   *                   type: string
+   *                   description: Error message
+   *                 error:
+   *                   type: string
+   *                   description: Detailed error information
    */
   async importFromExcel({ request, response }: HttpContext) {
     try {
       const file = request.file('file')
-      const businessUnitId = request.input('businessUnitId')
-      const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
 
       if (!file) {
         response.status(400)
@@ -5592,17 +5655,8 @@ export default class EmployeeController {
         }
       }
 
-      if (!businessUnitId || !payrollBusinessUnitId) {
-        response.status(400)
-        return {
-          type: 'error',
-          title: 'Validation error',
-          message: 'businessUnitId and payrollBusinessUnitId are required',
-        }
-      }
-
       const employeeService = new EmployeeService()
-      const result = await employeeService.importFromExcel(file, businessUnitId, payrollBusinessUnitId)
+      const result = await employeeService.importFromExcel(file)
 
       // Determinar el tipo de respuesta basado en los resultados
       let responseType = 'success'
