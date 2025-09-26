@@ -2095,7 +2095,10 @@ export default class EmployeeService {
    * Mapear unidad de negocio por nombre
    */
   private mapBusinessUnit(businessUnitName: string, businessUnits: any[]): number {
-    if (!businessUnitName) return 1 // Valor por defecto
+    if (!businessUnitName) {
+      // Usar la primera unidad de negocio registrada en la base de datos
+      return businessUnits.length > 0 ? businessUnits[0].businessUnitId : 1
+    }
 
     // Buscar coincidencia exacta primero
     const exactMatch = businessUnits.find(unit =>
@@ -2112,7 +2115,8 @@ export default class EmployeeService {
       0.6
     )
 
-    return similarMatch ? similarMatch.businessUnitId : 1 // Valor por defecto si no se encuentra
+    // Usar la primera unidad de negocio registrada como valor por defecto si no se encuentra
+    return similarMatch ? similarMatch.businessUnitId : (businessUnits.length > 0 ? businessUnits[0].businessUnitId : 1)
   }
 
   /**
