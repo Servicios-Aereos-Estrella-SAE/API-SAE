@@ -5499,4 +5499,143 @@ export default class EmployeeController {
       }
     }
   }
+
+  /**
+   * @swagger
+   * /api/employees/import-excel:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     tags:
+   *       - Employees
+   *     summary: Import employees from Excel file
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *                 description: Excel file with employee data
+   *               businessUnitId:
+   *                 type: number
+   *                 description: Business unit ID
+   *               payrollBusinessUnitId:
+   *                 type: number
+   *                 description: Payroll business unit ID
+   *             required:
+   *               - file
+   *               - businessUnitId
+   *               - payrollBusinessUnitId
+   *     responses:
+   *       200:
+   *         description: Employees imported successfully
+   *       400:
+   *         description: Bad request
+   *       500:
+   *         description: Server error
+   */
+  async importFromExcel({ request, response }: HttpContext) {
+    try {
+      const file = request.file('file')
+      const businessUnitId = request.input('businessUnitId')
+      const payrollBusinessUnitId = request.input('payrollBusinessUnitId')
+
+      if (!file) {
+        response.status(400)
+        return {
+          type: 'error',
+          title: 'Validation error',
+          message: 'Excel file is required',
+        }
+      }
+
+      // Validar que el archivo sea un Excel
+      const allowedExtensions = ['.xlsx', '.xls']
+      const allowedMimeTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'application/octet-stream' // Fallback para algunos casos
+      ]
+
+      // Verificar por extensión del archivo
+      const fileName = file.clientName || file.tmpPath || ''
+      const fileExtension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+
+      // Verificar por MIME type
+      const mimeType = file.type || ''
+
+      const isValidExtension = allowedExtensions.includes(fileExtension)
+      const isValidMimeType = allowedMimeTypes.includes(mimeType.toLowerCase())
+
+      // Si no pasa la validación básica, intentar validar por contenido
+      if (!isValidExtension && !isValidMimeType) {
+        try {
+          // Intentar leer el archivo con ExcelJS para verificar si es realmente un Excel
+          const ExcelJSModule = await import('exceljs')
+          const ExcelJSLib = ExcelJSModule.default
+          const workbook = new ExcelJSLib.Workbook()
+
+          await workbook.xlsx.readFile(file.tmpPath || '')
+          // Si llega aquí, es un archivo Excel válido
+        } catch (excelError: any) {
+          response.status(400)
+          return {
+            type: 'error',
+            title: 'Validation error',
+            message: `El archivo debe ser un Excel válido (.xlsx o .xls). Extensión detectada: ${fileExtension}, MIME type: ${mimeType}. Error: ${excelError.message}`,
+          }
+        }
+      }
+
+      if (!businessUnitId || !payrollBusinessUnitId) {
+        response.status(400)
+        return {
+          type: 'error',
+          title: 'Validation error',
+          message: 'businessUnitId and payrollBusinessUnitId are required',
+        }
+      }
+
+      const employeeService = new EmployeeService()
+      const result = await employeeService.importFromExcel(file, businessUnitId, payrollBusinessUnitId)
+
+      // Determinar el tipo de respuesta basado en los resultados
+      let responseType = 'success'
+      let title = 'Importación completada'
+      let message = ''
+
+      if (result.limitReached) {
+        responseType = 'warning'
+        title = 'Límite de empleados alcanzado'
+        message = `Se alcanzó el límite de empleados. Se crearon ${result.created} empleados, se actualizaron ${result.updated} empleados, y ${result.skipped} no se pudieron procesar.`
+      } else if (result.errors.length > 0) {
+        responseType = 'warning'
+        title = 'Importación completada con advertencias'
+        message = `Se procesaron ${result.processed} empleados: ${result.created} creados, ${result.updated} actualizados. ${result.errors.length} errores encontrados.`
+      } else {
+        message = `Importación exitosa: ${result.created} empleados creados, ${result.updated} empleados actualizados.`
+      }
+
+      response.status(200)
+      return {
+        type: responseType,
+        title: title,
+        message: message,
+        data: result,
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server error',
+        message: 'An unexpected error has occurred during import',
+        error: error.message,
+      }
+    }
+  }
 }

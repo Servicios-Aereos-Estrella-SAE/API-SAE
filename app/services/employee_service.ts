@@ -1727,4 +1727,433 @@ export default class EmployeeService {
       return null
     }
   }
+
+  /**
+   * Import employees from Excel file
+   */
+  async importFromExcel(file: any, businessUnitId: number, payrollBusinessUnitId: number) {
+    const ExcelJSModule = await import('exceljs')
+    const ExcelJS = ExcelJSModule.default
+    const workbook = new ExcelJS.Workbook()
+
+    try {
+      // Leer el archivo Excel
+      await workbook.xlsx.readFile(file.tmpPath)
+      const worksheet = workbook.getWorksheet(1)
+
+      if (!worksheet) {
+        throw new Error('No se encontró ninguna hoja de trabajo en el archivo Excel')
+      }
+
+      // Validar que la primera fila contenga los encabezados esperados
+      const headers = this.validateExcelHeaders(worksheet)
+
+      // Obtener departamentos y posiciones existentes para mapeo
+      const departments = await Department.query()
+        .whereNull('department_deleted_at')
+        .select('departmentId', 'departmentName')
+
+      const positions = await Position.query()
+        .whereNull('position_deleted_at')
+        .select('positionId', 'positionName')
+
+      // Buscar departamento y posición por defecto
+      const defaultDepartment = departments.find(dept =>
+        dept.departmentName?.toLowerCase().includes('sin departamento')
+      )
+      const defaultPosition = positions.find(pos =>
+        pos.positionName?.toLowerCase().includes('sin posición')
+      )
+
+      // Obtener empleados existentes por número de empleado
+      const existingEmployees = await Employee.query()
+        .whereNull('deletedAt')
+        .preload('person')
+        .select('employeeId', 'employeeCode', 'employeeFirstName', 'employeeLastName', 'employeeSecondLastName', 'personId')
+
+      // Obtener códigos de empleado existentes para generar códigos únicos
+      const existingEmployeeCodes = existingEmployees.map(emp => emp.employeeCode.toString())
+
+      // Verificar límite de empleados
+      const employeeLimit = await this.getEmployeeLimitForBusinessUnit(businessUnitId)
+      const currentEmployeeCount = await Employee.query()
+        .where('businessUnitId', businessUnitId)
+        .whereNull('deletedAt')
+        .count('* as total')
+
+      const currentCount = Number(currentEmployeeCount[0].$extras.total)
+
+      const results = {
+        totalRows: 0,
+        processed: 0,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        limitReached: false,
+        errors: [] as string[]
+      }
+
+      // Procesar cada fila del Excel
+      const rows: Array<{ row: any; rowNumber: number }> = []
+      worksheet.eachRow({ includeEmpty: false }, (row: any, rowNumber: number) => {
+        if (rowNumber === 1) return // Saltar encabezados
+        rows.push({ row, rowNumber })
+      })
+
+      // Procesar todas las filas de forma secuencial
+      for (const { row, rowNumber } of rows) {
+        results.totalRows++
+
+        try {
+          const employeeData = this.extractEmployeeDataFromRow(row, headers)
+
+          // Validar que los datos básicos estén presentes
+          if (!employeeData.firstName && !employeeData.lastName) {
+            results.skipped++
+            results.errors.push(`Fila ${rowNumber}: Fila vacía o sin datos de empleado`)
+            continue
+          }
+
+          // Buscar empleado existente por número de empleado
+          const existingEmployee = existingEmployees.find(emp =>
+            emp.employeeCode.toString() === employeeData.employeeNumber
+          )
+
+          if (existingEmployee) {
+            // Actualizar empleado existente
+            await this.updateExistingEmployee(existingEmployee, employeeData, departments, positions, defaultDepartment, defaultPosition)
+            results.updated++
+            results.processed++
+          } else {
+            // Verificar límite antes de crear nuevo empleado
+            if (employeeLimit && currentCount + results.created >= employeeLimit) {
+              results.limitReached = true
+              results.skipped++
+              results.errors.push(`Fila ${rowNumber}: Límite de empleados alcanzado - ${employeeData.firstName} ${employeeData.lastName}`)
+              continue
+            }
+
+            // Generar código de empleado único si no se proporciona
+            let employeeCode = employeeData.employeeNumber
+            if (!employeeCode || existingEmployeeCodes.includes(employeeCode)) {
+              employeeCode = this.generateUniqueEmployeeCode(existingEmployeeCodes)
+            }
+            existingEmployeeCodes.push(employeeCode)
+
+            // Mapear departamento y posición
+            const departmentId = this.mapDepartment(employeeData.department, departments, defaultDepartment)
+            const positionId = this.mapPosition(employeeData.position, positions, defaultPosition)
+
+            // Crear persona
+            const person = await this.createPerson(employeeData)
+
+            // Crear empleado
+            await this.createEmployee(employeeData, person.personId, businessUnitId, payrollBusinessUnitId, departmentId, positionId, employeeCode)
+
+            results.created++
+            results.processed++
+          }
+
+        } catch (error: any) {
+          results.skipped++
+          results.errors.push(`Fila ${rowNumber}: ${error.message}`)
+        }
+      }
+
+      return results
+
+    } catch (error) {
+      throw new Error(`Error al procesar el archivo Excel: ${error.message}`)
+    }
+  }
+
+  /**
+   * Validar encabezados del Excel
+   */
+  private validateExcelHeaders(worksheet: any) {
+    const expectedHeaders = [
+      'N° de empleado',
+      'Razón social',
+      'Nombre del empleado',
+      'Apellido Paterno del empleado',
+      'Apellido Materno del empleado',
+      'Fecha de contratación (dd/mm/yyyy)',
+      'Departamento',
+      'Posición',
+      'Salario diario',
+      'Fecha de nacimiento (dd/mm/yyyy)',
+      'CURP',
+      'RFC',
+      'NSS'
+    ]
+
+    const firstRow = worksheet.getRow(1)
+    const headers: string[] = []
+
+    firstRow.eachCell((cell: any, colNumber: number) => {
+      headers[colNumber] = cell.value?.toString() || ''
+    })
+
+    // Verificar que los encabezados coincidan (permitir variaciones menores)
+    const missingHeaders = expectedHeaders.filter(expected =>
+      !headers.some(header => header.toLowerCase().includes(expected.toLowerCase().substring(0, 10)))
+    )
+
+
+    if (missingHeaders.length > 0) {
+      throw new Error(`Faltan los siguientes encabezados: ${missingHeaders.join(', ')}`)
+    }
+
+    return headers
+  }
+
+  /**
+   * Extraer datos del empleado de una fila
+   */
+  private extractEmployeeDataFromRow(row: any, headers: string[]) {
+    const data: any = {}
+
+    row.eachCell((cell: any, colNumber: number) => {
+      const header = headers[colNumber]?.toLowerCase() || ''
+      const value = cell.value?.toString() || ''
+
+
+      if (header.includes('n° de emplead')) {
+        data.employeeNumber = value
+      } else if (header.includes('razón social')) {
+        data.companyName = value
+      } else if (header.includes('nombre del empleado')) {
+        data.firstName = value
+      } else if (header.includes('apellido paterno del empleado')) {
+        data.lastName = value
+      } else if (header.includes('apellido materno del empleado')) {
+        data.secondLastName = value
+      } else if (header.includes('fecha de contratación')) {
+        data.hireDate = value
+      } else if (header.includes('departamento')) {
+        data.department = value
+      } else if (header.includes('posición')) {
+        data.position = value
+      } else if (header.includes('salario diario')) {
+        data.dailySalary = Number.parseFloat(value) || 0
+      } else if (header.includes('fecha de nacimiento')) {
+        data.birthDate = value
+      } else if (header.includes('curp')) {
+        data.curp = value
+      } else if (header.includes('rfc')) {
+        data.rfc = value
+      } else if (header.includes('nss')) {
+        data.nss = value
+      }
+    })
+
+    return data
+  }
+
+  /**
+   * Actualizar empleado existente
+   */
+  private async updateExistingEmployee(existingEmployee: any, employeeData: any, departments: any[], positions: any[], defaultDepartment: any, defaultPosition: any) {
+    // Actualizar datos del empleado
+    existingEmployee.employeeFirstName = employeeData.firstName || existingEmployee.employeeFirstName
+    existingEmployee.employeeLastName = employeeData.lastName || existingEmployee.employeeLastName
+    existingEmployee.employeeSecondLastName = employeeData.secondLastName || existingEmployee.employeeSecondLastName
+    const parsedHireDate = this.parseDateToDateTime(employeeData.hireDate)
+    if (parsedHireDate) {
+      existingEmployee.employeeHireDate = parsedHireDate
+    }
+    existingEmployee.dailySalary = employeeData.dailySalary || existingEmployee.dailySalary
+
+    // Mapear departamento y posición
+    existingEmployee.departmentId = this.mapDepartment(employeeData.department, departments, defaultDepartment)
+    existingEmployee.positionId = this.mapPosition(employeeData.position, positions, defaultPosition)
+
+    await existingEmployee.save()
+
+    // Actualizar datos de la persona si existe
+    if (existingEmployee.person) {
+      const person = existingEmployee.person
+      person.personFirstname = employeeData.firstName || person.personFirstname
+      person.personLastname = employeeData.lastName || person.personLastname
+      person.personSecondLastname = employeeData.secondLastName || person.personSecondLastname
+      person.personCurp = employeeData.curp || person.personCurp
+      person.personRfc = employeeData.rfc || person.personRfc
+      person.personImssNss = employeeData.nss || person.personImssNss
+      const parsedBirthday = this.parseDate(employeeData.birthDate)
+      if (parsedBirthday) {
+        person.personBirthday = parsedBirthday
+      }
+
+      await person.save()
+    }
+  }
+
+  /**
+   * Generar código de empleado único
+   */
+  private generateUniqueEmployeeCode(existingCodes: string[]): string {
+    let attempts = 0
+    let code: string
+
+    do {
+      const randomNumber = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+      code = `27800${randomNumber}`
+      attempts++
+    } while (existingCodes.includes(code) && attempts < 100)
+
+    if (attempts >= 100) {
+      throw new Error('No se pudo generar un código de empleado único')
+    }
+
+    return code
+  }
+
+  /**
+   * Mapear departamento
+   */
+  private mapDepartment(departmentName: string, departments: any[], defaultDepartment: any): number | null {
+    if (!departmentName) return defaultDepartment ? defaultDepartment.departmentId : null
+
+    const department = departments.find(dept =>
+      dept.departmentName?.toLowerCase() === departmentName.toLowerCase()
+    )
+
+    return department ? department.departmentId : (defaultDepartment ? defaultDepartment.departmentId : null)
+  }
+
+  /**
+   * Mapear posición
+   */
+  private mapPosition(positionName: string, positions: any[], defaultPosition: any): number | null {
+    if (!positionName) return defaultPosition ? defaultPosition.positionId : null
+
+    const position = positions.find(pos =>
+      pos.positionName?.toLowerCase() === positionName.toLowerCase()
+    )
+
+    return position ? position.positionId : (defaultPosition ? defaultPosition.positionId : null)
+  }
+
+  /**
+   * Crear persona
+   */
+  private async createPerson(employeeData: any) {
+    const person = new Person()
+    person.personFirstname = employeeData.firstName || ''
+    person.personLastname = employeeData.lastName || ''
+    person.personSecondLastname = employeeData.secondLastName || ''
+    person.personCurp = employeeData.curp || ''
+    person.personRfc = employeeData.rfc || ''
+    person.personImssNss = employeeData.nss || ''
+    person.personBirthday = this.parseDate(employeeData.birthDate)
+    person.personGender = '' // No disponible en el Excel
+    person.personPhone = ''
+    person.personEmail = ''
+    person.personPhoneSecondary = ''
+    person.personMaritalStatus = ''
+    person.personPlaceOfBirthCountry = ''
+    person.personPlaceOfBirthState = ''
+    person.personPlaceOfBirthCity = ''
+
+    await person.save()
+    return person
+  }
+
+  /**
+   * Crear empleado
+   */
+  private async createEmployee(employeeData: any, personId: number, businessUnitId: number, payrollBusinessUnitId: number, departmentId: number | null, positionId: number | null, employeeCode: string) {
+    const employee = new Employee()
+    employee.employeeCode = employeeCode
+    employee.employeeFirstName = employeeData.firstName || ''
+    employee.employeeLastName = employeeData.lastName || ''
+    employee.employeeSecondLastName = employeeData.secondLastName || ''
+    employee.employeeHireDate = this.parseDateToDateTime(employeeData.hireDate)
+    employee.companyId = 1 // Valor por defecto
+    employee.departmentId = departmentId
+    employee.positionId = positionId
+    employee.personId = personId
+    employee.businessUnitId = businessUnitId
+    employee.dailySalary = employeeData.dailySalary || 0
+    employee.payrollBusinessUnitId = payrollBusinessUnitId
+    employee.employeeAssistDiscriminator = 1
+    employee.employeeTypeId = 1 // Valor por defecto
+    employee.employeeBusinessEmail = ''
+    employee.employeeTypeOfContract = 'Internal'
+    employee.employeeTerminatedDate = null
+    employee.employeeIgnoreConsecutiveAbsences = 0
+    employee.employeeSyncId = 0
+    employee.departmentSyncId = 0
+    employee.positionSyncId = 0
+    employee.employeeLastSynchronizationAt = new Date()
+
+    await employee.save()
+    return employee
+  }
+
+  /**
+   * Parsear fecha desde string
+   */
+  private parseDate(dateString: string): string | null {
+    if (!dateString || dateString.trim() === '' || dateString === 'null' || dateString === 'undefined') return null
+
+    try {
+      // Intentar diferentes formatos de fecha
+      const formats = ['DD/MM/YYYY', 'DD/MM/YY', 'MM/DD/YYYY', 'YYYY-MM-DD']
+
+      for (const format of formats) {
+        try {
+          const parsed = DateTime.fromFormat(dateString, format)
+          if (parsed.isValid) {
+            return parsed.toISODate()
+          }
+        } catch (e) {
+          continue
+        }
+      }
+
+      // Si no funciona con formatos específicos, intentar parse automático
+      const parsed = DateTime.fromISO(dateString)
+      if (parsed.isValid) {
+        return parsed.toISODate()
+      }
+
+      return null
+    } catch (error) {
+      return null
+    }
+  }
+
+  /**
+   * Parsear fecha desde string a DateTime
+   */
+  private parseDateToDateTime(dateString: string): DateTime | null {
+    if (!dateString || dateString.trim() === '' || dateString === 'null' || dateString === 'undefined') return null
+
+    try {
+      // Intentar diferentes formatos de fecha
+      const formats = ['DD/MM/YYYY', 'DD/MM/YY', 'MM/DD/YYYY', 'YYYY-MM-DD']
+
+      for (const format of formats) {
+        try {
+          const parsed = DateTime.fromFormat(dateString, format)
+          if (parsed.isValid) {
+            return parsed
+          }
+        } catch (e) {
+          continue
+        }
+      }
+
+      // Si no funciona con formatos específicos, intentar parse automático
+      const parsed = DateTime.fromISO(dateString)
+      if (parsed.isValid) {
+        return parsed
+      }
+
+      return null
+    } catch (error) {
+      return null
+    }
+  }
 }
