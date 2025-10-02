@@ -30,6 +30,9 @@ import { SyncAssistsServiceIndexInterface } from '../interfaces/sync_assists_ser
 import { AssistIncidentPayrollCalendarExcelFilterInterface } from '../interfaces/assist_incident_payroll_calendar_excel_filter_interface.js'
 import { AssistIncidentSummaryCalendarExcelFilterInterface } from '../interfaces/assist_incident_summary_calendar_excel_filter_interface.js'
 import { AssistInterface } from '../interfaces/assist_interface.js'
+import { PermissionsDatesExcelFilterInterface } from '../interfaces/permissions_dates_excel_filter_interface.js'
+import ShiftException from '#models/shift_exception'
+import WorkDisability from '#models/work_disability'
 import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
 
 export default class AssistsService {
@@ -1362,7 +1365,7 @@ export default class AssistsService {
       const rowLunchTime = calendar.assist?.checkEatIn?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatIn.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
       const rowReturnLunchTime = calendar?.assist?.checkEatOut?.assistPunchTimeUtc ? DateTime.fromISO(calendar.assist.checkEatOut.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('MMM d, yyyy, h:mm:ss a') : ''
       const rowCheckOutTime = calendar.assist.checkOut?.assistPunchTimeUtc && !calendar.assist.isFutureDay ? DateTime.fromISO(calendar.assist.checkOut?.assistPunchTimeUtc.toString(), { setZone: true }).setZone('UTC-6').toFormat('ff') : ''
-   
+
       rows.push({
         code: employee.employeeCode.toString(),
         name: `${employee.person?.personFirstname} ${employee.person?.personLastname} ${employee.person?.personSecondLastname}`,
@@ -1972,7 +1975,7 @@ export default class AssistsService {
       }
       await syncAssistsService.setDateCalendar(filter)
     }
-    
+
     return newAssist
   }
 
@@ -2445,7 +2448,7 @@ export default class AssistsService {
   }
 
   async addRowIncidentPayrollCalendar(
-   filters: AssistIncidentPayrollCalendarExcelFilterInterface 
+   filters: AssistIncidentPayrollCalendarExcelFilterInterface
   ) {
     const rows = [] as AssistIncidentPayrollExcelRowInterface[]
     let department = filters.employee.department.departmentAlias ? filters.employee.department.departmentAlias : ''
@@ -2581,7 +2584,7 @@ export default class AssistsService {
 
     delayFaults = this.getFaultsFromDelays(delays, filters.tardies)
     earlyOutsFaults = this.getFaultsFromDelays(earlyOuts, filters.tardies)
-   
+
     vacationBonus = this.getVacationBonus(filters.employee, filters.datePay)
     daysWorkDisability = await this.getDaysWorkDisability(filters.employee, filters.datePay)
     let company = ''
@@ -2875,7 +2878,7 @@ export default class AssistsService {
           .whereNotNull('work_disability_period_id')
       })
       .orderBy('employee_id')
-   
+
     return employees.filter(a => a.shift_exceptions.length > 0)
   }
 
@@ -2916,7 +2919,7 @@ export default class AssistsService {
     const assistList = await query.paginate(1, 500)
     const assistListFlat = assistList.toJSON().data as AssistInterface[]
     const assistDayCollection: AssistDayInterface[] = []
-    
+
 
 
     for await (const item of assistListFlat) {
@@ -2925,29 +2928,29 @@ export default class AssistsService {
         .fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true })
         .setZone('UTC-6')
       const assistDayStr = assistDate.toFormat('yyyy-LL-dd')
-  
+
       const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDayStr)
-  
+
       if (!existDay) {
         let dayAssist: AssistInterface[] = []
-  
+
         for await (const dayItem of assistListFlat) {
           const currentDay = DateTime
             .fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true })
             .setZone('UTC-6')
             .toFormat('yyyy-LL-dd')
-  
+
           if (currentDay === assistDayStr) {
             dayAssist.push(dayItem)
           }
         }
-  
+
         dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
-  
+
         return dayAssist
       }
     }
-  
+
     return []
   }
 
@@ -2969,6 +2972,239 @@ export default class AssistsService {
 
   formatDate(date: Date): string {
     return date.toISOString().split('T')[0]
+  }
+
+  async getExcelPermissionsByDates(filters: PermissionsDatesExcelFilterInterface, departmentsList: Array<number>) {
+    try {
+      const filterDate = filters.filterDate
+      const filterDateEnd = filters.filterDateEnd
+      const userResponsibleId = filters.userResponsibleId
+
+      // Obtener empleados activos
+      const employeeService = new EmployeeService()
+      const employees = await employeeService.index(
+        {
+          search: '',
+          departmentId: 0,
+          positionId: 0,
+          page: 1,
+          limit: 999999,
+          employeeWorkSchedule: '',
+          ignoreDiscriminated: 0,
+          ignoreExternal: 1,
+          userResponsibleId: userResponsibleId || undefined,
+        },
+        departmentsList
+      )
+
+      // Crear workbook
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Permisos por Fechas')
+
+      // Agregar logo
+      const assistExcelImageInterface = {
+        workbook: workbook,
+        worksheet: worksheet,
+        col: 0.28,
+        row: 0.7,
+      } as AssistExcelImageInterface
+      await this.addImageLogo(assistExcelImageInterface)
+
+      // Configurar título
+      worksheet.getRow(1).height = 60
+      worksheet.mergeCells('A1:H1')
+      const titleRow = worksheet.addRow(['Reporte de Permisos por Fechas'])
+      let color = '244062'
+      let fgColor = 'FFFFFFF'
+
+      worksheet.getCell('A2').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
+      titleRow.height = 42
+      titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      worksheet.mergeCells('A2:H2')
+
+      // Período
+      color = '366092'
+      const periodRow = worksheet.addRow([this.getRange(filterDate, filterDateEnd)])
+      periodRow.font = { size: 15, color: { argb: fgColor } }
+      worksheet.getCell('A3').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: color },
+      }
+      periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      periodRow.height = 30
+      worksheet.mergeCells('A3:H3')
+
+      // Headers
+      const headerRow = worksheet.addRow([
+        'Empleado',
+        'Departamento',
+        'Posición',
+        'Fecha',
+        'Tipo de Permiso',
+        'Descripción',
+        'Hora Entrada',
+        'Hora Salida'
+      ])
+
+      color = '366092'
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: color },
+        }
+        cell.font = { bold: true, color: { argb: fgColor } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      })
+      headerRow.height = 25
+
+      // Obtener datos de permisos para cada empleado
+      const startDate = DateTime.fromISO(filterDate).toSQLDate()
+      const endDate = DateTime.fromISO(filterDateEnd).toSQLDate()
+
+      if (!startDate || !endDate) {
+        return {
+          status: 400,
+          type: 'error',
+          title: 'Error de fechas',
+          message: 'Las fechas proporcionadas no son válidas',
+          error: 'Invalid date format',
+        }
+      }
+
+      for (const employee of employees) {
+        // Obtener excepciones de turno (vacaciones, permisos, etc.)
+        const shiftExceptions = await ShiftException.query()
+          .where('employee_id', employee.employeeId)
+          .whereBetween('shift_exceptions_date', [startDate!, endDate!])
+          .whereNull('shift_exceptions_deleted_at')
+          .preload('exceptionType')
+          .preload('employee', (employeeQuery) => {
+            employeeQuery.preload('person')
+            employeeQuery.preload('department')
+            employeeQuery.preload('position')
+          })
+          .orderBy('shift_exceptions_date', 'asc')
+
+        // Obtener incapacidades laborales
+        const workDisabilities = await WorkDisability.query()
+          .where('employee_id', employee.employeeId)
+          .whereNull('work_disability_deleted_at')
+          .preload('workDisabilityPeriods', (periodQuery) => {
+            periodQuery.whereBetween('work_disability_period_start_date', [startDate!, endDate!])
+            periodQuery.orWhereBetween('work_disability_period_end_date', [startDate!, endDate!])
+            periodQuery.orWhere((query) => {
+              query.where('work_disability_period_start_date', '<=', startDate!)
+                   .andWhere('work_disability_period_end_date', '>=', endDate!)
+            })
+            periodQuery.whereNull('work_disability_period_deleted_at')
+            periodQuery.preload('workDisabilityType')
+          })
+          .preload('employee', (employeeQuery) => {
+            employeeQuery.preload('person')
+            employeeQuery.preload('department')
+            employeeQuery.preload('position')
+          })
+
+        // Agregar excepciones de turno al reporte
+        for (const exception of shiftExceptions) {
+          const employeeName = `${exception.employee.person.personFirstname} ${exception.employee.person.personLastname}`
+          const departmentName = exception.employee.department?.departmentName || 'N/A'
+          const positionName = exception.employee.position?.positionName || 'N/A'
+          const exceptionDate = DateTime.fromJSDate(new Date(exception.shiftExceptionsDate)).toFormat('yyyy-MM-dd')
+          const exceptionType = exception.exceptionType?.exceptionTypeTypeName || 'N/A'
+          const description = exception.shiftExceptionsDescription || ''
+          const checkInTime = exception.shiftExceptionCheckInTime || ''
+          const checkOutTime = exception.shiftExceptionCheckOutTime || ''
+
+          worksheet.addRow([
+            employeeName,
+            departmentName,
+            positionName,
+            exceptionDate,
+            exceptionType,
+            description,
+            checkInTime,
+            checkOutTime
+          ])
+        }
+
+        // Agregar incapacidades laborales al reporte
+        for (const disability of workDisabilities) {
+          for (const period of disability.workDisabilityPeriods) {
+            const employeeName = `${disability.employee.person.personFirstname} ${disability.employee.person.personLastname}`
+            const departmentName = disability.employee.department?.departmentName || 'N/A'
+            const positionName = disability.employee.position?.positionName || 'N/A'
+
+            // Generar fechas para cada día del período de incapacidad
+            const periodStart = DateTime.fromJSDate(new Date(period.workDisabilityPeriodStartDate))
+            const periodEnd = DateTime.fromJSDate(new Date(period.workDisabilityPeriodEndDate))
+            const reportStart = DateTime.fromISO(filterDate)
+            const reportEnd = DateTime.fromISO(filterDateEnd)
+
+            // Calcular el rango de fechas que se superpone con el período del reporte
+            const startRange = periodStart > reportStart ? periodStart : reportStart
+            const endRange = periodEnd < reportEnd ? periodEnd : reportEnd
+
+            let currentDate = startRange
+            while (currentDate <= endRange) {
+              const disabilityType = period.workDisabilityType?.workDisabilityTypeName || 'Incapacidad'
+              const description = `Período: ${periodStart.toFormat('yyyy-MM-dd')} a ${periodEnd.toFormat('yyyy-MM-dd')}`
+
+              worksheet.addRow([
+                employeeName,
+                departmentName,
+                positionName,
+                currentDate.toFormat('yyyy-MM-dd'),
+                disabilityType,
+                description,
+                '',
+                ''
+              ])
+
+              currentDate = currentDate.plus({ days: 1 })
+            }
+          }
+        }
+      }
+
+      // Ajustar ancho de columnas
+      worksheet.columns = [
+        { width: 25 }, // Empleado
+        { width: 20 }, // Departamento
+        { width: 20 }, // Posición
+        { width: 12 }, // Fecha
+        { width: 20 }, // Tipo de Permiso
+        { width: 30 }, // Descripción
+        { width: 12 }, // Hora Entrada
+        { width: 12 }  // Hora Salida
+      ]
+
+      // Generar buffer
+      const buffer = await workbook.xlsx.writeBuffer()
+
+      return {
+        status: 201,
+        type: 'success',
+        title: 'Excel',
+        message: 'Reporte de permisos generado exitosamente',
+        buffer: buffer,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Server Error',
+        message: 'Ha ocurrido un error inesperado en el servidor',
+        error: error.message,
+      }
+    }
   }
 
 }
