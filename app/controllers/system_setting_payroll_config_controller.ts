@@ -36,6 +36,22 @@ export default class SystemSettingPayrollConfigController {
    *                 type: number
    *                 description: System setting payroll config number of days to be paid
    *                 required: false
+   *               systemSettingPayrollConfigNumberOfDaysEndToBePaid:
+   *                 type: number
+   *                 description: System setting payroll config number of days end to be paid
+   *                 required: false
+   *               systemSettingPayrollConfigAdvanceDateInMonthsOf31Days:
+   *                 type: boolean
+   *                 description: System setting payroll config advance date in months of 31 days
+   *                 required: false
+   *               systemSettingPayrollConfigAdvanceDateOnHolidays:
+   *                 type: boolean
+   *                 description: System setting payroll config advance date on holidays
+   *                 required: false
+   *               systemSettingPayrollConfigAdvanceDateOnWeekends:
+   *                 type: boolean
+   *                 description: System setting payroll config advance date on weekends
+   *                 required: false
    *               systemSettingPayrollConfigNumberOfOverdueDaysToOffset:
    *                 type: number
    *                 description: System setting payroll config number of overdue days to offset
@@ -136,6 +152,10 @@ export default class SystemSettingPayrollConfigController {
       const systemSettingPayrollConfigFixedDay = request.input('systemSettingPayrollConfigFixedDay')
       const systemSettingPayrollConfigFixedEveryNWeeks = request.input('systemSettingPayrollConfigFixedEveryNWeeks')
       const systemSettingPayrollConfigNumberOfDaysToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysToBePaid')
+      const systemSettingPayrollConfigNumberOfDaysEndToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysEndToBePaid')
+      const systemSettingPayrollConfigAdvanceDateInMonthsOf31Days = request.input('systemSettingPayrollConfigAdvanceDateInMonthsOf31Days')
+      const systemSettingPayrollConfigAdvanceDateOnHolidays = request.input('systemSettingPayrollConfigAdvanceDateOnHolidays')
+      const systemSettingPayrollConfigAdvanceDateOnWeekends = request.input('systemSettingPayrollConfigAdvanceDateOnWeekends')
       const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
       const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
       const systemSettingId = request.input('systemSettingId')
@@ -146,6 +166,10 @@ export default class SystemSettingPayrollConfigController {
         systemSettingPayrollConfigFixedDay: systemSettingPayrollConfigFixedDay,
         systemSettingPayrollConfigFixedEveryNWeeks: systemSettingPayrollConfigFixedEveryNWeeks,
         systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
+        systemSettingPayrollConfigNumberOfDaysEndToBePaid: systemSettingPayrollConfigNumberOfDaysEndToBePaid,
+        systemSettingPayrollConfigAdvanceDateInMonthsOf31Days: systemSettingPayrollConfigAdvanceDateInMonthsOf31Days,
+        systemSettingPayrollConfigAdvanceDateOnHolidays: systemSettingPayrollConfigAdvanceDateOnHolidays,
+        systemSettingPayrollConfigAdvanceDateOnWeekends: systemSettingPayrollConfigAdvanceDateOnWeekends ,
         systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
         systemSettingPayrollConfigApplySince: dateApplySince,
         systemSettingId: systemSettingId
@@ -231,6 +255,22 @@ export default class SystemSettingPayrollConfigController {
    *               systemSettingPayrollConfigNumberOfDaysToBePaid:
    *                 type: number
    *                 description: System setting payroll config number of days to be paid
+   *                 required: false
+   *               systemSettingPayrollConfigNumberOfDaysEndToBePaid:
+   *                 type: number
+   *                 description: System setting payroll config number of days end to be paid
+   *                 required: false
+   *               systemSettingPayrollConfigAdvanceDateInMonthsOf31Days:
+   *                 type: boolean
+   *                 description: System setting payroll config advance date in months of 31 days
+   *                 required: false
+   *               systemSettingPayrollConfigAdvanceDateOnHolidays:
+   *                 type: boolean
+   *                 description: System setting payroll config advance date on holidays
+   *                 required: false
+   *               systemSettingPayrollConfigAdvanceDateOnWeekends:
+   *                 type: boolean
+   *                 description: System setting payroll config advance date on weekends
    *                 required: false
    *               systemSettingPayrollConfigNumberOfOverdueDaysToOffset:
    *                 type: number
@@ -329,6 +369,10 @@ export default class SystemSettingPayrollConfigController {
       const systemSettingPayrollConfigFixedDay = request.input('systemSettingPayrollConfigFixedDay')
       const systemSettingPayrollConfigFixedEveryNWeeks = request.input('systemSettingPayrollConfigFixedEveryNWeeks')
       const systemSettingPayrollConfigNumberOfDaysToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysToBePaid')
+      const systemSettingPayrollConfigNumberOfDaysEndToBePaid = request.input('systemSettingPayrollConfigNumberOfDaysEndToBePaid')
+      const systemSettingPayrollConfigAdvanceDateInMonthsOf31Days = request.input('systemSettingPayrollConfigAdvanceDateInMonthsOf31Days')
+      const systemSettingPayrollConfigAdvanceDateOnHolidays = request.input('systemSettingPayrollConfigAdvanceDateOnHolidays')
+      const systemSettingPayrollConfigAdvanceDateOnWeekends = request.input('systemSettingPayrollConfigAdvanceDateOnWeekends')
       const systemSettingPayrollConfigNumberOfOverdueDaysToOffset = request.input('systemSettingPayrollConfigNumberOfOverdueDaysToOffset')
       const systemSettingPayrollConfigApplySince = request.input('systemSettingPayrollConfigApplySince')
       const systemSettingPayrollConfig = {
@@ -337,6 +381,10 @@ export default class SystemSettingPayrollConfigController {
         systemSettingPayrollConfigFixedDay: systemSettingPayrollConfigFixedDay,
         systemSettingPayrollConfigFixedEveryNWeeks: systemSettingPayrollConfigFixedEveryNWeeks,
         systemSettingPayrollConfigNumberOfDaysToBePaid: systemSettingPayrollConfigNumberOfDaysToBePaid,
+        systemSettingPayrollConfigNumberOfDaysEndToBePaid: systemSettingPayrollConfigNumberOfDaysEndToBePaid,
+        systemSettingPayrollConfigAdvanceDateInMonthsOf31Days: systemSettingPayrollConfigAdvanceDateInMonthsOf31Days,
+        systemSettingPayrollConfigAdvanceDateOnHolidays: systemSettingPayrollConfigAdvanceDateOnHolidays,
+        systemSettingPayrollConfigAdvanceDateOnWeekends: systemSettingPayrollConfigAdvanceDateOnWeekends ,
         systemSettingPayrollConfigNumberOfOverdueDaysToOffset: systemSettingPayrollConfigNumberOfOverdueDaysToOffset,
         systemSettingPayrollConfigApplySince: systemSettingPayrollConfigApplySince,
       } as SystemSettingPayrollConfig

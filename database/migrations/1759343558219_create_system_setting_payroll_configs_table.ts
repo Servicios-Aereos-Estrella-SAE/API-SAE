@@ -6,7 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('system_setting_payroll_config_id')
-      table.enum('system_setting_payroll_config_payment_type', ['biweekly', 'fixed_day_every_n_weeks', 'specific_day_of_month'])
+      table.enum('system_setting_payroll_config_payment_type', ['biweekly', 'fixed_day_every_n_weeks', 'specific_day_of_month', 'fourteenth'])
         .notNullable()
 
       table.string('system_setting_payroll_config_fixed_day', 10)
@@ -17,6 +17,21 @@ export default class extends BaseSchema {
 
       table.integer('system_setting_payroll_config_number_of_days_to_be_paid')
         .nullable()
+
+      table.integer('system_setting_payroll_config_number_of_days_end_to_be_paid')
+        .nullable()
+
+      table.boolean('system_setting_payroll_config_advance_date_in_months_of_31_days')
+        .notNullable()
+        .defaultTo(0)
+      
+      table.boolean('system_setting_payroll_config_advance_date_on_holidays')
+        .notNullable()
+        .defaultTo(0)
+
+      table.boolean('system_setting_payroll_config_advance_date_on_weekends')
+        .notNullable()
+        .defaultTo(0)
       
       table.integer('system_setting_payroll_config_number_of_overdue_days_to_offset')
         .nullable()
