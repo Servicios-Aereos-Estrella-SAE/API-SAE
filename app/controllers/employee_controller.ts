@@ -194,7 +194,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async synchronization({ request, response }: HttpContext) {
+  async synchronization({ request, response, i18n }: HttpContext) {
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 1000)
@@ -266,7 +266,7 @@ export default class EmployeeController {
       }
 
       if (data) {
-        const employeeService = new EmployeeService()
+        const employeeService = new EmployeeService(i18n)
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
 
         let employeeCountSaved = 0
@@ -483,7 +483,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async index({ auth, request, response }: HttpContext) {
+  async index({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -504,7 +504,7 @@ export default class EmployeeController {
         }
       }
 
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       let departmentsList = [] as Array<number>
 
       if (user) {
@@ -532,7 +532,7 @@ export default class EmployeeController {
         limit: limit,
       } as EmployeeFilterSearchInterface
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employees = await employeeService.index(filters, departmentsList)
 
       response.status(200)
@@ -750,7 +750,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async store({ auth, request, response }: HttpContext) {
+  async store({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -822,7 +822,7 @@ export default class EmployeeController {
           employee.positionId = position.positionId
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const data = await request.validateUsing(createEmployeeValidator)
       const exist = await employeeService.verifyInfoExist(employee)
       if (exist.status !== 200) {
@@ -1089,7 +1089,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async update({ request, response }: HttpContext) {
+  async update({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       const employeeFirstName = request.input('employeeFirstName')
@@ -1165,7 +1165,7 @@ export default class EmployeeController {
         }
       }
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const data = await request.validateUsing(updateEmployeeValidator)
       const exist = await employeeService.verifyInfoExist(employee)
 
@@ -1314,7 +1314,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async delete({ request, response }: HttpContext) {
+  async delete({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       if (!employeeId) {
@@ -1339,7 +1339,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const deleteEmployee = await employeeService.delete(currentEmployee)
       if (deleteEmployee) {
         response.status(201)
@@ -1462,7 +1462,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async show({ request, response }: HttpContext) {
+  async show({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       if (!employeeId) {
@@ -1474,7 +1474,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.show(employeeId)
       if (!showEmployee) {
         response.status(404)
@@ -1603,7 +1603,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getByCode({ auth, request, response }: HttpContext) {
+  async getByCode({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -1624,7 +1624,7 @@ export default class EmployeeController {
           data: { employeeCode },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.getByCode(employeeCode, userResponsibleId)
       if (!showEmployee) {
         response.status(404)
@@ -1777,7 +1777,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async indexWithOutUser({ request, response }: HttpContext) {
+  async indexWithOutUser({ request, response, i18n }: HttpContext) {
     try {
       const search = request.input('search')
       const departmentId = request.input('departmentId')
@@ -1791,7 +1791,7 @@ export default class EmployeeController {
         page: page,
         limit: limit,
       } as EmployeeFilterSearchInterface
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employees = await employeeService.indexWithOutUser(filters)
       response.status(200)
       return {
@@ -1999,9 +1999,9 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getWorkSchedules({ response }: HttpContext) {
+  async getWorkSchedules({ response, i18n }: HttpContext) {
     try {
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employeeWorkSchedules = await employeeService.getWorkSchedules()
       response.status(200)
       return {
@@ -2122,7 +2122,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getProceedingFiles({ request, response }: HttpContext) {
+  async getProceedingFiles({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       const fileType = Number.parseInt(request.input('type'))
@@ -2137,7 +2137,7 @@ export default class EmployeeController {
         }
       }
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.show(employeeId)
 
       if (!showEmployee) {
@@ -2269,7 +2269,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getVacationsUsed({ request, response }: HttpContext) {
+  async getVacationsUsed({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       if (!employeeId) {
@@ -2281,7 +2281,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employee = await employeeService.show(employeeId)
       if (!employee) {
         response.status(404)
@@ -2420,7 +2420,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getVacationsCorresponding({ request, response }: HttpContext) {
+  async getVacationsCorresponding({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       if (!employeeId) {
@@ -2432,7 +2432,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employee = await employeeService.show(employeeId)
       if (!employee) {
         response.status(404)
@@ -2577,7 +2577,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getYearsWorked({ request, response }: HttpContext) {
+  async getYearsWorked({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       const year = request.input('year')
@@ -2590,7 +2590,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employee = await employeeService.show(employeeId)
       if (!employee) {
         response.status(404)
@@ -2735,7 +2735,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getVacationsByPeriod({ request, response }: HttpContext) {
+  async getVacationsByPeriod({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       const vacationSettingId = request.input('vacationSettingId')
@@ -2748,7 +2748,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employee = await employeeService.show(employeeId)
       if (!employee) {
         response.status(404)
@@ -3614,7 +3614,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getContracts({ request, response }: HttpContext) {
+  async getContracts({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
 
@@ -3628,7 +3628,7 @@ export default class EmployeeController {
         }
       }
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.show(employeeId)
 
       if (!showEmployee) {
@@ -3751,7 +3751,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getBanks({ request, response }: HttpContext) {
+  async getBanks({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
 
@@ -3765,7 +3765,7 @@ export default class EmployeeController {
         }
       }
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.show(employeeId)
 
       if (!showEmployee) {
@@ -3913,7 +3913,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getBirthday({ auth, request, response }: HttpContext) {
+  async getBirthday({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -3935,7 +3935,7 @@ export default class EmployeeController {
         year: year,
         userResponsibleId: userResponsibleId,
       } as EmployeeFilterSearchInterface
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employees = await employeeService.getBirthday(filters)
       response.status(200)
       return {
@@ -4072,7 +4072,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getVacations({ auth, request, response }: HttpContext) {
+  async getVacations({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -4094,7 +4094,7 @@ export default class EmployeeController {
         year: year,
         userResponsibleId: userResponsibleId,
       } as EmployeeFilterSearchInterface
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employees = await employeeService.getVacations(filters)
       response.status(200)
       return {
@@ -4237,7 +4237,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getAllVacationsByPeriod({ auth, request, response }: HttpContext) {
+  async getAllVacationsByPeriod({ auth, request, response, i18n }: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -4248,7 +4248,7 @@ export default class EmployeeController {
           userResponsibleId = user?.userId
         }
       }
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       let departmentsList = [] as Array<number>
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
@@ -4266,7 +4266,7 @@ export default class EmployeeController {
         dateEnd: dateEnd,
         userResponsibleId: userResponsibleId,
       } as EmployeeFilterSearchInterface
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const employees = await employeeService.getAllVacationsByPeriod(filters, departmentsList)
       response.status(200)
       return {
@@ -4391,7 +4391,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getDaysWorkDisability({ request, response }: HttpContext) {
+  async getDaysWorkDisability({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
 
@@ -4416,7 +4416,7 @@ export default class EmployeeController {
         }
       }
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.show(employeeId)
 
       if (!showEmployee) {
@@ -4428,7 +4428,7 @@ export default class EmployeeController {
           data: { employeeId },
         }
       }
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       const days = await assistService.getDaysWorkDisability(showEmployee, datePay)
 
       response.status(200)
@@ -4558,7 +4558,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getDaysWorkDisabilityAll({ request, response }: HttpContext) {
+  async getDaysWorkDisabilityAll({ request, response, i18n }: HttpContext) {
     try {
 
       const datePay = request.input('datePay')
@@ -4575,7 +4575,7 @@ export default class EmployeeController {
       const departmentId = request.input('departmentId')
       const employeeId = request.input('employeeId')
 
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       const filter = {
         datePay: datePay,
         departmentId: departmentId ? departmentId : 0,
@@ -4977,7 +4977,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getUserResponsible({ request, response }: HttpContext) {
+  async getUserResponsible({ request, response, i18n }: HttpContext) {
     try {
       const employeeId = request.param('employeeId')
       const userId = request.param('userId')
@@ -4991,7 +4991,7 @@ export default class EmployeeController {
         }
       }
 
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       const showEmployee = await employeeService.show(employeeId)
 
       if (!showEmployee) {
@@ -5259,9 +5259,9 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async getBiometrics({ response }: HttpContext) {
+  async getBiometrics({ response, i18n }: HttpContext) {
     try {
-      const employeeService = new EmployeeService()
+      const employeeService = new EmployeeService(i18n)
       let employeesSync = [] as EmployeeSyncInterface[]
       employeesSync = await employeeService.getEmployeesToSyncFromBiometrics()
       response.status(200)
@@ -5388,7 +5388,7 @@ export default class EmployeeController {
    *                     error:
    *                       type: string
    */
-  async synchronizationBySelection({ request, response }: HttpContext) {
+  async synchronizationBySelection({ request, response, i18n }: HttpContext) {
     try {
       const employees = request.input('employees')
       const businessConf = `${env.get('SYSTEM_BUSINESS')}`
@@ -5436,7 +5436,7 @@ export default class EmployeeController {
       }
 
       if (data) {
-        const employeeService = new EmployeeService()
+        const employeeService = new EmployeeService(i18n)
         data.sort((a: BiometricEmployeeInterface, b: BiometricEmployeeInterface) => a.id - b.id)
 
         let employeeCountSaved = 0
