@@ -40,9 +40,10 @@ export default class BirthDayEmail extends BaseCommand {
 
       const systemSettings = await SystemSetting.query()
         .where('system_setting_active', 1)
-        .select('system_setting_id', 'system_setting_business_units')
+        .select('system_setting_id', 'system_setting_business_units', 'system_setting_birthday_emails')
 
       let matchingSystemSettingId: number | null = null
+      let birthdayEmailsEnabled = false
 
       for (const setting of systemSettings) {
         const settingBusinessUnits = setting.systemSettingBusinessUnits.split(',').map((unit: string) => unit.trim())
@@ -54,13 +55,22 @@ export default class BirthDayEmail extends BaseCommand {
 
         if (hasMatch) {
           matchingSystemSettingId = setting.systemSettingId
+          birthdayEmailsEnabled = setting.systemSettingBirthdayEmails === 1
           break
         }
       }
 
       this.logger.info(`🏢 Using system setting: ${matchingSystemSettingId}`)
+      this.logger.info(`📧 Birthday emails enabled: ${birthdayEmailsEnabled}`)
+
       if (!matchingSystemSettingId) {
         this.logger.error('❌ No matching system setting found')
+        return
+      }
+
+      // Verificar si los emails de cumpleaños están habilitados para este system setting
+      if (!birthdayEmailsEnabled) {
+        this.logger.info('📧 Birthday emails are disabled for this system setting')
         return
       }
 
