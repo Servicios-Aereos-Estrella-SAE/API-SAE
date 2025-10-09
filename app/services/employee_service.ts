@@ -216,7 +216,17 @@ export default class EmployeeService {
       .preload('person')
       .preload('businessUnit')
       .preload('address')
-      .orderBy('employee_id')
+      .if(filters.orderBy === 'number', (query) => {
+        const direction = this.getOrderDirection(filters.orderDirection)
+        query.orderByRaw(`CAST(employee_code AS UNSIGNED) ${direction}, employee_code ${direction}`)
+      })
+      .if(filters.orderBy === 'name', (query) => {
+        const direction = this.getOrderDirection(filters.orderDirection)
+        query.orderByRaw(`CONCAT(COALESCE(employee_first_name, ''), ' ', COALESCE(employee_last_name, ''), ' ', COALESCE(employee_second_last_name, '')) ${direction}`)
+      })
+      .if(!filters.orderBy, (query) => {
+        query.orderBy('employee_id')
+      })
       .paginate(filters.page, filters.limit)
 
     return employees
@@ -1471,5 +1481,29 @@ export default class EmployeeService {
       .replace(/[^a-zA-Z\s]/g, '')
       .toLowerCase()
       .trim()
+  }
+
+  /**
+   * Normaliza los valores de orderDirection para manejar tanto inglés como español
+   * @param orderDirection - Dirección del ordenamiento
+   * @returns 'desc' o 'asc'
+   */
+  private getOrderDirection(orderDirection?: string): string {
+    if (!orderDirection) return 'asc'
+
+    const normalizedDirection = orderDirection.toLowerCase()
+
+    // Manejar valores en inglés
+    if (normalizedDirection === 'descend' || normalizedDirection === 'desc') {
+      return 'desc'
+    }
+
+    // Manejar valores en español
+    if (normalizedDirection === 'descendente') {
+      return 'desc'
+    }
+
+    // Por defecto, ordenamiento ascendente
+    return 'asc'
   }
 }
