@@ -182,7 +182,7 @@ export default class EmployeeProceedingFileService {
       .preload('proceedingFileType')
       .preload('employeeProceedingFile', (query) => {
         query.preload('employee', (subQuery) => {
-          subQuery.whereNull('employee_deleted_at') // También al hacer preload, solo traer empleados no eliminados
+          subQuery.whereNull('employee_deleted_at')
         })
       })
       .orderBy('proceeding_file_expiration_at')
@@ -203,7 +203,7 @@ export default class EmployeeProceedingFileService {
       .preload('proceedingFileType')
       .preload('employeeProceedingFile', (query) => {
         query.preload('employee', (subQuery) => {
-          subQuery.whereNull('employee_deleted_at') // También al hacer preload, solo traer empleados no eliminados
+          subQuery.whereNull('employee_deleted_at')
         })
       })
       .orderBy('proceeding_file_expiration_at')
