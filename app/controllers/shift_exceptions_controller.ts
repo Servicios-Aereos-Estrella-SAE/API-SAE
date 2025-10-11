@@ -6,6 +6,7 @@ import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionType from '#models/exception_type'
 import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
+import EmployeeService from '#services/employee_service'
 
 export default class ShiftExceptionController {
   /**
@@ -709,6 +710,246 @@ export default class ShiftExceptionController {
         message: 'An unexpected error has occurred on the server',
         error: error.message,
       }
+    }
+  }
+
+   /**
+   * @swagger
+   * /api/shift-exception-apply-general:
+   *   post:
+   *     summary: Create a new shift exception general
+   *     tags: [ShiftException]
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               exceptionTypeId:
+   *                 type: number
+   *                 description: Exception type id
+   *                 required: true
+   *                 default: ''
+   *               shiftExceptionDate:
+   *                 type: string
+   *                 format: date
+   *                 description: Date of the shift exception
+   *                 required: true
+   *                 default: ''
+   *               shiftExceptionCheckInTime:
+   *                 type: string
+   *                 format: time
+   *                 description: Time check in
+   *                 nullable: true
+   *                 required: false
+   *                 default: ''
+   *               shiftExceptionCheckOutTime:
+   *                 type: string
+   *                 format: time
+   *                 description: Time check out
+   *                 nullable: true
+   *                 required: false
+   *                 default: ''
+   *               shiftExceptionDescription:
+   *                 type: string
+   *                 description: Description of the shift exception
+   *                 required: false
+   *                 default: ''
+   *     responses:
+   *       '201':
+   *         description: Resource processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Processed object
+   *       '404':
+   *         description: Resource not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       '400':
+   *         description: The parameters entered are invalid or essential data is missing to process the request
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: List of parameters set by the client
+   *       default:
+   *         description: Unexpected error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   description: Type of response generated
+   *                 title:
+   *                   type: string
+   *                   description: Title of response generated
+   *                 message:
+   *                   type: string
+   *                   description: Message of response
+   *                 data:
+   *                   type: object
+   *                   description: Error message obtained
+   *                   properties:
+   *                     error:
+   *                       type: string
+   */
+   async applyExceptionGeneral({ auth, request, response }: HttpContext) {
+    try {
+      const exceptionTypeId = request.input('exceptionTypeId')
+      const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
+      let shiftExceptionsDate = request.input('shiftExceptionDate')
+      if (shiftExceptionsDate.toString().length <= 10) {
+        shiftExceptionsDate = shiftExceptionsDate
+          ? DateTime.fromJSDate(new Date(`${shiftExceptionsDate}T00:00:00.000-06:00`)).setZone(
+              'UTC'
+            )
+          : null
+      } else {
+        shiftExceptionsDate = shiftExceptionsDate
+          ? DateTime.fromJSDate(new Date(shiftExceptionsDate)).setZone('UTC')
+          : null
+      }
+      const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
+      const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
+    
+      const shiftExceptionsSaved = [] as Array<ShiftException>
+      const shiftExceptionsError = [] as Array<ShiftExceptionErrorInterface>
+ 
+      const employeeService = new EmployeeService()
+      const page = 1
+      const limit = 999999999999999
+      const resultEmployes = await employeeService.index(
+        {
+          search: '',
+          departmentId: 0,
+          positionId: 0,
+          employeeWorkSchedule: '',
+          page: page,
+          limit: limit,
+          ignoreDiscriminated: 0,
+          ignoreExternal: 0,
+        },
+        []
+      )
+      const dataEmployes: any = resultEmployes
+      for await (const employee of dataEmployes) {
+        const shiftException = {
+          employeeId: employee.employeeId,
+          shiftExceptionsDescription: shiftExceptionsDescription,
+          shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+          exceptionTypeId: exceptionTypeId,
+          shiftExceptionCheckInTime: shiftExceptionCheckInTime,
+          shiftExceptionCheckOutTime: shiftExceptionCheckOutTime
+            ? shiftExceptionCheckOutTime
+            : null,
+        } as ShiftException
+        try {
+          await request.validateUsing(createShiftExceptionValidator)
+          const shiftExceptionService = new ShiftExceptionService()
+          const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
+          if (verifyInfo.status !== 200) {
+            shiftExceptionsError.push({
+              shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+              error: verifyInfo.message,
+            })
+          } else {
+            const newShiftException = await shiftExceptionService.create(shiftException)
+            if (newShiftException) {
+              const rawHeaders = request.request.rawHeaders
+              const userId = auth.user?.userId
+              if (userId) {
+                const logShiftException = await shiftExceptionService.createActionLog(
+                  rawHeaders,
+                  'store'
+                )
+                logShiftException.user_id = userId
+                logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+                const exceptionType = await ExceptionType.query()
+                  .whereNull('exception_type_deleted_at')
+                  .where('exception_type_slug', 'vacation')
+                  .first()
+                let table = 'log_shift_exceptions'
+                if (exceptionType) {
+                  if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
+                    table = 'log_vacations'
+                  }
+                }
+                await shiftExceptionService.saveActionOnLog(logShiftException, table)
+              }
+              await newShiftException.load('exceptionType')
+              await newShiftException.load('vacationSetting')
+              shiftExceptionsSaved.push(newShiftException)
+            }
+          }
+        } catch (error) {
+          shiftExceptionsError.push({
+            shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+            error: error.message,
+          })
+        }
+      }
+       
+      response.status(201)
+      return {
+        type: 'success',
+        title: 'Shift exception',
+        message: 'The shift exception was created successfully',
+        data: {
+          shiftExceptionsSaved: shiftExceptionsSaved,
+          shiftExceptionsError: shiftExceptionsError,
+        },
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      return response.status(400).json({
+        type: 'error',
+        title: 'Validation error',
+        message: error.messages,
+        data: error,
+      })
     }
   }
 }
