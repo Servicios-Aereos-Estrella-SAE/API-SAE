@@ -86,6 +86,10 @@ import './routes/employee_shift_change_routes.js'
 import './routes/user_responsible_employee_routes.js'
 import './routes/shift_exception_evidence_routes.js'
 import './routes/employee_assist_calendar_routes.js'
+import './routes/medical_condition_type_routes.js'
+import './routes/medical_condition_type_property_routes.js'
+import './routes/employee_medical_condition_routes.js'
+import './routes/medical_condition_type_property_value_routes.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'
