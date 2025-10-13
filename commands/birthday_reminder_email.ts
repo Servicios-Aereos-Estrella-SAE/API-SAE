@@ -111,7 +111,7 @@ export default class BirthdayReminderEmail extends BaseCommand {
         .whereNull('user_deleted_at')
         .where('user_active', 1)
         .whereHas('role', (roleQuery) => {
-          roleQuery.where('role_slug', 'rh-tester')
+          roleQuery.where('role_slug', 'rh-manager')
             .whereIn('role_business_access', systemSettingBusinessAccessArray)
         })
         .preload('person')
