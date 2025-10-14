@@ -6,7 +6,10 @@ import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionType from '#models/exception_type'
 import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
-import EmployeeService from '#services/employee_service'
+import Env from '#start/env'
+import BusinessUnit from '#models/business_unit'
+import Employee from '#models/employee'
+import { ShiftExceptionGeneralErrorInterface } from '../interfaces/shift_exception_general_error_interface.js'
 
 export default class ShiftExceptionController {
   /**
@@ -730,7 +733,7 @@ export default class ShiftExceptionController {
    *                 description: Exception type id
    *                 required: true
    *                 default: ''
-   *               shiftExceptionDate:
+   *               shiftExceptionsDate:
    *                 type: string
    *                 format: date
    *                 description: Date of the shift exception
@@ -840,7 +843,7 @@ export default class ShiftExceptionController {
     try {
       const exceptionTypeId = request.input('exceptionTypeId')
       const shiftExceptionsDescription = request.input('shiftExceptionsDescription')
-      let shiftExceptionsDate = request.input('shiftExceptionDate')
+      let shiftExceptionsDate = request.input('shiftExceptionsDate')
       if (shiftExceptionsDate.toString().length <= 10) {
         shiftExceptionsDate = shiftExceptionsDate
           ? DateTime.fromJSDate(new Date(`${shiftExceptionsDate}T00:00:00.000-06:00`)).setZone(
@@ -852,30 +855,51 @@ export default class ShiftExceptionController {
           ? DateTime.fromJSDate(new Date(shiftExceptionsDate)).setZone('UTC')
           : null
       }
+      if (!exceptionTypeId) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Missing data to process',
+          message: 'The exception type Id was not found',
+          data: { exceptionTypeId },
+        }
+      }
+
+      const existExceptionType = await ExceptionType.query()
+        .whereNull('exception_type_deleted_at')
+        .where('exception_type_id', exceptionTypeId)
+        .first()
+
+      if (!existExceptionType && exceptionTypeId) {
+        return {
+          status: 400,
+          type: 'warning',
+          title: 'The exception type was not found',
+          message: 'The exception type was not found with the entered ID',
+          data: { ...exceptionTypeId },
+        }
+      }
+      
       const shiftExceptionCheckInTime = request.input('shiftExceptionCheckInTime')
       const shiftExceptionCheckOutTime = request.input('shiftExceptionCheckOutTime')
     
       const shiftExceptionsSaved = [] as Array<ShiftException>
-      const shiftExceptionsError = [] as Array<ShiftExceptionErrorInterface>
+      const shiftExceptionsError = [] as Array<ShiftExceptionGeneralErrorInterface>
  
-      const employeeService = new EmployeeService()
-      const page = 1
-      const limit = 999999999999999
-      const resultEmployes = await employeeService.index(
-        {
-          search: '',
-          departmentId: 0,
-          positionId: 0,
-          employeeWorkSchedule: '',
-          page: page,
-          limit: limit,
-          ignoreDiscriminated: 0,
-          ignoreExternal: 0,
-        },
-        []
-      )
-      const dataEmployes: any = resultEmployes
-      for await (const employee of dataEmployes) {
+      const businessConf = `${Env.get('SYSTEM_BUSINESS')}`
+      const businessList = businessConf.split(',')
+      const businessUnits = await BusinessUnit.query()
+        .where('business_unit_active', 1)
+        .whereIn('business_unit_slug', businessList)
+       
+  
+      const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
+  
+      const employees = await Employee.query()
+        .whereIn('businessUnitId', businessUnitsList)
+        .preload('person')
+        .orderBy('employee_id')
+      for await (const employee of employees) {
         const shiftException = {
           employeeId: employee.employeeId,
           shiftExceptionsDescription: shiftExceptionsDescription,
@@ -887,12 +911,12 @@ export default class ShiftExceptionController {
             : null,
         } as ShiftException
         try {
-          await request.validateUsing(createShiftExceptionValidator)
           const shiftExceptionService = new ShiftExceptionService()
           const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
           if (verifyInfo.status !== 200) {
             shiftExceptionsError.push({
               shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+              employee: employee,
               error: verifyInfo.message,
             })
           } else {
@@ -920,13 +944,13 @@ export default class ShiftExceptionController {
                 await shiftExceptionService.saveActionOnLog(logShiftException, table)
               }
               await newShiftException.load('exceptionType')
-              await newShiftException.load('vacationSetting')
               shiftExceptionsSaved.push(newShiftException)
             }
           }
         } catch (error) {
           shiftExceptionsError.push({
             shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+            employee: employee,
             error: error.message,
           })
         }
