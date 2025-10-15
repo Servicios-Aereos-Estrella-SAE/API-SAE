@@ -899,62 +899,100 @@ export default class ShiftExceptionController {
         .whereIn('businessUnitId', businessUnitsList)
         .preload('person')
         .orderBy('employee_id')
-      for await (const employee of employees) {
-        const shiftException = {
-          employeeId: employee.employeeId,
-          shiftExceptionsDescription: shiftExceptionsDescription,
-          shiftExceptionsDate: shiftExceptionsDate.toISODate(),
-          exceptionTypeId: exceptionTypeId,
-          shiftExceptionCheckInTime: shiftExceptionCheckInTime,
-          shiftExceptionCheckOutTime: shiftExceptionCheckOutTime
-            ? shiftExceptionCheckOutTime
-            : null,
-        } as ShiftException
-        try {
-          const shiftExceptionService = new ShiftExceptionService()
-          const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
-          if (verifyInfo.status !== 200) {
-            shiftExceptionsError.push({
-              shiftExceptionsDate: shiftExceptionsDate.toISODate(),
-              employee: employee,
-              error: verifyInfo.message,
-            })
-          } else {
-            const newShiftException = await shiftExceptionService.create(shiftException)
-            if (newShiftException) {
-              const rawHeaders = request.request.rawHeaders
-              const userId = auth.user?.userId
-              if (userId) {
-                const logShiftException = await shiftExceptionService.createActionLog(
-                  rawHeaders,
-                  'store'
-                )
-                logShiftException.user_id = userId
-                logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
-                const exceptionType = await ExceptionType.query()
-                  .whereNull('exception_type_deleted_at')
-                  .where('exception_type_slug', 'vacation')
-                  .first()
-                let table = 'log_shift_exceptions'
-                if (exceptionType) {
-                  if (exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
-                    table = 'log_vacations'
-                  }
-                }
-                await shiftExceptionService.saveActionOnLog(logShiftException, table)
+      const results = await Promise.allSettled(
+        employees.map(async (employee) => {
+          const shiftException = {
+              employeeId: employee.employeeId,
+              shiftExceptionsDescription: shiftExceptionsDescription,
+                shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+                exceptionTypeId: exceptionTypeId, shiftExceptionCheckInTime: shiftExceptionCheckInTime, 
+                shiftExceptionCheckOutTime: shiftExceptionCheckOutTime ? shiftExceptionCheckOutTime : null,
+                shiftExceptionEnjoymentOfSalary: 1
+                } as ShiftException
+      
+          try {
+            const shiftExceptionService = new ShiftExceptionService()
+            const verifyInfo = await shiftExceptionService.verifyInfo(shiftException)
+      
+            if (verifyInfo.status !== 200) {
+              return {
+                success: false,
+                data: {
+                  shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+                  employee,
+                  error: verifyInfo.message,
+                },
               }
-              await newShiftException.load('exceptionType')
-              shiftExceptionsSaved.push(newShiftException)
+            }
+      
+            const newShiftException = await shiftExceptionService.create(shiftException)
+      
+            if (!newShiftException) {
+              throw new Error('Failed to create shift exception')
+            }
+      
+            const userId = auth.user?.userId
+            if (userId) {
+              const rawHeaders = request.request.rawHeaders
+              const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'store')
+              logShiftException.user_id = userId
+              logShiftException.record_current = JSON.parse(JSON.stringify(newShiftException))
+      
+              let table = 'log_shift_exceptions'
+      
+              const exceptionType = await ExceptionType.query()
+                .whereNull('exception_type_deleted_at')
+                .where('exception_type_slug', 'vacation')
+                .first()
+      
+              if (exceptionType && exceptionType.exceptionTypeId === newShiftException.exceptionTypeId) {
+                table = 'log_vacations'
+              }
+      
+              await shiftExceptionService.saveActionOnLog(logShiftException, table)
+            }
+      
+            await newShiftException.load('exceptionType')
+      
+            return {
+              success: true,
+              data: newShiftException,
+            }
+          } catch (error) {
+            return {
+              success: false,
+              data: {
+                shiftExceptionsDate: shiftExceptionsDate.toISODate(),
+                employee,
+                error: error.message,
+              },
             }
           }
-        } catch (error) {
+        })
+      )
+      
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const res = result.value
+      
+          if (res.success) {
+            shiftExceptionsSaved.push(res.data as ShiftException)
+          } else {
+            shiftExceptionsError.push(res.data as {
+              shiftExceptionsDate: string
+              employee: Employee
+              error: any
+            })
+          }
+        } else {
           shiftExceptionsError.push({
             shiftExceptionsDate: shiftExceptionsDate.toISODate(),
-            employee: employee,
-            error: error.message,
+            employee: {} as Employee,
+            error: result.reason?.message || 'Unexpected error',
           })
         }
       }
+        
        
       response.status(201)
       return {
