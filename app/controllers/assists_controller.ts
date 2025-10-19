@@ -13,8 +13,20 @@ import Assist from '#models/assist'
 import { DateTime } from 'luxon'
 import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
 import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
+import { PermissionsDatesExcelFilterInterface } from '../interfaces/permissions_dates_excel_filter_interface.js'
+import { I18n } from '@adonisjs/i18n'
 
 export default class AssistsController {
+  // private t: (key: string,params?: { [key: string]: string | number }) => string
+  private i18n: I18n
+  // private localeToUse: string
+
+  constructor(i18n: I18n) {
+    // this.t = i18n.formatMessage.bind(i18n)
+    this.i18n = i18n
+    // this.localeToUse = i18n.locale
+  }
+
   /**
    * @swagger
    * /api/v1/assists/synchronize:
@@ -238,7 +250,7 @@ export default class AssistsController {
         .where('employee_id', employeeID)
         .first()
       if (employee) {
-    
+
           const filter: SyncAssistsServiceIndexInterface = {
             date: filterDate,
             dateEnd: filterDateEnd,
@@ -247,7 +259,7 @@ export default class AssistsController {
           console.log('procesando: ' + employee.employeeId)
           const syncAssistsService = new SyncAssistsService()
           await syncAssistsService.setDateCalendar(filter)
-        
+
       }
     } */
     try {
@@ -1358,7 +1370,7 @@ export default class AssistsController {
         const date: Date = currentAssist.assistPunchTimeUtc.toJSDate()
         await assistService.updateAssistCalendar(currentAssist.assistEmpId, date)
       }
-     
+
       response.status(200)
       return {
         type: 'success',
@@ -1556,6 +1568,137 @@ export default class AssistsController {
     } else {
       // En horario estándar
       return false
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/v1/assists/get-excel-permissions-dates:
+   *   get:
+   *     summary: Generate Excel report of employee permissions by date range
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Assists]
+   *     parameters:
+   *       - in: query
+   *         name: date
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: Start date for the report
+   *         example: "2024-01-01"
+   *       - in: query
+   *         name: date-end
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: date
+   *         description: End date for the report
+   *         example: "2024-01-31"
+   *     responses:
+   *       200:
+   *         description: Excel file generated successfully
+   *         content:
+   *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+   *             schema:
+   *               type: string
+   *               format: binary
+   *       400:
+   *         description: Bad request - missing or invalid parameters
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   example: warning
+   *                 title:
+   *                   type: string
+   *                   example: Invalid parameters
+   *                 message:
+   *                   type: string
+   *                   example: Start date and end date are required
+   *       500:
+   *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 type:
+   *                   type: string
+   *                   example: error
+   *                 title:
+   *                   type: string
+   *                   example: Server Error
+   *                 message:
+   *                   type: string
+   *                   example: An unexpected error has occurred on the server
+   */
+  async getExcelPermissionsByDates({ auth, request, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user
+      let userResponsibleId = null
+
+      if (user) {
+        await user.preload('role')
+        if (user.role.roleSlug !== 'root') {
+          userResponsibleId = user?.userId
+        }
+      }
+
+      const filterDate = request.input('date')
+      const filterDateEnd = request.input('date-end')
+
+      if (!filterDate || !filterDateEnd) {
+        response.status(400)
+        return {
+          type: 'warning',
+          title: 'Parámetros inválidos',
+          message: 'Las fechas de inicio y fin son requeridas',
+          data: { filterDate, filterDateEnd },
+        }
+      }
+
+      const userService = new UserService(this.i18n)
+      let departmentsList = [] as Array<number>
+      if (user) {
+        departmentsList = await userService.getRoleDepartments(user.userId)
+      }
+
+      const filters = {
+        filterDate: filterDate,
+        filterDateEnd: filterDateEnd,
+        userResponsibleId: userResponsibleId,
+      } as PermissionsDatesExcelFilterInterface
+
+      const assistService = new AssistsService(this.i18n)
+      const result = await assistService.getExcelPermissionsByDates(filters, departmentsList)
+
+      if (result.buffer) {
+        response.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response.header('Content-Disposition', 'attachment; filename="permisos-fechas.xlsx"')
+        return response.send(result.buffer)
+      } else {
+        response.status(result.status || 500)
+        return {
+          type: result.type || 'error',
+          title: result.title || 'Error',
+          message: result.message || 'Error al generar el reporte',
+          data: result.error ? { error: result.error } : null,
+        }
+      }
+    } catch (error) {
+      response.status(500)
+      return {
+        type: 'error',
+        title: 'Server Error',
+        message: 'Ha ocurrido un error inesperado en el servidor',
+        data: { error: error.message },
+      }
     }
   }
 }
