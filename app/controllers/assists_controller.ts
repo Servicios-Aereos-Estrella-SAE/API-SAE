@@ -61,11 +61,12 @@ export default class AssistsController {
    *                   example: Ya se encuentra un proceso en sincronización, por favor espere
    */
   @inject()
-  async synchronize({ request, response }: HttpContext, syncAssistsService: SyncAssistsService) {
+  async synchronize({ request, response,i18n }: HttpContext) {
     const dateParamApi = request.input('date')
     const page = request.input('page')
 
     try {
+      const syncAssistsService = new SyncAssistsService(i18n)
       const result = await syncAssistsService.synchronize(dateParamApi, page)
       return response.status(200).json(result)
     } catch (error) {
@@ -125,8 +126,7 @@ export default class AssistsController {
    */
   @inject()
   async employeeSynchronize(
-    { auth, request, response }: HttpContext,
-    syncAssistsService: SyncAssistsService
+    { auth, request, response, i18n }: HttpContext
   ) {
     const startDate = request.input('startDate')
     const endDate = request.input('endDate')
@@ -143,6 +143,7 @@ export default class AssistsController {
         userId: userId ? userId : 0,
         rawHeaders: rawHeaders,
       } as AssistSyncFilterInterface
+      const  syncAssistsService = new SyncAssistsService(i18n)
       const result = await syncAssistsService.synchronizeByEmployee(filters)
       return response.status(200).json(result)
     } catch (error) {
@@ -176,7 +177,8 @@ export default class AssistsController {
    *                   example: "Error al obtener el estado de sincronización"
    */
   @inject()
-  async getStatusSync({ response }: HttpContext, syncAssistsService: SyncAssistsService) {
+  async getStatusSync({ response, i18n }: HttpContext) {
+    const  syncAssistsService = new SyncAssistsService(i18n)
     return response.status(200).json(await syncAssistsService.getStatusSync())
   }
 
@@ -224,8 +226,9 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async index({ request, response }: HttpContext) {
-    const syncAssistsService = new SyncAssistsService()
+  async index({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
+    const syncAssistsService = new SyncAssistsService(i18n)
     const employeeID = request.input('employeeId')
     const filterDate = request.input('date')
     const filterDateEnd = request.input('date-end')
@@ -262,8 +265,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -326,7 +329,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByEmployee({ request, response }: HttpContext) {
+  async getExcelByEmployee({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const employeeId = request.input('employeeId')
       const filterDate = request.input('date')
@@ -342,21 +346,23 @@ export default class AssistsController {
         .first()
       if (!employee) {
         response.status(400)
+        const entity = t('employee')
         return {
           type: 'warning',
-          title: 'The employee was not found',
-          message: 'The employee was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { employeeId },
         }
       }
       const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
 
       if (!validReportTypes.includes(reportType)) {
+        const entity = t('report_type')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The report type was not found',
-          message: 'The report type is not valid',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_is_not_valid', { entity }),
           data: { reportType },
         }
       }
@@ -366,7 +372,7 @@ export default class AssistsController {
         filterDateEnd: filterDateEnd,
         filterDatePay: filterDatePay,
       } as AssistEmployeeExcelFilterInterface
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       let buffer
       if (reportType === 'Assistance Report') {
         buffer = await assistService.getExcelByEmployeeAssistance(employee, filters)
@@ -397,8 +403,8 @@ export default class AssistsController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Server Error',
-          message: 'An unexpected error has occurred on the server buffer not found',
+          title: t('server_error'),
+          message: t('an_unexpected_error_has_occurred_on_the_server_buffer_not_found'),
           data: { employeeId },
         }
       }
@@ -406,8 +412,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -463,7 +469,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByPosition({ request, response }: HttpContext) {
+  async getExcelByPosition({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const departmentId = request.input('departmentId')
       const positionId = request.input('positionId')
@@ -474,11 +481,12 @@ export default class AssistsController {
         .where('department_id', departmentId)
         .first()
       if (!department) {
+        const entity = t('department')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { departmentId },
         }
       }
@@ -487,11 +495,12 @@ export default class AssistsController {
         .where('position_id', positionId)
         .first()
       if (!position) {
+        const entity = t('position')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The position was not found',
-          message: 'The position was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { positionId },
         }
       }
@@ -501,7 +510,7 @@ export default class AssistsController {
         filterDate: filterDate,
         filterDateEnd: filterDateEnd,
       } as AssistPositionExcelFilterInterface
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       const buffer = await assistService.getExcelByPosition(filters)
       if (buffer.status === 201) {
         response.header(
@@ -524,8 +533,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -594,7 +603,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelByDepartment({ auth, request, response }: HttpContext) {
+  async getExcelByDepartment({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -615,22 +625,24 @@ export default class AssistsController {
         .where('department_id', departmentId)
         .first()
       if (!department) {
+        const entity = t('department')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The department was not found',
-          message: 'The department was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { departmentId },
         }
       }
       const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
 
       if (!validReportTypes.includes(reportType)) {
+        const entity = t('report_type')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The report type was not found',
-          message: 'The report type is not valid',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_is_not_valid', { entity }),
           data: { reportType },
         }
       }
@@ -641,7 +653,7 @@ export default class AssistsController {
         filterDatePay: filterDatePay,
         userResponsibleId: userResponsibleId,
       } as AssistDepartmentExcelFilterInterface
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       let buffer
       if (reportType === 'Assistance Report') {
         buffer = await assistService.getExcelByDepartmentAssistance(filters)
@@ -672,8 +684,8 @@ export default class AssistsController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Server Error',
-          message: 'An unexpected error has occurred on the server buffer not found',
+          title: t('server_error'),
+          message: t('an_unexpected_error_has_occurred_on_the_server_buffer_not_found'),
           data: { filters },
         }
       }
@@ -681,8 +693,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -751,7 +763,8 @@ export default class AssistsController {
    *             schema:
    *               type: object
    */
-  async getExcelAll({ auth, request, response }: HttpContext) {
+  async getExcelAll({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       await auth.check()
       const user = auth.user
@@ -762,7 +775,7 @@ export default class AssistsController {
           userResponsibleId = user?.userId
         }
       }
-      const userService = new UserService()
+      const userService = new UserService(i18n)
       let departmentsList = [] as Array<number>
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
@@ -774,11 +787,12 @@ export default class AssistsController {
       const validReportTypes = ['Assistance Report', 'Incident Summary', 'Incident Summary Payroll']
 
       if (!validReportTypes.includes(reportType)) {
+        const entity = t('report_type')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The report type was not found',
-          message: 'The report type is not valid',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_is_not_valid', { entity }),
           data: { reportType },
         }
       }
@@ -788,7 +802,7 @@ export default class AssistsController {
         filterDatePay: filterDatePay,
         userResponsibleId: userResponsibleId,
       } as AssistDepartmentExcelFilterInterface
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       let buffer
       if (reportType === 'Assistance Report') {
         buffer = await assistService.getExcelAllAssistance(filters, departmentsList)
@@ -819,8 +833,8 @@ export default class AssistsController {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Server Error',
-          message: 'An unexpected error has occurred on the server buffer not found',
+          title: t('server_error'),
+          message: t('an_unexpected_error_has_occurred_on_the_server_buffer_not_found'),
           data: { filters },
         }
       }
@@ -828,8 +842,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server Error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -954,7 +968,8 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async store({ auth, request, response }: HttpContext) {
+  async store({ auth, request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const employeeId = request.input('employeeId')
       let assistPunchTime = request.input('assistPunchTime')
@@ -968,11 +983,12 @@ export default class AssistsController {
         .first()
 
       if (!employee) {
+        const entity = t('employee')
         response.status(400)
         return {
           type: 'warning',
-          title: 'The employee was not found',
-          message: 'The employee was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { employeeId, assistPunchTime },
         }
       }
@@ -1010,7 +1026,7 @@ export default class AssistsController {
         deletedAt: null,
       } as Assist
 
-      const assistsService = new AssistsService()
+      const assistsService = new AssistsService(i18n)
       const verifyInfo = await assistsService.verifyInfo(assist)
 
       if (verifyInfo.status !== 200) {
@@ -1038,8 +1054,8 @@ export default class AssistsController {
         response.status(201)
         return {
           type: 'success',
-          title: 'Assists',
-          message: 'The assist was created successfully',
+          title: t('resource'),
+          message: t('resource_was_created_successfully'),
           data: { assist: newAssist },
         }
       }
@@ -1049,8 +1065,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -1156,26 +1172,29 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async getFormatPayRoll({ request, response }: HttpContext) {
+  async getFormatPayRoll({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const date = request.input('date')
       if (!date) {
+        const entity = t('date')
         response.status(400)
         return {
           type: 'warning',
-          title: 'Missing data to process',
-          message: 'The date was not found',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found', { entity }),
           data: { date },
         }
       }
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       const result = assistService.isPayThursday(date, '2025-01-09')
       if (!result) {
+        const entity = t('date')
         response.status(400)
         return {
           type: 'warning',
-          title: 'Date is not valid',
-          message: 'The date not is pay thursday',
+          title: t('entity_is_not_valid', { entity }),
+          message: t('the_date_not_is_pay_thursday'),
           data: { date },
         }
       }
@@ -1199,8 +1218,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }
@@ -1306,15 +1325,16 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async inactivate({ request, response }: HttpContext) {
+  async inactivate({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
       const assistId = request.param('assistId')
       if (!assistId) {
         response.status(400)
         return {
           type: 'warning',
-          title: 'Missing data to process',
-          message: 'The assistId Id was not found',
+          title: t('resource'),
+          message: t('resource_id_was_not_found'),
           data: { ...request.all() },
         }
       }
@@ -1323,18 +1343,19 @@ export default class AssistsController {
         .where('assist_id', assistId)
         .first()
       if (!currentAssist) {
+        const entity = t('assist')
         response.status(404)
         return {
           type: 'warning',
-          title: 'The assist was not found',
-          message: 'The assist was not found with the entered ID',
+          title: t('entity_was_not_found', { entity }),
+          message: t('entity_was_not_found_with_entered_id', { entity }),
           data: { assistId },
         }
       }
       currentAssist.assistActive = 0
       await currentAssist.save()
       if (currentAssist.assistPunchTimeUtc) {
-        const assistService = new AssistsService()
+        const assistService = new AssistsService(i18n)
         const date: Date = currentAssist.assistPunchTimeUtc.toJSDate()
         await assistService.updateAssistCalendar(currentAssist.assistEmpId, date)
       }
@@ -1342,8 +1363,8 @@ export default class AssistsController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Employees',
-        message: 'The assist was inactivate successfully',
+        title: t('resource'),
+        message: t('the_assist_was_inactivate_successfully'),
         data: { assist: currentAssist },
       }
     } catch (error) {
@@ -1352,8 +1373,8 @@ export default class AssistsController {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: messageError,
       }
     }
@@ -1470,24 +1491,25 @@ export default class AssistsController {
    *                     error:
    *                       type: string
    */
-  async getAssistFlatList({ request, response }: HttpContext) {
+  async getAssistFlatList({ request, response, i18n }: HttpContext) {
+    const t = i18n.formatMessage.bind(i18n)
     try {
 
       const employeeId = request.input('employeeId')
-
       if (!employeeId) {
+        const entity = t('employee')
         response.status(400)
         return {
           type: 'warning',
-          title: 'Missing data to process',
-          message: 'The employee Id was not found',
+          title: t('resource'),
+          message: t('entity_id_was_not_found', {entity}),
           data: { employeeId },
         }
       }
       const dateStart = request.input('dateStart')
       const dateEnd = request.input('dateEnd')
 
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(i18n)
       const filter = {
         employeeId: employeeId,
         dateStart: dateStart,
@@ -1499,16 +1521,16 @@ export default class AssistsController {
       response.status(200)
       return {
         type: 'success',
-        title: 'Assists',
-        message: 'The assists flat list were found successfully',
+        title: t('resources'),
+        message: t('resources_were_found_successfully'),
         data: { data: assistsFlatList },
       }
     } catch (error) {
       response.status(500)
       return {
         type: 'error',
-        title: 'Server error',
-        message: 'An unexpected error has occurred on the server',
+        title: t('server_error'),
+        message: t('an_unexpected_error_has_occurred_on_the_server'),
         error: error.message,
       }
     }

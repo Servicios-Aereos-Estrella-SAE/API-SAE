@@ -31,11 +31,21 @@ import Department from '#models/department'
 import BusinessUnit from '#models/business_unit'
 import DepartmentService from './department_service.js'
 import EmployeeService from './employee_service.js'
+import { I18n } from '@adonisjs/i18n'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
    * @returns {Promise<AssistStatusResponseDto>} The assist status response DTO.
    */
+
+  private t: (key: string,params?: { [key: string]: string | number }) => string
+  private i18n: I18n
+
+  constructor(i18n: I18n) {
+    this.t = i18n.formatMessage.bind(i18n)
+    this.i18n = i18n
+  }
+
   async getStatusSync(): Promise<AssistStatusResponseDto | null> {
     const assistStatusSync = await this.getAssistStatusSync()
     let lastPageSync = await this.getLastPageSync()
@@ -125,7 +135,7 @@ export default class SyncAssistsService {
       filters.limit
     )
     const assists = await this.saveAssistDataEmployee(response)
-    const assistService = new AssistsService()
+    const assistService = new AssistsService(this.i18n)
     for await (const assist of assists) {
       const logAssist = await assistService.createActionLog(filters.rawHeaders, 'store')
       logAssist.user_id = filters.userId
@@ -572,11 +582,12 @@ export default class SyncAssistsService {
         .withTrashed()
         .first()
       if (!employee) {
+        const entity = this.t('employee')
         return {
           status: 400,
           type: 'warning',
-          title: 'Invalid data',
-          message: 'Employee not found',
+          title: this.t('entity_was_not_found', { entity }),
+          message: this.t('entity_was_not_found', { entity }),
           data: null,
         }
       }
@@ -719,8 +730,8 @@ export default class SyncAssistsService {
     return {
       status: 200,
       type: 'success',
-      title: 'Successfully action',
-      message: 'Success access data',
+      title: this.t('resources'),
+      message: this.t('resources_were_found_successfully'),
       data: {
         employeeCalendar,
       },
@@ -861,7 +872,7 @@ export default class SyncAssistsService {
     const hourStart = assignedShift.shiftTimeStart
     const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
     const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
-    const service = await new HolidayService().index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
+    const service = await new HolidayService(this.i18n).index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
     const holidayresponse =  service.status === 200 && service.holidays && service.holidays.length > 0 ? service.holidays[0] : null
 
     checkAssist.assist.holiday = holidayresponse as unknown as HolidayInterface
@@ -1856,8 +1867,8 @@ export default class SyncAssistsService {
       .whereIn('business_unit_slug', businessList)
 
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-    const departmentService = new DepartmentService()
-    const employeeService = new EmployeeService()
+    const departmentService = new DepartmentService(this.i18n)
+    const employeeService = new EmployeeService(this.i18n)
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
       .where('departmentId', '<>', 999)

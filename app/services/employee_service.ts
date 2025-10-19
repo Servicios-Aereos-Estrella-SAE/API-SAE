@@ -23,11 +23,19 @@ import EmployeeContract from '#models/employee_contract'
 import EmployeeBank from '#models/employee_bank'
 import UserResponsibleEmployee from '#models/user_responsible_employee'
 import { EmployeeSyncInterface } from '../interfaces/employee_sync_interface.js'
+import { I18n } from '@adonisjs/i18n'
 
 export default class EmployeeService {
+
+  private i18n: I18n
+
+  constructor(i18n: I18n) {
+    this.i18n = i18n
+  }
+
   async syncCreate(employee: BiometricEmployeeInterface) {
     const newEmployee = new Employee()
-    const personService = new PersonService()
+    const personService = new PersonService(this.i18n)
     const newPerson = await personService.syncCreate(employee)
     const employeeType = await EmployeeType.query()
       .where('employee_type_slug', 'employee')
@@ -94,7 +102,7 @@ export default class EmployeeService {
     positionService: PositionService
   ) {
     if (!currentEmployee.personId) {
-      const personService = new PersonService()
+      const personService = new PersonService(this.i18n)
       const newPerson = await personService.syncCreate(employee)
       currentEmployee.personId = newPerson ? newPerson.personId : 0
     }
