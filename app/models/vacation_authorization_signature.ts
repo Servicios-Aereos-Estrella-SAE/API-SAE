@@ -44,7 +44,7 @@ export default class VacationAuthorizationSignature extends compose(BaseModel, S
   declare vacationAuthorizationSignatureId: number
 
   @column()
-  declare exceptionRequestId: number
+  declare exceptionRequestId: number | null
 
   @column()
   declare shiftExceptionId: number

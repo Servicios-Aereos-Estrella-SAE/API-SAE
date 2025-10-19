@@ -810,8 +810,8 @@ export default class ExceptionRequestsController {
             })
           }
         )
-      }).orderByRaw(`CASE 
-                 WHEN exception_request_status = 'pending' THEN 1 
+      }).orderByRaw(`CASE
+                 WHEN exception_request_status = 'pending' THEN 1
                  WHEN exception_request_status = 'requested' THEN 2
                  WHEN exception_request_status = 'accepted' THEN 3
                  WHEN exception_request_status = 'refused' THEN 4

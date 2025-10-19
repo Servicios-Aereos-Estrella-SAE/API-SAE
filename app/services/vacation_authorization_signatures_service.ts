@@ -17,6 +17,7 @@ export default class VacationAuthorizationSignaturesService {
    *
    * @param signatureFile - Uploaded PNG file (multipart)
    * @param requestIds - Array of Exception Request IDs to authorize
+   * @param vacationSettingId - Vacation setting ID to use for ShiftExceptions
    * @returns Result object with created shift exceptions, signatures, updated requests and errors
    */
   async authorize(signatureFile: any, requestIds: number[], vacationSettingId: number) {
@@ -72,6 +73,7 @@ export default class VacationAuthorizationSignaturesService {
           continue
         }
 
+        // crear shift exception basado en exception request
         const shiftException = {
           employeeId: req.employeeId,
           shiftExceptionsDescription: req.exceptionRequestDescription || 'vacation',
@@ -79,9 +81,9 @@ export default class VacationAuthorizationSignaturesService {
             ? DateTime.fromJSDate(new Date(req.requestedDate.toString())).setZone('UTC').toJSDate()
             : null,
           exceptionTypeId: req.exceptionTypeId,
+          vacationSettingId: vacationSettingId,
           shiftExceptionCheckInTime: req.exceptionRequestCheckInTime,
           shiftExceptionCheckOutTime: req.exceptionRequestCheckOutTime,
-          vacationSettingId: vacationSettingId,
         } as ShiftException
 
         const verify = await shiftExceptionService.verifyInfo(shiftException)
@@ -122,6 +124,88 @@ export default class VacationAuthorizationSignaturesService {
         createdShiftExceptions,
         createdSignatures,
         updatedRequests,
+        errors,
+      },
+    }
+  }
+
+  /**
+   * Sign multiple Shift Exceptions of type vacation by uploading a signature
+   * and saving signature records.
+   *
+   * @param signatureFile - Uploaded PNG file (multipart)
+   * @param shiftExceptionIds - Array of Shift Exception IDs to sign
+   * @returns Result object with created signatures and errors
+   */
+  async signShiftExceptions(signatureFile: any, shiftExceptionIds: number[]) {
+    // Ensure vacation exception type exists
+    const vacationType = await ExceptionType.query()
+      .whereNull('exception_type_deleted_at')
+      .where('exception_type_slug', 'vacation')
+      .first()
+
+    if (!vacationType) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'Exception Types',
+        message: 'Vacation exception type was not found',
+        data: null,
+      }
+    }
+
+    // Upload signature to S3
+    const uploader = new UploadService()
+    const fileUrl = await uploader.fileUpload(signatureFile, 'vacation_signatures')
+    if (!fileUrl || fileUrl === 'file_not_found' || fileUrl === 'S3Producer.fileUpload') {
+      return {
+        status: 500,
+        type: 'error',
+        title: 'Signature upload',
+        message: 'Unable to upload the signature file',
+        data: null,
+      }
+    }
+
+    const createdSignatures: VacationAuthorizationSignature[] = []
+    const errors: Array<{ id: number; error: string }> = []
+
+    for (const id of shiftExceptionIds) {
+      try {
+        const shiftException = await ShiftException.query()
+          .where('shift_exception_id', id)
+          .whereNull('shift_exceptions_deleted_at')
+          .first()
+
+        if (!shiftException) {
+          errors.push({ id, error: 'shift_exception_not_found' })
+          continue
+        }
+
+        if (shiftException.exceptionTypeId !== vacationType.exceptionTypeId) {
+          errors.push({ id, error: 'shift_exception_type_is_not_vacation' })
+          continue
+        }
+
+        const signatureRecord = await VacationAuthorizationSignature.create({
+          exceptionRequestId: null, // No hay request asociado
+          shiftExceptionId: shiftException.shiftExceptionId,
+          vacationAuthorizationSignatureFile: fileUrl,
+        })
+        createdSignatures.push(signatureRecord)
+      } catch (e: any) {
+        errors.push({ id, error: e?.message || 'unexpected_error' })
+      }
+    }
+
+    return {
+      status: 201,
+      type: 'success',
+      title: 'Shift exceptions signed',
+      message: 'Processing completed',
+      data: {
+        fileUrl,
+        createdSignatures,
         errors,
       },
     }
@@ -201,6 +285,49 @@ export default class VacationAuthorizationSignaturesService {
       data: { requests: authorizedRequests, signatures },
     }
   }
+
+  /**
+   * Retrieve vacation shift exceptions for an employee with specific vacation setting
+   * @param employeeId Employee identifier
+   * @param vacationSettingId Vacation setting identifier
+   */
+  async getVacationShiftExceptions(employeeId: number, vacationSettingId: number) {
+    const vacationType = await ExceptionType.query()
+      .whereNull('exception_type_deleted_at')
+      .where('exception_type_slug', 'vacation')
+      .first()
+
+    if (!vacationType) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'Exception Types',
+        message: 'Vacation exception type was not found',
+        data: null,
+      }
+    }
+
+    const signatures = await VacationAuthorizationSignature.query()
+      .whereNull('vacation_authorization_signature_deleted_at')
+      .orderBy('vacation_authorization_signature_created_at', 'desc')
+
+    const shiftExceptions = await ShiftException.query()
+      .where('employee_id', employeeId)
+      .where('exception_type_id', vacationType.exceptionTypeId)
+      .where('vacation_setting_id', vacationSettingId)
+      .whereNull('shift_exceptions_deleted_at')
+      .orderBy('shift_exceptions_date', 'desc')
+
+    const shiftExceptionsWithoutSignatures = shiftExceptions.filter((shiftException) => {
+      return !signatures.some((signature) => signature.shiftExceptionId === shiftException.shiftExceptionId)
+    })
+
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Vacation shift exceptions without signatures',
+      message: 'Query successful',
+      data: shiftExceptionsWithoutSignatures,
+    }
+  }
 }
-
-

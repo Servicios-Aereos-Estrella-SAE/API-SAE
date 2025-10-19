@@ -6,6 +6,8 @@ import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionType from '#models/exception_type'
 import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
+import VacationAuthorizationSignature from '#models/vacation_authorization_signature'
+import ExceptionRequest from '#models/exception_request'
 
 export default class ShiftExceptionController {
   /**
@@ -368,18 +370,32 @@ export default class ShiftExceptionController {
   async destroy({ auth, request, params, response }: HttpContext) {
     try {
       const shiftException = await ShiftException.findOrFail(params.id)
+
+      // Cambiar findByOrFail por findBy
+      const signature = await VacationAuthorizationSignature.findBy('shift_exception_id', shiftException.shiftExceptionId)
+
+      // Solo procesar si existe la firma y tiene exceptionRequestId
+      if (signature && signature.exceptionRequestId) {
+        const exceptionRequest = await ExceptionRequest.query()
+          .where('exception_request_id', signature.exceptionRequestId)
+          .where('exception_type_id', shiftException.exceptionTypeId)
+          .where('exception_request_status', 'accepted')
+          .whereNull('exception_request_deleted_at')
+
+        if (exceptionRequest.length > 0) {
+          await exceptionRequest[0].delete()
+        }
+      }
+
       await shiftException.delete()
       const shiftExceptionService = new ShiftExceptionService()
 
       const exceptionDate = shiftException.shiftExceptionsDate
       const date = typeof exceptionDate === 'string' ? new Date(exceptionDate) : exceptionDate
       await shiftExceptionService.updateAssistCalendar(shiftException.employeeId, date)
-     
-    
 
       const userId = auth.user?.userId
       if (userId) {
-      
         const rawHeaders = request.request.rawHeaders
         const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'delete')
         logShiftException.user_id = userId
@@ -389,6 +405,7 @@ export default class ShiftExceptionController {
           .whereNull('exception_type_deleted_at')
           .where('exception_type_slug', 'vacation')
           .first()
+
         let table = 'log_shift_exceptions'
         if (exceptionType) {
           if (exceptionType.exceptionTypeId === shiftException.exceptionTypeId) {
@@ -397,6 +414,7 @@ export default class ShiftExceptionController {
         }
         await shiftExceptionService.saveActionOnLog(logShiftException, table)
       }
+
       return response.status(200).json({
         type: 'success',
         title: 'Successfully action',
