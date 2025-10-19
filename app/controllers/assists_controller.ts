@@ -14,8 +14,19 @@ import { DateTime } from 'luxon'
 import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
 import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
 import { PermissionsDatesExcelFilterInterface } from '../interfaces/permissions_dates_excel_filter_interface.js'
+import { I18n } from '@adonisjs/i18n'
 
 export default class AssistsController {
+  // private t: (key: string,params?: { [key: string]: string | number }) => string
+  private i18n: I18n
+  // private localeToUse: string
+
+  constructor(i18n: I18n) {
+    // this.t = i18n.formatMessage.bind(i18n)
+    this.i18n = i18n
+    // this.localeToUse = i18n.locale
+  }
+
   /**
    * @swagger
    * /api/v1/assists/synchronize:
@@ -1652,7 +1663,7 @@ export default class AssistsController {
         }
       }
 
-      const userService = new UserService()
+      const userService = new UserService(this.i18n)
       let departmentsList = [] as Array<number>
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
@@ -1664,7 +1675,7 @@ export default class AssistsController {
         userResponsibleId: userResponsibleId,
       } as PermissionsDatesExcelFilterInterface
 
-      const assistService = new AssistsService()
+      const assistService = new AssistsService(this.i18n)
       const result = await assistService.getExcelPermissionsByDates(filters, departmentsList)
 
       if (result.buffer) {
