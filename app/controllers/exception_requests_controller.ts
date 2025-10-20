@@ -18,6 +18,7 @@ import User from '#models/user'
 import { ExceptionRequestErrorInterface } from '../interfaces/exception_request_error_interface.js'
 import SystemSettingService from '#services/system_setting_service'
 import SystemSetting from '#models/system_setting'
+import NotificationEmailService from '#services/notification_email_service'
 
 export default class ExceptionRequestsController {
   /**
@@ -196,6 +197,16 @@ export default class ExceptionRequestsController {
             }
           }
           await shiftExceptionService.saveActionOnLog(logShiftException, table)
+        }
+
+        // Send notification emails
+        try {
+          const notificationEmailService = new NotificationEmailService()
+          const authToken = request.header('authorization')?.replace('Bearer ', '') || ''
+          await notificationEmailService.sendExceptionRequestNotification(exceptionRequest, authToken)
+        } catch (notificationError) {
+          // Log notification error but don't fail the main process
+          console.error('Error sending notification emails:', notificationError)
         }
       }
     }
@@ -810,8 +821,8 @@ export default class ExceptionRequestsController {
             })
           }
         )
-      }).orderByRaw(`CASE 
-                 WHEN exception_request_status = 'pending' THEN 1 
+      }).orderByRaw(`CASE
+                 WHEN exception_request_status = 'pending' THEN 1
                  WHEN exception_request_status = 'requested' THEN 2
                  WHEN exception_request_status = 'accepted' THEN 3
                  WHEN exception_request_status = 'refused' THEN 4

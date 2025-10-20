@@ -6,6 +6,7 @@ import { createShiftExceptionValidator } from '../validators/shift_exception.js'
 import { HttpContext } from '@adonisjs/core/http'
 import ExceptionType from '#models/exception_type'
 import { ShiftExceptionErrorInterface } from '../interfaces/shift_exception_error_interface.js'
+import NotificationEmailService from '#services/notification_email_service'
 
 export default class ShiftExceptionController {
   /**
@@ -145,6 +146,16 @@ export default class ShiftExceptionController {
               await newShiftException.load('exceptionType')
               await newShiftException.load('vacationSetting')
               shiftExceptionsSaved.push(newShiftException)
+
+              // Send notification emails
+              try {
+                const notificationEmailService = new NotificationEmailService()
+                const authToken = request.header('authorization')?.replace('Bearer ', '') || ''
+                await notificationEmailService.sendVacationPermissionNotification(newShiftException, authToken)
+              } catch (notificationError) {
+                // Log notification error but don't fail the main process
+                console.error('Error sending notification emails:', notificationError)
+              }
             }
           }
         } catch (error) {
@@ -374,12 +385,12 @@ export default class ShiftExceptionController {
       const exceptionDate = shiftException.shiftExceptionsDate
       const date = typeof exceptionDate === 'string' ? new Date(exceptionDate) : exceptionDate
       await shiftExceptionService.updateAssistCalendar(shiftException.employeeId, date)
-     
-    
+
+
 
       const userId = auth.user?.userId
       if (userId) {
-      
+
         const rawHeaders = request.request.rawHeaders
         const logShiftException = await shiftExceptionService.createActionLog(rawHeaders, 'delete')
         logShiftException.user_id = userId
