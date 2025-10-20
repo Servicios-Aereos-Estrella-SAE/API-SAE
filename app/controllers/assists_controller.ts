@@ -14,18 +14,8 @@ import { DateTime } from 'luxon'
 import { AssistSyncFilterInterface } from '../interfaces/assist_sync_filter_interface.js'
 import { AssistFlatFilterInterface } from '../interfaces/assist_flat_filter_interface.js'
 import { PermissionsDatesExcelFilterInterface } from '../interfaces/permissions_dates_excel_filter_interface.js'
-import { I18n } from '@adonisjs/i18n'
 
 export default class AssistsController {
-  // private t: (key: string,params?: { [key: string]: string | number }) => string
-  private i18n: I18n
-  // private localeToUse: string
-
-  constructor(i18n: I18n) {
-    // this.t = i18n.formatMessage.bind(i18n)
-    this.i18n = i18n
-    // this.localeToUse = i18n.locale
-  }
 
   /**
    * @swagger
@@ -1637,7 +1627,7 @@ export default class AssistsController {
    *                   type: string
    *                   example: An unexpected error has occurred on the server
    */
-  async getExcelPermissionsByDates({ auth, request, response }: HttpContext) {
+  async getExcelPermissionsByDates({ auth, request, response, i18n}: HttpContext) {
     try {
       await auth.check()
       const user = auth.user
@@ -1663,7 +1653,7 @@ export default class AssistsController {
         }
       }
 
-      const userService = new UserService(this.i18n)
+      const userService = new UserService(i18n)
       let departmentsList = [] as Array<number>
       if (user) {
         departmentsList = await userService.getRoleDepartments(user.userId)
@@ -1675,7 +1665,7 @@ export default class AssistsController {
         userResponsibleId: userResponsibleId,
       } as PermissionsDatesExcelFilterInterface
 
-      const assistService = new AssistsService(this.i18n)
+      const assistService = new AssistsService(i18n)
       const result = await assistService.getExcelPermissionsByDates(filters, departmentsList)
 
       if (result.buffer) {
