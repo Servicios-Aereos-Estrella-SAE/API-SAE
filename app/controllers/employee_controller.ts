@@ -402,6 +402,20 @@ export default class EmployeeController {
    *         default: 100
    *         schema:
    *           type: integer
+   *       - name: orderBy
+   *         in: query
+   *         required: false
+   *         description: Order by field (number or name)
+   *         schema:
+   *           type: string
+   *           enum: [number, name]
+   *       - name: orderDirection
+   *         in: query
+   *         required: false
+   *         description: Order direction (ascend or descend)
+   *         schema:
+   *           type: string
+   *           enum: [ascend, descend]
    *     responses:
    *       '200':
    *         description: Resource processed successfully
@@ -519,6 +533,8 @@ export default class EmployeeController {
       const employeeTypeId = request.input('employeeTypeId')
       const page = request.input('page', 1)
       const limit = request.input('limit', 100)
+      const orderBy = request.input('orderBy')
+      const orderDirection = request.input('orderDirection')
 
       const filters = {
         search: search,
@@ -530,6 +546,8 @@ export default class EmployeeController {
         userResponsibleId: userResponsibleId,
         page: page,
         limit: limit,
+        orderBy: orderBy,
+        orderDirection: orderDirection,
       } as EmployeeFilterSearchInterface
 
       const employeeService = new EmployeeService(i18n)
