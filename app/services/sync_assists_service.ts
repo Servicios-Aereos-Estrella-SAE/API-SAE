@@ -30,8 +30,8 @@ import EmployeeAssistCalendar from '#models/employee_assist_calendar'
 import Department from '#models/department'
 import BusinessUnit from '#models/business_unit'
 import DepartmentService from './department_service.js'
-import EmployeeService from './employee_service.js'
 import { I18n } from '@adonisjs/i18n'
+import EmployeeService from './employee_service.js'
 export default class SyncAssistsService {
   /**
    * Retrieves the status sync of assists.
@@ -39,10 +39,10 @@ export default class SyncAssistsService {
    */
 
   private t: (key: string,params?: { [key: string]: string | number }) => string
-  private i18n: I18n
+  private i18n?: I18n
 
-  constructor(i18n: I18n) {
-    this.t = i18n.formatMessage.bind(i18n)
+  constructor(i18n?: I18n) {
+    this.t = i18n?.formatMessage.bind(i18n) ?? (() => '')
     this.i18n = i18n
   }
 
@@ -135,7 +135,7 @@ export default class SyncAssistsService {
       filters.limit
     )
     const assists = await this.saveAssistDataEmployee(response)
-    const assistService = new AssistsService(this.i18n)
+    const assistService = new AssistsService(this.i18n as I18n)
     for await (const assist of assists) {
       const logAssist = await assistService.createActionLog(filters.rawHeaders, 'store')
       logAssist.user_id = filters.userId
@@ -872,7 +872,7 @@ export default class SyncAssistsService {
     const hourStart = assignedShift.shiftTimeStart
     const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
     const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
-    const service = await new HolidayService(this.i18n).index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
+    const service = await new HolidayService(this.i18n as I18n).index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
     const holidayresponse =  service.status === 200 && service.holidays && service.holidays.length > 0 ? service.holidays[0] : null
 
     checkAssist.assist.holiday = holidayresponse as unknown as HolidayInterface
@@ -1867,8 +1867,8 @@ export default class SyncAssistsService {
       .whereIn('business_unit_slug', businessList)
 
     const businessUnitsList = businessUnits.map((business) => business.businessUnitId)
-    const departmentService = new DepartmentService(this.i18n)
-    const employeeService = new EmployeeService(this.i18n)
+    const departmentService = new DepartmentService(this.i18n as I18n)
+    const employeeService = new EmployeeService(this.i18n as I18n)
     const departments = await Department.query()
       .whereIn('businessUnitId', businessUnitsList)
       .where('departmentId', '<>', 999)
