@@ -1892,10 +1892,11 @@ export default class EmployeeController {
    */
   @inject()
   async uploadPhoto(
-    { request, response }: HttpContext,
-    uploadService: UploadService,
-    employeeService: EmployeeService
+    { request, response, i18n }: HttpContext,
+    uploadService: UploadService
   ) {
+    const employeeService = new EmployeeService(i18n)
+
     const validationOptions = {
       types: ['image'],
       size: '2mb',
