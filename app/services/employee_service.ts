@@ -23,11 +23,19 @@ import EmployeeContract from '#models/employee_contract'
 import EmployeeBank from '#models/employee_bank'
 import UserResponsibleEmployee from '#models/user_responsible_employee'
 import { EmployeeSyncInterface } from '../interfaces/employee_sync_interface.js'
+import { I18n } from '@adonisjs/i18n'
 
 export default class EmployeeService {
+
+  private i18n: I18n
+
+  constructor(i18n: I18n) {
+    this.i18n = i18n
+  }
+
   async syncCreate(employee: BiometricEmployeeInterface) {
     const newEmployee = new Employee()
-    const personService = new PersonService()
+    const personService = new PersonService(this.i18n)
     const newPerson = await personService.syncCreate(employee)
     const employeeType = await EmployeeType.query()
       .where('employee_type_slug', 'employee')
@@ -94,7 +102,7 @@ export default class EmployeeService {
     positionService: PositionService
   ) {
     if (!currentEmployee.personId) {
-      const personService = new PersonService()
+      const personService = new PersonService(this.i18n)
       const newPerson = await personService.syncCreate(employee)
       currentEmployee.personId = newPerson ? newPerson.personId : 0
     }
@@ -216,7 +224,17 @@ export default class EmployeeService {
       .preload('person')
       .preload('businessUnit')
       .preload('address')
-      .orderBy('employee_id')
+      .if(filters.orderBy === 'number', (query) => {
+        const direction = this.getOrderDirection(filters.orderDirection)
+        query.orderByRaw(`CAST(employee_code AS UNSIGNED) ${direction}, employee_code ${direction}`)
+      })
+      .if(filters.orderBy === 'name', (query) => {
+        const direction = this.getOrderDirection(filters.orderDirection)
+        query.orderByRaw(`CONCAT(COALESCE(employee_first_name, ''), ' ', COALESCE(employee_last_name, ''), ' ', COALESCE(employee_second_last_name, '')) ${direction}`)
+      })
+      .if(!filters.orderBy, (query) => {
+        query.orderBy('employee_id')
+      })
       .paginate(filters.page, filters.limit)
 
     return employees
@@ -1471,5 +1489,29 @@ export default class EmployeeService {
       .replace(/[^a-zA-Z\s]/g, '')
       .toLowerCase()
       .trim()
+  }
+
+  /**
+   * Normaliza los valores de orderDirection para manejar tanto inglés como español
+   * @param orderDirection - Dirección del ordenamiento
+   * @returns 'desc' o 'asc'
+   */
+  private getOrderDirection(orderDirection?: string): string {
+    if (!orderDirection) return 'asc'
+
+    const normalizedDirection = orderDirection.toLowerCase()
+
+    // Manejar valores en inglés
+    if (normalizedDirection === 'descend' || normalizedDirection === 'desc') {
+      return 'desc'
+    }
+
+    // Manejar valores en español
+    if (normalizedDirection === 'descendente') {
+      return 'desc'
+    }
+
+    // Por defecto, ordenamiento ascendente
+    return 'asc'
   }
 }
