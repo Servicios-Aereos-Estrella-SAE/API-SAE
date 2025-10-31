@@ -77,6 +77,7 @@ import SupplieCaracteristicValue from './supplie_caracteristic_value.js'
  */
 
 export default class Supplie extends compose(BaseModel, SoftDeletes) {
+
   @column({ isPrimary: true })
   declare supplyId: number
 
@@ -107,6 +108,8 @@ export default class Supplie extends compose(BaseModel, SoftDeletes) {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare supplyUpdatedAt: DateTime
 
+  static softDeleteColumn = 'supply_deleted_at'
+
   @column.dateTime({ columnName: 'supply_deleted_at' })
   declare deletedAt: DateTime | null
 
@@ -122,5 +125,5 @@ export default class Supplie extends compose(BaseModel, SoftDeletes) {
   declare supplieCaracteristics: relations.HasMany<typeof SupplieCaracteristic>
 
   @hasMany(() => SupplieCaracteristicValue)
-  declare supplieCaracteristicValues: relations.HasMany<typeof SupplieCaracteristicValue>   
+  declare supplieCaracteristicValues: relations.HasMany<typeof SupplieCaracteristicValue>
 }

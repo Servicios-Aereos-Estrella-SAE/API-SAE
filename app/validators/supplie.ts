@@ -29,6 +29,7 @@ export const supplieFilterValidator = vine.compile(
     supplyName: vine.string().trim().optional(),
     supplyStatus: vine.enum(['active', 'inactive', 'lost', 'damaged']).optional(),
     supplyFileNumber: vine.number().positive().optional(),
+    includeDeleted: vine.boolean().optional(),
   })
 )
 

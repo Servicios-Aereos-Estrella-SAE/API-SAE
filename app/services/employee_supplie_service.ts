@@ -10,11 +10,18 @@ export default class EmployeeSupplieService {
   static async getAll(filters: EmployeeSupplieFilterSearchInterface) {
     const page = filters.page || 1
     const limit = filters.limit || 10
+    const supplyTypeId = filters.supplyTypeId || null
 
     const query = EmployeeSupplie.query()
 
     if (filters.employeeId) {
       query.where('employeeId', filters.employeeId)
+    }
+
+    if (supplyTypeId) {
+      query.whereHas('supply', (supplyQuery) => {
+        supplyQuery.where('supplyTypeId', supplyTypeId)
+      })
     }
 
     if (filters.supplyId) {

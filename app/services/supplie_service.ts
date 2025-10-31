@@ -12,6 +12,12 @@ export default class SupplieService {
 
     const query = Supplie.query()
 
+    if (filters.includeDeleted) {
+      // incluir eliminados lógicamente
+      // @ts-ignore provided by adonis-lucid-soft-deletes
+      query.withTrashed()
+    }
+
     if (filters.search) {
       query.where((builder) => {
         builder
