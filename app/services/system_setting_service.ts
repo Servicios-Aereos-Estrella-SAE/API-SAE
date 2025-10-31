@@ -9,6 +9,7 @@ export default class SystemSettingService {
     let systemSettingsList: SystemSetting[] = []
 
     const systemSettings = await SystemSetting.query().whereNull('system_setting_deleted_at')
+    .preload('systemSettingPayrollConfigs')
 
     systemSettings.forEach((sistemSetting) => {
       const units = sistemSetting.systemSettingBusinessUnits
@@ -75,6 +76,7 @@ export default class SystemSettingService {
       .whereNull('system_setting_deleted_at')
       .where('system_setting_id', systemSettingId)
       .preload('systemSettingSystemModules')
+      .preload('systemSettingPayrollConfigs')
       .first()
     return systemSetting ? systemSetting : null
   }
