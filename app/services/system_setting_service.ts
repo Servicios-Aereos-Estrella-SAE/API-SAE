@@ -232,4 +232,32 @@ export default class SystemSettingService {
       .where('system_setting_id', systemSettingId)
     return systemSettingSystemModules
   }
+
+  async updateBirthdayEmailsStatus(systemSettingId: number, birthdayEmailsEnabled: boolean) {
+    const systemSetting = await SystemSetting.query()
+      .whereNull('system_setting_deleted_at')
+      .where('system_setting_id', systemSettingId)
+      .first()
+
+    if (!systemSetting) {
+      return {
+        status: 404,
+        type: 'warning',
+        title: 'System setting not found',
+        message: 'The system setting was not found with the entered ID',
+        data: { systemSettingId },
+      }
+    }
+
+    systemSetting.systemSettingBirthdayEmails = birthdayEmailsEnabled ? 1 : 0
+    await systemSetting.save()
+
+    return {
+      status: 200,
+      type: 'success',
+      title: 'Birthday emails status updated',
+      message: 'The birthday emails status was updated successfully',
+      data: { systemSetting },
+    }
+  }
 }
