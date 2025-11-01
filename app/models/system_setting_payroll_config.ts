@@ -25,6 +25,18 @@ import { compose } from '@adonisjs/core/helpers'
  *          systemSettingPayrollConfigNumberOfDaysToBePaid:
  *            type: number
  *            description: System setting payroll config number of days to be paid
+ *          systemSettingPayrollConfigNumberOfDaysEndToBePaid:
+ *            type: number
+ *            description: System setting payroll config number of days end to be paid
+ *          systemSettingPayrollConfigAdvanceDateInMonthsOf31Days:
+ *            type: boolean
+ *            description: System setting payroll config advance date in months of 31 days
+ *          systemSettingPayrollConfigAdvanceDateOnHolidays:
+ *            type: boolean
+ *            description: System setting payroll config advance date on holiday
+ *          systemSettingPayrollConfigAdvanceDateOnWeekends:
+ *            type: boolean
+ *            description: System setting payroll config advance date on weekends
  *          systemSettingPayrollConfigNumberOfOverdueDaysToOffset:
  *            type: number
  *            description: System setting payroll config number of overdue days to offset
@@ -57,6 +69,18 @@ export default class SystemSettingPayrollConfig extends compose(BaseModel, SoftD
 
   @column()
   declare systemSettingPayrollConfigNumberOfDaysToBePaid: number
+
+  @column()
+  declare systemSettingPayrollConfigNumberOfDaysEndToBePaid: number
+
+  @column()
+  declare systemSettingPayrollConfigAdvanceDateInMonthsOf31Days: boolean
+
+  @column()
+  declare systemSettingPayrollConfigAdvanceDateOnHolidays: boolean
+
+  @column()
+  declare systemSettingPayrollConfigAdvanceDateOnWeekends: boolean
 
   @column()
   declare systemSettingPayrollConfigNumberOfOverdueDaysToOffset: number
