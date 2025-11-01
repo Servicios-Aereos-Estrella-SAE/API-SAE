@@ -21,7 +21,7 @@ export const updateEmployeeSupplieValidator = vine.compile(
 export const employeeSupplieFilterValidator = vine.compile(
   vine.object({
     page: vine.number().positive().optional(),
-    limit: vine.number().positive().max(1000).optional(),
+    limit: vine.number().positive().max(10000).optional(),
     search: vine.string().trim().optional(),
     employeeId: vine.number().positive().optional(),
     supplyId: vine.number().positive().optional(),
