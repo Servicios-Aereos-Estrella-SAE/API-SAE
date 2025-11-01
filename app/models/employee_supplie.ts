@@ -33,6 +33,11 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *           type: string
  *           format: date-time
  *           description: Employee supply retirement date
+ *         employeeSupplyExpirationDate:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Employee supply expiration date (optional)
  *         employeeSupplyCreatedAt:
  *           type: string
  *           format: date-time
@@ -53,6 +58,7 @@ import * as relations from '@adonisjs/lucid/types/relations'
  *         employeeSupplyStatus: 'active'
  *         employeeSupplyRetirementReason: 'Lost'
  *         employeeSupplyRetirementDate: '2025-02-12T12:00:00Z'
+ *         employeeSupplyExpirationDate: '2026-02-12T12:00:00Z'
  *         employeeSupplyCreatedAt: '2025-02-12T12:00:00Z'
  *         employeeSupplyUpdatedAt: '2025-02-12T13:00:00Z'
  *         employeeSupplyDeletedAt: null
@@ -79,6 +85,9 @@ export default class EmployeeSupplie extends compose(BaseModel, SoftDeletes) {
 
   @column.dateTime()
   declare employeeSupplyRetirementDate: DateTime | null
+
+  @column.dateTime()
+  declare employeeSupplyExpirationDate: DateTime | null
 
   @column.dateTime({ autoCreate: true })
   declare employeeSupplyCreatedAt: DateTime
