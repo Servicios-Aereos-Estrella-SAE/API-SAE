@@ -91,6 +91,7 @@ import './routes/supplie_caracteristics.js'
 import './routes/supplie_caracteristic_values.js'
 import './routes/supplies.js'
 import './routes/employee_supplies.js'
+import './routes/employee_supplies_response_contracts.js'
 
 router.get('/', async ({ view }) => {
   const specUrl = '/swagger.json'

@@ -1,10 +1,11 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import { compose } from '@adonisjs/core/helpers'
 import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { belongsTo } from '@adonisjs/lucid/orm'
 import Employee from './employee.js'
 import Supply from './supplie.js'
+import EmployeeSuppliesResponseContract from './employee_supplies_response_contract.js'
 import * as relations from '@adonisjs/lucid/types/relations'
 
 /**
@@ -113,4 +114,9 @@ export default class EmployeeSupplie extends compose(BaseModel, SoftDeletes) {
     },
   })
   declare supply: relations.BelongsTo<typeof Supply>
+
+  @hasMany(() => EmployeeSuppliesResponseContract, {
+    foreignKey: 'employeeSupplyId',
+  })
+  declare responseContracts: relations.HasMany<typeof EmployeeSuppliesResponseContract>
 }
