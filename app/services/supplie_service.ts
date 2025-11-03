@@ -196,7 +196,7 @@ export default class SupplieService {
 
       // Title row
       worksheet.getRow(1).height = 60
-      worksheet.mergeCells('A1:J1')
+      worksheet.mergeCells('A1:M1')
       const titleRow = worksheet.addRow(['Supplies and Assignments Report'])
       const titleColor = sidebarColor
       const fgColor = 'FFFFFFF'
@@ -208,7 +208,7 @@ export default class SupplieService {
       titleRow.font = { bold: true, size: 24, color: { argb: fgColor } }
       titleRow.height = 42
       titleRow.alignment = { horizontal: 'center', vertical: 'middle' }
-      worksheet.mergeCells('A2:J2')
+      worksheet.mergeCells('A2:M2')
 
       // Date row
       const periodColor = '366092'
@@ -222,7 +222,7 @@ export default class SupplieService {
       }
       periodRow.alignment = { horizontal: 'center', vertical: 'middle' }
       periodRow.height = 30
-      worksheet.mergeCells('A3:J3')
+      worksheet.mergeCells('A3:M3')
 
       // Freeze rows
       worksheet.views = [
@@ -304,6 +304,8 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
     'Supply Status',
     'Employee ID',
     'Employee Name',
+    'Department',
+    'Position',
     'Assignment Status',
     'Assignment Date',
     'Expiration Date',
@@ -335,7 +337,7 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
 
   headerRow.height = 30
 
-  const widths = [15, 40, 25, 15, 15, 45, 20, 25, 25, 25, 40]
+  const widths = [15, 40, 25, 15, 15, 45, 30, 30, 20, 25, 25, 25, 40]
   widths.forEach((w, i) => (worksheet.getColumn(i + 1).width = w))
 
   worksheet.views = [
@@ -359,12 +361,34 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
   ) {
     let rowCount = 5
 
-    for (const supply of supplies) {
-      // Find assignments for this supply
-      const assignments = employeeSupplies.filter((es) => es.supplyId === supply.supplyId)
+    // Group supplies and sort them
+    const suppliesWithAssignments = supplies.map((supply) => {
+      const assignments = employeeSupplies
+        .filter((es) => es.supplyId === supply.supplyId)
+        .sort((a, b) => {
+          // Sort by assignment date (most recent first)
+          const dateA = a.employeeSupplyCreatedAt
+            ? a.employeeSupplyCreatedAt.toMillis()
+            : 0
+          const dateB = b.employeeSupplyCreatedAt
+            ? b.employeeSupplyCreatedAt.toMillis()
+            : 0
+          return dateB - dateA
+        })
 
+      return { supply, assignments }
+    })
+
+    // Sort supplies by their name for consistent grouping
+    suppliesWithAssignments.sort((a, b) => {
+      const nameA = a.supply.supplyName || ''
+      const nameB = b.supply.supplyName || ''
+      return nameA.localeCompare(nameB)
+    })
+
+    for (const { supply, assignments } of suppliesWithAssignments) {
       if (assignments.length > 0) {
-        // Supply has assignments
+        // Supply has assignments - group by supply and show sorted assignments
         for (const assignment of assignments) {
           const employee = assignment.employee
           const person = employee?.person
@@ -373,6 +397,18 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
             ? `${person.personFirstname || ''} ${person.personLastname || ''} ${person.personSecondLastname || ''}`.trim()
             : 'N/A'
 
+          // Get department name
+          let departmentName = 'N/A'
+          if (employee?.department) {
+            departmentName = employee.department.departmentAlias || employee.department.departmentName || 'N/A'
+          }
+
+          // Get position name
+          let positionName = 'N/A'
+          if (employee?.position) {
+            positionName = employee.position.positionAlias || employee.position.positionName || 'N/A'
+          }
+
           worksheet.addRow([
             supply.supplyFileNumber,
             supply.supplyName,
@@ -380,6 +416,8 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
             supply.supplyStatus,
             employee?.employeeCode || 'N/A',
             employeeName,
+            departmentName,
+            positionName,
             assignment.employeeSupplyStatus,
             assignment.employeeSupplyCreatedAt
               ? DateTime.fromJSDate(assignment.employeeSupplyCreatedAt.toJSDate())
@@ -399,7 +437,7 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
             assignment.employeeSupplyRetirementReason || '',
           ])
 
-          // Color status cells
+          // Color status cells (now in column I instead of G)
           SupplieService.paintStatus(worksheet, rowCount, assignment.employeeSupplyStatus)
 
           rowCount++
@@ -413,6 +451,8 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
           supply.supplyStatus,
           '',
           'Not Assigned',
+          '',
+          '',
           '',
           '',
           '',
@@ -446,7 +486,8 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
       fgColor = '9C6500'
     }
 
-    const cell = worksheet.getCell('G' + row)
+    // Status is now in column I (9th column)
+    const cell = worksheet.getCell('I' + row)
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -462,7 +503,8 @@ private static addHeadRow(worksheet: ExcelJS.Worksheet, color: string, fgColor: 
     const color = 'E4E4E4'
     const fgColor = '000000'
 
-    for (let col = 1; col <= 11; col++) {
+    // Now we have 13 columns
+    for (let col = 1; col <= 13; col++) {
       const cell = worksheet.getCell(row, col)
       cell.fill = {
         type: 'pattern',
