@@ -9,7 +9,7 @@ export const uploadContractValidator = vine.compile(
 export const contractFilterValidator = vine.compile(
   vine.object({
     page: vine.number().positive().optional(),
-    limit: vine.number().positive().max(1000).optional(),
+    limit: vine.number().positive().max(100000).optional(),
     employeeSupplyId: vine.number().positive().optional(),
     contractUuid: vine.string().trim().optional(),
   })

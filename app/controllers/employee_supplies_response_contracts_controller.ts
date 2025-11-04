@@ -13,7 +13,7 @@ export default class EmployeeSuppliesResponseContractsController {
    *   post:
    *     summary: Upload contract file for multiple employee supplies
    *     tags: [Employee Supplies Response Contracts]
-   *     description: Uploads a contract file to S3 and creates records for multiple employee supplies that share the same contract file.
+   *     description: Uploads a contract file to S3 and creates records for multiple employee supplies that share the same contract file. Optionally includes a digital signature file (PNG).
    *     consumes:
    *       - multipart/form-data
    *     parameters:
@@ -21,7 +21,12 @@ export default class EmployeeSuppliesResponseContractsController {
    *         name: file
    *         type: file
    *         required: true
-   *         description: The contract file to upload
+   *         description: The contract file to upload (PDF, DOC, DOCX, JPG, JPEG, PNG)
+   *       - in: formData
+   *         name: digitalSignature
+   *         type: file
+   *         required: false
+   *         description: Optional digital signature file (PNG format, max 5MB)
    *       - in: formData
    *         name: employeeSupplyIds
    *         type: array
@@ -54,7 +59,11 @@ export default class EmployeeSuppliesResponseContractsController {
    *                       description: Unique UUID for this contract
    *                     fileUrl:
    *                       type: string
-   *                       description: URL of the uploaded file
+   *                       description: URL of the uploaded contract file
+   *                     digitalSignatureUrl:
+   *                       type: string
+   *                       nullable: true
+   *                       description: URL of the uploaded digital signature file (if provided)
    *                     contracts:
    *                       type: array
    *                       items:
@@ -64,7 +73,7 @@ export default class EmployeeSuppliesResponseContractsController {
    */
   async store({ request, response }: HttpContext) {
     try {
-      // Get file from formData
+      // Get contract file from formData
       const file = request.file('file', {
         size: '10mb',
         extnames: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
@@ -82,6 +91,20 @@ export default class EmployeeSuppliesResponseContractsController {
         return StandardResponseFormatter.error(
           response,
           file.errors[0]?.message || 'Invalid file',
+          400
+        )
+      }
+
+      // Get digital signature file from formData (optional)
+      const digitalSignature = request.file('digitalSignature', {
+        size: '5mb',
+        extnames: ['png'],
+      })
+
+      if (digitalSignature && !digitalSignature.isValid) {
+        return StandardResponseFormatter.error(
+          response,
+          digitalSignature.errors[0]?.message || 'Invalid digital signature file',
           400
         )
       }
@@ -120,6 +143,7 @@ export default class EmployeeSuppliesResponseContractsController {
 
       const result = await EmployeeSuppliesResponseContractService.uploadContract({
         file,
+        digitalSignature: digitalSignature || undefined,
         employeeSupplyIds: validationResult.employeeSupplyIds,
       })
 

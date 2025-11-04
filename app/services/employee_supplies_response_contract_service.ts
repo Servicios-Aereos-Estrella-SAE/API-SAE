@@ -9,6 +9,7 @@ export default class EmployeeSuppliesResponseContractService {
    */
   static async uploadContract(data: {
     file: any
+    digitalSignature?: any
     employeeSupplyIds: number[]
   }) {
     // Validate that all employee supplies exist
@@ -24,13 +25,24 @@ export default class EmployeeSuppliesResponseContractService {
     // Generate unique UUID for this contract
     const contractUuid = randomUUID()
 
-    // Upload file to S3
+    // Upload contract file to S3
     const uploadService = new UploadService()
     const folderName = 'employee-supplies-response-contracts'
     const fileUrl = await uploadService.fileUpload(data.file, folderName)
 
     if (fileUrl === 'file_not_found' || fileUrl === 'S3Producer.fileUpload') {
-      throw new Error('Failed to upload file to S3')
+      throw new Error('Failed to upload contract file to S3')
+    }
+
+    // Upload digital signature to S3 if provided
+    let digitalSignatureUrl: string | null = null
+    if (data.digitalSignature) {
+      const signatureFolderName = 'employee-supplies-response-contracts/signatures'
+      digitalSignatureUrl = await uploadService.fileUpload(data.digitalSignature, signatureFolderName)
+
+      if (digitalSignatureUrl === 'file_not_found' || digitalSignatureUrl === 'S3Producer.fileUpload') {
+        throw new Error('Failed to upload digital signature file to S3')
+      }
     }
 
     // Create records for each employee supply
@@ -40,6 +52,7 @@ export default class EmployeeSuppliesResponseContractService {
         employeeSupplyId,
         employeeSupplyResponseContractUuid: contractUuid,
         employeeSupplyResponseContractFile: fileUrl,
+        employeeSupplyResponseContractDigitalSignature: digitalSignatureUrl,
       })
       contracts.push(contract)
     }
@@ -47,6 +60,7 @@ export default class EmployeeSuppliesResponseContractService {
     return {
       contractUuid,
       fileUrl,
+      digitalSignatureUrl,
       contracts,
     }
   }

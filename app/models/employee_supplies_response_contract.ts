@@ -24,6 +24,10 @@ import EmployeeSupplie from './employee_supplie.js'
  *         employeeSupplyResponseContractFile:
  *           type: string
  *           description: URL of the contract file in S3
+ *         employeeSupplyResponseContractDigitalSignature:
+ *           type: string
+ *           nullable: true
+ *           description: URL of the digital signature file (PNG) in S3 (optional)
  *         employeeSupplyResponseContractCreatedAt:
  *           type: string
  *           format: date-time
@@ -42,6 +46,7 @@ import EmployeeSupplie from './employee_supplie.js'
  *         employeeSupplyId: 1
  *         employeeSupplyResponseContractUuid: '550e8400-e29b-41d4-a716-446655440000'
  *         employeeSupplyResponseContractFile: 'https://s3.example.com/file.pdf'
+ *         employeeSupplyResponseContractDigitalSignature: 'https://s3.example.com/signature.png'
  *         employeeSupplyResponseContractCreatedAt: '2025-02-12T12:00:00Z'
  *         employeeSupplyResponseContractUpdatedAt: '2025-02-12T13:00:00Z'
  *         employeeSupplyResponseContractDeletedAt: null
@@ -58,6 +63,9 @@ export default class EmployeeSuppliesResponseContract extends compose(BaseModel,
 
   @column()
   declare employeeSupplyResponseContractFile: string
+
+  @column()
+  declare employeeSupplyResponseContractDigitalSignature: string | null
 
   @belongsTo(() => EmployeeSupplie, {
     foreignKey: 'employeeSupplyId',
