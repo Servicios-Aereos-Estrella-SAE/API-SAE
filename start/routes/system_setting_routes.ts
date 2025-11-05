@@ -18,3 +18,7 @@ router.group(() => {
   router.get('/', '#controllers/system_setting_controller.getActive')
 })
 .prefix('/api/system-settings-active')
+router.group(() => {
+  router.get('/', '#controllers/system_setting_controller.getPayrollConfig')
+})
+.prefix('/api/system-settings-get-payroll-config')

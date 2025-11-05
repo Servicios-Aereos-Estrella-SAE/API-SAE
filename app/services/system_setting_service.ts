@@ -1,6 +1,8 @@
 import SystemSetting from '#models/system_setting'
+import SystemSettingPayrollConfig from '#models/system_setting_payroll_config'
 import SystemSettingSystemModule from '#models/system_setting_system_module'
 import env from '#start/env'
+import { DateTime } from 'luxon'
 
 export default class SystemSettingService {
   async index(/* filters: SystemSettingFilterSearchInterface */) {
@@ -9,6 +11,7 @@ export default class SystemSettingService {
     let systemSettingsList: SystemSetting[] = []
 
     const systemSettings = await SystemSetting.query().whereNull('system_setting_deleted_at')
+    .preload('systemSettingPayrollConfigs')
 
     systemSettings.forEach((sistemSetting) => {
       const units = sistemSetting.systemSettingBusinessUnits
@@ -75,6 +78,7 @@ export default class SystemSettingService {
       .whereNull('system_setting_deleted_at')
       .where('system_setting_id', systemSettingId)
       .preload('systemSettingSystemModules')
+      .preload('systemSettingPayrollConfigs')
       .first()
     return systemSetting ? systemSetting : null
   }
@@ -82,7 +86,7 @@ export default class SystemSettingService {
   async getActive() {
     const businessConf = `${env.get('SYSTEM_BUSINESS')}`
     const businessList = businessConf.split(',')
-    let sistemSettingActive = null
+    let sistemSettingActive = null as SystemSetting | null
 
     const systemSettings = await SystemSetting.query().whereNull('system_setting_deleted_at')
 
@@ -99,6 +103,20 @@ export default class SystemSettingService {
     })
 
     return sistemSettingActive
+  }
+
+  async getPayrollConfig(systemSettingId: number) {
+    
+    const today = DateTime.local().toFormat('yyyy-LL-dd')
+    const systemSettingPayrollConfig = await SystemSettingPayrollConfig
+      .query()
+      .whereNull('system_setting_payroll_config_deleted_at')
+      .where('system_setting_id', systemSettingId)
+      .where('system_setting_payroll_config_apply_since', '<=', today)
+      .orderBy('system_setting_payroll_config_apply_since', 'desc')
+      .first()
+
+    return systemSettingPayrollConfig
   }
 
   async verifyInfo(systemSetting: SystemSetting) {
