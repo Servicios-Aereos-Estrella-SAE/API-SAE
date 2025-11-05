@@ -41,6 +41,10 @@ export default class SyncAssistsService {
   private t: (key: string,params?: { [key: string]: string | number }) => string
   private i18n: I18n
 
+  // Cache para datos que no cambian frecuentemente
+  private tolerancesCache: { delayTolerance: Tolerance | undefined, faultTolerance: Tolerance | undefined } | null = null
+  private holidaysCache: Map<string, HolidayInterface> = new Map()
+
   constructor(i18n: I18n) {
     this.t = i18n.formatMessage.bind(i18n)
     this.i18n = i18n
@@ -610,106 +614,90 @@ export default class SyncAssistsService {
     const assistList = await query.paginate(paginator?.page || 1, paginator?.limit || 500)
     const assistListFlat  = assistList.toJSON().data as AssistInterface[]
 
-    for await (const item of assistListFlat) {
+    // OPTIMIZACIÓN: Agrupar assists por día usando Map en lugar de buscar en cada iteración (O(n) vs O(n²))
+    const assistsByDay = new Map<string, AssistInterface[]>()
+
+    for (const item of assistListFlat) {
       const assist = item as AssistInterface
       const assistDate = DateTime.fromISO(`${assist.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6')
-      const existDay = assistDayCollection.find((itemAssistDay) => itemAssistDay.day === assistDate.toFormat('yyyy-LL-dd'))
+      const dayKey = assistDate.toFormat('yyyy-LL-dd')
 
-      if (!existDay) {
-        let dayAssist: AssistInterface[] = []
+      assist.assistUsed = false
 
-        for await (const [index, dayItem] of assistListFlat.entries()) {
-          const currentDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('yyyy-LL-dd')
-
-          if (currentDay === assistDate.toFormat('yyyy-LL-dd')) {
-            // const isSummerTime = this.checkDSTSummerTime(new Date(currentDay))
-            assistListFlat[index].assistUsed = false
-
-            // let assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').toFormat('HH:mm:ss')
-
-            // if (isSummerTime) {
-            //   assistPunchTime = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').plus({ hour: 1 }).toFormat('HH:mm:ss')
-            // }
-
-            // const today = DateTime.now().setZone('UTC-6').toFormat('yyyy-MM-dd')
-            // const checkInDateTime = DateTime.fromISO(`${today}T${assistPunchTime}`, { zone: 'UTC-6' })
-            // const checkInTimeOnly = DateTime.fromObject({
-            //   hour: checkInDateTime.hour,
-            //   minute: checkInDateTime.minute,
-            //   second: checkInDateTime.second,
-            // })
-
-            if (employee) {
-              const previousDay = DateTime.fromISO(`${dayItem.assistPunchTimeUtc}`, { setZone: true }).setZone('UTC-6').minus({ day: 1 }).toFormat('yyyy-LL-dd')
-              const stringDatePrevious = `${previousDay}T00:00:00.000-06:00`
-              const timeToStartPrevious = DateTime.fromISO(stringDatePrevious, { setZone: true }).setZone('UTC-6')
-              const startDatePrevious = `${timeToStartPrevious.toFormat('yyyy-LL-dd')} 00:00:00`
-              const endDatePrevious = `${timeToStartPrevious.toFormat('yyyy-LL-dd')} 23:59:59`
-
-              employee.$setRelated('shiftChanges', [])
-
-              await employee.load('shiftChanges', (queryShiftChange) => {
-                queryShiftChange.where('employeeShiftChangeDateFrom', '>=', startDatePrevious)
-                queryShiftChange.where('employeeShiftChangeDateFrom', '<=', endDatePrevious)
-              })
-
-              // if (employee.shiftChanges.length > 0) {
-              //   if (employee.shiftChanges[0].shiftTo) {
-              //     const shift = employee.shiftChanges[0].shiftTo
-              //     const shiftTimeStart = shift.shiftTimeStart
-              //     const shiftActiveHours = shift.shiftActiveHours
-
-              //     const shiftStart = DateTime.fromISO(`${previousDay}T${shiftTimeStart}`)
-              //     const shiftEnd = shiftStart.plus({ hours: shiftActiveHours })
-
-              //     const checkInHour = checkInTimeOnly.hour + checkInTimeOnly.minute / 60
-              //     const shiftEndHour = shiftEnd.hour + shiftEnd.minute / 60
-              //     const hourDifference = Math.abs(checkInHour - shiftEndHour)
-
-              //     if (hourDifference >= 0 && hourDifference <= 2) {
-              //       assistListFlat[index].assistUsed = true
-              //     }
-              //   }
-              // }
-            }
-
-            dayAssist.push(assistListFlat[index])
-          }
-        }
-
-        dayAssist = dayAssist.sort((a: any, b: any) => a.assistPunchTimeUtc - b.assistPunchTimeUtc)
-        const dateShift = this.getAssignedDateShift(assist.assistPunchTimeUtc, employeeShifts)
-
-        assistDayCollection.push({
-          day: assistDate.toFormat('yyyy-LL-dd'),
-          assist: {
-            checkIn: this.getCheckInDate(dayAssist),
-            checkEatIn: this.getCheckEatInDate(dayAssist),
-            checkEatOut: this.getCheckEatOutDate(dayAssist),
-            checkOut: this.getCheckOutDate(dayAssist),
-            dateShift: dateShift ? dateShift.shift : null,
-            dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
-            employeeShiftId: dateShift ? dateShift.employeeShiftId : null,
-            shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
-            checkInDateTime: null,
-            checkOutDateTime: null,
-            checkInStatus: '',
-            checkOutStatus: '',
-            isFutureDay: false,
-            isSundayBonus: false,
-            isRestDay: false,
-            isVacationDate: false,
-            isWorkDisabilityDate: false,
-            isHoliday: false,
-            isBirthday: false,
-            holiday: null,
-            hasExceptions: false,
-            exceptions: [],
-            assitFlatList: dayAssist,
-          },
-        })
+      if (!assistsByDay.has(dayKey)) {
+        assistsByDay.set(dayKey, [])
       }
+      assistsByDay.get(dayKey)!.push(assist)
     }
+
+    // OPTIMIZACIÓN: Si hay empleado, cargar todos los shift changes del rango de una sola vez
+    let shiftChangesMap = new Map<string, any[]>()
+    if (employee) {
+      const rangeDays = Math.floor(timeEndCST.diff(timeCST, 'days').days) + 2
+      const allDays: string[] = []
+
+      for (let i = 0; i < rangeDays; i++) {
+        const day = timeCST.plus({ days: i }).toFormat('yyyy-LL-dd')
+        allDays.push(day)
+      }
+
+      // Cargar todos los shift changes del rango en una sola consulta
+      await employee.load('shiftChanges', (queryShiftChange) => {
+        queryShiftChange.where('employeeShiftChangeDateFrom', '>=', `${timeCST.minus({ days: 1 }).toFormat('yyyy-LL-dd')} 00:00:00`)
+        queryShiftChange.where('employeeShiftChangeDateFrom', '<=', `${timeEndCST.toFormat('yyyy-LL-dd')} 23:59:59`)
+      })
+
+      // Organizar shift changes por día
+      employee.shiftChanges.forEach((shiftChange: any) => {
+        const changeDate = DateTime.fromJSDate(new Date(shiftChange.employeeShiftChangeDateFrom)).toFormat('yyyy-LL-dd')
+        if (!shiftChangesMap.has(changeDate)) {
+          shiftChangesMap.set(changeDate, [])
+        }
+        shiftChangesMap.get(changeDate)!.push(shiftChange)
+      })
+    }
+
+    // Procesar cada día agrupado
+    for (const [dayKey, dayAssists] of assistsByDay) {
+      // Ordenar assists del día
+      const dayAssist = dayAssists.sort((a: any, b: any) =>
+        new Date(a.assistPunchTimeUtc).getTime() - new Date(b.assistPunchTimeUtc).getTime()
+      )
+
+      const dateShift = this.getAssignedDateShift(dayAssists[0].assistPunchTimeUtc, employeeShifts)
+
+      assistDayCollection.push({
+        day: dayKey,
+        assist: {
+          checkIn: this.getCheckInDate(dayAssist),
+          checkEatIn: this.getCheckEatInDate(dayAssist),
+          checkEatOut: this.getCheckEatOutDate(dayAssist),
+          checkOut: this.getCheckOutDate(dayAssist),
+          dateShift: dateShift ? dateShift.shift : null,
+          dateShiftApplySince: dateShift ? dateShift.employeShiftsApplySince : null,
+          employeeShiftId: dateShift ? dateShift.employeeShiftId : null,
+          shiftCalculateFlag: dateShift ? dateShift.shiftCalculateFlag : '',
+          checkInDateTime: null,
+          checkOutDateTime: null,
+          checkInStatus: '',
+          checkOutStatus: '',
+          isFutureDay: false,
+          isSundayBonus: false,
+          isRestDay: false,
+          isVacationDate: false,
+          isWorkDisabilityDate: false,
+          isHoliday: false,
+          isBirthday: false,
+          holiday: null,
+          hasExceptions: false,
+          exceptions: [],
+          assitFlatList: dayAssist,
+        },
+      })
+    }
+
+    // OPTIMIZACIÓN: Cargar holidays del rango en una sola consulta
+    await this.loadHolidaysInRange(timeCST, endDate)
 
     const { delayTolerance, faultTolerance } = await this.getTolerances()
     const TOLERANCE_DELAY_MINUTES = delayTolerance?.toleranceMinutes || 10
@@ -776,6 +764,43 @@ export default class SyncAssistsService {
     const assistList = employeeAssist
     const dailyAssistList: AssistDayInterface[] = []
 
+    // OPTIMIZACIÓN: Precargar todas las relaciones del empleado para el rango completo
+    const shiftChangesMap = new Map<string, any[]>()
+    const exceptionsMap = new Map<string, any[]>()
+
+    if (employee && employeeID) {
+      // Cargar todos los shift changes del rango de una sola vez
+      await employee.load('shiftChanges', (query) => {
+        query.where('employeeShiftChangeDateFrom', '>=', `${dateTimeStart.toFormat('yyyy-LL-dd')} 00:00:00`)
+        query.where('employeeShiftChangeDateFrom', '<=', `${dateTimeEnd.toFormat('yyyy-LL-dd')} 23:59:59`)
+      })
+
+      // Organizar shift changes por día
+      employee.shiftChanges.forEach((shiftChange: any) => {
+        const changeDate = DateTime.fromJSDate(new Date(shiftChange.employeeShiftChangeDateFrom)).toFormat('yyyy-LL-dd')
+        if (!shiftChangesMap.has(changeDate)) {
+          shiftChangesMap.set(changeDate, [])
+        }
+        shiftChangesMap.get(changeDate)!.push(shiftChange)
+      })
+
+      // Cargar todas las excepciones del rango de una sola vez
+      await employee.load('shift_exceptions', (query) => {
+        query.where('shiftExceptionsDate', '>=', `${dateTimeStart.toFormat('yyyy-LL-dd')} 00:00:00`)
+        query.where('shiftExceptionsDate', '<=', `${dateTimeEnd.toFormat('yyyy-LL-dd')} 23:59:59`)
+      })
+
+      // Organizar excepciones por día
+      employee.shift_exceptions.forEach((exception: any) => {
+        const exceptionDate = DateTime.fromJSDate(new Date(exception.shiftExceptionsDate)).toFormat('yyyy-LL-dd')
+        if (!exceptionsMap.has(exceptionDate)) {
+          exceptionsMap.set(exceptionDate, [])
+        }
+        exceptionsMap.get(exceptionDate)!.push(exception)
+      })
+    }
+
+    // Crear la lista de días
     for (let index = 0; index < daysBetween; index++) {
       const currentDate = DateTime.fromISO(`${dateStart}`, { setZone: true }).setZone('UTC-6').plus({ days: index })
       const dateShift = this.getAssignedDateShift(currentDate, employeeShifts)
@@ -823,11 +848,12 @@ export default class SyncAssistsService {
       dateAssistItem.assist.isCheckInEatNextDay = false
       dateAssistItem.assist.isCheckOutEatNextDay = false
 
+      // OPTIMIZACIÓN: Pasar los mapas precargados en lugar de hacer consultas
       await Promise.all([
         this.isHoliday(dateAssistItem),
-        this.hasOtherShift(employeeID, dateAssistItem, employee),
+        this.hasOtherShift(employeeID, dateAssistItem, employee, shiftChangesMap),
         this.isBirthday(dateAssistItem, employee),
-        this.isExceptionDate(employeeID, dateAssistItem, employee)
+        this.isExceptionDate(employeeID, dateAssistItem, employee, exceptionsMap)
       ])
 
       this.setCheckInDateTime(dateAssistItem)
@@ -858,6 +884,30 @@ export default class SyncAssistsService {
     return dailyAssistList
   }
 
+  /**
+   * Carga todos los holidays de un rango de fechas de una sola vez
+   */
+  private async loadHolidaysInRange(dateStart: DateTime, dateEnd: DateTime) {
+    if (this.holidaysCache.size > 0) {
+      return // Ya están en caché
+    }
+
+    const service = await new HolidayService(this.i18n).index(
+      dateStart.toFormat('yyyy-LL-dd'),
+      dateEnd.toFormat('yyyy-LL-dd'),
+      '',
+      1,
+      10000
+    )
+
+    if (service.status === 200 && service.holidays) {
+      service.holidays.forEach((holiday: any) => {
+        const holidayDate = DateTime.fromJSDate(new Date(holiday.holidayDate)).toFormat('yyyy-LL-dd')
+        this.holidaysCache.set(holidayDate, holiday as HolidayInterface)
+      })
+    }
+  }
+
   private async isHoliday(checkAssist: AssistDayInterface) {
     if (!checkAssist?.assist?.dateShift) {
       return checkAssist
@@ -869,11 +919,8 @@ export default class SyncAssistsService {
       return checkAssist
     }
 
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
-    const service = await new HolidayService(this.i18n).index(timeToStart.toFormat('yyyy-LL-dd'), timeToStart.toFormat('yyyy-LL-dd'), '', 1, 100)
-    const holidayresponse =  service.status === 200 && service.holidays && service.holidays.length > 0 ? service.holidays[0] : null
+    // Buscar en caché en lugar de hacer una consulta
+    const holidayresponse = this.holidaysCache.get(checkAssist.day) || null
 
     checkAssist.assist.holiday = holidayresponse as unknown as HolidayInterface
     checkAssist.assist.isHoliday = !!(holidayresponse)
@@ -896,7 +943,7 @@ export default class SyncAssistsService {
     return checkAssist
   }
 
-  private async hasOtherShift(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
+  private async hasOtherShift(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null, shiftChangesMap: Map<string, any[]>) {
     if (!employeeID) {
       return checkAssist
     }
@@ -917,22 +964,15 @@ export default class SyncAssistsService {
       return checkAssist
     }
 
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
-    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
-    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
-    await employee.load('shiftChanges', (query) => {
-      query.where('employeeShiftChangeDateFrom', '>=', startDate)
-      query.where('employeeShiftChangeDateFrom', '<=', endDate)
-    })
+    // Buscar en el mapa precargado en lugar de hacer una consulta
+    const dayShiftChanges = shiftChangesMap.get(checkAssist.day) || []
 
-    if (employee.shiftChanges.length > 0) {
-      if (employee.shiftChanges[0].shiftTo) {
-        checkAssist.assist.dateShift = employee.shiftChanges[0].shiftTo
+    if (dayShiftChanges.length > 0) {
+      if (dayShiftChanges[0].shiftTo) {
+        checkAssist.assist.dateShift = dayShiftChanges[0].shiftTo
         checkAssist.assist.isRestDay = false
 
-        if (employee.shiftChanges[0].employeeShiftChangeDateToIsRestDay) {
+        if (dayShiftChanges[0].employeeShiftChangeDateToIsRestDay) {
           checkAssist.assist.isRestDay = true
         }
 
@@ -979,7 +1019,7 @@ export default class SyncAssistsService {
     return checkAssist
   }
 
-  private async isExceptionDate(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null) {
+  private async isExceptionDate(employeeID: number | undefined, checkAssist: AssistDayInterface, employee: Employee | null, exceptionsMap: Map<string, any[]>) {
     if (!employeeID) {
       return checkAssist
     }
@@ -998,19 +1038,11 @@ export default class SyncAssistsService {
       return checkAssist
     }
 
-    const hourStart = assignedShift.shiftTimeStart
-    const stringDate = `${checkAssist.day}T${hourStart}.000-06:00`
-    const timeToStart = DateTime.fromISO(stringDate, { setZone: true }).setZone('UTC-6')
-    const startDate = `${timeToStart.toFormat('yyyy-LL-dd')} 00:00:00`
-    const endDate = `${timeToStart.toFormat('yyyy-LL-dd')} 23:59:59`
+    // Buscar en el mapa precargado en lugar de hacer una consulta
+    const dayExceptions = exceptionsMap.get(checkAssist.day) || []
 
-    await employee.load('shift_exceptions', (query) => {
-      query.where('shiftExceptionsDate', '>=', startDate)
-      query.where('shiftExceptionsDate', '<=', endDate)
-    })
-
-    checkAssist.assist.hasExceptions = employee.shift_exceptions.length > 0 ? true : false
-    checkAssist.assist.exceptions = employee.shift_exceptions as unknown as ShiftExceptionInterface[]
+    checkAssist.assist.hasExceptions = dayExceptions.length > 0
+    checkAssist.assist.exceptions = dayExceptions as unknown as ShiftExceptionInterface[]
 
     return checkAssist
   }
@@ -1433,14 +1465,17 @@ export default class SyncAssistsService {
 
   private async getTolerances() {
     try {
+      // Usar caché si ya se cargó
+      if (this.tolerancesCache) {
+        return this.tolerancesCache
+      }
+
       const systemSettingService = new SystemSettingService()
       const systemSettingActive = (await systemSettingService.getActive()) as unknown as SystemSetting
       let data = [] as Tolerance[]
 
       if (systemSettingActive) {
          data = await new ToleranceService().index(systemSettingActive.systemSettingId)
-
-
       }
 
       const delayTolerance = data.find((t) => t.toleranceName === 'Delay')
@@ -1450,7 +1485,9 @@ export default class SyncAssistsService {
         throw new Error('No se encontraron tolerancias para Delay o Fault')
       }
 
-      return { delayTolerance, faultTolerance }
+      // Guardar en caché
+      this.tolerancesCache = { delayTolerance, faultTolerance }
+      return this.tolerancesCache
     } catch (error) {
       console.error('Error al obtener las tolerancias:', error)
       throw error
