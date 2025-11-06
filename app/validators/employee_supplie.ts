@@ -6,6 +6,7 @@ export const createEmployeeSupplieValidator = vine.compile(
     supplyId: vine.number().positive(),
     employeeSupplyExpirationDate: vine.string().trim().optional(),
     employeeSupplyStatus: vine.enum(['active', 'retired', 'shipping']).optional(),
+    employeeSupplyAdditions: vine.string().trim().optional(),
   })
 )
 
@@ -15,6 +16,7 @@ export const updateEmployeeSupplieValidator = vine.compile(
     supplyId: vine.number().positive().optional(),
     employeeSupplyExpirationDate: vine.string().trim().optional(),
     employeeSupplyStatus: vine.enum(['active', 'retired', 'shipping']).optional(),
+    employeeSupplyAdditions: vine.string().trim().optional(),
   })
 )
 

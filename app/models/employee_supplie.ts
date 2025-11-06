@@ -90,6 +90,9 @@ export default class EmployeeSupplie extends compose(BaseModel, SoftDeletes) {
   @column.dateTime()
   declare employeeSupplyExpirationDate: DateTime | null
 
+  @column()
+  declare employeeSupplyAdditions: string | null
+
   @column.dateTime({ autoCreate: true })
   declare employeeSupplyCreatedAt: DateTime
 

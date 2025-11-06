@@ -60,19 +60,6 @@ export default class EmployeeSupplieService {
     // Get supply to check its type
     const supply = await Supplie.findOrFail(data.supplyId)
 
-    // Check if employee already has an active or shipping supply of the same type
-    const existingAssignment = await EmployeeSupplie.query()
-      .where('employeeId', data.employeeId)
-      .whereIn('employeeSupplyStatus', ['active', 'shipping'])
-      .whereHas('supply', (supplyQuery) => {
-        supplyQuery.where('supplyTypeId', supply.supplyTypeId)
-      })
-      .first()
-
-    if (existingAssignment) {
-      throw new Error('Employee already has an active or shipping supply of this type')
-    }
-
     // Check if supply is available (active status)
     if (supply.supplyStatus !== 'active') {
       throw new Error('Supply is not available for assignment')
