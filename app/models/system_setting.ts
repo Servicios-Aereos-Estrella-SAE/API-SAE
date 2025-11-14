@@ -4,6 +4,7 @@ import { SoftDeletes } from 'adonis-lucid-soft-deletes'
 import { compose } from '@adonisjs/core/helpers'
 import SystemSettingSystemModule from './system_setting_system_module.js'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
+import SystemSettingsEmployee from './system_settings_employee.js'
 import SystemSettingPayrollConfig from './system_setting_payroll_config.js'
 
 /**
@@ -107,6 +108,11 @@ export default class SystemSetting extends compose(BaseModel, SoftDeletes) {
   })
   declare systemSettingSystemModules: HasMany<typeof SystemSettingSystemModule>
 
+  @hasMany(() => SystemSettingsEmployee, {
+    foreignKey: 'systemSettingId',
+  })
+
+  declare systemSettingsEmployees: HasMany<typeof SystemSettingsEmployee>
   @hasMany(() => SystemSettingPayrollConfig, {
     foreignKey: 'systemSettingId',
   })
